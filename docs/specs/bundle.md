@@ -12,15 +12,17 @@ This document specifies the **Aspire Bundle**, a self-contained distribution pac
 3. [Goals and Non-Goals](#goals-and-non-goals)
 4. [Architecture](#architecture)
 5. [Bundle Layout](#bundle-layout)
-6. [Component Discovery](#component-discovery)
-7. [NuGet Operations](#nuget-operations)
-8. [Certificate Management](#certificate-management)
-9. [AppHost Server](#apphost-server)
-10. [CLI Integration](#cli-integration)
-11. [Configuration](#configuration)
-12. [Size and Distribution](#size-and-distribution)
-13. [Security Considerations](#security-considerations)
-14. [Build Process](#build-process)
+6. [Self-Extracting Binary](#self-extracting-binary)
+7. [Component Discovery](#component-discovery)
+8. [NuGet Operations](#nuget-operations)
+9. [Certificate Management](#certificate-management)
+10. [AppHost Server](#apphost-server)
+11. [CLI Integration](#cli-integration)
+12. [Installation](#installation)
+13. [Configuration](#configuration)
+14. [Size and Distribution](#size-and-distribution)
+15. [Security Considerations](#security-considerations)
+16. [Build Process](#build-process)
 
 ---
 
@@ -215,6 +217,105 @@ aspire-{version}-{platform}/
   "builtInIntegrations": []
 }
 ```
+
+---
+
+## Self-Extracting Binary
+
+The Aspire CLI can be distributed as a **self-extracting binary** — a single native AOT executable with the full bundle tarball embedded inside. This is the simplest installation method: download one file, run `aspire setup`, done.
+
+### Binary Format
+
+```text
+┌─────────────────────────────────────────────────┐
+│        Native AOT CLI (~29 MB)                  │
+│        (fully functional without payload)       │
+├─────────────────────────────────────────────────┤
+│        tar.gz payload (~100 MB compressed)      │
+│        (runtime, dashboard, dcp, etc.)          │
+├─────────────────────────────────────────────────┤
+│        Trailer (32 bytes)                       │
+│        ┌──────────────────────────────────────┐ │
+│        │ 8 bytes: magic "ASPIRE\0\0"         │ │
+│        │ 8 bytes: payload offset (u64 LE)    │ │
+│        │ 8 bytes: payload size (u64 LE)      │ │
+│        │ 8 bytes: version hash (FNV-1a)      │ │
+│        └──────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
+```
+
+**Validation**: `payloadOffset + payloadSize + 32 == fileLength`
+
+A CLI binary without a trailer (dev build, dotnet tool install, or previously-extracted copy) has no embedded payload. All extraction commands gracefully no-op.
+
+### BundleService
+
+All extraction logic is centralized in `IBundleService` / `BundleService` (`src/Aspire.Cli/Bundles/`):
+
+| Method | Purpose | Used by |
+|--------|---------|---------|
+| `EnsureExtractedAsync()` | Lazy extraction from `Environment.ProcessPath` | `AppHostServerProjectFactory` |
+| `ExtractAsync(path, dest, force)` | Explicit extraction, returns `BundleExtractResult` | `SetupCommand`, `UpdateCommand` |
+
+The service is thread-safe (uses `SemaphoreSlim`) and registered as a singleton.
+
+**Extraction flow:**
+1. Read trailer from binary — if no magic bytes, return `NoPayload`
+2. Check version marker (`.aspire-bundle-version`) — if hash matches, return `AlreadyUpToDate`
+3. Clean well-known layout directories (runtime, dashboard, dcp, aspire-server, tools) — preserves `bin/`
+4. Extract payload: system `tar` on Unix, .NET `TarReader` on Windows
+5. Write version marker with FNV-1a hash of the version string
+6. Validate layout via `LayoutDiscovery`
+
+### Extraction Modes
+
+#### Explicit: `aspire setup`
+
+```bash
+aspire setup [--install-path <path>] [--force]
+```
+
+Best for install scripts — reduces to:
+
+```bash
+mkdir -p ~/.aspire/bin
+curl -fsSL .../aspire -o ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire
+~/.aspire/bin/aspire setup
+export PATH="$HOME/.aspire/bin:$PATH"
+```
+
+#### Lazy: first polyglot command
+
+When a polyglot project runs `aspire run`, `AppHostServerProjectFactory.CreateAsync()` calls `BundleService.EnsureExtractedAsync()`. This transparently extracts on first use, before the normal command flow. C# projects never trigger extraction — they use `dotnet` directly.
+
+#### After self-update
+
+`aspire update --self` downloads the new self-extracting binary, swaps it, then calls `BundleService.ExtractAsync(force: true)` to proactively extract the updated payload.
+
+### Version Tracking
+
+The file `.aspire-bundle-version` in the layout root contains the hex-encoded FNV-1a hash of the bundle version string (e.g., `939D3D82D58A46D5`). This enables:
+
+- **Skip extraction** when version matches (normal startup is free)
+- **Re-extract** when CLI binary is updated (hash changes)
+- **Force re-extract** with `aspire setup --force` (ignores hash)
+
+### Platform Notes
+
+- **macOS**: Archives are created with `COPYFILE_DISABLE=1` to suppress `SCHILY.xattr` PAX headers that break .NET's `TarReader`. Extraction uses system `tar` which handles these natively.
+- **Unix**: System `tar` preserves file permissions — no manual `chmod` needed after extraction.
+- **Windows**: Uses .NET `TarReader` for extraction (no system `tar` dependency).
+- **Layout cleanup**: Before re-extraction, well-known directories are removed to avoid macOS `tar` "Operation not permitted" errors on existing files in temp directories.
+
+### Shared Code
+
+| File | Purpose |
+|------|---------|
+| `src/Shared/BundleTrailer.cs` | Trailer read/write, version marker, `SubStream`, FNV-1a hash |
+| `src/Aspire.Cli/Bundles/IBundleService.cs` | Interface + `BundleExtractResult` enum |
+| `src/Aspire.Cli/Bundles/BundleService.cs` | Implementation with platform-aware extraction |
+
+`BundleTrailer.cs` is source-linked into both `Aspire.Cli` and `CreateLayout` via `<Compile Include>`.
 
 ---
 
@@ -500,22 +601,26 @@ No user configuration or flags are required - the experience is identical regard
 
 ### Self-Update Command
 
-When running from a bundle, `aspire update --self` updates the bundle to the latest version:
+`aspire update --self` updates the CLI to the latest version:
 
 ```bash
-# Update the bundle to the latest version
+# Update the CLI to the latest version
 aspire update --self
 
-# Check for updates without installing
-aspire update --self --check
+# Update to a specific channel
+aspire update --self --channel daily
 ```
 
-The update process:
-1. Queries GitHub releases API for latest version
-2. Downloads the appropriate platform-specific archive
-3. Extracts to a temporary location
-4. Replaces the current bundle (preserving user config)
-5. Restarts the CLI if needed
+With self-extracting binaries, the update process is:
+1. User selects a channel (stable, staging, daily)
+2. Downloads the new self-extracting CLI binary (platform-specific archive)
+3. Extracts archive to temp, finds new binary
+4. Backs up current binary, swaps in the new one
+5. Verifies new binary with `--version`
+6. Calls `BundleService.ExtractAsync(force: true)` to proactively extract the embedded payload
+7. Saves selected channel to global settings
+
+The old bundle-update path (downloading a full tarball and applying via `IBundleDownloader`) has been removed. The self-extracting binary IS the bundle — one download, one file, everything included.
 
 When running via `dotnet tool`, `aspire update --self` displays instructions to use `dotnet tool update`.
 
@@ -567,14 +672,14 @@ irm https://aka.ms/install-aspire.ps1 | iex
 
 ### Script Behavior
 
-The install scripts:
+With self-extracting binaries, install scripts can be simplified to:
 1. Detect the current platform (OS + architecture)
-2. Query GitHub releases for the latest bundle version
-3. Download the appropriate archive
-4. Extract to the default location (`~/.aspire/`)
-5. Move CLI binary to `bin/` subdirectory for consistent PATH
-6. Add `~/.aspire/bin` to PATH (with user confirmation)
-7. Verify installation with `aspire --version`
+2. Download the self-extracting binary to `~/.aspire/bin/aspire`
+3. Run `aspire setup` to extract the embedded payload
+4. Add `~/.aspire/bin` to PATH
+5. Verify installation with `aspire --version`
+
+The install scripts now exclusively support this self-extracting binary flow; archive-based bundles are no longer downloaded or extracted, and CI uploads only the self-extracting CLI binary.
 
 ### Installed Layout
 
@@ -583,9 +688,10 @@ The bundle installs components as siblings under `~/.aspire/`, with the CLI bina
 ```text
 ~/.aspire/
 ├── bin/                    # CLI binary (shared path for both install methods)
-│   └── aspire              #   - Native AOT CLI executable (bundle install)
+│   └── aspire              #   - Self-extracting native AOT CLI (bundle install)
 │                           #   - Or SDK-based CLI (CLI-only install)
 │
+├── .aspire-bundle-version  # Version marker (hex FNV-1a hash, written after extraction)
 ├── layout.json             # Bundle metadata (present only for bundle install)
 │
 ├── runtime/                # Bundled .NET runtime
@@ -613,8 +719,10 @@ The bundle installs components as siblings under `~/.aspire/`, with the CLI bina
 
 **Key behaviors:**
 - The CLI lives at `~/.aspire/bin/aspire` regardless of install method
+- With self-extracting binaries, the CLI in `bin/` contains the embedded payload; `aspire setup` extracts siblings
+- `.aspire-bundle-version` tracks the extracted version — extraction is skipped when hash matches
 - Bundle components (`runtime/`, `dashboard/`, `dcp/`, etc.) are siblings at the `~/.aspire/` root
-- NuGet hives and settings are preserved across installations
+- NuGet hives and settings are preserved across installations and re-extractions
 - `LayoutDiscovery` finds the bundle by checking the CLI's parent directory for components
 
 ### Script Options
@@ -713,13 +821,15 @@ Downloaded integration packages are cached in:
 
 ### Distribution Formats
 
-| Platform | Format | Filename |
-|----------|--------|----------|
-| Windows x64 | ZIP | `aspire-13.2.0-win-x64.zip` |
-| Linux x64 | tar.gz | `aspire-13.2.0-linux-x64.tar.gz` |
-| Linux ARM64 | tar.gz | `aspire-13.2.0-linux-arm64.tar.gz` |
-| macOS x64 | tar.gz | `aspire-13.2.0-osx-x64.tar.gz` |
-| macOS ARM64 | tar.gz | `aspire-13.2.0-osx-arm64.tar.gz` |
+| Platform | Archive | Self-Extracting Binary |
+|----------|---------|----------------------|
+| Windows x64 | `aspire-{ver}-win-x64.zip` | `aspire.exe` (~134 MB) |
+| Linux x64 | `aspire-{ver}-linux-x64.tar.gz` | `aspire` (~134 MB) |
+| Linux ARM64 | `aspire-{ver}-linux-arm64.tar.gz` | `aspire` (~134 MB) |
+| macOS x64 | `aspire-{ver}-osx-x64.tar.gz` | `aspire` (~134 MB) |
+| macOS ARM64 | `aspire-{ver}-osx-arm64.tar.gz` | `aspire` (~134 MB) |
+
+The self-extracting binary is the **recommended distribution format** — one file containing the CLI and full bundle payload. Archive format is still produced for compatibility with existing install scripts.
 
 ### Download Locations
 
@@ -1191,10 +1301,25 @@ This section tracks the implementation progress of the bundle feature.
   - Copies DCP, Dashboard, aspire-server, NuGetHelper
   - Generates layout.json metadata
   - Enables RollForward=Major for all managed tools
+  - `--embed-in-cli` option creates self-extracting binary
 - [x] **Installation scripts** - `eng/scripts/get-aspire-cli-bundle-pr.sh`, `eng/scripts/get-aspire-cli-bundle-pr.ps1`
   - Downloads bundle archive from PR build artifacts
   - Extracts to `~/.aspire/` with CLI in `bin/` subdirectory
   - Downloads and installs NuGet hive packages for PR channel
+- [x] **Self-extracting binary** - `src/Shared/BundleTrailer.cs`, `src/Aspire.Cli/Bundles/`
+  - 32-byte trailer format (magic + offset + size + version hash)
+  - `IBundleService` / `BundleService` for centralized extraction logic
+  - Thread-safe extraction with `SemaphoreSlim`
+  - Platform-aware extraction (system `tar` on Unix, .NET `TarReader` on Windows)
+  - Version tracking via `.aspire-bundle-version` marker file
+- [x] **Setup command** - `src/Aspire.Cli/Commands/SetupCommand.cs`
+  - `aspire setup [--install-path] [--force]`
+  - Delegates to `IBundleService.ExtractAsync()`
+- [x] **Self-update simplified** - `src/Aspire.Cli/Commands/UpdateCommand.cs`
+  - `aspire update --self` downloads new CLI, swaps binary, extracts via `IBundleService`
+  - Removed old `ExecuteBundleSelfUpdateAsync` / `IBundleDownloader` dependency
+- [x] **Unit tests** - `tests/Aspire.Cli.Tests/BundleTrailerTests.cs`
+  - 10 tests: roundtrip, edge cases, version marker, tar.gz extraction with strip-components
 
 ### In Progress
 
@@ -1202,8 +1327,8 @@ This section tracks the implementation progress of the bundle feature.
 
 ### Pending
 
-- [ ] Self-update command (`aspire update --self`) - BundleDownloader exists but not wired
 - [ ] Multi-platform build workflow (GitHub Actions)
+- [ ] Simplify install scripts to thin download + `aspire setup` wrappers
 
 ### Key Files
 
@@ -1220,7 +1345,14 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Aspire.Cli/Certificates/ICertificateToolRunner.cs` | Certificate tool abstraction |
 | `src/Aspire.Cli/Certificates/BundleCertificateToolRunner.cs` | Bundled dev-certs runner |
 | `src/Aspire.Cli/Certificates/SdkCertificateToolRunner.cs` | SDK-based dev-certs runner |
-| `tools/CreateLayout/Program.cs` | Bundle build tool |
+| `src/Shared/BundleTrailer.cs` | Trailer read/write, version marker, SubStream, FNV-1a hash |
+| `src/Aspire.Cli/Bundles/IBundleService.cs` | Bundle extraction interface + result enum |
+| `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with platform-aware tar handling |
+| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command |
+| `src/Aspire.Cli/Utils/ArchiveHelper.cs` | Shared .zip/.tar.gz extraction utility |
+| `tools/CreateLayout/Program.cs` | Bundle build tool (layout assembly + self-extracting binary) |
+| `eng/Bundle.proj` | MSBuild orchestration for bundle creation |
+| `tests/Aspire.Cli.Tests/BundleTrailerTests.cs` | Unit tests for trailer format and extraction |
 
 ---
 
@@ -1279,4 +1411,24 @@ The CreateLayout tool automatically patches all `*.runtimeconfig.json` files:
 5. **Download and copy DCP** binaries
 6. **Patch runtimeconfig.json files** to enable RollForward=Major
 7. **Generate layout.json** with component metadata
-8. **Create archive** (ZIP for Windows, tar.gz for Unix)
+8. **Create archive** (tar.gz for Unix, ZIP for Windows) with `COPYFILE_DISABLE=1` to suppress macOS xattr headers
+9. **Create self-extracting binary** — appends tar.gz payload + 32-byte trailer to native AOT CLI
+
+### Self-Extracting Binary Build
+
+`Bundle.proj` passes `--embed-in-cli` to `CreateLayout`, which:
+
+1. Takes the native AOT CLI binary and the tar.gz archive
+2. Copies the CLI binary to `{output}.bundle`
+3. Appends the tar.gz payload
+4. Writes the 32-byte trailer (magic + offset + size + version hash)
+5. Replaces the original CLI binary with the bundle
+
+```bash
+# Build command
+dotnet msbuild eng/Bundle.proj /p:TargetRid=osx-arm64 /p:Configuration=Release /p:BundleRuntimeVersion=10.0.102
+
+# Output: artifacts/bundle/osx-arm64/aspire (self-extracting, ~134 MB)
+```
+
+The resulting binary is a valid native executable that also contains the full bundle. Running `aspire --version` works immediately; `aspire setup` extracts the payload.

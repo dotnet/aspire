@@ -4,6 +4,7 @@
 using System.Text;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Commands.Sdk;
@@ -130,6 +131,7 @@ internal static class CliTestHelper
         // This ensures backward compatibility: no layout found = use legacy SDK mode
         services.AddSingleton(options.LayoutDiscoveryFactory);
         services.AddSingleton(options.BundleDownloaderFactory);
+        services.AddSingleton<IBundleService, NullBundleService>();
         services.AddSingleton<BundleNuGetService>();
 
         // AppHost project handlers - must match Program.cs registration pattern
@@ -178,6 +180,7 @@ internal static class CliTestHelper
         services.AddTransient<CacheCommand>();
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<SetupCommand>();
         services.AddTransient<McpCommand>();
         services.AddTransient<McpStartCommand>();
         services.AddTransient<McpInitCommand>();
@@ -557,6 +560,18 @@ internal sealed class NullBundleDownloader : IBundleDownloader
 
     public Task<BundleUpdateResult> ApplyUpdateAsync(string archivePath, string installPath, CancellationToken cancellationToken)
         => Task.FromResult(BundleUpdateResult.Failed("Bundle updates not available in test environment"));
+}
+
+/// <summary>
+/// A no-op bundle service that never extracts anything.
+/// Used in tests to ensure SDK mode fallback.
+/// </summary>
+internal sealed class NullBundleService : IBundleService
+{
+    public Task EnsureExtractedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<BundleExtractResult> ExtractAsync(string binaryPath, string destinationPath, bool force = false, CancellationToken cancellationToken = default)
+        => Task.FromResult(BundleExtractResult.NoPayload);
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

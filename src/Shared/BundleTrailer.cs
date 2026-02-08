@@ -141,7 +141,7 @@ internal static class BundleTrailer
         }
 
         var content = File.ReadAllText(markerPath).Trim();
-        return ulong.TryParse(content, System.Globalization.NumberStyles.HexNumber, null, out var hash) ? hash : null;
+        return ulong.TryParse(content, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var hash) ? hash : null;
     }
 
     /// <summary>

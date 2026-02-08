@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Formats.Tar;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -267,7 +265,7 @@ internal sealed class BundleDownloader : IBundleDownloader
             CleanupDirectory(stagingPath);
             Directory.CreateDirectory(stagingPath);
 
-            await ExtractArchiveAsync(archivePath, stagingPath, cancellationToken);
+            await ArchiveHelper.ExtractAsync(archivePath, stagingPath, cancellationToken);
 
             // Read version from extracted layout.json
             var version = await ReadVersionFromLayoutAsync(stagingPath);
@@ -589,24 +587,6 @@ internal sealed class BundleDownloader : IBundleDownloader
         }
 
         return null;
-    }
-
-    private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
-    {
-        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            ZipFile.ExtractToDirectory(archivePath, destinationPath, overwriteFiles: true);
-        }
-        else if (archivePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
-        {
-            await using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read);
-            await using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
-            await TarFile.ExtractToDirectoryAsync(gzipStream, destinationPath, overwriteFiles: true, cancellationToken);
-        }
-        else
-        {
-            throw new NotSupportedException($"Unsupported archive format: {archivePath}");
-        }
     }
 
     private static string GetRuntimeIdentifier()

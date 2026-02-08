@@ -2,14 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Layout;
-using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Aspire.Shared;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
 
@@ -18,12 +15,11 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class SetupCommand : BaseCommand
 {
-    private readonly ILayoutDiscovery _layoutDiscovery;
-    private readonly ILogger<SetupCommand> _logger;
+    private readonly IBundleService _bundleService;
 
     private static readonly Option<string?> s_installPathOption = new("--install-path")
     {
-        Description = "Directory to extract the bundle into. Defaults to the parent of the CLI binary's directory."
+        Description = "Directory to extract the bundle into. Defaults to the parent of the CLI binary's directory. Non-default paths require ASPIRE_LAYOUT_PATH to be set for auto-discovery."
     };
 
     private static readonly Option<bool> s_forceOption = new("--force")
@@ -32,17 +28,15 @@ internal sealed class SetupCommand : BaseCommand
     };
 
     public SetupCommand(
-        ILayoutDiscovery layoutDiscovery,
+        IBundleService bundleService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IInteractionService interactionService,
-        AspireCliTelemetry telemetry,
-        ILogger<SetupCommand> logger)
+        AspireCliTelemetry telemetry)
         : base("setup", "Extract the embedded bundle to set up the Aspire CLI runtime.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _layoutDiscovery = layoutDiscovery;
-        _logger = logger;
+        _bundleService = bundleService;
 
         Options.Add(s_installPathOption);
         Options.Add(s_forceOption);
@@ -60,18 +54,10 @@ internal sealed class SetupCommand : BaseCommand
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        var trailer = BundleTrailer.TryRead(processPath);
-        if (trailer is null)
-        {
-            InteractionService.DisplayMessage(":information:", "This CLI binary does not contain an embedded bundle. No extraction needed.");
-            return ExitCodeConstants.Success;
-        }
-
         // Determine extraction directory
         if (string.IsNullOrEmpty(installPath))
         {
-            var cliDir = Path.GetDirectoryName(processPath);
-            installPath = !string.IsNullOrEmpty(cliDir) ? Path.GetDirectoryName(cliDir) ?? cliDir : cliDir;
+            installPath = BundleService.GetDefaultExtractDir(processPath);
         }
 
         if (string.IsNullOrEmpty(installPath))
@@ -80,35 +66,33 @@ internal sealed class SetupCommand : BaseCommand
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        // Check if layout already exists with matching version
-        if (!force && _layoutDiscovery.DiscoverLayout() is not null)
-        {
-            var existingHash = BundleTrailer.ReadVersionMarker(installPath);
-            if (existingHash == trailer.VersionHash)
-            {
-                InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted and up to date. Use --force to re-extract.");
-                return ExitCodeConstants.Success;
-            }
-        }
-
         // Extract with spinner
+        BundleExtractResult result = BundleExtractResult.NoPayload;
         var exitCode = await InteractionService.ShowStatusAsync(
             ":package:  Extracting Aspire bundle...",
             async () =>
             {
-                await AppHostServerProjectFactory.ExtractPayloadAsync(processPath, trailer, installPath, cancellationToken);
-                BundleTrailer.WriteVersionMarker(installPath, trailer.VersionHash);
+                result = await _bundleService.ExtractAsync(processPath, installPath, force, cancellationToken);
                 return ExitCodeConstants.Success;
             });
 
-        if (_layoutDiscovery.DiscoverLayout() is not null)
+        switch (result)
         {
-            InteractionService.DisplayMessage(":white_check_mark:", $"Bundle extracted to {installPath}");
-        }
-        else
-        {
-            InteractionService.DisplayError($"Bundle was extracted to {installPath} but layout validation failed.");
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            case BundleExtractResult.NoPayload:
+                InteractionService.DisplayMessage(":information:", "This CLI binary does not contain an embedded bundle. No extraction needed.");
+                break;
+
+            case BundleExtractResult.AlreadyUpToDate:
+                InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted and up to date. Use --force to re-extract.");
+                break;
+
+            case BundleExtractResult.Extracted:
+                InteractionService.DisplayMessage(":white_check_mark:", $"Bundle extracted to {installPath}");
+                break;
+
+            case BundleExtractResult.ExtractionFailed:
+                InteractionService.DisplayError($"Bundle was extracted to {installPath} but layout validation failed.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
         return exitCode;

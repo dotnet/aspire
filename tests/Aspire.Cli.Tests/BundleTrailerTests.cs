@@ -3,7 +3,7 @@
 
 using System.Formats.Tar;
 using System.IO.Compression;
-using Aspire.Cli.Projects;
+using Aspire.Cli.Bundles;
 using Aspire.Shared;
 
 namespace Aspire.Cli.Tests;
@@ -203,7 +203,7 @@ public class BundleTrailerTests
 
             var trailer = BundleTrailer.TryRead(tempFile)!;
 
-            await AppHostServerProjectFactory.ExtractPayloadAsync(tempFile, trailer, extractDir.FullName, CancellationToken.None);
+            await BundleService.ExtractPayloadAsync(tempFile, trailer, extractDir.FullName, CancellationToken.None);
 
             // Verify files were extracted with top-level directory stripped
             Assert.True(File.Exists(Path.Combine(extractDir.FullName, "runtime", "test.txt")));

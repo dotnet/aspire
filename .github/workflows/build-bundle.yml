@@ -21,13 +21,13 @@ jobs:
         targets:
           - rid: linux-x64
             runner: 8-core-ubuntu-latest  # Larger runner for bundle disk space
-            archive_ext: tar.gz
+            cli_exe: aspire
           - rid: win-x64
             runner: windows-latest
-            archive_ext: zip
+            cli_exe: aspire.exe
           - rid: osx-arm64
             runner: macos-latest
-            archive_ext: tar.gz
+            cli_exe: aspire
 
     steps:
       - name: Checkout code
@@ -89,18 +89,9 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
         with:
           name: aspire-bundle-${{ matrix.targets.rid }}
-          path: artifacts/bundle/${{ matrix.targets.rid }}
+          path: artifacts/bundle/${{ matrix.targets.rid }}/${{ matrix.targets.cli_exe }}
           retention-days: 15
           if-no-files-found: error
-
-      - name: Upload bundle archive
-        if: success()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
-        with:
-          name: aspire-bundle-archive-${{ matrix.targets.rid }}
-          path: artifacts/bundle/*.${{ matrix.targets.archive_ext }}
-          retention-days: 15
-          if-no-files-found: warn
 
       - name: Upload logs
         if: always()

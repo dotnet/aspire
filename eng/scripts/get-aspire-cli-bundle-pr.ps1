@@ -2,21 +2,15 @@
 
 <#
 .SYNOPSIS
-    Download and unpack the Aspire CLI Bundle from a specific PR's build artifacts
+    Download and install the Aspire CLI Bundle from a specific PR's build artifacts
 
 .DESCRIPTION
     Downloads and installs the Aspire CLI Bundle from a specific pull request's latest successful build.
     Automatically detects the current platform (OS and architecture) and downloads the appropriate artifact.
 
-    The bundle is a self-contained distribution that includes:
-    - Native AOT Aspire CLI
-    - .NET runtime (for running managed components)
-    - Dashboard (web-based monitoring UI)
-    - DCP (Developer Control Plane for orchestration)
-    - AppHost Server (for polyglot apps - TypeScript, Python, Go, etc.)
-    - NuGet Helper tools
-
-    This bundle allows running Aspire applications WITHOUT requiring a globally-installed .NET SDK.
+    The bundle artifact contains a self-extracting Aspire CLI binary that embeds all runtime components.
+    The script downloads the binary, places it in the install directory, and runs `aspire setup` to
+    extract the embedded components (Dashboard, DCP, runtime, AppHost Server, NuGet tools).
 
 .PARAMETER PRNumber
     Pull request number (required)
@@ -353,31 +347,31 @@ function Install-AspireBundle {
         return $true
     }
 
-    # Create install directory (may already exist with other aspire state like logs, certs, etc.)
-    Write-VerboseMessage "Installing bundle from $DownloadDir to $InstallDir"
-    
-    try {
-        Copy-Item -Path "$DownloadDir/*" -Destination $InstallDir -Recurse -Force
-
-        # Move CLI binary into bin/ subdirectory so it shares the same path as CLI-only install
-        # Layout: ~/.aspire/bin/aspire (CLI) + ~/.aspire/runtime/ + ~/.aspire/dashboard/ + ...
-        $binDir = Join-Path $InstallDir "bin"
-        if (-not (Test-Path $binDir)) {
-            New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+    # Find the self-extracting binary in the downloaded artifact
+    $cliExe = if ($IsWindows -or $env:OS -eq "Windows_NT") { "aspire.exe" } else { "aspire" }
+    $binaryPath = Join-Path $DownloadDir $cliExe
+    if (-not (Test-Path $binaryPath)) {
+        # Search in subdirectories
+        $found = Get-ChildItem -Path $DownloadDir -Filter $cliExe -Recurse | Select-Object -First 1
+        if ($found) {
+            $binaryPath = $found.FullName
+        } else {
+            Write-ErrorMessage "Could not find $cliExe in downloaded artifact"
+            return $false
         }
-        $cliExe = if ($IsWindows -or $env:OS -eq "Windows_NT") { "aspire.exe" } else { "aspire" }
-        $cliSource = Join-Path $InstallDir $cliExe
-        if (Test-Path $cliSource) {
-            Move-Item -Path $cliSource -Destination (Join-Path $binDir $cliExe) -Force
-        }
+    }
 
-        Write-SuccessMessage "Aspire CLI bundle successfully installed to: $InstallDir"
-        return $true
+    # Place the self-extracting binary in bin/
+    $binDir = Join-Path $InstallDir "bin"
+    if (-not (Test-Path $binDir)) {
+        New-Item -ItemType Directory -Path $binDir -Force | Out-Null
     }
-    catch {
-        Write-ErrorMessage "Failed to copy bundle files: $_"
-        return $false
-    }
+    $cliPath = Join-Path $binDir $cliExe
+    Copy-Item -Path $binaryPath -Destination $cliPath -Force
+
+    # Bundle extraction happens lazily on first command that needs the layout
+    Write-SuccessMessage "Aspire CLI bundle successfully installed to: $InstallDir"
+    return $true
 }
 
 # =============================================================================

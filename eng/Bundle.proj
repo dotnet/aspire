@@ -124,7 +124,7 @@
       <_CliExeName Condition="!$(TargetRid.StartsWith('win'))">aspire</_CliExeName>
       <_CliOutputPath>$(_BundleOutputDirArg)$([System.IO.Path]::DirectorySeparatorChar)$(_CliExeName)</_CliOutputPath>
       
-      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --archive --verbose --download-runtime --embed-in-cli "$(_CliOutputPath)"</_CreateLayoutArgs>
+      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --verbose --download-runtime --embed-in-cli "$(_CliOutputPath)"</_CreateLayoutArgs>
     </PropertyGroup>
     
     <Message Importance="high" Text="Creating bundle layout..." />

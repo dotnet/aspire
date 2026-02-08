@@ -182,8 +182,22 @@ public static class Program
             BundleTrailer.Write(output, payloadOffset, payloadSize, versionHash);
         }
 
+        // Preserve original file permissions before replacing (Unix only)
+        UnixFileMode originalMode = default;
+        var isUnix = !OperatingSystem.IsWindows();
+        if (isUnix)
+        {
+            originalMode = File.GetUnixFileMode(cliPath);
+        }
+
         // Replace original CLI with the bundle
         File.Move(outputPath, cliPath, overwrite: true);
+
+        // Restore executable permissions (File.Create inherits umask, not original permissions)
+        if (isUnix)
+        {
+            File.SetUnixFileMode(cliPath, originalMode);
+        }
 
         var fileInfo = new FileInfo(cliPath);
         if (verbose)
@@ -711,6 +725,8 @@ internal sealed class LayoutBuilder : IDisposable
                 RedirectStandardError = true,
                 UseShellExecute = false
             };
+            // Prevent macOS from including resource forks/extended attributes in the archive
+            psi.Environment["COPYFILE_DISABLE"] = "1";
 
             using var process = Process.Start(psi);
             if (process is not null)
