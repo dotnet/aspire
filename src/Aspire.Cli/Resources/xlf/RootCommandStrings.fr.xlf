@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
         <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <target state="translated">Définir le niveau minimal de journalisation pour la sortie console (trace, débogage, information, avertissement, erreur, critique).</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
