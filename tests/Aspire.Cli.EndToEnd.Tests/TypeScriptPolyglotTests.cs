@@ -16,7 +16,6 @@ namespace Aspire.Cli.EndToEnd.Tests;
 public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 {
     [Fact]
-    [Trait("quarantined", "true")] // Bundle mode requires NuGet package setup not yet implemented in E2E helpers
     public async Task CreateTypeScriptAppHostWithViteApp()
     {
         var workspace = TemporaryWorkspace.Create(output);
