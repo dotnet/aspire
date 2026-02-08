@@ -32,8 +32,15 @@ internal static class BundleTrailer
     /// <returns>The trailer info if valid, or null if the file has no embedded payload.</returns>
     public static BundleTrailerInfo? TryRead(string filePath)
     {
-        using var stream = File.OpenRead(filePath);
-        return TryRead(stream);
+        try
+        {
+            using var stream = File.OpenRead(filePath);
+            return TryRead(stream);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>
