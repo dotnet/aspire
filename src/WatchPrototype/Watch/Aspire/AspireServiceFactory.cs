@@ -286,6 +286,6 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
     public const string AspireLogComponentName = "Aspire";
     public const string AppHostProjectCapability = ProjectCapability.Aspire;
 
-    public IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments)
+    public IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments, Action? onLaunchedProcessCrashed = null)
         => new SessionManager(projectLauncher, launchProfile, targetFramework, buildArguments);
 }

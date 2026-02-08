@@ -29,6 +29,24 @@ internal static class AspireServerLauncher
         var loggerFactory = new LoggerFactory(reporter, globalOptions.LogLevel);
         var logger = loggerFactory.CreateLogger(DotNetWatchContext.DefaultLogComponentName);
 
+        // Connect to status pipe if provided
+        WatchStatusWriter? statusWriter = null;
+        if (options.StatusPipeName is { } statusPipeName)
+        {
+            statusWriter = await WatchStatusWriter.TryConnectAsync(statusPipeName, logger, CancellationToken.None);
+        }
+
+        await using var statusWriterDispose = statusWriter;
+
+        // Connect to control pipe if provided
+        WatchControlReader? controlReader = null;
+        if (options.ControlPipeName is { } controlPipeName)
+        {
+            controlReader = await WatchControlReader.TryConnectAsync(controlPipeName, logger, CancellationToken.None);
+        }
+
+        await using var controlReaderDispose = controlReader;
+
         using var context = new DotNetWatchContext()
         {
             ProcessOutputReporter = reporter,
@@ -45,14 +63,21 @@ internal static class AspireServerLauncher
             RootProjects = [.. options.ResourcePaths.Select(ProjectRepresentation.FromProjectOrEntryPointFilePath)],
             BrowserRefreshServerFactory = new BrowserRefreshServerFactory(),
             BrowserLauncher = new BrowserLauncher(logger, reporter, environmentOptions),
+            StatusEventWriter = statusWriter is not null ? statusWriter.WriteEventAsync : null,
         };
 
         using var shutdownHandler = new ShutdownHandler(console, logger);
 
         try
         {
-            var processLauncherFactory = new ProcessLauncherFactory(options.ServerPipeName, shutdownHandler.CancellationToken);
+            var processLauncherFactory = new ProcessLauncherFactory(options.ServerPipeName, context.StatusEventWriter, shutdownHandler.CancellationToken);
             var watcher = new HotReloadDotNetWatcher(context, console, processLauncherFactory);
+
+            if (controlReader is not null)
+            {
+                _ = ListenForControlCommandsAsync(controlReader, watcher, logger, shutdownHandler.CancellationToken);
+            }
+
             await watcher.WatchAsync(shutdownHandler.CancellationToken);
         }
         catch (OperationCanceledException) when (shutdownHandler.CancellationToken.IsCancellationRequested)
@@ -66,5 +91,34 @@ internal static class AspireServerLauncher
         }
 
         return 0;
+    }
+
+    static async Task ListenForControlCommandsAsync(
+        WatchControlReader reader, HotReloadDotNetWatcher watcher,
+        ILogger logger, CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var command = await reader.ReadCommandAsync(cancellationToken);
+                if (command is null)
+                {
+                    break;
+                }
+
+                logger.LogInformation("Received control command: {Type}", command.Type);
+
+                if (command.Type == WatchControlCommand.Types.Rebuild)
+                {
+                    watcher.RequestRestart();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            logger.LogDebug("Control pipe listener ended: {Message}", ex.Message);
+        }
     }
 }

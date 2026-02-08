@@ -65,12 +65,24 @@ internal sealed class AspireServerCommandDefinition : AspireCommandDefinition
     /// </summary>
     public readonly Option<string[]> ResourceOption = new("--resource") { Arity = ArgumentArity.OneOrMore, AllowMultipleArgumentsPerToken = true };
 
+    /// <summary>
+    /// Status pipe name for sending watch status events back to the AppHost.
+    /// </summary>
+    public readonly Option<string?> StatusPipeOption = new("--status-pipe") { Arity = ArgumentArity.ExactlyOne, AllowMultipleArgumentsPerToken = false };
+
+    /// <summary>
+    /// Control pipe name for receiving commands from the AppHost.
+    /// </summary>
+    public readonly Option<string?> ControlPipeOption = new("--control-pipe") { Arity = ArgumentArity.ExactlyOne, AllowMultipleArgumentsPerToken = false };
+
     public AspireServerCommandDefinition()
         : base("server", "Starts the dotnet watch server.")
     {
         Options.Add(ServerOption);
         Options.Add(SdkOption);
         Options.Add(ResourceOption);
+        Options.Add(StatusPipeOption);
+        Options.Add(ControlPipeOption);
     }
 }
 
@@ -207,6 +219,8 @@ internal sealed class AspireServerWatchOptions : AspireWatchOptions
 
     public required ImmutableArray<string> ResourcePaths { get; init; }
     public required string SdkDirectory { get; init; }
+    public string? StatusPipeName { get; init; }
+    public string? ControlPipeName { get; init; }
 
     public override string? SdkDirectoryToRegister => SdkDirectory;
 
@@ -215,6 +229,8 @@ internal sealed class AspireServerWatchOptions : AspireWatchOptions
         var serverPipeName = parseResult.GetValue(command.ServerOption)!;
         var sdkDirectory = parseResult.GetValue(command.SdkOption)!;
         var resourcePaths = parseResult.GetValue(command.ResourceOption) ?? [];
+        var statusPipeName = parseResult.GetValue(command.StatusPipeOption);
+        var controlPipeName = parseResult.GetValue(command.ControlPipeOption);
 
         return new AspireServerWatchOptions
         {
@@ -222,6 +238,8 @@ internal sealed class AspireServerWatchOptions : AspireWatchOptions
             LogLevel = command.GetLogLevel(parseResult),
             SdkDirectory = sdkDirectory,
             ResourcePaths = [.. resourcePaths],
+            StatusPipeName = statusPipeName,
+            ControlPipeName = controlPipeName,
         };
     }
 }

@@ -235,7 +235,7 @@ namespace Projects%3B
       <WatchAspireDir>$([MSBuild]::EnsureTrailingSlash('$(WatchAspireDir)'))</WatchAspireDir>
       <WatchAspirePath Condition=" '$(WatchAspirePath)' == '' ">$([MSBuild]::NormalizePath($(WatchAspireDir), 'Microsoft.DotNet.HotReload.Watch.Aspire'))</WatchAspirePath>
       <WatchAspirePath Condition=" '$(OS)' == 'Windows_NT' and !$(WatchAspirePath.EndsWith('.exe')) ">$(WatchAspirePath).exe</WatchAspirePath>
-      <WatchAspirePath Condition="$([MSBuild]::IsOsPlatform('OSX')) and !$(WatchAspirePath.EndsWith('.dll'))">$(WatchAspirePath).dll</WatchAspirePath>
+      <WatchAspirePath Condition=" '$(OS)' != 'Windows_NT' and !$(WatchAspirePath.EndsWith('.dll')) ">$(WatchAspirePath).dll</WatchAspirePath>
     </PropertyGroup>
 
     <ItemGroup>

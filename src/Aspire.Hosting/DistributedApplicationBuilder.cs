@@ -452,6 +452,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
 
+            _innerBuilder.Services.AddEventingSubscriber<WatchAspireEventHandlers>();
+
             if (options.EnableResourceLogging)
             {
                 // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService

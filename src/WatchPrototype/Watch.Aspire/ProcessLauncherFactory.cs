@@ -4,53 +4,92 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.DotNet.HotReload;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch;
 
-internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken shutdownCancellationToken) : IRuntimeProcessLauncherFactory
+internal sealed class ProcessLauncherFactory(string namedPipe, Func<WatchStatusEvent, Task>? statusEventWriter, CancellationToken shutdownCancellationToken) : IRuntimeProcessLauncherFactory
 {
-    public IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments)
-        => new Launcher(namedPipe, projectLauncher, launchProfile, targetFramework, buildArguments, shutdownCancellationToken);
+    private Launcher? _currentLauncher;
+
+    public IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments, Action? onLaunchedProcessCrashed = null)
+    {
+        // Reuse the existing launcher if the pipe is still alive (crash-restart iteration).
+        // This keeps the DCP resource command connected across iteration restarts.
+        if (_currentLauncher is { IsDisposed: false } launcher)
+        {
+            projectLauncher.Logger.LogDebug("Reusing existing launcher (pipe still alive)");
+            launcher.UpdateProjectLauncher(projectLauncher);
+            return launcher;
+        }
+
+        _currentLauncher = new Launcher(namedPipe, statusEventWriter, projectLauncher, launchProfile, targetFramework, buildArguments, onLaunchedProcessCrashed, shutdownCancellationToken);
+        return _currentLauncher;
+    }
 
     private sealed class Launcher : IRuntimeProcessLauncher
     {
         private const byte Version = 1;
 
-        private readonly ProjectLauncher _projectLauncher;
+        private volatile ProjectLauncher _projectLauncher;
+        private readonly Func<WatchStatusEvent, Task>? _statusEventWriter;
         private readonly string? _launchProfile;
         private readonly string? _targetFramework;
         private readonly IReadOnlyList<string> _buildArguments;
+        private readonly Action? _onLaunchedProcessCrashed;
         private readonly Task _listenerTask;
-        private readonly CancellationToken _shutdownCancellationToken;
+        private readonly CancellationTokenSource _launcherCts;
 
         private ImmutableHashSet<Task> _pendingRequestCompletions = [];
+        private volatile bool _crashCallbackFired;
+
+        public bool IsDisposed { get; private set; }
 
         public Launcher(
             string namedPipe,
+            Func<WatchStatusEvent, Task>? statusEventWriter,
             ProjectLauncher projectLauncher,
             string? launchProfile,
             string? targetFramework,
             IReadOnlyList<string> buildArguments,
+            Action? onLaunchedProcessCrashed,
             CancellationToken shutdownCancellationToken)
         {
             _projectLauncher = projectLauncher;
+            _statusEventWriter = statusEventWriter;
             _launchProfile = launchProfile;
             _targetFramework = targetFramework;
             _buildArguments = buildArguments;
+            _onLaunchedProcessCrashed = onLaunchedProcessCrashed;
 
-            _listenerTask = StartListeningAsync(namedPipe, _shutdownCancellationToken);
-            _shutdownCancellationToken = shutdownCancellationToken;
+            _launcherCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+            _listenerTask = StartListeningAsync(namedPipe, _launcherCts.Token);
+        }
+
+        private TaskCompletionSource? _relaunchSignal;
+
+        public void UpdateProjectLauncher(ProjectLauncher projectLauncher)
+        {
+            _projectLauncher = projectLauncher;
+            // Reset crash flag so new iteration can detect crashes again
+            _crashCallbackFired = false;
+            // Signal existing HandleRequestAsync to relaunch the project
+            _relaunchSignal?.TrySetResult();
         }
 
         public async ValueTask DisposeAsync()
         {
-            Logger.LogDebug("Waiting for server to shutdown ...");
-
+            Logger.LogDebug("DisposeAsync: cancelling listener");
+            IsDisposed = true;
+            await _launcherCts.CancelAsync();
             await _listenerTask;
             await Task.WhenAll(_pendingRequestCompletions);
+            _launcherCts.Dispose();
+            Logger.LogDebug("DisposeAsync: completed");
         }
 
         private ILogger Logger => _projectLauncher.Logger;
@@ -110,13 +149,51 @@ internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken
             var completionSource = new TaskCompletionSource();
             ImmutableInterlocked.Update(ref _pendingRequestCompletions, set => set.Add(completionSource.Task));
 
+            // Shared box to track the latest RunningProject across restarts.
+            // restartOperation creates new RunningProjects — we always need the latest one.
+            var currentProject = new StrongBox<RunningProject?>(null);
+
+            // Create a per-connection token that cancels when the pipe disconnects OR on shutdown.
+            // DCP Stop kills the resource command, which closes the pipe from the other end.
+            // We detect that by reading from the pipe — when it breaks, we cancel.
+            using var pipeCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var connectionToken = pipeCts.Token;
+
             try
             {
-                await StartProjectAsync(GetProjectOptions(request), pipe, isRestart: false, cancellationToken);
+                Logger.LogDebug("HandleRequest: starting '{EntryPoint}'", request.EntryPoint);
+                var projectOptions = GetProjectOptions(request);
+
+                while (true)
+                {
+                    // Set up a relaunch signal for crash recovery.
+                    // UpdateProjectLauncher() completes this when a new iteration starts after a crash.
+                    _relaunchSignal = new TaskCompletionSource();
+
+                    currentProject.Value = await StartProjectAsync(projectOptions, pipe, currentProject, isRestart: currentProject.Value is not null, connectionToken);
+
+                    Logger.LogDebug("Project started, waiting for pipe disconnect or relaunch.");
+
+                    // Wait for either: pipe disconnects (DCP Stop) OR relaunch signal (crash recovery)
+                    var pipeDisconnectTask = WaitForPipeDisconnectAsync(pipe, connectionToken);
+                    var completedTask = await Task.WhenAny(pipeDisconnectTask, _relaunchSignal.Task);
+
+                    if (completedTask == _relaunchSignal.Task)
+                    {
+                        Logger.LogDebug("Relaunch signal received for '{EntryPoint}'.", request.EntryPoint);
+                        // New iteration started after crash — relaunch the project with the updated _projectLauncher
+                        continue;
+                    }
+                    else
+                    {
+                        Logger.LogDebug("Pipe disconnected for '{EntryPoint}'.", request.EntryPoint);
+                        break;
+                    }
+                }
             }
             catch (OperationCanceledException)
             {
-                // nop
+                // Shutdown or DCP killed the resource command
             }
             catch (Exception e)
             {
@@ -124,66 +201,153 @@ internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken
             }
             finally
             {
+                // Cancel the connection token so any in-flight restartOperation / drain tasks stop.
+                await pipeCts.CancelAsync();
+
+                // Terminate the project process when the resource command disconnects.
+                // This handles DCP Stop — the resource command is killed, pipe breaks,
+                // and we clean up the project process the watch server launched.
+                if (currentProject.Value is { } project)
+                {
+                    Logger.LogDebug("Pipe disconnected for '{Path}', terminating project process.", request.EntryPoint);
+                    await project.TerminateAsync();
+                }
+
                 await pipe.DisposeAsync();
+                Logger.LogDebug("HandleRequest completed for '{Path}'.", request.EntryPoint);
             }
 
             ImmutableInterlocked.Update(ref _pendingRequestCompletions, set => set.Remove(completionSource.Task));
             completionSource.SetResult();
         }
 
-        private async ValueTask<RunningProject> StartProjectAsync(ProjectOptions projectOptions, NamedPipeServerStream pipe, bool isRestart, CancellationToken cancellationToken)
+        private static async Task WaitForPipeDisconnectAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
         {
-            Logger.LogDebug("Starting: '{Path}'", projectOptions.Representation.ProjectOrEntryPointFilePath);
+            try
+            {
+                var buffer = new byte[1];
+                while (pipe.IsConnected && !cancellationToken.IsCancellationRequested)
+                {
+                    var bytesRead = await pipe.ReadAsync(buffer, cancellationToken);
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                // Pipe disconnected
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+        }
 
-            // Use a SemaphoreSlim to serialize writes to the pipe from multiple threads
-            var pipeLock = new SemaphoreSlim(1, 1);
+        private async ValueTask<RunningProject> StartProjectAsync(ProjectOptions projectOptions, NamedPipeServerStream pipe, StrongBox<RunningProject?> currentProject, bool isRestart, CancellationToken cancellationToken)
+        {
+            Logger.LogDebug("{Action}: '{Path}'", isRestart ? "Restarting" : "Starting", projectOptions.Representation.ProjectOrEntryPointFilePath);
 
-            return await _projectLauncher.TryLaunchProcessAsync(
+            // Buffer output through a channel to avoid blocking the synchronous onOutput callback.
+            // The channel is drained asynchronously by DrainOutputChannelAsync which writes to the pipe.
+            var outputChannel = Channel.CreateUnbounded<(byte Type, string Content)>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+            });
+
+            var drainTask = DrainOutputChannelAsync(outputChannel.Reader, pipe, cancellationToken);
+
+            var runningProject = await _projectLauncher.TryLaunchProcessAsync(
                 projectOptions,
                 processTerminationSource: new CancellationTokenSource(),
                 onOutput: line =>
                 {
-                    // Write output to the pipe: [type byte] + [string content]
                     var typeByte = line.IsError ? AspireResourceLauncher.OutputTypeStderr : AspireResourceLauncher.OutputTypeStdout;
-                    pipeLock.Wait(cancellationToken);
-                    try
-                    {
-                        pipe.WriteAsync(typeByte, cancellationToken).AsTask().GetAwaiter().GetResult();
-                        pipe.WriteAsync(line.Content, cancellationToken).AsTask().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-                    {
-                        // Pipe disconnected, resource command exited
-                    }
-                    finally
-                    {
-                        pipeLock.Release();
-                    }
+                    outputChannel.Writer.TryWrite((typeByte, line.Content));
                 },
                 onExit: async (processId, exitCode) =>
                 {
-                    // Write exit notification to the pipe: [type=0] + [exit code as string]
-                    try
+                    var isRestarting = currentProject.Value?.IsRestarting == true;
+                    Logger.LogDebug("Process {ProcessId} exited with code {ExitCode} for '{Path}'",
+                        processId, exitCode, projectOptions.Representation.ProjectOrEntryPointFilePath);
+
+                    // Emit a status event for non-zero exit codes so the dashboard shows the crash.
+                    // Skip if cancellation is requested (DCP Stop/shutdown) or if the project
+                    // is being deliberately restarted (rude edit restart).
+                    if (exitCode is not null and not 0 && _statusEventWriter is not null && !cancellationToken.IsCancellationRequested && !isRestarting)
                     {
-                        await pipeLock.WaitAsync(cancellationToken);
-                        try
+                        await _statusEventWriter(new WatchStatusEvent
                         {
-                            await pipe.WriteAsync(AspireResourceLauncher.OutputTypeExit, cancellationToken);
-                            await pipe.WriteAsync((exitCode ?? -1).ToString(), cancellationToken);
-                        }
-                        finally
+                            Type = WatchStatusEvent.Types.ProcessExited,
+                            Projects = [projectOptions.Representation.ProjectOrEntryPointFilePath],
+                            ExitCode = exitCode,
+                        });
+                    }
+
+                    // Signal the iteration to restart so dotnet-watch rebuilds on next file change.
+                    // Only for actual crashes (non-zero exit, not cancelled, not a deliberate restart).
+                    // Use once-only flag to prevent storms from dotnet-watch auto-retry.
+                    if (exitCode is not null and not 0 && !cancellationToken.IsCancellationRequested && !isRestarting)
+                    {
+                        if (!_crashCallbackFired && _onLaunchedProcessCrashed is not null)
                         {
-                            pipeLock.Release();
+                            _crashCallbackFired = true;
+                            Logger.LogDebug("Launched process crashed, cancelling iteration.");
+                            _onLaunchedProcessCrashed();
                         }
                     }
-                    catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException)
-                    {
-                        // Pipe disconnected or cancellation
-                    }
+
+                    // Signal the exit to the resource command but DON'T complete the channel.
+                    // dotnet-watch will auto-retry on crash and reuse the same onOutput callback,
+                    // so new output from the retried process flows through the same channel/pipe.
+                    // Completing the channel would starve the pipe and cause DCP to kill the
+                    // resource command, triggering a disconnect → terminate → reconnect storm.
+                    outputChannel.Writer.TryWrite((AspireResourceLauncher.OutputTypeExit, (exitCode ?? -1).ToString()));
                 },
-                restartOperation: cancellationToken => StartProjectAsync(projectOptions, pipe, isRestart: true, cancellationToken),
+                restartOperation: async ct =>
+                {
+                    Logger.LogDebug("Restart operation initiated.");
+                    // Complete the old channel so the old drain task finishes before
+                    // StartProjectAsync creates a new channel + drain on the same pipe.
+                    outputChannel.Writer.TryComplete();
+                    await drainTask;
+                    var newProject = await StartProjectAsync(projectOptions, pipe, currentProject, isRestart: true, ct);
+                    currentProject.Value = newProject;
+                    Logger.LogDebug("Restart operation completed.");
+                    return newProject;
+                },
                 cancellationToken)
                 ?? throw new InvalidOperationException();
+
+            // Emit ProcessStarted so the dashboard knows the process is actually running.
+            if (_statusEventWriter is not null)
+            {
+                await _statusEventWriter(new WatchStatusEvent
+                {
+                    Type = WatchStatusEvent.Types.ProcessStarted,
+                    Projects = [projectOptions.Representation.ProjectOrEntryPointFilePath],
+                });
+            }
+
+            return runningProject;
+        }
+
+        private static async Task DrainOutputChannelAsync(ChannelReader<(byte Type, string Content)> reader, NamedPipeServerStream pipe, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await foreach (var (typeByte, content) in reader.ReadAllAsync(cancellationToken))
+                {
+                    await pipe.WriteAsync(typeByte, cancellationToken);
+                    await pipe.WriteAsync(content, cancellationToken);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException)
+            {
+                // Pipe disconnected or cancelled
+            }
         }
 
         private ProjectOptions GetProjectOptions(LaunchResourceRequest request)

@@ -29,6 +29,11 @@ namespace Microsoft.DotNet.Watch
         public required BrowserRefreshServerFactory BrowserRefreshServerFactory { get; init; }
         public required BrowserLauncher BrowserLauncher { get; init; }
 
+        /// <summary>
+        /// Optional writer for sending watch status events (building, hot reload applied, etc.) back to the AppHost.
+        /// </summary>
+        public Func<WatchStatusEvent, Task>? StatusEventWriter { get; init; }
+
         public void Dispose()
         {
             BrowserRefreshServerFactory.Dispose();

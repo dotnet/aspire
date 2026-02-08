@@ -12,5 +12,5 @@ namespace Microsoft.DotNet.Watch;
 /// </summary>
 internal interface IRuntimeProcessLauncherFactory
 {
-    IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments);
+    IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments, Action? onLaunchedProcessCrashed = null);
 }

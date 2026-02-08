@@ -32,7 +32,10 @@ internal static class AspireResourceLauncher
                 PipeDirection.InOut,
                 PipeOptions.CurrentUserOnly | PipeOptions.Asynchronous);
 
-            await pipeClient.ConnectAsync(cancellationToken);
+            // Timeout ensures we don't hang indefinitely if the server isn't ready or the pipe name is wrong.
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
+            await pipeClient.ConnectAsync(timeoutCts.Token);
 
             var request = new LaunchResourceRequest()
             {
@@ -104,7 +107,9 @@ internal static class AspireResourceLauncher
                     Console.Error.WriteLine(content);
                     break;
                 case OutputTypeExit:
-                    return int.TryParse(content, out var exitCode) ? exitCode : -1;
+                    // Don't exit — the server may restart the process (e.g. after a rude edit)
+                    // and continue writing to the same pipe. We stay alive until the pipe closes.
+                    break;
             }
         }
 

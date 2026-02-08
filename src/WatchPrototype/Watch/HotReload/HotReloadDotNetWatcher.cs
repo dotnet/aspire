@@ -26,6 +26,8 @@ namespace Microsoft.DotNet.Watch
         private readonly DotNetWatchContext _context;
         private readonly ProjectGraphFactory _designTimeBuildGraphFactory = null!;
 
+        private volatile CancellationTokenSource? _forceRestartCancellationSource;
+
         internal Task? Test_FileChangesCompletedTask { get; set; }
 
         public HotReloadDotNetWatcher(DotNetWatchContext context, IConsole console, IRuntimeProcessLauncherFactory? runtimeProcessLauncherFactory)
@@ -54,16 +56,19 @@ namespace Microsoft.DotNet.Watch
                     context.EnvironmentOptions));
         }
 
+        internal void RequestRestart()
+        {
+            _forceRestartCancellationSource?.Cancel();
+        }
+
         public async Task WatchAsync(CancellationToken shutdownCancellationToken)
         {
-            CancellationTokenSource? forceRestartCancellationSource = null;
-
             _context.Logger.Log(MessageDescriptor.HotReloadEnabled);
             _context.Logger.Log(MessageDescriptor.PressCtrlRToRestart);
 
             _console.KeyPressed += (key) =>
             {
-                if (key.Modifiers.HasFlag(ConsoleModifiers.Control) && key.Key == ConsoleKey.R && forceRestartCancellationSource is { } source)
+                if (key.Modifiers.HasFlag(ConsoleModifiers.Control) && key.Key == ConsoleKey.R && _forceRestartCancellationSource is { } source)
                 {
                     // provide immediate feedback to the user:
                     _context.Logger.Log(source.IsCancellationRequested ? MessageDescriptor.RestartInProgress : MessageDescriptor.RestartRequested);
@@ -75,12 +80,12 @@ namespace Microsoft.DotNet.Watch
 
             for (var iteration = 0; !shutdownCancellationToken.IsCancellationRequested; iteration++)
             {
-                Interlocked.Exchange(ref forceRestartCancellationSource, new CancellationTokenSource())?.Dispose();
+                Interlocked.Exchange(ref _forceRestartCancellationSource, new CancellationTokenSource())?.Dispose();
 
                 using var rootProcessTerminationSource = new CancellationTokenSource();
 
                 // This source will signal when the user cancels (either Ctrl+R or Ctrl+C) or when the root process terminates:
-                using var iterationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, forceRestartCancellationSource.Token, rootProcessTerminationSource.Token);
+                using var iterationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, _forceRestartCancellationSource.Token, rootProcessTerminationSource.Token);
                 var iterationCancellationToken = iterationCancellationSource.Token;
 
                 var waitForFileChangeBeforeRestarting = true;
@@ -92,7 +97,13 @@ namespace Microsoft.DotNet.Watch
 
                 try
                 {
+                    var rootProjectPaths = _context.RootProjects.Select(p => p.ProjectOrEntryPointFilePath);
+                    await EmitStatusEventAsync(WatchStatusEvent.Types.Building, rootProjectPaths);
+
                     var buildSucceeded = await BuildProjectsAsync(_context.RootProjects, _context.BuildArguments, iterationCancellationToken);
+
+                    await EmitStatusEventAsync(WatchStatusEvent.Types.BuildComplete, rootProjectPaths, success: buildSucceeded);
+
                     if (!buildSucceeded)
                     {
                         continue;
@@ -124,7 +135,14 @@ namespace Microsoft.DotNet.Watch
                         projectLauncher,
                         launchProfile: _context.LaunchProfileName,
                         targetFramework: _context.TargetFramework,
-                        buildArguments: _context.BuildArguments);
+                        buildArguments: _context.BuildArguments,
+                        onLaunchedProcessCrashed: () =>
+                        {
+                            // Mirror the root process onExit behavior (line 154-159):
+                            // cancel the iteration, wait for file change, then restart.
+                            waitForFileChangeBeforeRestarting = true;
+                            iterationCancellationSource.Cancel();
+                        });
 
                     if (rootProjectOptions != null)
                     {
@@ -321,19 +339,25 @@ namespace Microsoft.DotNet.Watch
                             {
                                 iterationCancellationToken.ThrowIfCancellationRequested();
 
+                                await EmitStatusEventAsync(WatchStatusEvent.Types.Building, projectsToRebuild);
+
                                 // pause accumulating file changes during build:
                                 fileWatcher.SuppressEvents = true;
+                                bool rebuildSuccess;
                                 try
                                 {
-                                    var success = await BuildProjectsAsync([.. projectsToRebuild.Select(ProjectRepresentation.FromProjectOrEntryPointFilePath)], _context.BuildArguments, iterationCancellationToken);
-                                    if (success)
-                                    {
-                                        break;
-                                    }
+                                    rebuildSuccess = await BuildProjectsAsync([.. projectsToRebuild.Select(ProjectRepresentation.FromProjectOrEntryPointFilePath)], _context.BuildArguments, iterationCancellationToken);
                                 }
                                 finally
                                 {
                                     fileWatcher.SuppressEvents = false;
+                                }
+
+                                await EmitStatusEventAsync(WatchStatusEvent.Types.BuildComplete, projectsToRebuild, success: rebuildSuccess);
+
+                                if (rebuildSuccess)
+                                {
+                                    break;
                                 }
 
                                 iterationCancellationToken.ThrowIfCancellationRequested();
@@ -363,10 +387,13 @@ namespace Microsoft.DotNet.Watch
                         if (!managedCodeUpdates.IsEmpty)
                         {
                             await compilationHandler.ApplyUpdatesAsync(managedCodeUpdates, stopwatch, iterationCancellationToken);
+                            await EmitStatusEventAsync(WatchStatusEvent.Types.HotReloadApplied, changedFiles.SelectMany(f => f.Item.ContainingProjectPaths).Distinct());
                         }
 
                         if (!projectsToRestart.IsEmpty)
                         {
+                            await EmitStatusEventAsync(WatchStatusEvent.Types.Restarting, projectsToRestart.Select(p => p.Options.Representation.ProjectOrEntryPointFilePath));
+
                             await Task.WhenAll(
                                 projectsToRestart.Select(async runningProject =>
                                 {
@@ -374,6 +401,9 @@ namespace Microsoft.DotNet.Watch
                                     _ = await newRunningProject.WaitForProcessRunningAsync(shutdownCancellationToken);
                                 }))
                                 .WaitAsync(shutdownCancellationToken);
+
+                            // ProcessStarted event (emitted by ProcessLauncherFactory.StartProjectAsync)
+                            // already set the state to Running. No additional signal needed here.
 
                             _context.Logger.Log(MessageDescriptor.ProjectsRestarted, projectsToRestart.Length);
                         }
@@ -527,15 +557,21 @@ namespace Microsoft.DotNet.Watch
 
                     if (runtimeProcessLauncher != null)
                     {
-                        await runtimeProcessLauncher.DisposeAsync();
+                        // Only dispose the launcher on full shutdown (Ctrl+C).
+                        // During iteration restarts (crash recovery, rebuild command, forced restart),
+                        // keep it alive so the DCP resource command's pipe connection survives.
+                        if (shutdownCancellationToken.IsCancellationRequested)
+                        {
+                            await runtimeProcessLauncher.DisposeAsync();
+                        }
                     }
 
                     if (waitForFileChangeBeforeRestarting &&
                         !shutdownCancellationToken.IsCancellationRequested &&
-                        !forceRestartCancellationSource.IsCancellationRequested &&
+                        !_forceRestartCancellationSource.IsCancellationRequested &&
                         rootRunningProject?.IsRestarting != true)
                     {
-                        using var shutdownOrForcedRestartSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, forceRestartCancellationSource.Token);
+                        using var shutdownOrForcedRestartSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, _forceRestartCancellationSource.Token);
                         await WaitForFileChangeBeforeRestarting(fileWatcher, evaluationResult, shutdownOrForcedRestartSource.Token);
                     }
                 }
@@ -1012,6 +1048,26 @@ namespace Microsoft.DotNet.Watch
                     }
                 }
             }
+        }
+
+        private Task EmitStatusEventAsync(string type, IEnumerable<string> projectPaths, bool? success = null, string? error = null)
+        {
+            var projects = projectPaths.ToArray();
+            _context.Logger.LogDebug("Status event: {Type} (success={Success}) for [{Projects}]",
+                type, success, string.Join(", ", projects.Select(p => Path.GetFileNameWithoutExtension(p))));
+
+            if (_context.StatusEventWriter is not { } writer)
+            {
+                return Task.CompletedTask;
+            }
+
+            return writer(new WatchStatusEvent
+            {
+                Type = type,
+                Projects = projects,
+                Success = success,
+                Error = error,
+            });
         }
 
         private string GetRelativeFilePath(string path)
