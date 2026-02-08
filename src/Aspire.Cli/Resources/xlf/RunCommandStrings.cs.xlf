@@ -149,7 +149,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">Projekt nelze spustit. Protokoly najdete na {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

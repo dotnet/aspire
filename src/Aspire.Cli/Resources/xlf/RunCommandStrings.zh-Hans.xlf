@@ -149,7 +149,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">无法运行该项目。请参阅 {0} 处的日志</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
         <source>Project creation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">Project creation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">Die Projekterstellung ist mit dem Exitcode {0} fehlgeschlagen. Protokolle unter {1} anzeigen.</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
         <source>The template installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">Die Vorlageninstallation ist mit dem Exitcode {0} fehlgeschlagen. Protokolle unter {1} anzeigen.</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="Unknown">
