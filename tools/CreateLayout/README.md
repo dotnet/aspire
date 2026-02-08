@@ -24,7 +24,7 @@ Before running CreateLayout, you must:
    - `Aspire.Hosting.RemoteHost` → `artifacts/bin/Aspire.Hosting.RemoteHost/{config}/{tfm}/publish/`
    - `Aspire.Dashboard` → `artifacts/bin/Aspire.Dashboard/{config}/{tfm}/publish/`
 
-The build scripts (`build.sh -bundle` / `build.ps1 -bundle`) handle this automatically.
+The build scripts (`./build.sh -bundle` / `./build.cmd -bundle`) handle this automatically.
 
 ## Usage
 
@@ -45,9 +45,9 @@ dotnet run --project tools/CreateLayout/CreateLayout.csproj -- [options]
 |--------|-------------|
 | `-r, --runtime <path>` | Path to existing .NET runtime to include |
 | `--rid <rid>` | Runtime identifier (default: current platform) |
-| `-v, --version <ver>` | Version string for the layout |
+| `--bundle-version <ver>` | Version string for the layout |
 | `--download-runtime` | Download .NET and ASP.NET runtimes from Microsoft |
-| `--runtime-version <ver>` | Specific .NET SDK version to download (default: latest .NET 10) |
+| `--runtime-version <ver>` | Specific .NET SDK version to download |
 | `--archive` | Create archive (zip/tar.gz) after building |
 | `--verbose` | Enable verbose output |
 
@@ -59,7 +59,7 @@ dotnet run --project tools/CreateLayout/CreateLayout.csproj -- \
   --output ./artifacts/bundle/linux-x64 \
   --artifacts ./artifacts \
   --rid linux-x64 \
-  --version 9.2.0 \
+  --bundle-version 13.2.0 \
   --download-runtime \
   --archive \
   --verbose
@@ -82,18 +82,16 @@ The tool creates the following layout:
 {output}/
 ├── aspire[.exe]             # Native AOT CLI executable
 ├── runtime/                 # .NET shared runtime
+│   ├── dotnet[.exe]
 │   └── shared/
 │       ├── Microsoft.NETCore.App/{version}/
 │       └── Microsoft.AspNetCore.App/{version}/
-├── dashboard/               # Aspire Dashboard files
-├── dcp/                     # DCP binaries (5 Go executables)
-├── aspire-server/          # Pre-built AppHost server
-│   └── Aspire.Hosting.RemoteHost.dll
+├── dashboard/               # Aspire Dashboard (framework-dependent)
+├── dcp/                     # DCP binaries
+├── aspire-server/           # Pre-built AppHost server (framework-dependent)
 └── tools/
     ├── aspire-nuget/        # NuGet helper tool
-    │   └── aspire-nuget.dll
     └── dev-certs/           # Certificate management
-        └── dotnet-dev-certs.dll
 ```
 
 ## How It Works
@@ -111,10 +109,9 @@ The tool creates the following layout:
 
 When `--download-runtime` is specified, the tool:
 
-1. Queries `https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json` for the latest .NET 10 SDK version (or uses `--runtime-version` if specified)
-2. Downloads `dotnet-runtime-{version}-{rid}.tar.gz` (or .zip)
-3. Downloads `aspnetcore-runtime-{version}-{rid}.tar.gz` (or .zip)
-4. Extracts both to the `runtime/` directory
+1. Downloads the .NET SDK from `builds.dotnet.microsoft.com` (using `--runtime-version` for the SDK version)
+2. Extracts the .NET runtime and ASP.NET Core runtime from the SDK to the `runtime/` directory
+3. Extracts the `dotnet-dev-certs` tool from the SDK to `tools/dev-certs/`
 
 ## Integration with Build Scripts
 
@@ -122,12 +119,12 @@ The recommended way to build the bundle is through the main build scripts:
 
 **Linux/macOS:**
 ```bash
-./build.sh --restore --build -bundle
+./build.sh -bundle
 ```
 
 **Windows:**
 ```powershell
-.\build.cmd -restore -build -bundle
+.\build.cmd -bundle
 ```
 
 These scripts handle:

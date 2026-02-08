@@ -306,7 +306,7 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Aspire"
 | Feature | CLI-Only Scripts | Bundle Scripts |
 |---------|-----------------|----------------|
 | Requires .NET SDK | Yes | No |
-| Package size | ~15 MB | ~75-90 MB |
+| Package size | ~25 MB | ~200 MB compressed |
 | Polyglot support | Partial | Full |
 | Components included | CLI only | CLI, Runtime, Dashboard, DCP |
 | Use case | .NET developers | TypeScript, Python, Go developers |
