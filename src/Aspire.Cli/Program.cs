@@ -222,17 +222,19 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner implementations - factory chooses based on layout availability
+        // Register certificate tool runner implementations - factory chooses based on bundle trailer
         builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
         {
-            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
-            var layout = layoutDiscovery.DiscoverLayout();
+            var processPath = Environment.ProcessPath;
+            var isBundle = !string.IsNullOrEmpty(processPath) && BundleTrailer.TryRead(processPath) is not null;
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
-            // Use bundle runner if layout exists and has dev-certs tool
-            if (layout is not null && layout.GetDevCertsPath() is string devCertsPath && File.Exists(devCertsPath))
+            if (isBundle)
             {
-                return new BundleCertificateToolRunner(layout, loggerFactory.CreateLogger<BundleCertificateToolRunner>());
+                return new BundleCertificateToolRunner(
+                    sp.GetRequiredService<ILayoutDiscovery>(),
+                    sp.GetRequiredService<IBundleService>(),
+                    loggerFactory.CreateLogger<BundleCertificateToolRunner>());
             }
 
             // Fall back to SDK-based runner
@@ -244,16 +246,15 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
 
-        // Register both NuGetPackageCache implementations - factory chooses based on layout availability
+        // Register both NuGetPackageCache implementations - factory chooses based on bundle trailer
         builder.Services.AddSingleton<NuGetPackageCache>();
         builder.Services.AddSingleton<BundleNuGetPackageCache>();
         builder.Services.AddSingleton<INuGetPackageCache>(sp =>
         {
-            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
-            var layout = layoutDiscovery.DiscoverLayout();
+            var processPath = Environment.ProcessPath;
+            var isBundle = !string.IsNullOrEmpty(processPath) && BundleTrailer.TryRead(processPath) is not null;
 
-            // Use bundle cache if layout exists and has NuGetHelper
-            if (layout is not null && layout.GetNuGetHelperPath() is string helperPath && File.Exists(helperPath))
+            if (isBundle)
             {
                 return sp.GetRequiredService<BundleNuGetPackageCache>();
             }
