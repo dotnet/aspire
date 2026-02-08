@@ -112,9 +112,9 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-        // Step 4: Add Aspire.Hosting.JavaScript package (with -d for debug logging)
+        // Step 4: Add Aspire.Hosting.JavaScript package
         sequenceBuilder
-            .Type("aspire add Aspire.Hosting.JavaScript -d")
+            .Type("aspire add Aspire.Hosting.JavaScript")
             .Enter();
 
         // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)

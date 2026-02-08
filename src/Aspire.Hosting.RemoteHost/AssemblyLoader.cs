@@ -14,17 +14,16 @@ namespace Aspire.Hosting.RemoteHost;
 internal sealed class AssemblyLoader
 {
     private readonly Lazy<IReadOnlyList<Assembly>> _assemblies;
-    private static string? s_integrationLibsPath;
+    private readonly string? _integrationLibsPath;
 
     public AssemblyLoader(IConfiguration configuration, ILogger<AssemblyLoader> logger)
     {
-        // Register assembly resolver for integration libs path.
         // ASPIRE_INTEGRATION_LIBS_PATH is set by the CLI when running guest (polyglot) apphosts
         // that require additional hosting integration packages. See docs/specs/bundle.md for details.
-        var libsPath = Environment.GetEnvironmentVariable("ASPIRE_INTEGRATION_LIBS_PATH");
+        var libsPath = configuration["ASPIRE_INTEGRATION_LIBS_PATH"];
         if (!string.IsNullOrEmpty(libsPath) && Directory.Exists(libsPath))
         {
-            s_integrationLibsPath = libsPath;
+            _integrationLibsPath = libsPath;
             AssemblyLoadContext.Default.Resolving += ResolveAssemblyFromIntegrationLibs;
             logger.LogDebug("Registered assembly resolver for integration libs at {Path}", libsPath);
         }
@@ -34,14 +33,14 @@ internal sealed class AssemblyLoader
 
     public IReadOnlyList<Assembly> GetAssemblies() => _assemblies.Value;
 
-    private static Assembly? ResolveAssemblyFromIntegrationLibs(AssemblyLoadContext context, AssemblyName assemblyName)
+    private Assembly? ResolveAssemblyFromIntegrationLibs(AssemblyLoadContext context, AssemblyName assemblyName)
     {
-        if (s_integrationLibsPath is null || assemblyName.Name is null)
+        if (_integrationLibsPath is null || assemblyName.Name is null)
         {
             return null;
         }
 
-        var assemblyPath = Path.Combine(s_integrationLibsPath, $"{assemblyName.Name}.dll");
+        var assemblyPath = Path.Combine(_integrationLibsPath, $"{assemblyName.Name}.dll");
         if (File.Exists(assemblyPath))
         {
             return context.LoadFromAssemblyPath(assemblyPath);
