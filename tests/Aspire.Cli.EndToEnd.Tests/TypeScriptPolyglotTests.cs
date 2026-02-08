@@ -51,6 +51,10 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
 
+        // Pattern for version selection in aspire add (channel auto-resolved, but still prompts for version)
+        var waitingForVersionPrompt = new CellPatternSearcher()
+            .Find("Select a version of Aspire.Hosting.JavaScript");
+
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find("Press CTRL+C to stop the apphost and exit.");
@@ -103,6 +107,15 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         sequenceBuilder
             .Type("aspire add Aspire.Hosting.JavaScript")
             .Enter();
+
+        // The channel is auto-resolved from global config, but a version selection prompt
+        // still appears when the channel has packages. Accept the default (highest version).
+        if (isCI)
+        {
+            sequenceBuilder
+                .WaitUntil(s => waitingForVersionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Enter();
+        }
 
         sequenceBuilder
             .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
