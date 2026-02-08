@@ -51,12 +51,6 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
 
-        // Pattern for version selection in aspire add (channel auto-resolved, but still prompts for version).
-        // Wait for the actual version string (e.g. "13.2.0-pr.14105") rather than just the prompt title,
-        // because Spectre.Console briefly renders the channel name before redrawing with the version.
-        var waitingForVersionPrompt = new CellPatternSearcher()
-            .Find($"pr.{prNumber}");
-
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find("Press CTRL+C to stop the apphost and exit.");
@@ -106,21 +100,11 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
         // Step 4: Add Aspire.Hosting.JavaScript package
+        // When channel is set (CI) and there's only one channel with one version,
+        // the version is auto-selected without prompting.
         sequenceBuilder
             .Type("aspire add Aspire.Hosting.JavaScript")
-            .Enter();
-
-        // The channel is auto-resolved from global config, but a version selection prompt
-        // still appears when the channel has packages. Accept the default (highest version).
-        if (isCI)
-        {
-            sequenceBuilder
-                .WaitUntil(s => waitingForVersionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Wait(500) // Small delay to ensure Spectre.Console prompt is ready for input
-                .Enter();
-        }
-
-        sequenceBuilder
+            .Enter()
             .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
