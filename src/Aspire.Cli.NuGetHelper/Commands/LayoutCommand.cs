@@ -174,6 +174,24 @@ public static class LayoutCommand
                             Console.WriteLine($"  Copy: {sourcePath} -> {destPath}");
                         }
                     }
+
+                    // Also copy the XML documentation file if it exists alongside the assembly
+                    var xmlSourcePath = Path.ChangeExtension(sourcePath, ".xml");
+                    if (File.Exists(xmlSourcePath))
+                    {
+                        var xmlDestPath = Path.ChangeExtension(destPath, ".xml");
+                        if (!File.Exists(xmlDestPath) ||
+                            File.GetLastWriteTimeUtc(xmlSourcePath) > File.GetLastWriteTimeUtc(xmlDestPath))
+                        {
+                            File.Copy(xmlSourcePath, xmlDestPath, overwrite: true);
+                            copiedCount++;
+
+                            if (verbose)
+                            {
+                                Console.WriteLine($"  Copy (xml): {xmlSourcePath} -> {xmlDestPath}");
+                            }
+                        }
+                    }
                 }
 
                 // Also copy native libraries if present
