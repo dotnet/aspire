@@ -167,7 +167,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
         var packages = await GetAllPackagesAsync(config, cancellationToken);
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
         var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
         if (!buildSuccess)
@@ -274,7 +274,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
             var packages = await GetAllPackagesAsync(config, cancellationToken);
 
-            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
             var buildResult = await _interactionService.ShowStatusAsync(
                 ":gear:  Preparing Aspire server...",
@@ -561,7 +561,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
             var packages = await GetAllPackagesAsync(config, cancellationToken);
 
-            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
             // Prepare the AppHost server (build for dev mode, restore for prebuilt)
             var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
@@ -945,7 +945,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return RunningInstanceResult.NoRunningInstance; // No directory, nothing to check
         }
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
         var genericAppHostPath = appHostServerProject.GetInstanceIdentifier();
 
         // Find matching sockets for this AppHost

@@ -118,7 +118,13 @@
       <!-- Remove trailing slashes for command line arguments -->
       <_BundleOutputDirArg>$(BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
       <_ArtifactsDirArg>$(ArtifactsDir.TrimEnd('\').TrimEnd('/'))</_ArtifactsDirArg>
-      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --archive --verbose --download-runtime</_CreateLayoutArgs>
+      
+      <!-- Determine CLI executable name and path for self-extracting bundle -->
+      <_CliExeName Condition="$(TargetRid.StartsWith('win'))">aspire.exe</_CliExeName>
+      <_CliExeName Condition="!$(TargetRid.StartsWith('win'))">aspire</_CliExeName>
+      <_CliOutputPath>$(_BundleOutputDirArg)$([System.IO.Path]::DirectorySeparatorChar)$(_CliExeName)</_CliOutputPath>
+      
+      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --archive --verbose --download-runtime --embed-in-cli "$(_CliOutputPath)"</_CreateLayoutArgs>
     </PropertyGroup>
     
     <Message Importance="high" Text="Creating bundle layout..." />

@@ -105,7 +105,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
         bool debug,
         CancellationToken cancellationToken)
     {
-        var appHostServerProject = _projectFactory.Create(appHostPath);
+        var appHostServerProject = await _projectFactory.CreateAsync(appHostPath, cancellationToken);
 
         // Prepare the server (create files + build for dev mode, restore packages for prebuilt mode)
         var prepareResult = await appHostServerProject.PrepareAsync(sdkVersion, packages, cancellationToken);

@@ -69,7 +69,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
             packages.Add((codeGenPackage, config.SdkVersion!));
         }
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
         var prepareResult = await _interactionService.ShowStatusAsync(
             ":gear:  Preparing Aspire server...",

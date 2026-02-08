@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Shared;
 
 namespace Aspire.Tools.CreateLayout;
 
@@ -70,6 +71,11 @@ public static class Program
             Description = "Enable verbose output"
         };
 
+        var embedInCliOption = new Option<string?>("--embed-in-cli")
+        {
+            Description = "Path to native CLI binary to embed the archive payload into (creates self-extracting binary)"
+        };
+
         var rootCommand = new RootCommand("CreateLayout - Build Aspire bundle layout for distribution");
         rootCommand.Options.Add(outputOption);
         rootCommand.Options.Add(artifactsOption);
@@ -80,6 +86,7 @@ public static class Program
         rootCommand.Options.Add(downloadRuntimeOption);
         rootCommand.Options.Add(archiveOption);
         rootCommand.Options.Add(verboseOption);
+        rootCommand.Options.Add(embedInCliOption);
 
         rootCommand.SetAction(async (parseResult, cancellationToken) =>
         {
@@ -92,15 +99,22 @@ public static class Program
             var downloadRuntime = parseResult.GetValue(downloadRuntimeOption);
             var createArchive = parseResult.GetValue(archiveOption);
             var verbose = parseResult.GetValue(verboseOption);
+            var embedInCli = parseResult.GetValue(embedInCliOption);
 
             try
             {
                 using var builder = new LayoutBuilder(outputPath, artifactsPath, runtimePath, rid, version, runtimeVersion, downloadRuntime, verbose);
                 await builder.BuildAsync().ConfigureAwait(false);
 
-                if (createArchive)
+                string? archivePath = null;
+                if (createArchive || !string.IsNullOrEmpty(embedInCli))
                 {
-                    await builder.CreateArchiveAsync().ConfigureAwait(false);
+                    archivePath = await builder.CreateArchiveAsync().ConfigureAwait(false);
+                }
+
+                if (!string.IsNullOrEmpty(embedInCli) && archivePath is not null)
+                {
+                    EmbedPayloadInCli(embedInCli, archivePath, version, verbose);
                 }
 
                 return 0;
@@ -117,6 +131,67 @@ public static class Program
         });
 
         return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Copies the native CLI binary and appends the tar.gz payload + trailer to create
+    /// a self-extracting bundle executable.
+    /// </summary>
+    private static void EmbedPayloadInCli(string cliPath, string archivePath, string version, bool verbose)
+    {
+        if (!File.Exists(cliPath))
+        {
+            throw new FileNotFoundException($"CLI binary not found: {cliPath}");
+        }
+
+        if (!File.Exists(archivePath))
+        {
+            throw new FileNotFoundException($"Archive not found: {archivePath}");
+        }
+
+        var outputPath = cliPath + ".bundle";
+
+        if (verbose)
+        {
+            Console.WriteLine($"Creating self-extracting bundle...");
+            Console.WriteLine($"  CLI:     {cliPath}");
+            Console.WriteLine($"  Payload: {archivePath}");
+            Console.WriteLine($"  Output:  {outputPath}");
+        }
+
+        using (var output = File.Create(outputPath))
+        {
+            // Copy native CLI binary
+            using (var cliStream = File.OpenRead(cliPath))
+            {
+                cliStream.CopyTo(output);
+            }
+
+            var payloadOffset = (ulong)output.Position;
+
+            // Append tar.gz payload
+            using (var archiveStream = File.OpenRead(archivePath))
+            {
+                archiveStream.CopyTo(output);
+            }
+
+            var payloadSize = (ulong)output.Position - payloadOffset;
+
+            // Write trailer
+            var versionHash = BundleTrailer.ComputeVersionHash(version);
+            BundleTrailer.Write(output, payloadOffset, payloadSize, versionHash);
+        }
+
+        // Replace original CLI with the bundle
+        File.Move(outputPath, cliPath, overwrite: true);
+
+        var fileInfo = new FileInfo(cliPath);
+        if (verbose)
+        {
+            Console.WriteLine($"  Size:    {fileInfo.Length:N0} bytes ({fileInfo.Length / (1024 * 1024):N1} MB)");
+        }
+
+        Console.WriteLine($"Self-extracting bundle created: {cliPath}");
     }
 }
 
@@ -593,7 +668,7 @@ internal sealed class LayoutBuilder : IDisposable
         return Task.CompletedTask;
     }
 
-    public async Task CreateArchiveAsync()
+    public async Task<string> CreateArchiveAsync()
     {
         var archiveName = $"aspire-{_version}-{_rid}";
         var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
@@ -650,6 +725,7 @@ internal sealed class LayoutBuilder : IDisposable
         }
 
         Log($"Archive created: {archivePath}");
+        return archivePath;
     }
 
     private string? FindPublishPath(string projectName)
