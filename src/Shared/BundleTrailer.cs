@@ -115,6 +115,36 @@ internal static class BundleTrailer
     }
 
     /// <summary>
+    /// Name of the marker file written after successful extraction.
+    /// </summary>
+    public const string VersionMarkerFileName = ".aspire-bundle-version";
+
+    /// <summary>
+    /// Writes a version marker file to the extraction directory.
+    /// </summary>
+    public static void WriteVersionMarker(string extractDir, ulong versionHash)
+    {
+        var markerPath = Path.Combine(extractDir, VersionMarkerFileName);
+        File.WriteAllText(markerPath, versionHash.ToString("X16", System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Reads the version hash from a previously written marker file.
+    /// Returns null if the marker doesn't exist or is invalid.
+    /// </summary>
+    public static ulong? ReadVersionMarker(string extractDir)
+    {
+        var markerPath = Path.Combine(extractDir, VersionMarkerFileName);
+        if (!File.Exists(markerPath))
+        {
+            return null;
+        }
+
+        var content = File.ReadAllText(markerPath).Trim();
+        return ulong.TryParse(content, System.Globalization.NumberStyles.HexNumber, null, out var hash) ? hash : null;
+    }
+
+    /// <summary>
     /// A stream wrapper that exposes a fixed-length window of an underlying stream.
     /// </summary>
     private sealed class SubStream(Stream inner, long length, bool ownsStream) : Stream

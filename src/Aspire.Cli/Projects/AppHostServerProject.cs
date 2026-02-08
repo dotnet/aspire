@@ -103,12 +103,6 @@ internal sealed class AppHostServerProjectFactory(
     /// </summary>
     private async Task EnsureBundleAsync(CancellationToken cancellationToken)
     {
-        // If a layout already exists, nothing to do
-        if (layoutDiscovery.DiscoverLayout() is not null)
-        {
-            return;
-        }
-
         // Check if the current process has an embedded bundle payload
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
@@ -122,7 +116,7 @@ internal sealed class AppHostServerProjectFactory(
             return; // No embedded payload (dev build or already-extracted CLI)
         }
 
-        // Extract to the parent directory of the CLI binary's directory.
+        // Determine extraction directory: parent of the CLI binary's directory.
         // If CLI is at ~/.aspire/bin/aspire, extract to ~/.aspire/ so layout discovery
         // finds components via the bin/ layout pattern ({layout}/bin/aspire + {layout}/runtime/).
         var cliDir = Path.GetDirectoryName(processPath);
@@ -132,10 +126,24 @@ internal sealed class AppHostServerProjectFactory(
         }
 
         var extractDir = Path.GetDirectoryName(cliDir) ?? cliDir;
+
+        // If layout exists and version matches, skip extraction
+        if (layoutDiscovery.DiscoverLayout() is not null)
+        {
+            var existingHash = BundleTrailer.ReadVersionMarker(extractDir);
+            if (existingHash == trailer.VersionHash)
+            {
+                return; // Already extracted with matching version
+            }
+        }
+
         var logger = loggerFactory.CreateLogger<AppHostServerProjectFactory>();
         logger.LogInformation("Extracting embedded bundle to {Path}...", extractDir);
 
         await ExtractPayloadAsync(processPath, trailer, extractDir, cancellationToken);
+
+        // Write version marker so subsequent runs skip extraction
+        BundleTrailer.WriteVersionMarker(extractDir, trailer.VersionHash);
 
         // Verify extraction succeeded
         if (layoutDiscovery.DiscoverLayout() is null)

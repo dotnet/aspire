@@ -16,6 +16,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -484,6 +485,17 @@ internal sealed class UpdateCommand : BaseCommand
 
                 // If we get here, the update was successful, clean up old backups
                 CleanupOldBackupFiles(targetExePath);
+
+                // If the new binary is a self-extracting bundle, proactively extract it
+                // so the user doesn't have to wait on next run
+                var trailer = BundleTrailer.TryRead(targetExePath);
+                if (trailer is not null)
+                {
+                    InteractionService.DisplayMessage("package", "Extracting embedded bundle...");
+                    var extractDir = Path.GetDirectoryName(installDir) ?? installDir;
+                    await AppHostServerProjectFactory.ExtractPayloadAsync(targetExePath, trailer, extractDir, cancellationToken);
+                    BundleTrailer.WriteVersionMarker(extractDir, trailer.VersionHash);
+                }
 
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))

@@ -80,11 +80,15 @@ internal sealed class SetupCommand : BaseCommand
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        // Check if layout already exists
+        // Check if layout already exists with matching version
         if (!force && _layoutDiscovery.DiscoverLayout() is not null)
         {
-            InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted. Use --force to re-extract.");
-            return ExitCodeConstants.Success;
+            var existingHash = BundleTrailer.ReadVersionMarker(installPath);
+            if (existingHash == trailer.VersionHash)
+            {
+                InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted and up to date. Use --force to re-extract.");
+                return ExitCodeConstants.Success;
+            }
         }
 
         // Extract with spinner
@@ -93,6 +97,7 @@ internal sealed class SetupCommand : BaseCommand
             async () =>
             {
                 await AppHostServerProjectFactory.ExtractPayloadAsync(processPath, trailer, installPath, cancellationToken);
+                BundleTrailer.WriteVersionMarker(installPath, trailer.VersionHash);
                 return ExitCodeConstants.Success;
             });
 
