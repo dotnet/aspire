@@ -27,10 +27,14 @@ then
     set -- '.';
 fi
 
-VSCODE_CMD="${VSCODE_CMD:-code}"
-
-if ! command -v "$VSCODE_CMD" &> /dev/null; then
-    echo "[ERROR] $VSCODE_CMD is not installed or can't be found."
+if [ -n "${VSCODE_CMD:-}" ]; then
+    : # Use the explicitly set command
+elif command -v code &> /dev/null; then
+    VSCODE_CMD="code"
+elif command -v code-insiders &> /dev/null; then
+    VSCODE_CMD="code-insiders"
+else
+    echo "[ERROR] Neither 'code' nor 'code-insiders' is installed or can be found."
     exit 1
 fi
 

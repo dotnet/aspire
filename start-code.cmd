@@ -4,8 +4,17 @@ SETLOCAL
 :: This command launches a Visual Studio Code with environment variables required to use a local version of the .NET Core SDK.
 :: Set VSCODE_CMD environment variable to use a different VS Code variant (e.g., code-insiders).
 
-IF ["%VSCODE_CMD%"] == [""] SET VSCODE_CMD=code
+IF NOT ["%VSCODE_CMD%"] == [""] GOTO find_vscode
 
+:: Try 'code' first, then fall back to 'code-insiders'
+FOR /f "delims=" %%a IN ('where.exe code 2^>nul') DO @SET VSCODE_CMD=code& GOTO find_vscode
+FOR /f "delims=" %%a IN ('where.exe code-insiders 2^>nul') DO @SET VSCODE_CMD=code-insiders& GOTO find_vscode
+
+echo [ERROR] Neither 'code' nor 'code-insiders' is installed or can't be found.
+echo.
+exit /b 1
+
+:find_vscode
 FOR /f "delims=" %%a IN ('where.exe %VSCODE_CMD%') DO @SET vscode=%%a& GOTO break
 :break
 
