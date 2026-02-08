@@ -21,7 +21,7 @@ External NuGet dependencies (e.g., Hex1b, StackExchange.Redis, Confluent.Kafka) 
 
 ### Companion Script
 
-A bash script is bundled alongside this skill at `.github/skills/dependency-update/migrate-package.sh`. Use it to trigger and monitor pipeline runs. It handles prerequisite checks, pipeline triggering, and polling.
+A single-file C# app is bundled alongside this skill at `.github/skills/dependency-update/MigratePackage.cs`. It uses the Azure DevOps .NET SDK (`PipelinesHttpClient`) with `Azure.Identity` for authentication. Use it to trigger and monitor pipeline runs — it handles prerequisite checks, pipeline triggering, and polling.
 
 ## Understanding User Requests
 
@@ -133,7 +133,7 @@ Use the `ask_user` tool to confirm which packages and versions to proceed with b
 Before triggering pipelines, verify the Azure DevOps tooling is ready:
 
 ```bash
-bash .github/skills/dependency-update/migrate-package.sh --check-prereqs
+dotnet .github/skills/dependency-update/MigratePackage.cs -- --check-prereqs
 ```
 
 If prerequisites fail, guide the user through setup:
@@ -141,19 +141,14 @@ If prerequisites fail, guide the user through setup:
 **Azure CLI not installed:**
 > Install from: https://learn.microsoft.com/cli/azure/install-azure-cli
 
-**DevOps extension missing:**
-```bash
-az extension add --name azure-devops
-```
-
 **Not logged in:**
 ```bash
 az login
 ```
 
-**Configure defaults (optional, the script handles this):**
+**Wrong tenant (the script auto-detects the Microsoft corp tenant, but if that fails):**
 ```bash
-az devops configure --defaults organization=https://dev.azure.com/dnceng project=internal
+az login --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
 ```
 
 ### 6. Trigger Pipeline for Each Package
@@ -161,19 +156,19 @@ az devops configure --defaults organization=https://dev.azure.com/dnceng project
 Run the companion script for each confirmed package. Process **one package at a time**:
 
 ```bash
-bash .github/skills/dependency-update/migrate-package.sh "<PackageName>" "<PackageVersion>"
+dotnet .github/skills/dependency-update/MigratePackage.cs -- "<PackageName>" "<PackageVersion>"
 ```
 
 The script will:
-1. Verify prerequisites
-2. Trigger the `dotnet-migrate-package` pipeline
-3. Poll every 30 seconds until completion (default 15-minute timeout)
+1. Authenticate via Azure.Identity (AzureCliCredential)
+2. Trigger the `dotnet-migrate-package` pipeline using `PipelinesHttpClient.RunPipelineAsync`
+3. Poll every 30 seconds via `PipelinesHttpClient.GetRunAsync` until completion (default 15-minute timeout)
 4. Report success or failure
 
 **Example:**
 ```bash
-bash .github/skills/dependency-update/migrate-package.sh "Hex1b" "0.49.0"
-bash .github/skills/dependency-update/migrate-package.sh "Hex1b.McpServer" "0.49.0"
+dotnet .github/skills/dependency-update/MigratePackage.cs -- "Hex1b" "0.49.0"
+dotnet .github/skills/dependency-update/MigratePackage.cs -- "Hex1b.McpServer" "0.49.0"
 ```
 
 **If a pipeline run fails**, stop and report the failure to the user before proceeding with additional packages. Include the Azure DevOps run URL for investigation.
