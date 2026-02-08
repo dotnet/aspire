@@ -248,6 +248,10 @@ The Aspire CLI can be distributed as a **self-extracting binary** — a single n
 
 A CLI binary without a trailer (dev build, dotnet tool install, or previously-extracted copy) has no embedded payload. All extraction commands gracefully no-op.
 
+#### Format Versioning
+
+The current trailer uses a fixed 32-byte format identified by the "ASPIRE\0\0" magic. If the format needs to change in the future (e.g., additional fields, different hash algorithm), the magic bytes should be changed (e.g., "ASPIRE02") so that older CLIs fail cleanly with "no payload" rather than misinterpreting the trailer. The trailer is always read from the end of the file, so increasing the size is safe as long as the magic changes.
+
 ### BundleService
 
 All extraction logic is centralized in `IBundleService` / `BundleService` (`src/Aspire.Cli/Bundles/`):
@@ -257,7 +261,7 @@ All extraction logic is centralized in `IBundleService` / `BundleService` (`src/
 | `EnsureExtractedAsync()` | Lazy extraction from `Environment.ProcessPath` | `AppHostServerProjectFactory` |
 | `ExtractAsync(path, dest, force)` | Explicit extraction, returns `BundleExtractResult` | `SetupCommand`, `UpdateCommand` |
 
-The service is thread-safe (uses `SemaphoreSlim`) and registered as a singleton.
+The service uses a named `Mutex` (`Global\AspireBundleExtraction`) for cross-process locking and is registered as a singleton.
 
 **Extraction flow:**
 1. Read trailer from binary — if no magic bytes, return `NoPayload`
@@ -888,12 +892,16 @@ To test bundle infrastructure during development without affecting the normal de
 
 ### Checksum Verification
 
-Each release includes SHA256 checksums:
+Each release publishes SHA-256 checksum files alongside the bundle binaries:
 
 ```text
 aspire-13.2.0-linux-x64.tar.gz.sha256
 aspire-13.2.0-win-x64.zip.sha256
 ```
+
+Install scripts and `aspire update --self` should verify the downloaded file's SHA-256 hash against the `.sha256` file before installing. This catches corruption from partial downloads, network errors, or disk issues. The checksum covers the entire file (CLI binary + payload + trailer), providing end-to-end integrity verification.
+
+The bundle trailer itself does **not** contain a payload hash. Integrity verification is the responsibility of the download/install path, not the extraction path. This keeps the trailer format simple and avoids a double-read of the ~150 MB payload during extraction.
 
 ### Runtime Isolation
 
