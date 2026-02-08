@@ -335,6 +335,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 ))
                 .ToArray();
 
+            // Auto-select when there's only one version in the channel
+            if (choices.Length == 1)
+            {
+                return choices[0].Result;
+            }
+
             var selection = await interactionService.PromptForSelectionAsync(
                 string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
                 choices,
@@ -394,6 +400,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         if (rootChoices.Count == 0)
         {
             return firstPackage;
+        }
+
+        // Auto-select when there's only one option (e.g., single explicit channel)
+        if (rootChoices.Count == 1)
+        {
+            return await rootChoices[0].Action(cancellationToken);
         }
 
         var topSelection = await interactionService.PromptForSelectionAsync(

@@ -58,10 +58,8 @@ internal sealed class RunCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly IConfiguration _configuration;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
-    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
@@ -94,12 +92,10 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
-        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -114,9 +110,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
-        _sdkInstaller = sdkInstaller;
         _features = features;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
         _projectFactory = projectFactory;
         _backchannelMonitor = backchannelMonitor;
@@ -178,12 +172,6 @@ internal sealed class RunCommand : BaseCommand
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
             await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
             return ExitCodeConstants.Success;
-        }
-
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
         }
 
         AppHostProjectContext? context = null;
