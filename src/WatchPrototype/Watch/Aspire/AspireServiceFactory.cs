@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
@@ -31,8 +31,11 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
 
         private readonly ProjectLauncher _projectLauncher;
         private readonly AspireServerService _service;
-        private readonly ProjectOptions _hostProjectOptions;
         private readonly ILogger _logger;
+
+        private readonly string? _launchProfile;
+        private readonly string? _targetFramework;
+        private readonly IReadOnlyList<string> _buildArguments;
 
         /// <summary>
         /// Lock to access:
@@ -46,10 +49,14 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
 
         private volatile bool _isDisposed;
 
-        public SessionManager(ProjectLauncher projectLauncher, ProjectOptions hostProjectOptions)
+        public SessionManager(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments)
         {
             _projectLauncher = projectLauncher;
-            _hostProjectOptions = hostProjectOptions;
+
+            _launchProfile = launchProfile;
+            _targetFramework = targetFramework;
+            _buildArguments = buildArguments;
+
             _logger = projectLauncher.LoggerFactory.CreateLogger(AspireLogComponentName);
 
             _service = new AspireServerService(
@@ -216,20 +223,18 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
 
         private ProjectOptions GetProjectOptions(ProjectLaunchRequest projectLaunchInfo)
         {
-            var hostLaunchProfile = _hostProjectOptions.NoLaunchProfile ? null : _hostProjectOptions.LaunchProfileName;
-
             return new()
             {
                 IsRootProject = false,
                 Representation = ProjectRepresentation.FromProjectOrEntryPointFilePath(projectLaunchInfo.ProjectPath),
                 WorkingDirectory = Path.GetDirectoryName(projectLaunchInfo.ProjectPath) ?? throw new InvalidOperationException(),
-                BuildArguments = _hostProjectOptions.BuildArguments,
+                BuildArguments = _buildArguments,
                 Command = "run",
-                CommandArguments = GetRunCommandArguments(projectLaunchInfo, hostLaunchProfile),
+                CommandArguments = GetRunCommandArguments(projectLaunchInfo, _launchProfile),
                 LaunchEnvironmentVariables = projectLaunchInfo.Environment?.Select(e => (e.Key, e.Value))?.ToArray() ?? [],
                 LaunchProfileName = projectLaunchInfo.LaunchProfile,
                 NoLaunchProfile = projectLaunchInfo.DisableLaunchProfile,
-                TargetFramework = _hostProjectOptions.TargetFramework,
+                TargetFramework = _targetFramework,
             };
         }
 
@@ -281,8 +286,6 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
     public const string AspireLogComponentName = "Aspire";
     public const string AppHostProjectCapability = ProjectCapability.Aspire;
 
-    public IRuntimeProcessLauncher? TryCreate(ProjectGraphNode projectNode, ProjectLauncher projectLauncher, ProjectOptions hostProjectOptions)
-        => projectNode.GetCapabilities().Contains(AppHostProjectCapability)
-            ? new SessionManager(projectLauncher, hostProjectOptions)
-            : null;
+    public IRuntimeProcessLauncher Create(ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments, Action? onLaunchedProcessCrashed = null)
+        => new SessionManager(projectLauncher, launchProfile, targetFramework, buildArguments);
 }

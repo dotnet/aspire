@@ -40,6 +40,8 @@ internal sealed class EvaluationResult(
 
     public void WatchFiles(FileWatcher fileWatcher)
     {
+        fileWatcher.Reset();
+
         fileWatcher.WatchContainingDirectories(Files.Keys, includeSubdirectories: true);
 
         fileWatcher.WatchContainingDirectories(
@@ -84,17 +86,18 @@ internal sealed class EvaluationResult(
             return null;
         }
 
-        var rootNode = projectGraph.GraphRoots.Single();
-
         if (restore)
         {
-            using (var loggers = buildReporter.GetLoggers(rootNode.ProjectInstance.FullPath, "Restore"))
+            foreach (var node in projectGraph.ProjectNodesTopologicallySorted)
             {
-                if (!rootNode.ProjectInstance.Build([TargetNames.Restore], loggers))
+                using (var loggers = buildReporter.GetLoggers(node.ProjectInstance.FullPath, "Restore"))
                 {
-                    logger.LogError("Failed to restore '{Path}'.", rootNode.ProjectInstance.FullPath);
-                    loggers.ReportOutput();
-                    return null;
+                    if (!node.ProjectInstance.Build([TargetNames.Restore], loggers))
+                    {
+                        logger.LogError("Failed to restore '{Path}'.", node.ProjectInstance.FullPath);
+                        loggers.ReportOutput();
+                        return null;
+                    }
                 }
             }
         }
@@ -140,7 +143,8 @@ internal sealed class EvaluationResult(
 
             if (targets.Contains(TargetNames.GenerateComputedBuildStaticWebAssets) &&
                 projectInstance.GetIntermediateOutputDirectory() is { } outputDir &&
-                StaticWebAssetsManifest.TryParseFile(Path.Combine(outputDir, StaticWebAsset.ManifestFileName), logger) is { } manifest)
+                StaticWebAsset.TryGetExistingManifestFile(outputDir) is { } manifestFilePath &&
+                StaticWebAssetsManifest.TryParseFile(manifestFilePath, logger) is { } manifest)
             {
                 staticWebAssetManifests.Add(projectInstance.GetId(), manifest);
 

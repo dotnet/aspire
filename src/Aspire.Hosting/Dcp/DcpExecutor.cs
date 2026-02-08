@@ -10,6 +10,7 @@ using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipes;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -79,6 +80,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly DcpExecutorEvents _executorEvents;
     private readonly Locations _locations;
     private readonly IDeveloperCertificateService _developerCertificateService;
+    private readonly ResourceNotificationService _notificationService;
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
     private readonly SemaphoreSlim _serverCertificateCacheSemaphore = new(1, 1);
@@ -93,6 +95,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
     private int _stopped;
+    private string? _watchAspireServerPipeName;
+    private NamedPipeServerStream? _controlPipe;
+    private StreamWriter? _controlPipeWriter;
+    private readonly SemaphoreSlim _controlPipeLock = new(1, 1);
+    private Dictionary<string, IResource>? _projectPathToResource;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -113,7 +120,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
-                       IDeveloperCertificateService developerCertificateService)
+                       IDeveloperCertificateService developerCertificateService,
+                       ResourceNotificationService notificationService)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -133,6 +141,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _notificationService = notificationService;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
@@ -296,6 +305,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var disposeCts = new CancellationTokenSource();
         disposeCts.CancelAfter(s_disposeTimeout);
         _serverCertificateCacheSemaphore.Dispose();
+
+        await _controlPipeLock.WaitAsync(disposeCts.Token).ConfigureAwait(false);
+        try
+        {
+            if (_controlPipeWriter is not null)
+            {
+                await _controlPipeWriter.DisposeAsync().ConfigureAwait(false);
+                _controlPipeWriter = null;
+            }
+
+            if (_controlPipe is not null)
+            {
+                await _controlPipe.DisposeAsync().ConfigureAwait(false);
+                _controlPipe = null;
+            }
+        }
+        finally
+        {
+            _controlPipeLock.Release();
+        }
+
         await StopAsync(disposeCts.Token).ConfigureAwait(false);
     }
 
@@ -1251,9 +1281,247 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PrepareExecutables()
     {
+        PrepareWatchAspireServer();
         PrepareProjectExecutables();
         PreparePlainExecutables();
         PrepareContainerExecutables();
+    }
+
+    private void PrepareWatchAspireServer()
+    {
+        // Find the watch server resource created by WatchAspireEventHandlers during BeforeStartEvent
+        var watchServerResource = _model.Resources
+            .OfType<ExecutableResource>()
+            .FirstOrDefault(r => StringComparers.ResourceName.Equals(r.Name, WatchAspireEventHandlers.WatchServerResourceName));
+
+        if (watchServerResource is null)
+        {
+            return;
+        }
+
+        if (!watchServerResource.TryGetLastAnnotation<WatchAspireAnnotation>(out var annotation))
+        {
+            _logger.LogWarning("Watch server resource found but missing WatchAspireAnnotation. Skipping watch setup.");
+            return;
+        }
+
+        _watchAspireServerPipeName = annotation.ServerPipeName;
+        _projectPathToResource = annotation.ProjectPathToResource;
+
+        _logger.LogDebug("Setting up Watch.Aspire runtime with server pipe '{PipeName}'.", annotation.ServerPipeName);
+
+        // Start background task to listen for status events from the watch server
+        _ = Task.Run(() => ListenForWatchStatusEventsAsync(annotation.StatusPipeName, _shutdownCancellation.Token));
+
+        // Start background task for control pipe server (AppHost → watch server)
+        _ = Task.Run(() => StartControlPipeServerAsync(annotation.ControlPipeName, _shutdownCancellation.Token));
+
+        // Add rebuild command to each watched resource
+        foreach (var (projectPath, resource) in _projectPathToResource)
+        {
+            resource.Annotations.Add(new ResourceCommandAnnotation(
+                name: "watch-rebuild",
+                displayName: "Rebuild",
+                updateState: context => context.ResourceSnapshot.State?.Text is "Running" or "Build failed"
+                    ? ResourceCommandState.Enabled : ResourceCommandState.Hidden,
+                executeCommand: async context =>
+                {
+                    await SendControlCommandAsync(new WatchControlCommand { Type = WatchControlCommand.Types.Rebuild, Projects = [projectPath] }).ConfigureAwait(false);
+                    return CommandResults.Success();
+                },
+                displayDescription: "Force rebuild and restart this project",
+                parameter: null,
+                confirmationMessage: null,
+                iconName: "ArrowSync",
+                iconVariant: IconVariant.Regular,
+                isHighlighted: false));
+        }
+    }
+
+    private async Task ListenForWatchStatusEventsAsync(string pipeName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var pipe = new NamedPipeServerStream(
+                pipeName,
+                PipeDirection.In,
+                1,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+
+            _logger.LogDebug("Waiting for watch status pipe connection on '{PipeName}'.", pipeName);
+            await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogDebug("Watch status pipe connected.");
+
+            using var reader = new StreamReader(pipe);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (line is null)
+                {
+                    // Pipe closed
+                    break;
+                }
+
+                try
+                {
+                    var statusEvent = JsonSerializer.Deserialize<WatchStatusEvent>(line);
+                    if (statusEvent is not null)
+                    {
+                        _logger.LogDebug("Watch status event received: Type={Type}, Success={Success}, Projects=[{Projects}]",
+                            statusEvent.Type, statusEvent.Success, string.Join(", ", statusEvent.Projects ?? []));
+                        await ProcessWatchStatusEventAsync(statusEvent).ConfigureAwait(false);
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogDebug("Failed to deserialize watch status event: {Message}", ex.Message);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown requested
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("Watch status pipe listener ended: {Message}", ex.Message);
+        }
+    }
+
+    private async Task StartControlPipeServerAsync(string pipeName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _controlPipe = new NamedPipeServerStream(
+                pipeName,
+                PipeDirection.Out,
+                1,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+
+            _logger.LogDebug("Waiting for control pipe connection on '{PipeName}'.", pipeName);
+            await _controlPipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+            _controlPipeWriter = new StreamWriter(_controlPipe) { AutoFlush = true };
+            _logger.LogDebug("Control pipe connected.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown requested
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("Control pipe server failed: {Message}", ex.Message);
+        }
+    }
+
+    private async Task SendControlCommandAsync(WatchControlCommand command)
+    {
+        await _controlPipeLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var writer = _controlPipeWriter;
+            if (writer is null)
+            {
+                _logger.LogDebug("Control pipe not connected. Cannot send command.");
+                return;
+            }
+
+            try
+            {
+                var json = JsonSerializer.Serialize(command);
+                await writer.WriteLineAsync(json).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+            {
+                _logger.LogDebug("Control pipe disconnected: {Message}", ex.Message);
+                _controlPipeWriter = null;
+            }
+        }
+        finally
+        {
+            _controlPipeLock.Release();
+        }
+    }
+
+    private async Task ProcessWatchStatusEventAsync(WatchStatusEvent statusEvent)
+    {
+        if (_projectPathToResource is null || statusEvent.Projects is null)
+        {
+            return;
+        }
+
+        foreach (var projectPath in statusEvent.Projects)
+        {
+            if (!_projectPathToResource.TryGetValue(projectPath, out var resource))
+            {
+                _logger.LogDebug("Watch status event for unrecognized project path: '{ProjectPath}'", projectPath);
+                continue;
+            }
+
+            switch (statusEvent.Type)
+            {
+                case WatchStatusEvent.Types.Building:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Building.", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Building", KnownResourceStateStyles.Info)
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.BuildComplete when statusEvent.Success == true:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Starting (build succeeded).", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Starting", KnownResourceStateStyles.Info)
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.BuildComplete when statusEvent.Success == false:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Build failed.", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Build failed", KnownResourceStateStyles.Error)
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.HotReloadApplied:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Running (hot reload applied).", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = KnownResourceStates.Running
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.Restarting:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Restarting.", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Restarting", KnownResourceStateStyles.Info)
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.ProcessExited:
+                    var exitCode = statusEvent.ExitCode;
+                    _logger.LogDebug("Setting resource '{Resource}' state to Exited (code {ExitCode}).", resource.Name, exitCode);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        ExitCode = exitCode,
+                        State = new ResourceStateSnapshot($"Exited", KnownResourceStateStyles.Error)
+                    }).ConfigureAwait(false);
+                    break;
+
+                case WatchStatusEvent.Types.ProcessStarted:
+                    _logger.LogDebug("Setting resource '{Resource}' state to Running (process started).", resource.Name);
+                    await _notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = KnownResourceStates.Running
+                    }).ConfigureAwait(false);
+                    break;
+            }
+        }
     }
 
     private void PrepareContainerExecutables()
@@ -1373,8 +1641,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
-                    // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
+                    if (_watchAspireServerPipeName is not null && !projectMetadata.IsFileBasedApp && _projectPathToResource?.ContainsKey(projectMetadata.ProjectPath) == true)
+                    {
+                        // Use Watch.Aspire resource command - the server handles building and hot reload
+                        var watchAspireDllPath = _options.Value.WatchAspirePath!;
+                        if (!watchAspireDllPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            watchAspireDllPath = Path.ChangeExtension(watchAspireDllPath, ".dll");
+                        }
+
+                        projectArgs.AddRange([
+                            "exec",
+                            watchAspireDllPath,
+                            "resource",
+                            "--server",
+                            _watchAspireServerPipeName,
+                            "--entrypoint",
+                            projectMetadata.ProjectPath,
+                            "--no-launch-profile"
+                        ]);
+                    }
+                    else
                     {
                         projectArgs.Add("run");
                         projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
@@ -1387,29 +1674,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         {
                             projectArgs.Add("--no-build");
                         }
-                    }
-                    else
-                    {
-                        projectArgs.AddRange([
-                            "watch",
-                            "--non-interactive",
-                            "--no-hot-reload",
-                            "--project",
-                            projectMetadata.ProjectPath
-                        ]);
-                    }
 
-                    if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
-                    {
-                        projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
-                    }
+                        if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                        {
+                            projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
+                        }
 
-                    // We pretty much always want to suppress the normal launch profile handling
-                    // because the settings from the profile will override the ambient environment settings, which is not what we want
-                    // (the ambient environment settings for service processes come from the application model
-                    // and should be HIGHER priority than the launch profile settings).
-                    // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
-                    projectArgs.Add("--no-launch-profile");
+                        projectArgs.Add("--no-launch-profile");
+                    }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
@@ -1726,6 +1998,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
+            }
+
+            // In watch-aspire mode, pass environment variables as -e KEY=VALUE arguments
+            // to the resource command instead of setting them on the DCP executable directly.
+            // The resource command forwards them to the watch server via the named pipe.
+            if (_watchAspireServerPipeName is not null
+                && er.ModelResource is ProjectResource projectResource
+                && projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projMeta)
+                && !projMeta.IsFileBasedApp)
+            {
+                spec.Args ??= [];
+                foreach (var envVar in spec.Env)
+                {
+                    spec.Args.Add("-e");
+                    spec.Args.Add($"{envVar.Name}={envVar.Value}");
+                }
+                spec.Env = [];
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

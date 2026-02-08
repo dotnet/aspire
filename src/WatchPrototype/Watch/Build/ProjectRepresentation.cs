@@ -1,6 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.DotNet.ProjectTools;
 
 namespace Microsoft.DotNet.Watch;
@@ -38,8 +39,8 @@ internal readonly struct ProjectRepresentation(string projectGraphPath, string? 
 
     public static ProjectRepresentation FromProjectOrEntryPointFilePath(string projectOrEntryPointFilePath)
         => string.Equals(Path.GetExtension(projectOrEntryPointFilePath), ".csproj", StringComparison.OrdinalIgnoreCase)
-            ? new(projectPath: null, entryPointFilePath: projectOrEntryPointFilePath)
-            : new(projectPath: projectOrEntryPointFilePath, entryPointFilePath: null);
+            ? new(projectPath: projectOrEntryPointFilePath, entryPointFilePath: null)
+            : new(projectPath: null, entryPointFilePath: projectOrEntryPointFilePath);
 
     public ProjectRepresentation WithProjectGraphPath(string projectGraphPath)
         => new(projectGraphPath, PhysicalPath, EntryPointFilePath);

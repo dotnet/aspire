@@ -12,7 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build" />
+    <PackageReference Include="Microsoft.Build" VersionOverride="18.0.2" ExcludeAssets="runtime" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Framework" VersionOverride="18.0.2" ExcludeAssets="runtime" PrivateAssets="All" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 

@@ -13,6 +13,8 @@ builder.AddMongoDBClient("db");
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
+app.MapGet("/ping", () => "pong");
+app.MapGet("/health-check", () => "healthy");
 app.MapGet("/", async (IMongoClient mongoClient) =>
 {
     const string collectionName = "entries";

@@ -2191,7 +2191,8 @@ public class DcpExecutorTests
         IKubernetesService? kubernetesService = null,
         DcpOptions? dcpOptions = null,
         ResourceLoggerService? resourceLoggerService = null,
-        DcpExecutorEvents? events = null)
+        DcpExecutorEvents? events = null,
+        ResourceNotificationService? notificationService = null)
     {
         if (configuration == null)
         {
@@ -2208,6 +2209,7 @@ public class DcpExecutorTests
 
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
+        notificationService ??= ResourceNotificationServiceTestHelpers.Create();
 
         var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false, false);
 
@@ -2234,7 +2236,8 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
-            developerCertificateService);
+            developerCertificateService,
+            notificationService);
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 

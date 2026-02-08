@@ -1,13 +1,13 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch;
 
-internal static class DotNetWatchLauncher
+internal static class AspireHostLauncher
 {
-    public static async Task<bool> RunAsync(string workingDirectory, DotNetWatchOptions options)
+    public static async Task<int> LaunchAsync(string workingDirectory, AspireHostWatchOptions options)
     {
         var globalOptions = new GlobalOptions()
         {
@@ -27,10 +27,10 @@ internal static class DotNetWatchLauncher
         var rootProjectOptions = new ProjectOptions()
         {
             IsRootProject = true,
-            Representation = options.Project,
+            Representation = options.EntryPoint,
             WorkingDirectory = workingDirectory,
-            TargetFramework = null,
-            BuildArguments = [],
+            TargetFramework = null, // TODO
+            BuildArguments = [], // TODO
             NoLaunchProfile = options.NoLaunchProfile,
             LaunchProfileName = null,
             Command = "run",
@@ -60,6 +60,10 @@ internal static class DotNetWatchLauncher
             Options = globalOptions,
             EnvironmentOptions = environmentOptions,
             RootProjectOptions = rootProjectOptions,
+            BuildArguments = rootProjectOptions.BuildArguments,
+            TargetFramework = rootProjectOptions.TargetFramework,
+            LaunchProfileName = rootProjectOptions.NoLaunchProfile ? null : rootProjectOptions.LaunchProfileName,
+            RootProjects = [options.EntryPoint],
             BrowserRefreshServerFactory = new BrowserRefreshServerFactory(),
             BrowserLauncher = new BrowserLauncher(logger, reporter, environmentOptions),
         };
@@ -78,9 +82,9 @@ internal static class DotNetWatchLauncher
         catch (Exception e)
         {
             logger.LogError("An unexpected error occurred: {Exception}", e.ToString());
-            return false;
+            return -1;
         }
 
-        return true;
+        return 0;
     }
 }

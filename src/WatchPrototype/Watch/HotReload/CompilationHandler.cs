@@ -847,14 +847,14 @@ namespace Microsoft.DotNet.Watch
                     keySelector: static group => group.Key,
                     elementSelector: static group => group.Select(static node => node.ProjectInstance).ToImmutableArray());
 
-        public async Task UpdateProjectConeAsync(ProjectGraph projectGraph, ProjectRepresentation project, CancellationToken cancellationToken)
+        public async Task UpdateProjectGraphAsync(ProjectGraph projectGraph, CancellationToken cancellationToken)
         {
             Logger.LogInformation("Loading projects ...");
             var stopwatch = Stopwatch.StartNew();
 
             _projectInstances = CreateProjectInstanceMap(projectGraph);
 
-            var solution = await Workspace.UpdateProjectConeAsync(project.ProjectGraphPath, cancellationToken);
+            var solution = await Workspace.UpdateProjectGraphAsync([.. projectGraph.EntryPointNodes.Select(n => n.ProjectInstance.FullPath)], cancellationToken);
             await SolutionUpdatedAsync(solution, "project update", cancellationToken);
 
             Logger.LogInformation("Projects loaded in {Time}s.", stopwatch.Elapsed.TotalSeconds.ToString("0.0"));
