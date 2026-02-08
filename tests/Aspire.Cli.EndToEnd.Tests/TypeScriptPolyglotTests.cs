@@ -116,6 +116,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         {
             sequenceBuilder
                 .WaitUntil(s => waitingForVersionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Wait(500) // Small delay to ensure Spectre.Console prompt is ready for input
                 .Enter();
         }
 
