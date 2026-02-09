@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -65,6 +67,11 @@ public static partial class AzureKeyVaultResourceExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureKeyVaultResource)infrastructure.AspireResource;
+
+            // Check if this Key Vault has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var keyVault = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
             {
@@ -72,19 +79,30 @@ public static partial class AzureKeyVaultResourceExtensions
                 resource.Name = name;
                 return resource;
             },
-            (infrastructure) => new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
+            (infrastructure) =>
             {
-                Properties = new KeyVaultProperties()
+                var kv = new KeyVaultService(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    TenantId = BicepFunction.GetTenant().TenantId,
-                    Sku = new KeyVaultSku()
+                    Properties = new KeyVaultProperties()
                     {
-                        Family = KeyVaultSkuFamily.A,
-                        Name = KeyVaultSkuName.Standard
+                        TenantId = BicepFunction.GetTenant().TenantId,
+                        Sku = new KeyVaultSku()
+                        {
+                            Family = KeyVaultSkuFamily.A,
+                            Name = KeyVaultSkuName.Standard
+                        },
+                        EnableRbacAuthorization = true,
                     },
-                    EnableRbacAuthorization = true,
-                },
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                };
+
+                // When using private endpoints, disable public network access.
+                if (hasPrivateEndpoint)
+                {
+                    kv.Properties.PublicNetworkAccess = "Disabled";
+                }
+
+                return kv;
             });
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
@@ -93,31 +111,31 @@ public static partial class AzureKeyVaultResourceExtensions
             });
 
             // Process all secret resources
-            if (infrastructure.AspireResource is AzureKeyVaultResource kvResource)
+            foreach (var secretResource in azureResource.Secrets)
             {
-                foreach (var secretResource in kvResource.Secrets)
+                var value = secretResource.Value as IManifestExpressionProvider ?? throw new NotSupportedException(
+                    $"Secret value for '{secretResource.SecretName}' is an unsupported type.");
+
+                var paramValue = value.AsProvisioningParameter(infrastructure, isSecure: true);
+
+                var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret_{secretResource.SecretName}"))
                 {
-                    var value = secretResource.Value as IManifestExpressionProvider ?? throw new NotSupportedException(
-                        $"Secret value for '{secretResource.SecretName}' is an unsupported type.");
-
-                    var paramValue = value.AsProvisioningParameter(infrastructure, isSecure: true);
-
-                    var secret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier($"secret_{secretResource.SecretName}"))
+                    Name = secretResource.SecretName,
+                    Properties = new SecretProperties
                     {
-                        Name = secretResource.SecretName,
-                        Properties = new SecretProperties
-                        {
-                            Value = paramValue
-                        },
-                        Parent = keyVault,
-                    };
+                        Value = paramValue
+                    },
+                    Parent = keyVault,
+                };
 
-                    infrastructure.Add(secret);
-                }
+                infrastructure.Add(secret);
             }
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name.ToBicepExpression() });
+
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = keyVault.Id.ToBicepExpression() });
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);

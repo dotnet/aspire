@@ -278,6 +278,7 @@ public static class JavaScriptHostingExtensions
 
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>
         builder.WithOtlpExporter()
+            .WithRequiredCommand("node", "https://nodejs.org/en/download/")
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithCertificateTrustConfiguration((ctx) =>
             {
@@ -710,7 +711,8 @@ public static class JavaScriptHostingExtensions
             {
                 PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
             })
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]));
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]))
+            .WithRequiredCommand("npm", "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm");
 
         AddInstaller(resource, install);
         return resource;
@@ -768,7 +770,8 @@ public static class JavaScriptHostingExtensions
                 // bun supports passing script flags without the `--` separator.
                 CommandSeparator = null,
             })
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]))
+            .WithRequiredCommand("bun", "https://bun.sh/docs/installation");
 
         if (!resource.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out _))
         {
@@ -841,7 +844,8 @@ public static class JavaScriptHostingExtensions
 
         resource
             .WithAnnotation(packageManager)
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]))
+            .WithRequiredCommand("yarn", "https://yarnpkg.com/getting-started/install");
 
         AddInstaller(resource, install);
         return resource;
@@ -870,7 +874,7 @@ public static class JavaScriptHostingExtensions
     }
 
     /// <summary>
-    /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
+    /// Configures the Node.js resource to use pnpm as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
@@ -900,7 +904,8 @@ public static class JavaScriptHostingExtensions
                 // pnpm is not included in the Node.js Docker image by default, so we need to enable it via corepack
                 InitializeDockerBuildStage = stage => stage.Run("corepack enable pnpm")
             })
-            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]))
+            .WithRequiredCommand("pnpm", "https://pnpm.io/installation");
 
         AddInstaller(resource, install);
         return resource;

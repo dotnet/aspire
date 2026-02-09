@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../RootCommandStrings.resx">
     <body>
+      <trans-unit id="BannerArgumentDescription">
+        <source>Display the animated Aspire CLI welcome banner.</source>
+        <target state="translated">Animasyonlu Aspire CLI karşılama başlığını görüntüleyin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BannerVersionFormat">
+        <source>CLI — version {0}</source>
+        <target state="translated">CLI — sürüm {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BannerWelcomeText">
+        <source>Welcome to the</source>
+        <target state="translated">Hoş geldiniz</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>
@@ -10,6 +25,11 @@
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
         <target state="translated">Konsolda hata ayıklama kaydını etkinleştirin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -24,22 +44,22 @@
 The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
 
 Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
-        <target state="new">Telemetry
----------
+        <target state="translated">Telemetri
+----------
 
-The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+Aspire CLI kullanım verilerini toplar. Microsoft tarafından toplanır ve deneyiminizi geliştirmemize yardımcı olması için kullanılır. Telemetriyi geri çevirmek için tercih ettiğiniz kabuğu kullanarak ASPIRE_CLI_TELEMETRY_OPTOUT ortam değişkenini '1' veya 'true' olarak ayarlayabilirsiniz.
 
-Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+Aspire CLI telemetrisi hakkında daha fazla bilgi edinin: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseWelcome">
         <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <target state="translated">Aspire'a hoş geldiniz! Aspire hakkında daha fazla bilgi için https://aspire.dev adresini ziyaret edin</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <target state="translated">Başlangıç başlığını ve telemetri bildirimini gizle.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

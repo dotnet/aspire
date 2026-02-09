@@ -3,6 +3,7 @@
 
 using System.Net;
 using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Mcp.Docs;
@@ -377,59 +378,11 @@ public class DocsFetcherTests
         }
     }
 
-    private sealed class MockHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, HttpResponseMessage>? _responseFactory;
-        private readonly HttpResponseMessage? _response;
-        private readonly Exception? _exception;
-        private readonly Action<HttpRequestMessage>? _requestValidator;
-
-        public bool RequestValidated { get; private set; }
-
-        public MockHttpMessageHandler(HttpResponseMessage response, Action<HttpRequestMessage>? requestValidator = null)
-        {
-            _response = response;
-            _requestValidator = requestValidator;
-        }
-
-        public MockHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
-        {
-            _responseFactory = responseFactory;
-        }
-
-        public MockHttpMessageHandler(Exception exception)
-        {
-            _exception = exception;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            if (_exception is not null)
-            {
-                throw _exception;
-            }
-
-            if (_requestValidator is not null)
-            {
-                _requestValidator(request);
-                RequestValidated = true;
-            }
-
-            if (_responseFactory is not null)
-            {
-                return Task.FromResult(_responseFactory(request));
-            }
-
-            return Task.FromResult(_response!);
-        }
-    }
-
     private sealed class MockDocsCache : IDocsCache
     {
         private readonly Dictionary<string, string> _content = [];
         private readonly Dictionary<string, string> _etags = [];
+        private LlmsDocument[]? _index;
 
         public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
         {
@@ -459,6 +412,17 @@ public class DocsFetcherTests
             {
                 _etags[url] = etag;
             }
+            return Task.CompletedTask;
+        }
+
+        public Task<LlmsDocument[]?> GetIndexAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_index);
+        }
+
+        public Task SetIndexAsync(LlmsDocument[] documents, CancellationToken cancellationToken = default)
+        {
+            _index = documents;
             return Task.CompletedTask;
         }
 

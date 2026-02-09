@@ -205,7 +205,6 @@
                                                                      IsCommandExecuting="@((resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name))"
                                                                      OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context.Resource, buttonId))"
                                                                      Resource="context.Resource"
-                                                                     GetResourceName="GetResourceName"
                                                                      MaxHighlightedCount="_maxHighlightedCount"
                                                                      ResourceByName="@_resourceByName" />
                                                 </div>

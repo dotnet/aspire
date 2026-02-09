@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../TelemetryCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Nie znaleziono uruchomionego hosta aplikacji. Najpierw uruchom go poleceniem „aspire run”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardApiNotAvailable">
+        <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
+        <target state="translated">Interfejs API pulpitu nawigacyjnego jest niedostępny. Upewnij się, że host aplikacji działa z włączonym pulpitem nawigacyjnym.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
+        <target state="translated">Wyświetl dane telemetryczne (logi, zakresy, śledzenia) z uruchomionej aplikacji Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToFetchTelemetry">
+        <source>Failed to fetch telemetry: {0}</source>
+        <target state="translated">Nie można pobrać telemetrii: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Stream telemetry in real-time as it arrives.</source>
+        <target state="translated">Strumieniuj telemetrię w czasie rzeczywistym, gdy tylko nadejdzie.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format (Table or Json).</source>
+        <target state="translated">Format wyjściowy (tabela lub JSON).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HasErrorOptionDescription">
+        <source>Filter by error status (true to show only errors, false to exclude errors).</source>
+        <target state="translated">Filtruj według statusu błędu (wartość true, aby pokazać tylko błędy, false, aby je wykluczyć).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitMustBePositive">
+        <source>The --limit value must be a positive number.</source>
+        <target state="translated">Wartość --limit musi być liczbą dodatnią.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitOptionDescription">
+        <source>Maximum number of items to return.</source>
+        <target state="translated">Maksymalna liczba elementów do zwrócenia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsDescription">
+        <source>View structured logs from the Dashboard telemetry API.</source>
+        <target state="translated">Wyświetl strukturalne logi z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
+        <target state="translated">Nie znaleziono hostów aplikacji w bieżącym katalogu. Wyświetlanie wszystkich uruchomionych hostów aplikacji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Ścieżka do pliku projektu hosta AppHost platformy Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>Filter by resource name.</source>
+        <target state="translated">Filtruj według nazwy zasobu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Skanowanie w poszukiwaniu uruchomionych hostów aplikacji...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">Wybierz hosta aplikacji:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SeverityOptionDescription">
+        <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="translated">Filtruj logi według minimalnego poziomu ważności (Śledzenie, Debugowanie, Informacja, Ostrzeżenie, Błąd, Krytyczne).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpansDescription">
+        <source>View spans from the Dashboard telemetry API.</source>
+        <target state="translated">Wyświetl zakresy z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdArgumentDescription">
+        <source>The trace ID to view. If not specified, lists all traces.</source>
+        <target state="translated">Identyfikator śledzenia do wyświetlenia. Jeśli nie zostanie podany, wyświetli listę wszystkich śledzeń.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdOptionDescription">
+        <source>Filter by trace ID.</source>
+        <target state="translated">Filtruj według identyfikatora śledzenia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceNotFound">
+        <source>Trace with ID '{0}' was not found.</source>
+        <target state="translated">Nie znaleziono śledzenia o identyfikatorze „{0}”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TracesDescription">
+        <source>View traces from the Dashboard telemetry API.</source>
+        <target state="translated">Wyświetl ślady z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedContentType">
+        <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
+        <target state="translated">Interfejs API pulpitu nawigacyjnego zwrócił nieoczekiwany typ zawartości. Oczekiwano odpowiedzi w formacie JSON.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

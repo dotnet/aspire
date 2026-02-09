@@ -7,6 +7,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,7 +26,6 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
-    protected readonly IDotNetSdkInstaller _sdkInstaller;
     protected readonly IAppHostProjectFactory _projectFactory;
 
     private readonly IFeatures _features;
@@ -67,21 +67,11 @@ internal abstract class PipelineCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
         : base(name, description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
-
         _runner = runner;
         _projectLocator = projectLocator;
-        _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
         _projectFactory = projectFactory;
@@ -119,14 +109,6 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         // Send terminal infinite progress bar start sequence
         StartTerminalProgressBar();
-
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            // Send terminal progress bar stop sequence
-            StopTerminalProgressBar();
-            return ExitCodeConstants.SdkNotInstalled;
-        }
 
         try
         {
@@ -194,6 +176,12 @@ internal abstract class PipelineCommandBase : BaseCommand
                     return await backchannelCompletionSource.Task;
                 }
 
+                // Check if the task faulted with a known exception type that should be propagated directly
+                if (completedTask.IsFaulted && completedTask.Exception?.InnerException is DotNetSdkNotInstalledException sdkException)
+                {
+                    throw sdkException;
+                }
+
                 // Throw an error if the run completed without returning a backchannel.
                 // Include possible error if the run task faulted.
                 var innerException = completedTask.IsFaulted ? completedTask.Exception : null;
@@ -255,6 +243,12 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
             return HandleProjectLocatorException(ex, InteractionService, Telemetry);
+        }
+        catch (DotNetSdkNotInstalledException)
+        {
+            // SDK not installed - message already displayed by EnsureSdkInstalledAsync
+            StopTerminalProgressBar();
+            return ExitCodeConstants.SdkNotInstalled;
         }
         catch (AppHostIncompatibleException ex)
         {

@@ -143,8 +143,13 @@ internal sealed class AuxiliaryBackchannelService(
 
             // Create JSON-RPC connection with proper System.Text.Json formatter so it doesn't use Newtonsoft.Json
             // and handles correct MCP SDK type serialization
-
+            // Configure to use camelCase naming to match CLI's MCP SDK options
             var formatter = new SystemTextJsonFormatter();
+            formatter.JsonSerializerOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            };
 
             var handler = new HeaderDelimitedMessageHandler(stream, formatter);
             using var rpc = new JsonRpc(handler, rpcTarget);

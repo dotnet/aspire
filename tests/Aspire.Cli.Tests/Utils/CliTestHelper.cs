@@ -10,6 +10,8 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
+using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -24,13 +26,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
+using Aspire.Cli.Diagnostics;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -73,6 +76,11 @@ internal static class CliTestHelper
 
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
 
+        // Register a FileLoggerProvider that writes to a test-specific temp directory
+        var testLogsDirectory = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "logs");
+        var fileLoggerProvider = new FileLoggerProvider(testLogsDirectory, TimeProvider.System);
+        services.AddSingleton(fileLoggerProvider);
+
         services.AddMemoryCache();
 
         services.AddSingleton(options.ConsoleEnvironmentFactory);
@@ -84,6 +92,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ExtensionRpcTargetFactory);
         services.AddTransient(options.ExtensionBackchannelFactory);
         services.AddSingleton(options.InteractionServiceFactory);
+        services.AddSingleton(options.CertificateToolRunnerFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
@@ -96,13 +105,14 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
-        services.AddSingleton(options.DotNetSdkInstallerFactory);
+        services.AddSingleton<IDotNetSdkInstaller>(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
         services.AddSingleton(options.FirstTimeUseNoticeSentinelFactory);
+        services.AddSingleton(options.BannerServiceFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -115,6 +125,12 @@ internal static class CliTestHelper
         services.AddSingleton(options.AppHostServerSessionFactory);
         services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
         services.AddSingleton(options.LanguageServiceFactory);
+
+        // Bundle layout services - return null/no-op implementations to trigger SDK mode fallback
+        // This ensures backward compatibility: no layout found = use legacy SDK mode
+        services.AddSingleton(options.LayoutDiscoveryFactory);
+        services.AddSingleton(options.BundleDownloaderFactory);
+        services.AddSingleton<BundleNuGetService>();
 
         // AppHost project handlers - must match Program.cs registration pattern
         services.AddSingleton<DotNetAppHostProject>();
@@ -132,17 +148,24 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
-        // MCP docs services
+        // MCP server transport
+        services.AddSingleton(options.McpServerTransportFactory);
+
+        // MCP docs services - use test doubles
         services.AddSingleton<IDocsCache, DocsCache>();
-        services.AddHttpClient<IDocsFetcher, DocsFetcher>();
-        services.AddSingleton<IDocsIndexService, DocsIndexService>();
-        services.AddSingleton<IDocsSearchService, DocsSearchService>();
+        services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
+        services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
+        services.AddSingleton(options.DocsIndexServiceFactory);
+        services.AddSingleton(options.DocsSearchServiceFactory);
 
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
         services.AddTransient<RunCommand>();
         services.AddTransient<StopCommand>();
+        services.AddTransient<StartCommand>();
+        services.AddTransient<RestartCommand>();
+        services.AddTransient<ResourceCommand>();
         services.AddTransient<PsCommand>();
         services.AddTransient<ResourcesCommand>();
         services.AddTransient<LogsCommand>();
@@ -156,13 +179,23 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
+        services.AddTransient<McpStartCommand>();
+        services.AddTransient<McpInitCommand>();
         services.AddTransient<AgentCommand>();
         services.AddTransient<AgentMcpCommand>();
         services.AddTransient<AgentInitCommand>();
+        services.AddTransient<TelemetryCommand>();
+        services.AddTransient<TelemetryLogsCommand>();
+        services.AddTransient<TelemetrySpansCommand>();
+        services.AddTransient<TelemetryTracesCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();
         services.AddTransient<SdkDumpCommand>();
+        services.AddTransient<DocsCommand>();
+        services.AddTransient<DocsListCommand>();
+        services.AddTransient<DocsSearchCommand>();
+        services.AddTransient<DocsGetCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -188,7 +221,9 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
+        var logsDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "logs"));
+        var logFilePath = Path.Combine(logsDirectory.FullName, "test.log");
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory, logFilePath);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -271,6 +306,7 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, ISolutionLocator> SolutionLocatorFactory { get; set; }
     public Func<IServiceProvider, CliExecutionContext> CliExecutionContextFactory { get; set; }
     public Func<IServiceProvider, IFirstTimeUseNoticeSentinel> FirstTimeUseNoticeSentinelFactory { get; set; } = _ => new TestFirstTimeUseNoticeSentinel();
+    public Func<IServiceProvider, IBannerService> BannerServiceFactory { get; set; } = _ => new TestBannerService();
 
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
@@ -321,11 +357,19 @@ internal sealed class CliServiceCollectionTestOptions
         return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
     };
 
+    public Func<IServiceProvider, ICertificateToolRunner> CertificateToolRunnerFactory { get; set; } = (IServiceProvider _) =>
+    {
+        // Use TestCertificateToolRunner by default to avoid calling real dotnet dev-certs
+        // which can be slow or block on macOS (keychain access prompts)
+        return new TestCertificateToolRunner();
+    };
+
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
+        var certificateToolRunner = serviceProvider.GetRequiredService<ICertificateToolRunner>();
         var interactiveService = serviceProvider.GetRequiredService<IInteractionService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new CertificateService(interactiveService, telemetry);
+        return new CertificateService(certificateToolRunner, interactiveService, telemetry);
     };
 
     public Func<IServiceProvider, IDotNetCliExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -385,7 +429,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IFeatures> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new Features(configuration);
+        var logger = serviceProvider.GetRequiredService<ILogger<Features>>();
+        return new Features(configuration, logger);
     };
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -398,7 +443,8 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService);
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService, hostEnvironment);
         return new TemplateProvider([factory]);
     };
 
@@ -448,6 +494,69 @@ internal sealed class CliServiceCollectionTestOptions
     {
         return new TestAppHostServerSessionFactory();
     };
+
+    // Layout discovery - returns null by default (no bundle layout), causing SDK mode fallback
+    public Func<IServiceProvider, ILayoutDiscovery> LayoutDiscoveryFactory { get; set; } = _ => new NullLayoutDiscovery();
+
+    // Bundle downloader - returns a no-op implementation that indicates no bundle mode
+    // This causes UpdateCommand to fall back to CLI-only update or show dotnet tool instructions
+    public Func<IServiceProvider, IBundleDownloader> BundleDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new NullBundleDownloader();
+    };
+
+    public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        return new StdioMcpTransportFactory(loggerFactory ?? NullLoggerFactory.Instance);
+    };
+
+    public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
+        var cache = serviceProvider.GetRequiredService<IDocsCache>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
+        return new DocsIndexService(fetcher, cache, logger);
+    };
+
+    public Func<IServiceProvider, IDocsSearchService> DocsSearchServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var indexService = serviceProvider.GetRequiredService<IDocsIndexService>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsSearchService>>();
+        return new DocsSearchService(indexService, logger);
+    };
+}
+
+/// <summary>
+/// A layout discovery that always returns null (no bundle layout).
+/// Used in tests to ensure SDK mode is used.
+/// </summary>
+internal sealed class NullLayoutDiscovery : ILayoutDiscovery
+{
+    public LayoutConfiguration? DiscoverLayout(string? projectDirectory = null) => null;
+
+    public string? GetComponentPath(LayoutComponent component, string? projectDirectory = null) => null;
+
+    public bool IsBundleModeAvailable(string? projectDirectory = null) => false;
+}
+
+/// <summary>
+/// A no-op bundle downloader that always returns "no updates available".
+/// Used in tests to ensure backward compatibility - no layout = SDK mode.
+/// </summary>
+internal sealed class NullBundleDownloader : IBundleDownloader
+{
+    public Task<string> DownloadLatestBundleAsync(CancellationToken cancellationToken)
+        => throw new NotSupportedException("Bundle downloads not available in test environment");
+
+    public Task<string?> GetLatestVersionAsync(CancellationToken cancellationToken)
+        => Task.FromResult<string?>(null);
+
+    public Task<bool> IsUpdateAvailableAsync(string currentVersion, CancellationToken cancellationToken)
+        => Task.FromResult(false);
+
+    public Task<BundleUpdateResult> ApplyUpdateAsync(string archivePath, string installPath, CancellationToken cancellationToken)
+        => Task.FromResult(BundleUpdateResult.Failed("Bundle updates not available in test environment"));
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

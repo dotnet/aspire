@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,6 +28,8 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
+    private readonly IBundleDownloader? _bundleDownloader;
+    private readonly ILayoutDiscovery _layoutDiscovery;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
@@ -48,6 +51,8 @@ internal sealed class UpdateCommand : BaseCommand
         IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
+        IBundleDownloader? bundleDownloader,
+        ILayoutDiscovery layoutDiscovery,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -56,19 +61,13 @@ internal sealed class UpdateCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(updateNotifier);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(configurationService);
-
         _projectLocator = projectLocator;
         _packagingService = packagingService;
         _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
+        _bundleDownloader = bundleDownloader;
+        _layoutDiscovery = layoutDiscovery;
         _updateNotifier = updateNotifier;
         _features = features;
         _configurationService = configurationService;
@@ -129,6 +128,22 @@ internal sealed class UpdateCommand : BaseCommand
                 return 0;
             }
 
+            // Check if we're running from a bundle layout
+            var layout = _layoutDiscovery.DiscoverLayout();
+            if (layout is not null && _bundleDownloader is not null)
+            {
+                try
+                {
+                    return await ExecuteBundleSelfUpdateAsync(layout, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    InteractionService.DisplayCancellationMessage();
+                    return ExitCodeConstants.InvalidCommand;
+                }
+            }
+
+            // Fall back to CLI-only update
             if (_cliDownloader is null)
             {
                 InteractionService.DisplayError("CLI self-update is not available in this environment.");
@@ -325,6 +340,77 @@ internal sealed class UpdateCommand : BaseCommand
             Telemetry.RecordError("Failed to update CLI", ex);
             var errorMessage = $"Failed to update CLI: {ex.Message}";
             InteractionService.DisplayError(errorMessage);
+            return ExitCodeConstants.InvalidCommand;
+        }
+    }
+
+    private async Task<int> ExecuteBundleSelfUpdateAsync(LayoutConfiguration layout, CancellationToken cancellationToken)
+    {
+        if (_bundleDownloader is null)
+        {
+            InteractionService.DisplayError("Bundle update is not available in this environment.");
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var currentVersion = layout.Version ?? "unknown";
+        var installPath = layout.LayoutPath;
+
+        if (string.IsNullOrEmpty(installPath))
+        {
+            InteractionService.DisplayError("Unable to determine bundle installation path.");
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        InteractionService.DisplayMessage("package", $"Current bundle version: {currentVersion}");
+        InteractionService.DisplayMessage("package", $"Bundle location: {installPath}");
+
+        // Check for updates
+        var latestVersion = await _bundleDownloader.GetLatestVersionAsync(cancellationToken);
+        if (string.IsNullOrEmpty(latestVersion))
+        {
+            InteractionService.DisplayError("Unable to determine latest bundle version.");
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var isUpdateAvailable = await _bundleDownloader.IsUpdateAvailableAsync(currentVersion, cancellationToken);
+        if (!isUpdateAvailable)
+        {
+            InteractionService.DisplaySuccess($"You are already on the latest version ({currentVersion}).");
+            return 0;
+        }
+
+        InteractionService.DisplayMessage("up_arrow", $"Updating to version: {latestVersion}");
+
+        try
+        {
+            // Download the bundle
+            var archivePath = await _bundleDownloader.DownloadLatestBundleAsync(cancellationToken);
+
+            // Apply the update
+            var result = await _bundleDownloader.ApplyUpdateAsync(archivePath, installPath, cancellationToken);
+
+            if (result.Success)
+            {
+                if (result.RestartRequired)
+                {
+                    InteractionService.DisplayMessage("warning", "Update staged. Please restart to complete the update.");
+                    if (!string.IsNullOrEmpty(result.PendingUpdateScript))
+                    {
+                        InteractionService.DisplayMessage("information", $"Or run: {result.PendingUpdateScript}");
+                    }
+                }
+                return 0;
+            }
+            else
+            {
+                InteractionService.DisplayError($"Update failed: {result.ErrorMessage}");
+                return ExitCodeConstants.InvalidCommand;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update bundle");
+            InteractionService.DisplayError($"Failed to update bundle: {ex.Message}");
             return ExitCodeConstants.InvalidCommand;
         }
     }

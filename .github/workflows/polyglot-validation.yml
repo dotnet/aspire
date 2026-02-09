@@ -1,7 +1,7 @@
 # Polyglot SDK Validation Tests (Reusable)
 # Validates Python, Go, Java, Rust, and TypeScript AppHost SDKs with Redis integration
 # Uses Dockerfiles from .github/workflows/polyglot-validation/ for reproducible environments
-# Uses locally built CLI and NuGet packages from the workflow artifacts
+# Uses locally built bundle and NuGet packages from the workflow artifacts
 name: Polyglot SDK Validation
 
 on:
@@ -19,11 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -36,6 +36,55 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Debug - List all downloaded artifacts
+        run: |
+          echo "=== DEBUG: Full artifact tree ==="
+          echo "Working directory: $(pwd)"
+          echo "GITHUB_WORKSPACE: ${{ github.workspace }}"
+          echo ""
+          echo "=== Setting execute permissions on bundle executables ==="
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire || echo "aspire not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/runtime/dotnet || echo "dotnet not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/aspire-nuget/aspire-nuget || echo "aspire-nuget not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/dev-certs/aspire-dev-certs || echo "aspire-dev-certs not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dashboard/aspire-dashboard || echo "Dashboard not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire-server/aspire-server || echo "RemoteHost not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dcp/dcp || echo "dcp not found"
+          echo ""
+          echo "=== artifacts/ directory ==="
+          ls -la ${{ github.workspace }}/artifacts/ || echo "artifacts/ does not exist"
+          echo ""
+          echo "=== artifacts/bundle/ directory ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/ || echo "artifacts/bundle/ does not exist"
+          echo ""
+          echo "=== artifacts/bundle/ recursive (first 3 levels) ==="
+          find ${{ github.workspace }}/artifacts/bundle -maxdepth 3 -type f 2>/dev/null | head -50 || echo "No files found"
+          find ${{ github.workspace }}/artifacts/bundle -maxdepth 3 -type d 2>/dev/null || echo "No directories found"
+          echo ""
+          echo "=== Check for aspire CLI ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire 2>/dev/null || echo "aspire CLI not found at expected path"
+          find ${{ github.workspace }}/artifacts -name "aspire" -type f 2>/dev/null || echo "aspire CLI not found anywhere"
+          echo ""
+          echo "=== Check for runtime/dotnet ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/runtime/dotnet 2>/dev/null || echo "runtime/dotnet not found at expected path"
+          find ${{ github.workspace }}/artifacts -name "dotnet" -type f 2>/dev/null || echo "dotnet not found anywhere"
+          echo ""
+          echo "=== Check for key directories ==="
+          for dir in runtime dashboard dcp aspire-server tools; do
+            if [ -d "${{ github.workspace }}/artifacts/bundle/$dir" ]; then
+              echo "✓ $dir/ exists"
+              ls -la "${{ github.workspace }}/artifacts/bundle/$dir" | head -5
+            else
+              echo "✗ $dir/ MISSING"
+            fi
+          done
+          echo ""
+          echo "=== artifacts/nugets/ sample ==="
+          find ${{ github.workspace }}/artifacts/nugets -name "*.nupkg" 2>/dev/null | head -10 || echo "No nupkg files found"
+          echo ""
+          echo "=== artifacts/nugets-rid/ sample ==="
+          find ${{ github.workspace }}/artifacts/nugets-rid -name "*.nupkg" 2>/dev/null | head -10 || echo "No nupkg files found"
 
       - name: Build Python validation image
         run: |
@@ -58,11 +107,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -75,6 +124,32 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Debug - List all downloaded artifacts
+        run: |
+          echo "=== DEBUG: Go validation - artifact tree ==="
+          echo "=== Setting execute permissions on bundle executables ==="
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire || echo "aspire not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/runtime/dotnet || echo "dotnet not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/aspire-nuget/aspire-nuget || echo "aspire-nuget not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/dev-certs/aspire-dev-certs || echo "aspire-dev-certs not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dashboard/aspire-dashboard || echo "Dashboard not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire-server/aspire-server || echo "RemoteHost not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dcp/dcp || echo "dcp not found"
+          echo ""
+          echo "=== artifacts/bundle/ ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/ || echo "bundle/ does not exist"
+          echo ""
+          echo "=== Bundle structure check ==="
+          for dir in runtime dashboard dcp aspire-server; do
+            if [ -d "${{ github.workspace }}/artifacts/bundle/$dir" ]; then
+              echo "✓ $dir/"
+            else
+              echo "✗ $dir/ MISSING"
+            fi
+          done
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire 2>/dev/null || echo "aspire CLI MISSING"
+          ls -la ${{ github.workspace }}/artifacts/bundle/runtime/dotnet 2>/dev/null || echo "runtime/dotnet MISSING"
 
       - name: Build Go validation image
         run: |
@@ -97,11 +172,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -114,6 +189,32 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Debug - List all downloaded artifacts
+        run: |
+          echo "=== DEBUG: Java validation - artifact tree ==="
+          echo "=== Setting execute permissions on bundle executables ==="
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire || echo "aspire not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/runtime/dotnet || echo "dotnet not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/aspire-nuget/aspire-nuget || echo "aspire-nuget not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/dev-certs/aspire-dev-certs || echo "aspire-dev-certs not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dashboard/aspire-dashboard || echo "Dashboard not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire-server/aspire-server || echo "RemoteHost not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dcp/dcp || echo "dcp not found"
+          echo ""
+          echo "=== artifacts/bundle/ ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/ || echo "bundle/ does not exist"
+          echo ""
+          echo "=== Bundle structure check ==="
+          for dir in runtime dashboard dcp aspire-server; do
+            if [ -d "${{ github.workspace }}/artifacts/bundle/$dir" ]; then
+              echo "✓ $dir/"
+            else
+              echo "✗ $dir/ MISSING"
+            fi
+          done
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire 2>/dev/null || echo "aspire CLI MISSING"
+          ls -la ${{ github.workspace }}/artifacts/bundle/runtime/dotnet 2>/dev/null || echo "runtime/dotnet MISSING"
 
       - name: Build Java validation image
         run: |
@@ -138,11 +239,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -155,6 +256,32 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Debug - List all downloaded artifacts
+        run: |
+          echo "=== DEBUG: Rust validation - artifact tree ==="
+          echo "=== Setting execute permissions on bundle executables ==="
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire || echo "aspire not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/runtime/dotnet || echo "dotnet not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/aspire-nuget/aspire-nuget || echo "aspire-nuget not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/dev-certs/aspire-dev-certs || echo "aspire-dev-certs not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dashboard/aspire-dashboard || echo "Dashboard not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire-server/aspire-server || echo "RemoteHost not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dcp/dcp || echo "dcp not found"
+          echo ""
+          echo "=== artifacts/bundle/ ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/ || echo "bundle/ does not exist"
+          echo ""
+          echo "=== Bundle structure check ==="
+          for dir in runtime dashboard dcp aspire-server; do
+            if [ -d "${{ github.workspace }}/artifacts/bundle/$dir" ]; then
+              echo "✓ $dir/"
+            else
+              echo "✗ $dir/ MISSING"
+            fi
+          done
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire 2>/dev/null || echo "aspire CLI MISSING"
+          ls -la ${{ github.workspace }}/artifacts/bundle/runtime/dotnet 2>/dev/null || echo "runtime/dotnet MISSING"
 
       - name: Build Rust validation image
         run: |
@@ -177,11 +304,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -194,6 +321,32 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Debug - List all downloaded artifacts
+        run: |
+          echo "=== DEBUG: TypeScript validation - artifact tree ==="
+          echo "=== Setting execute permissions on bundle executables ==="
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire || echo "aspire not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/runtime/dotnet || echo "dotnet not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/aspire-nuget/aspire-nuget || echo "aspire-nuget not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/tools/dev-certs/aspire-dev-certs || echo "aspire-dev-certs not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dashboard/aspire-dashboard || echo "Dashboard not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire-server/aspire-server || echo "RemoteHost not found"
+          chmod +x ${{ github.workspace }}/artifacts/bundle/dcp/dcp || echo "dcp not found"
+          echo ""
+          echo "=== artifacts/bundle/ ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/ || echo "bundle/ does not exist"
+          echo ""
+          echo "=== Bundle structure check ==="
+          for dir in runtime dashboard dcp aspire-server; do
+            if [ -d "${{ github.workspace }}/artifacts/bundle/$dir" ]; then
+              echo "✓ $dir/"
+            else
+              echo "✗ $dir/ MISSING"
+            fi
+          done
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire 2>/dev/null || echo "aspire CLI MISSING"
+          ls -la ${{ github.workspace }}/artifacts/bundle/runtime/dotnet 2>/dev/null || echo "runtime/dotnet MISSING"
 
       - name: Build TypeScript validation image
         run: |
