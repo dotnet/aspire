@@ -35,6 +35,7 @@ internal sealed class AspireMonitorTui
     private bool _isConnecting;
     private string? _errorMessage;
     private bool _showSplash = true;
+    private readonly AspireMonitorSplash _splash = new();
     private object? _focusedResourceKey;
     private object? _focusedParameterKey;
     private CancellationTokenSource? _watchCts;
@@ -71,10 +72,19 @@ internal sealed class AspireMonitorTui
             .WithMouse()
             .Build();
 
-        // After a brief splash, transition to the main screen and connect
+        // Animate the splash, then transition to main screen
         _ = Task.Run(async () =>
         {
-            await Task.Delay(AspireMonitorSplash.SplashDurationMs, cancellationToken).ConfigureAwait(false);
+            // Drive the animation by invalidating at ~30fps
+            while (!_splash.IsComplete)
+            {
+                _app?.Invalidate();
+                await Task.Delay(33, cancellationToken).ConfigureAwait(false);
+            }
+            _app?.Invalidate();
+
+            // Hold the completed logo briefly
+            await Task.Delay(AspireMonitorSplash.SplashDurationMs - AspireMonitorSplash.AnimationDurationMs, cancellationToken).ConfigureAwait(false);
             _showSplash = false;
             _app?.Invalidate();
 
@@ -89,11 +99,12 @@ internal sealed class AspireMonitorTui
 
     private Hex1bWidget BuildWidget(RootContext ctx)
     {
-        var content = _showSplash
-            ? AspireMonitorSplash.Build(ctx)
-            : BuildMainScreen(ctx);
+        if (_showSplash)
+        {
+            return _splash.Build(ctx);
+        }
 
-        return ctx.ThemePanel(AspireTheme.Apply, content).Fill();
+        return ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx)).Fill();
     }
 
     private Hex1bWidget BuildMainScreen(RootContext ctx)
