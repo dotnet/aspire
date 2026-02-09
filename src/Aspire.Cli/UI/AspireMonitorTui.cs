@@ -88,12 +88,11 @@ internal sealed class AspireMonitorTui
 
     private Hex1bWidget BuildWidget(RootContext ctx)
     {
-        if (_showSplash)
-        {
-            return AspireMonitorSplash.Build(ctx);
-        }
+        var content = _showSplash
+            ? AspireMonitorSplash.Build(ctx)
+            : BuildMainScreen(ctx);
 
-        return BuildMainScreen(ctx);
+        return ctx.ThemePanel(AspireTheme.Apply, content).Fill();
     }
 
     private Hex1bWidget BuildMainScreen(RootContext ctx)
