@@ -59,6 +59,12 @@ internal sealed class FileLock : IDisposable
             {
                 Thread.Sleep(200);
             }
+            catch (IOException ex)
+            {
+                throw new TimeoutException(
+                    $"Timed out after {effectiveTimeout} waiting to acquire lock file '{lockPath}'. " +
+                    "Another process may be extracting the bundle.", ex);
+            }
         }
     }
 

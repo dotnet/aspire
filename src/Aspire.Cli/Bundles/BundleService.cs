@@ -33,15 +33,18 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
         {
+            logger.LogDebug("ProcessPath is null or empty, skipping bundle extraction.");
             return;
         }
 
         var extractDir = GetDefaultExtractDir(processPath);
         if (extractDir is null)
         {
+            logger.LogDebug("Could not determine extraction directory from {ProcessPath}, skipping.", processPath);
             return;
         }
 
+        logger.LogDebug("Ensuring bundle is extracted from {ProcessPath} to {ExtractDir}.", processPath, extractDir);
         var result = await ExtractAsync(processPath, extractDir, force: false, cancellationToken);
 
         if (result is BundleExtractResult.ExtractionFailed)
@@ -57,11 +60,17 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         var trailer = BundleTrailer.TryRead(binaryPath);
         if (trailer is null)
         {
+            logger.LogDebug("No bundle trailer found in {BinaryPath}.", binaryPath);
             return BundleExtractResult.NoPayload;
         }
 
+        logger.LogDebug("Bundle trailer found: PayloadOffset={Offset}, PayloadSize={Size}, VersionHash={Hash}.",
+            trailer.PayloadOffset, trailer.PayloadSize, trailer.VersionHash);
+
         // Use a file lock for cross-process synchronization
+        logger.LogDebug("Acquiring bundle extraction lock for {Path}...", destinationPath);
         using var fileLock = FileLock.Acquire(destinationPath, ".aspire-bundle-lock");
+        logger.LogDebug("Bundle extraction lock acquired.");
 
         try
         {
@@ -71,8 +80,11 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
                 var existingHash = BundleTrailer.ReadVersionMarker(destinationPath);
                 if (existingHash == trailer.VersionHash)
                 {
+                    logger.LogDebug("Bundle already extracted and up to date (hash: {Hash}).", existingHash);
                     return BundleExtractResult.AlreadyUpToDate;
                 }
+
+                logger.LogDebug("Version mismatch: existing={ExistingHash}, bundle={BundleHash}. Re-extracting.", existingHash, trailer.VersionHash);
             }
 
             return await ExtractCoreAsync(binaryPath, destinationPath, trailer, cancellationToken);
@@ -89,19 +101,26 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         logger.LogInformation("Extracting embedded bundle to {Path}...", destinationPath);
 
         // Clean existing layout directories before extraction to avoid file conflicts
+        logger.LogDebug("Cleaning existing layout directories in {Path}.", destinationPath);
         CleanLayoutDirectories(destinationPath);
 
+        var sw = Stopwatch.StartNew();
         await ExtractPayloadAsync(binaryPath, trailer, destinationPath, cancellationToken);
+        sw.Stop();
+        logger.LogDebug("Payload extraction completed in {ElapsedMs}ms.", sw.ElapsedMilliseconds);
 
         // Write version marker so subsequent runs skip extraction
         BundleTrailer.WriteVersionMarker(destinationPath, trailer.VersionHash);
+        logger.LogDebug("Version marker written (hash: {Hash}).", trailer.VersionHash);
 
         // Verify extraction produced a valid layout
         if (layoutDiscovery.DiscoverLayout() is null)
         {
+            logger.LogError("Extraction completed but no valid layout found in {Path}.", destinationPath);
             return BundleExtractResult.ExtractionFailed;
         }
 
+        logger.LogDebug("Bundle extraction verified successfully.");
         return BundleExtractResult.Extracted;
     }
 
