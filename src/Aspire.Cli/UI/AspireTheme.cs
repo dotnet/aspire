@@ -44,8 +44,8 @@ internal static class AspireTheme
 
             // Table
             .Set(TableTheme.BorderColor, s_border)
-            .Set(TableTheme.FocusedBorderColor, s_purpleMedium)
-            .Set(TableTheme.TableFocusedBorderColor, s_purple)
+            .Set(TableTheme.FocusedBorderColor, s_purpleLight)
+            .Set(TableTheme.TableFocusedBorderColor, s_purpleLight)
             .Set(TableTheme.HeaderBackground, s_headerBg)
             .Set(TableTheme.HeaderForeground, s_purpleLight)
             .Set(TableTheme.RowBackground, s_bgDark)
@@ -55,6 +55,7 @@ internal static class AspireTheme
             .Set(TableTheme.FocusedRowForeground, s_lavender)
             .Set(TableTheme.SelectedRowBackground, s_selectedRow)
             .Set(TableTheme.SelectedRowForeground, s_purpleFaint)
+            .Set(TableTheme.SelectionColumnBorderColor, s_purpleMedium)
             .Set(TableTheme.EmptyTextForeground, s_textMuted)
             .Set(TableTheme.LoadingTextForeground, s_textMuted)
             .Set(TableTheme.ScrollbarThumbColor, s_purpleMedium)
@@ -75,8 +76,8 @@ internal static class AspireTheme
             .Set(TabBarTheme.SelectedForegroundColor, s_lavender)
 
             // InfoBar
-            .Set(InfoBarTheme.BackgroundColor, s_bgElevated)
-            .Set(InfoBarTheme.ForegroundColor, s_textMuted)
+            .Set(InfoBarTheme.BackgroundColor, s_purpleLight)
+            .Set(InfoBarTheme.ForegroundColor, Hex1bColor.FromRgb(255, 255, 255))
 
             // Button
             .Set(ButtonTheme.ForegroundColor, s_textPrimary)
