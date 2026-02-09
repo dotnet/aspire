@@ -116,6 +116,12 @@ internal sealed class AspireMonitorTui
 
     private Hex1bWidget BuildMainScreen(RootContext ctx)
     {
+        // When no AppHosts are connected, show a waiting panel
+        if (_appHosts.Count == 0)
+        {
+            return BuildWaitingForAppHostsPanel(ctx);
+        }
+
         // Build right-side content depending on selected AppHost state
         Hex1bWidget rightContent;
         var selectedAppHost = _selectedAppHostIndex < _appHosts.Count ? _appHosts[_selectedAppHostIndex] : null;
@@ -160,6 +166,33 @@ internal sealed class AspireMonitorTui
                 bar.Section("Tab: " + MonitorCommandStrings.TabShortcut),
                 bar.Separator(" │ "),
                 bar.Section(GetStatusText()).FillWidth()
+            ])
+        ]).Fill();
+    }
+
+    private static Hex1bWidget BuildWaitingForAppHostsPanel(RootContext ctx)
+    {
+        return ctx.VStack(outer => [
+            ctx.NotificationPanel(
+                ctx.VStack(v => [
+                    v.Text("").Fill(),
+                    v.Center(
+                        ctx.VStack(inner => [
+                            inner.Text("  ⏳  Waiting for AppHosts...").FixedHeight(1),
+                            inner.Text("").FixedHeight(1),
+                            inner.Text("  No running Aspire AppHosts detected.").FixedHeight(1),
+                            inner.Text("").FixedHeight(1),
+                            inner.Text("  Start an AppHost with 'aspire run' and it will").FixedHeight(1),
+                            inner.Text("  appear here automatically.").FixedHeight(1)
+                        ])
+                    ),
+                    v.Text("").Fill()
+                ]).Fill()
+            ).Fill(),
+            outer.InfoBar(bar => [
+                bar.Section("q: " + MonitorCommandStrings.QuitShortcut),
+                bar.Separator(" │ "),
+                bar.Section("Polling for AppHosts...").FillWidth()
             ])
         ]).Fill();
     }
@@ -376,6 +409,7 @@ internal sealed class AspireMonitorTui
                     var path = connection.AppHostInfo!.AppHostPath ?? "Unknown";
                     if (!knownPaths.Contains(path))
                     {
+                        var wasEmpty = _appHosts.Count == 0;
                         var entry = new AppHostEntry
                         {
                             DisplayName = ShortenPath(path),
@@ -385,18 +419,26 @@ internal sealed class AspireMonitorTui
                         _appHosts.Add(entry);
                         knownPaths.Add(path);
 
-                        _notificationStack?.Post(
-                            new Notification("New AppHost Detected", entry.DisplayName)
-                                .Timeout(TimeSpan.FromSeconds(10))
-                                .PrimaryAction("Connect", async ctx =>
-                                {
-                                    var idx = _appHosts.IndexOf(entry);
-                                    if (idx >= 0)
+                        // Auto-connect if this is the first AppHost
+                        if (wasEmpty)
+                        {
+                            _ = ConnectToAppHostAsync(0, cancellationToken);
+                        }
+                        else
+                        {
+                            _notificationStack?.Post(
+                                new Notification("New AppHost Detected", entry.DisplayName)
+                                    .Timeout(TimeSpan.FromSeconds(10))
+                                    .PrimaryAction("Connect", async ctx =>
                                     {
-                                        await ConnectToAppHostAsync(idx, cancellationToken).ConfigureAwait(false);
-                                    }
-                                    ctx.Dismiss();
-                                }));
+                                        var idx = _appHosts.IndexOf(entry);
+                                        if (idx >= 0)
+                                        {
+                                            await ConnectToAppHostAsync(idx, cancellationToken).ConfigureAwait(false);
+                                        }
+                                        ctx.Dismiss();
+                                    }));
+                        }
 
                         _app?.Invalidate();
                     }
