@@ -16,6 +16,7 @@ internal sealed class HackRevealEffect
 {
     private struct CellInfo
     {
+        public bool Initialized;
         public bool HasContent;
         public bool IsAlphaNumeric;
         public string Character;
@@ -29,7 +30,6 @@ internal sealed class HackRevealEffect
 
     private CellInfo[,]? _cells;
     private int _width, _height;
-    private bool _contentDetected;
     private readonly Random _rng = new();
 
     private const string ScrambleChars =
@@ -38,7 +38,6 @@ internal sealed class HackRevealEffect
     public void Reset()
     {
         _cells = null;
-        _contentDetected = false;
     }
 
     public void Update(int width, int height)
@@ -51,7 +50,6 @@ internal sealed class HackRevealEffect
         _width = width;
         _height = height;
         _cells = new CellInfo[width, height];
-        _contentDetected = false;
     }
 
     public CellCompute GetCompute(double progress)
@@ -60,65 +58,68 @@ internal sealed class HackRevealEffect
         {
             var below = ctx.GetBelow();
 
-            if (!_contentDetected && _cells is not null)
-            {
-                bool hasVisibleChar = !below.IsContinuation
-                    && below.Character != "\uE000"
-                    && !string.IsNullOrEmpty(below.Character)
-                    && below.Character != " ";
-
-                double rowFrac = 1.0 - (double)ctx.Y / Math.Max(1, _height - 1);
-                double jitter = _rng.NextDouble() * 0.06;
-
-                if (hasVisibleChar)
-                {
-                    bool isAlpha = !IsStructuralChar(below.Character);
-
-                    double bgReveal = rowFrac * 0.45 + jitter;
-                    double charReveal = isAlpha
-                        ? 0.55 + _rng.NextDouble() * 0.10
-                        : bgReveal;
-                    double settle = isAlpha
-                        ? charReveal + 0.20 + _rng.NextDouble() * 0.15
-                        : charReveal;
-
-                    _cells[ctx.X, ctx.Y] = new CellInfo
-                    {
-                        HasContent = true,
-                        IsAlphaNumeric = isAlpha,
-                        Character = below.Character,
-                        Foreground = below.Foreground,
-                        Background = below.Background,
-                        BgRevealTime = bgReveal,
-                        CharRevealTime = charReveal,
-                        SettleTime = settle,
-                        ScrambleSeed = _rng.Next()
-                    };
-                }
-                else
-                {
-                    _cells[ctx.X, ctx.Y] = new CellInfo
-                    {
-                        HasContent = false,
-                        Background = below.Background,
-                        BgRevealTime = rowFrac * 0.45 + jitter,
-                    };
-                }
-
-                if (ctx.X == _width - 1 && ctx.Y == _height - 1)
-                {
-                    _contentDetected = true;
-                }
-
-                return new SurfaceCell(" ", null, Hex1bColor.FromRgb(0, 0, 0));
-            }
-
             if (_cells is null)
             {
                 return new SurfaceCell(" ", null, null);
             }
 
             ref var cell = ref _cells[ctx.X, ctx.Y];
+
+            // Check if this cell has new content that wasn't there before
+            bool hasVisibleChar = !below.IsContinuation
+                && below.Character != "\uE000"
+                && !string.IsNullOrEmpty(below.Character)
+                && below.Character != " ";
+
+            if (hasVisibleChar && !cell.HasContent)
+            {
+                // New content appeared — assign reveal times relative to current progress
+                bool isAlpha = !IsStructuralChar(below.Character);
+                double jitter = _rng.NextDouble() * 0.04;
+
+                // Start revealing shortly after current progress
+                double bgReveal = Math.Max(cell.BgRevealTime, progress + jitter);
+                double charReveal = isAlpha
+                    ? bgReveal + 0.08 + _rng.NextDouble() * 0.06
+                    : bgReveal;
+                double settle = isAlpha
+                    ? charReveal + 0.15 + _rng.NextDouble() * 0.10
+                    : charReveal;
+
+                cell = new CellInfo
+                {
+                    HasContent = true,
+                    IsAlphaNumeric = isAlpha,
+                    Character = below.Character,
+                    Foreground = below.Foreground,
+                    Background = below.Background,
+                    BgRevealTime = bgReveal,
+                    CharRevealTime = charReveal,
+                    SettleTime = settle,
+                    ScrambleSeed = _rng.Next()
+                };
+            }
+            else if (hasVisibleChar && cell.HasContent && cell.Character != below.Character)
+            {
+                // Content changed — update the target character but keep timing
+                cell.Character = below.Character;
+                cell.Foreground = below.Foreground;
+                cell.Background = below.Background;
+            }
+            else if (!cell.Initialized)
+            {
+                // First time seeing this cell — set up background reveal timing
+                double rowFrac = 1.0 - (double)ctx.Y / Math.Max(1, _height - 1);
+                double jitter = _rng.NextDouble() * 0.06;
+
+                cell = new CellInfo
+                {
+                    Initialized = true,
+                    HasContent = false,
+                    Background = below.Background,
+                    BgRevealTime = rowFrac * 0.45 + jitter,
+                };
+            }
 
             if (progress >= 1.0)
             {
@@ -148,7 +149,7 @@ internal sealed class HackRevealEffect
 
             if (!cell.IsAlphaNumeric)
             {
-                return new SurfaceCell(cell.Character, fg, bg) with
+                return new SurfaceCell(cell.Character ?? " ", fg, bg) with
                 {
                     Attributes = below.Attributes,
                     DisplayWidth = below.DisplayWidth
@@ -157,7 +158,7 @@ internal sealed class HackRevealEffect
 
             if (progress >= cell.SettleTime)
             {
-                return new SurfaceCell(cell.Character, fg, bg) with
+                return new SurfaceCell(cell.Character ?? " ", fg, bg) with
                 {
                     Attributes = below.Attributes,
                     DisplayWidth = below.DisplayWidth
