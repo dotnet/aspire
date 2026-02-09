@@ -135,8 +135,6 @@ internal sealed class AspireMonitorTui
             // During reveal, build without NotificationPanel (it requires ZStack context)
             var revealContent = ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx, interactive: false)).Fill();
 
-            _hackReveal.Update(1, 1);
-
             return ctx.Surface(s =>
             {
                 _hackReveal.Update(s.Width, s.Height);
