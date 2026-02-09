@@ -285,6 +285,13 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
                     {
                         continue;
                     }
+                    // Validate symlink target stays within the extraction directory
+                    var linkTarget = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(fullPath)!, entry.LinkName));
+                    if (!linkTarget.StartsWith(normalizedDestination + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+                        !linkTarget.Equals(normalizedDestination, StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException($"Symlink '{entry.Name}' targets '{entry.LinkName}' which resolves outside the destination directory.");
+                    }
                     var linkDir = Path.GetDirectoryName(fullPath);
                     if (linkDir is not null)
                     {
