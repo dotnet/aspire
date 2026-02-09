@@ -32,20 +32,34 @@ internal sealed class FileLock : IDisposable
     }
 
     /// <summary>
-    /// Acquires an exclusive file lock, blocking until the lock is available.
+    /// Acquires an exclusive file lock, retrying until the lock is available or the timeout expires.
     /// </summary>
     /// <param name="directory">The directory in which to create the lock file.</param>
     /// <param name="fileName">The name of the lock file.</param>
+    /// <param name="timeout">Maximum time to wait for the lock. Defaults to 2 minutes.</param>
     /// <returns>A <see cref="FileLock"/> that releases the lock when disposed.</returns>
-    public static FileLock Acquire(string directory, string fileName = ".lock")
+    /// <exception cref="TimeoutException">Thrown when the lock cannot be acquired within the timeout period.</exception>
+    public static FileLock Acquire(string directory, string fileName = ".lock", TimeSpan? timeout = null)
     {
         Directory.CreateDirectory(directory);
         var lockPath = Path.Combine(directory, fileName);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        // FileShare.None ensures only one process can hold this handle at a time.
-        // Other processes will block on the FileStream constructor until the lock is released.
-        var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-        return new FileLock(stream);
+        // On Windows, opening a file with FileShare.None throws IOException immediately
+        // instead of blocking. Retry with a short delay until the lock is available.
+        while (true)
+        {
+            try
+            {
+                var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                return new FileLock(stream);
+            }
+            catch (IOException) when (stopwatch.Elapsed < effectiveTimeout)
+            {
+                Thread.Sleep(200);
+            }
+        }
     }
 
     public void Dispose()
