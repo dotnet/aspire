@@ -95,11 +95,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     }
                 },
                 Tags = ["fetch-website-hostname"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
+                DependsOnSteps = [AzureEnvironmentResource.CreateProvisioningContextStepName],
             };
 
             steps.Add(websiteGetHostNameStep);
-            
+
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
                 endpoints = [];
@@ -111,10 +111,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Description = $"Prints the deployment summary and URL for {targetResource.Name}.",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
                     string? deploymentUrl = null;
 
-                    if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
+                    if (computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null)
                     {
                         deploymentUrl = $"https://{WebsiteSlotHostName}";
                     }

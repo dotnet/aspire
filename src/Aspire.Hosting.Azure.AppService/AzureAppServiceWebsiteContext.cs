@@ -39,25 +39,18 @@ internal sealed class AzureAppServiceWebsiteContext(
     private BicepValue<string> HostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
+    /// <summary>
+    /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
+    /// </summary>
     /// <param name="deploymentSlot">The deployment slot name.</param>
     /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to the maximum allowed length.</returns>
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         var websitePrefix = BicepFunction.Take(
             BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNamePrefixLengthWithSlot);
-        
+
         return BicepFunction.Take(
             BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLengthWithSlot);
-    }
-
-    /// <summary>
-    /// Gets the hostname for a deployment slot or the website based on isSlot parameter.
-    /// </summary>
-    /// <param name="isSlot">Indicates whether the request is for a deployment slot.</param>
-    /// <returns>A <see cref="BicepValue{T}"/> representing the website or slot hostname.</returns>
-    public BicepValue<string> GetWebsiteHostName(bool isSlot)
-    {
-        return isSlot ? _websiteSlotHostNameParameter : _websiteHostNameParameter;
     }
 
     /// <summary>
@@ -75,9 +68,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    internal readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
+    private readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
 
-    internal readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
+    private readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {

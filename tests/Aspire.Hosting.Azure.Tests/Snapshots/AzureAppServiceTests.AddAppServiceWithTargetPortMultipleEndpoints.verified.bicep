@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param project2websiteHostName string
+param project2websiteHostName string = '${take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
 
 param env_outputs_azure_container_registry_endpoint string
 
