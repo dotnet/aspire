@@ -262,14 +262,12 @@ internal sealed class AspireMonitorTui
         // If we have a terminal handle, show table+logs in a vertical split
         if (_logTerminalHandle is not null)
         {
-            var logPanel = ctx.DragBarPanel(
-                ctx.Terminal(_logTerminalHandle)
-            ).InitialSize(12).MinSize(4);
-
             return [
                 ctx.VStack(v => [
-                    v.DragBarPanel(table).InitialSize(15).MinSize(6),
-                    logPanel
+                    table,
+                    v.DragBarPanel(
+                        ctx.Terminal(_logTerminalHandle)
+                    ).InitialSize(12).MinSize(4)
                 ]).Fill()
             ];
         }
