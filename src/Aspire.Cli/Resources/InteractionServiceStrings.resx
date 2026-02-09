@@ -182,7 +182,7 @@
     <value>The project argument was not specified and no app host project files were detected.</value>
   </data>
   <data name="ProjectCouldNotBeBuilt" xml:space="preserve">
-    <value>The project could not be built. For more information run with --debug switch.</value>
+    <value>The project could not be built. See logs at {0}</value>
   </data>
   <data name="OperationCancelled" xml:space="preserve">
     <value>The operation was canceled.</value>
@@ -199,6 +199,10 @@
   <data name="UnexpectedErrorOccurred" xml:space="preserve">
     <value>An unexpected error occurred: {0}</value>
     <comment>{0} is the exception message</comment>
+  </data>
+  <data name="SeeLogsAt" xml:space="preserve">
+    <value>See logs at {0}</value>
+    <comment>{0} is the log file path</comment>
   </data>
   <data name="WaitingForDebuggerToAttachToAppHost" xml:space="preserve">
     <value>Waiting for debugger to attach to app host process</value>

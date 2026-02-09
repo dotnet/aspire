@@ -23,8 +23,9 @@ public class DotNetSdkInstallerTests
         var hivesDirectory = new DirectoryInfo(Path.Combine(tempPath, "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(tempPath, "cache"));
         var sdksDirectory = new DirectoryInfo(Path.Combine(tempPath, "sdks"));
+        var logsDirectory = new DirectoryInfo(Path.Combine(tempPath, "logs"));
         
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode: false);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, logsDirectory, "test.log", debugMode: false);
     }
 
     private static ILogger<DotNetSdkInstaller> CreateTestLogger()

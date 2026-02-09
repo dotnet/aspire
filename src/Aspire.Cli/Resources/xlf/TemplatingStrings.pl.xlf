@@ -123,9 +123,9 @@
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
-        <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Tworzenie projektu nie powiodło się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
-        <note>{0} is a number, --debug should not be localized</note>
+        <source>Project creation failed with exit code {0}. See logs at {1}</source>
+        <target state="new">Project creation failed with exit code {0}. See logs at {1}</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
@@ -153,9 +153,9 @@
         <note />
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
-        <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Instalacja szablonu nie powiodła się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
-        <note>{0} is a number, --debug should not be localized</note>
+        <source>The template installation failed with exit code {0}. See logs at {1}</source>
+        <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="Unknown">
         <source>Unknown</source>

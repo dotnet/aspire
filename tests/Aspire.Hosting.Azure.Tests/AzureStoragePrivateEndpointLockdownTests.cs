@@ -51,4 +51,43 @@ public class AzureStoragePrivateEndpointLockdownTests
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public async Task AddAzureStorage_WithTablePrivateEndpoint_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+        var storage = builder.AddAzureStorage("storage");
+        var tables = storage.AddTables("tables");
+
+        subnet.AddPrivateEndpoint(tables);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddAzureStorage_WithDataLakePrivateEndpoint_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+        var storage = builder.AddAzureStorage("storage").ConfigureInfrastructure(infra =>
+        {
+            // Need to enable HNS for DataLake
+            var storageAccount = infra.GetProvisionableResources().OfType<StorageAccount>().Single();
+            storageAccount.IsHnsEnabled = true;
+        });
+        var dataLake = storage.AddDataLake("datalake");
+
+        subnet.AddPrivateEndpoint(dataLake);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
 }

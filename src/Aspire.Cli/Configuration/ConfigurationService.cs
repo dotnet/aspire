@@ -20,7 +20,10 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         if (File.Exists(settingsFilePath))
         {
             var existingContent = await File.ReadAllTextAsync(settingsFilePath, cancellationToken);
-            settings = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            // Handle empty files or whitespace-only content
+            settings = string.IsNullOrWhiteSpace(existingContent)
+                ? new JsonObject()
+                : JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
         }
         else
         {
@@ -54,6 +57,13 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         try
         {
             var existingContent = await File.ReadAllTextAsync(settingsFilePath, cancellationToken);
+
+            // Handle empty files or whitespace-only content
+            if (string.IsNullOrWhiteSpace(existingContent))
+            {
+                return false;
+            }
+
             var settings = JsonNode.Parse(existingContent)?.AsObject();
 
             if (settings is null)
@@ -143,6 +153,13 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         try
         {
             var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+
+            // Handle empty files or whitespace-only content
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
             var settings = JsonNode.Parse(content)?.AsObject();
 
             if (settings is not null)
@@ -159,10 +176,16 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     /// <summary>
     /// Sets a nested value in a JsonObject using dot notation.
     /// Creates intermediate objects as needed and replaces primitives with objects when necessary.
+    /// Also removes any conflicting flattened keys (colon-separated format) to prevent duplicate key errors.
     /// </summary>
     private static void SetNestedValue(JsonObject settings, string key, string value)
     {
         var keyParts = key.Split('.');
+
+        // Remove any conflicting flattened keys (e.g., "features:polyglotSupportEnabled" when setting "features.polyglotSupportEnabled")
+        // This prevents duplicate key errors when loading the configuration
+        RemoveConflictingFlattenedKeys(settings, keyParts);
+
         var currentObject = settings;
 
         // Navigate to the parent object, creating objects as needed
@@ -182,6 +205,31 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         // Set the final value
         var finalKey = keyParts[keyParts.Length - 1];
         currentObject[finalKey] = value;
+    }
+
+    /// <summary>
+    /// Removes any flattened keys (colon-separated) that would conflict with a nested structure.
+    /// For example, when setting "features.polyglotSupportEnabled", remove "features:polyglotSupportEnabled".
+    /// </summary>
+    private static void RemoveConflictingFlattenedKeys(JsonObject settings, string[] keyParts)
+    {
+        // Build all possible flattened key patterns that could conflict
+        // For key "a.b.c", we need to remove "a:b:c" from the root
+        var flattenedKey = string.Join(":", keyParts);
+        settings.Remove(flattenedKey);
+
+        // Also check for partial flattened keys at each level
+        // For example, if we have "a.b.c", we should also check for "a:b" in the root
+        // that might contain a "c" value
+        for (int i = 1; i < keyParts.Length; i++)
+        {
+            var partialKey = string.Join(":", keyParts.Take(i));
+            if (settings.ContainsKey(partialKey) && settings[partialKey] is not JsonObject)
+            {
+                // This is a flattened value that conflicts with our nested structure
+                settings.Remove(partialKey);
+            }
+        }
     }
 
     /// <summary>

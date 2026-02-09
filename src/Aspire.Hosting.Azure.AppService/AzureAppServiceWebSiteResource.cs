@@ -39,11 +39,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
-            if (!targetResource.TryGetEndpoints(out var endpoints))
-            {
-                endpoints = [];
-            }
-
             var printResourceSummary = new PipelineStep
             {
                 Name = $"print-{targetResource.Name}-summary",
@@ -63,6 +58,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
+                    ctx.Summary.Add(targetResource.Name, endpoint);
                 },
                 Tags = ["print-summary"],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
