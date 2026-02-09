@@ -219,6 +219,7 @@ internal sealed class AspireMonitorTui
                         : "")
                 ])
                 .Fill()
+                .Full()
         ];
     }
 
@@ -251,6 +252,7 @@ internal sealed class AspireMonitorTui
                     r.Cell(param.State ?? "Unknown")
                 ])
                 .Fill()
+                .Full()
         ];
     }
 
