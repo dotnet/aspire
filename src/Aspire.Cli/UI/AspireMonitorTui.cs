@@ -17,7 +17,7 @@ internal sealed class AppHostEntry
 {
     public required string DisplayName { get; init; }
     public required string FullPath { get; init; }
-    public required IAppHostAuxiliaryBackchannel Connection { get; init; }
+    public required IAppHostAuxiliaryBackchannel Connection { get; set; }
     public bool IsOffline { get; set; }
 }
 
@@ -384,10 +384,19 @@ internal sealed class AspireMonitorTui
                         if (existing is not null)
                         {
                             existing.IsOffline = false;
+                            // Update to the fresh connection since the old one is stale
+                            existing.Connection = connection;
 
                             _notificationStack?.Post(
                                 new Notification("AppHost Back Online", existing.DisplayName)
                                     .Timeout(TimeSpan.FromSeconds(5)));
+
+                            // Auto-reconnect if this is the currently selected AppHost
+                            var idx = _appHosts.IndexOf(existing);
+                            if (idx == _selectedAppHostIndex)
+                            {
+                                _ = ConnectToAppHostAsync(idx, cancellationToken);
+                            }
 
                             _app?.Invalidate();
                         }
