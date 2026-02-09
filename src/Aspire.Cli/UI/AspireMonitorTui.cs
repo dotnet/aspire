@@ -4,6 +4,7 @@
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Hex1b;
+using Hex1b.Layout;
 using Hex1b.Widgets;
 using Microsoft.Extensions.Logging;
 
@@ -199,11 +200,27 @@ internal sealed class AspireMonitorTui
             return [ctx.Text($"  {MonitorCommandStrings.NoResourcesAvailable}")];
         }
 
-        var resourceItems = resources
-            .Select(FormatResourceLine)
-            .ToArray();
-
-        return [ctx.List(resourceItems).Fill()];
+        return [
+            ctx.Table<ResourceSnapshot, VStackWidget>(resources)
+                .RowKey(r => r.Name)
+                .Header(h => [
+                    h.Cell("Name").Width(SizeHint.Fill),
+                    h.Cell("Type").Fixed(12),
+                    h.Cell("State").Fixed(12),
+                    h.Cell("Health").Fixed(12),
+                    h.Cell("Endpoints").Width(SizeHint.Fill)
+                ])
+                .Row((r, resource, state) => [
+                    r.Cell(resource.DisplayName ?? resource.Name),
+                    r.Cell(resource.ResourceType ?? ""),
+                    r.Cell(resource.State ?? "Unknown"),
+                    r.Cell(resource.HealthStatus ?? ""),
+                    r.Cell(resource.Urls.Length > 0
+                        ? string.Join(", ", resource.Urls.Select(u => u.Url))
+                        : "")
+                ])
+                .Fill()
+        ];
     }
 
     private IEnumerable<Hex1bWidget> BuildParametersTab(WidgetContext<VStackWidget> ctx)
@@ -223,11 +240,19 @@ internal sealed class AspireMonitorTui
             return [ctx.Text($"  {MonitorCommandStrings.NoParametersAvailable}")];
         }
 
-        var paramItems = parameters
-            .Select(p => $"{p.DisplayName ?? p.Name}  │  {p.State ?? "Unknown"}")
-            .ToArray();
-
-        return [ctx.List(paramItems).Fill()];
+        return [
+            ctx.Table<ResourceSnapshot, VStackWidget>(parameters)
+                .RowKey(r => r.Name)
+                .Header(h => [
+                    h.Cell("Name").Width(SizeHint.Fill),
+                    h.Cell("State").Fixed(16)
+                ])
+                .Row((r, param, state) => [
+                    r.Cell(param.DisplayName ?? param.Name),
+                    r.Cell(param.State ?? "Unknown")
+                ])
+                .Fill()
+        ];
     }
 
     private async Task ConnectToAppHostAsync(int index, CancellationToken cancellationToken)
@@ -316,21 +341,6 @@ internal sealed class AspireMonitorTui
             .Count(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase));
 
         return $"{resourceCount} resource(s)";
-    }
-
-    private static string FormatResourceLine(ResourceSnapshot resource)
-    {
-        var name = resource.DisplayName ?? resource.Name;
-        var type = resource.ResourceType ?? "";
-        var state = resource.State ?? "Unknown";
-        var health = resource.HealthStatus ?? "";
-        var endpoints = resource.Urls.Length > 0
-            ? string.Join(", ", resource.Urls.Select(u => u.Url))
-            : "";
-
-        return string.IsNullOrEmpty(endpoints)
-            ? $"{name,-20} │ {type,-10} │ {state,-12} │ {health}"
-            : $"{name,-20} │ {type,-10} │ {state,-12} │ {health,-10} │ {endpoints}";
     }
 
     private static string ShortenPath(string path)
