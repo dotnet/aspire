@@ -123,6 +123,7 @@ public static class AzureNatGatewayExtensions
                             Name = PublicIPAddressSkuName.Standard,
                         },
                         PublicIPAllocationMethod = NetworkIPAllocationMethod.Static,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                     };
                     infrastructure.Add(pip);
 

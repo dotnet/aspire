@@ -10,6 +10,9 @@ resource nat_pip 'Microsoft.Network/publicIPAddresses@2025-05-01' = {
   sku: {
     name: 'Standard'
   }
+  tags: {
+    'aspire-resource-name': 'nat'
+  }
 }
 
 resource nat 'Microsoft.Network/natGateways@2025-05-01' = {
