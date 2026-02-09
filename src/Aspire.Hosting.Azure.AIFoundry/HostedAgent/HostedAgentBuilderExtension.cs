@@ -247,14 +247,22 @@ public static class HostedAgentResourceBuilderExtensions
                 .WithOtlpExporter()
                 .WithEnvironment((ctx) =>
                 {
+                    ctx.EnvironmentVariables.Add("OTEL_INSTRUMENTATION_OPENAI_AGENTS_ENABLED", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_INSTRUMENTATION_OPENAI_AGENTS_CAPTURE_CONTENT", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_INSTRUMENTATION_OPENAI_AGENTS_CAPTURE_METRICS", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_CAPTURE_MESSAGES", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_CAPTURE_TOOL_DEFINITIONS", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_EMIT_OPERATION_DETAILS", "true");
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_AGENT_NAME", ctx.Resource.Name);
+                    ctx.EnvironmentVariables.Add("OTEL_GENAI_AGENT_ID", ctx.Resource.Name);
                     var endpointVar = ctx.EnvironmentVariables.FirstOrDefault((item) => item.Key == "OTEL_EXPORTER_OTLP_ENDPOINT");
                     if (endpointVar.Equals(default(KeyValuePair<string, string>)))
                     {
                         return;
                     }
-                    var endpoint = endpointVar.Value;
                     // The Foundry agentserver SDK expects the exporter to be at OTEL_EXPORTER_ENDPOINT instead.
-                    ctx.EnvironmentVariables["OTEL_EXPORTER_ENDPOINT"] = endpoint;
+                    ctx.EnvironmentVariables["OTEL_EXPORTER_ENDPOINT"] = endpointVar.Value;
                 });
             return builder;
         }
