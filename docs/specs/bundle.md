@@ -261,7 +261,7 @@ All extraction logic is centralized in `IBundleService` / `BundleService` (`src/
 | `EnsureExtractedAsync()` | Lazy extraction from `Environment.ProcessPath` | `AppHostServerProjectFactory` |
 | `ExtractAsync(path, dest, force)` | Explicit extraction, returns `BundleExtractResult` | `SetupCommand`, `UpdateCommand` |
 
-The service uses a named `Mutex` (`Global\AspireBundleExtraction`) for cross-process locking and is registered as a singleton.
+The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory for cross-process synchronization and is registered as a singleton.
 
 **Extraction flow:**
 1. Read trailer from binary — if no magic bytes, return `NoPayload`
