@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Hex1b;
@@ -48,6 +49,12 @@ internal sealed class AspireMonitorTui
     private TerminalWidgetHandle? _logTerminalHandle;
     private Hex1bTerminal? _logTerminal;
 
+    // Hack reveal transition after splash
+    private bool _revealing;
+    private long _revealStart;
+    private readonly HackRevealEffect _hackReveal = new();
+    private const double RevealDurationSeconds = 4.0;
+
     public AspireMonitorTui(IAuxiliaryBackchannelMonitor backchannelMonitor, ILogger logger)
     {
         _backchannelMonitor = backchannelMonitor;
@@ -90,6 +97,9 @@ internal sealed class AspireMonitorTui
             }
 
             _showSplash = false;
+            _revealing = true;
+            _revealStart = Stopwatch.GetTimestamp();
+            _hackReveal.Reset();
             _app?.Invalidate();
 
             if (_appHosts.Count > 0)
@@ -111,7 +121,35 @@ internal sealed class AspireMonitorTui
             return _splash.Build(ctx);
         }
 
-        return ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx)).Fill();
+        var themedMain = ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx)).Fill();
+
+        if (_revealing)
+        {
+            var progress = Math.Clamp(
+                Stopwatch.GetElapsedTime(_revealStart).TotalSeconds / RevealDurationSeconds, 0, 1);
+
+            if (progress >= 1.0)
+            {
+                _revealing = false;
+                return themedMain;
+            }
+
+            _hackReveal.Update(1, 1);
+
+            return ctx.Surface(s =>
+            {
+                _hackReveal.Update(s.Width, s.Height);
+                return
+                [
+                    s.WidgetLayer(themedMain),
+                    s.Layer(_hackReveal.GetCompute(progress))
+                ];
+            })
+            .RedrawAfter(16)
+            .Fill();
+        }
+
+        return themedMain;
     }
 
     private Hex1bWidget BuildMainScreen(RootContext ctx)
