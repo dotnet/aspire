@@ -1,6 +1,4 @@
 # Override repo-level analyzers for standalone tool scripts
-root = true
-
 [*.cs]
 # Disable file header requirement
 dotnet_diagnostic.IDE0073.severity = none
