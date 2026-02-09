@@ -604,20 +604,31 @@ internal sealed class LayoutBuilder : IDisposable
         if (OperatingSystem.IsWindows())
         {
             // Use .NET TarWriter + GZip on Windows (no system tar available)
-            await using var fileStream = File.Create(archivePath);
-            await using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
-            await using var tarWriter = new System.Formats.Tar.TarWriter(gzipStream, leaveOpen: true);
-
-            var topLevelDir = Path.GetFileName(_outputPath);
-            foreach (var filePath in Directory.EnumerateFiles(_outputPath, "*", SearchOption.AllDirectories))
+            var fileStream = File.Create(archivePath);
+            await using (fileStream.ConfigureAwait(false))
             {
-                var relativePath = Path.GetRelativePath(Path.GetDirectoryName(_outputPath)!, filePath).Replace('\\', '/');
-                await using var dataStream = File.OpenRead(filePath);
-                var entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, relativePath)
+                var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
+                await using (gzipStream.ConfigureAwait(false))
                 {
-                    DataStream = dataStream
-                };
-                await tarWriter.WriteEntryAsync(entry).ConfigureAwait(false);
+                    var tarWriter = new System.Formats.Tar.TarWriter(gzipStream, leaveOpen: true);
+                    await using (tarWriter.ConfigureAwait(false))
+                    {
+                        var topLevelDir = Path.GetFileName(_outputPath);
+                        foreach (var filePath in Directory.EnumerateFiles(_outputPath, "*", SearchOption.AllDirectories))
+                        {
+                            var relativePath = Path.GetRelativePath(Path.GetDirectoryName(_outputPath)!, filePath).Replace('\\', '/');
+                            var dataStream = File.OpenRead(filePath);
+                            await using (dataStream.ConfigureAwait(false))
+                            {
+                                var entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, relativePath)
+                                {
+                                    DataStream = dataStream
+                                };
+                                await tarWriter.WriteEntryAsync(entry).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
             }
         }
         else

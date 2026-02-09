@@ -121,7 +121,11 @@
       <_BundleOutputDirArg>$(BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
       <_ArtifactsDirArg>$(ArtifactsDir.TrimEnd('\').TrimEnd('/'))</_ArtifactsDirArg>
       
-      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --verbose --download-runtime --archive</_CreateLayoutArgs>
+      <!-- Use local runtime path if provided, otherwise download -->
+      <_RuntimeArgs Condition="'$(BundleRuntimePath)' != ''">--runtime "$(BundleRuntimePath)"</_RuntimeArgs>
+      <_RuntimeArgs Condition="'$(BundleRuntimePath)' == ''">--download-runtime</_RuntimeArgs>
+      
+      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --verbose $(_RuntimeArgs) --archive</_CreateLayoutArgs>
     </PropertyGroup>
     
     <Message Importance="high" Text="Creating bundle layout..." />
