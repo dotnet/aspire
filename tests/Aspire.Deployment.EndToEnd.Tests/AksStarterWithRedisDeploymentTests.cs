@@ -159,7 +159,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
             sequenceBuilder
                 .Type($"az aks update --resource-group {resourceGroupName} --name {clusterName} --attach-acr {acrName}")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 7: Configure kubectl credentials
             output.WriteLine("Step 7: Configuring kubectl credentials...");
