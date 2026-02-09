@@ -36,6 +36,8 @@ internal sealed class AspireMonitorTui
     private string? _errorMessage;
     private bool _showSplash = true;
     private bool _isNavExpanded = true;
+    private object? _focusedResourceKey;
+    private object? _focusedParameterKey;
     private CancellationTokenSource? _watchCts;
     private Hex1bApp? _app;
 
@@ -202,6 +204,8 @@ internal sealed class AspireMonitorTui
         return [
             ctx.Table<ResourceSnapshot, VStackWidget>(resources)
                 .RowKey(r => r.Name)
+                .Focus(_focusedResourceKey)
+                .OnFocusChanged(key => { _focusedResourceKey = key; })
                 .Header(h => [
                     h.Cell("Name").Width(SizeHint.Fill),
                     h.Cell("Type").Fixed(12),
@@ -243,6 +247,8 @@ internal sealed class AspireMonitorTui
         return [
             ctx.Table<ResourceSnapshot, VStackWidget>(parameters)
                 .RowKey(r => r.Name)
+                .Focus(_focusedParameterKey)
+                .OnFocusChanged(key => { _focusedParameterKey = key; })
                 .Header(h => [
                     h.Cell("Name").Width(SizeHint.Fill),
                     h.Cell("State").Fixed(16)
