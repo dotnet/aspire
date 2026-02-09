@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost or the specified resource.</source>
-        <target state="new">Stop a running apphost or the specified resource.</target>
+        <target state="translated">Zatrzymaj działający host aplikacji lub określony zasób.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
