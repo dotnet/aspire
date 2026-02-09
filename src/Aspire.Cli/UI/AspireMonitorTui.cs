@@ -229,7 +229,7 @@ internal sealed class AspireMonitorTui
                 h.Cell("Name").Width(SizeHint.Fill),
                 h.Cell("Type").Fixed(12),
                 h.Cell("State").Fixed(12),
-                h.Cell("Health").Fixed(12),
+                h.Cell("Health").Fixed(14),
                 h.Cell("URLs").Width(SizeHint.Fill),
                 h.Cell("Actions").Fixed(20)
             ])
@@ -237,7 +237,7 @@ internal sealed class AspireMonitorTui
                 r.Cell(resource.DisplayName ?? resource.Name),
                 r.Cell(resource.ResourceType ?? ""),
                 r.Cell(resource.State ?? "Unknown"),
-                r.Cell(resource.HealthStatus ?? ""),
+                r.Cell(FormatHealthStatus(resource.HealthStatus)),
                 r.Cell(resource.Urls.Length > 0
                     ? string.Join(", ", resource.Urls.Select(u => u.Url))
                     : ""),
@@ -599,6 +599,20 @@ internal sealed class AspireMonitorTui
             .Count(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase));
 
         return $"{resourceCount} resource(s)";
+    }
+
+    private static string FormatHealthStatus(string? healthStatus)
+    {
+        if (string.IsNullOrEmpty(healthStatus))
+        {
+            return "";
+        }
+
+        var icon = string.Equals(healthStatus, "Healthy", StringComparison.OrdinalIgnoreCase)
+            ? "💚"
+            : "💔";
+
+        return $"{icon} {healthStatus}";
     }
 
     private static string ShortenPath(string path)
