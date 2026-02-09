@@ -32,6 +32,16 @@ if [ -n "${VSCODE_CMD:-}" ]; then
         echo "[ERROR] The specified VS Code command '$VSCODE_CMD' is not installed or cannot be found in PATH."
         exit 1
     fi
+elif command -v code &> /dev/null && command -v code-insiders &> /dev/null; then
+    echo "Both 'code' and 'code-insiders' are installed."
+    echo "  1) code"
+    echo "  2) code-insiders"
+    read -rp "Select [1]: " choice
+    case "${choice:-1}" in
+        1) VSCODE_CMD="code" ;;
+        2) VSCODE_CMD="code-insiders" ;;
+        *) echo "[ERROR] Invalid selection."; exit 1 ;;
+    esac
 elif command -v code &> /dev/null; then
     VSCODE_CMD="code"
 elif command -v code-insiders &> /dev/null; then
