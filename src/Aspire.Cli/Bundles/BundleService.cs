@@ -71,34 +71,31 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         // Use a file lock for cross-process synchronization
         var lockPath = Path.Combine(destinationPath, ".aspire-bundle-lock");
         logger.LogDebug("Acquiring bundle extraction lock at {LockPath}...", lockPath);
+        using var fileLock = await FileLock.AcquireAsync(lockPath, cancellationToken).ConfigureAwait(false);
+        logger.LogDebug("Bundle extraction lock acquired.");
 
-        return await FileLock.ExecuteWithLockAsync(lockPath, async (ct) =>
+        try
         {
-            logger.LogDebug("Bundle extraction lock acquired.");
-
-            try
+            // Re-check after acquiring lock — another process may have already extracted
+            if (!force && layoutDiscovery.DiscoverLayout() is not null)
             {
-                // Re-check after acquiring lock — another process may have already extracted
-                if (!force && layoutDiscovery.DiscoverLayout() is not null)
+                var existingHash = BundleTrailer.ReadVersionMarker(destinationPath);
+                if (existingHash == trailer.VersionHash)
                 {
-                    var existingHash = BundleTrailer.ReadVersionMarker(destinationPath);
-                    if (existingHash == trailer.VersionHash)
-                    {
-                        logger.LogDebug("Bundle already extracted and up to date (hash: {Hash}).", existingHash);
-                        return BundleExtractResult.AlreadyUpToDate;
-                    }
-
-                    logger.LogDebug("Version mismatch: existing={ExistingHash}, bundle={BundleHash}. Re-extracting.", existingHash, trailer.VersionHash);
+                    logger.LogDebug("Bundle already extracted and up to date (hash: {Hash}).", existingHash);
+                    return BundleExtractResult.AlreadyUpToDate;
                 }
 
-                return await ExtractCoreAsync(binaryPath, destinationPath, trailer, ct);
+                logger.LogDebug("Version mismatch: existing={ExistingHash}, bundle={BundleHash}. Re-extracting.", existingHash, trailer.VersionHash);
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to extract bundle to {Path}", destinationPath);
-                return BundleExtractResult.ExtractionFailed;
-            }
-        }, cancellationToken);
+
+            return await ExtractCoreAsync(binaryPath, destinationPath, trailer, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to extract bundle to {Path}", destinationPath);
+            return BundleExtractResult.ExtractionFailed;
+        }
     }
 
     private async Task<BundleExtractResult> ExtractCoreAsync(string binaryPath, string destinationPath, BundleTrailerInfo trailer, CancellationToken cancellationToken)

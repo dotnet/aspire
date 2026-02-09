@@ -25,90 +25,41 @@ namespace Aspire.Cli.Utils;
 /// Based on the locking pattern from NuGet.Common.ConcurrencyUtilities.
 /// </para>
 /// </remarks>
-internal static class FileLock
+internal sealed class FileLock : IDisposable
 {
     // Short delay keeps latency low under contention without busy-spinning.
     // Matches the delay used by NuGet.Common.ConcurrencyUtilities.
     private static readonly TimeSpan s_defaultRetryDelay = TimeSpan.FromMilliseconds(10);
 
-    /// <summary>
-    /// Executes an async action while holding an exclusive file lock.
-    /// </summary>
-    /// <typeparam name="T">The return type of the action.</typeparam>
-    /// <param name="lockPath">The full path of the lock file.</param>
-    /// <param name="action">The async action to execute while holding the lock.</param>
-    /// <param name="cancellationToken">Token to cancel the wait for the lock.</param>
-    /// <returns>The result of the action.</returns>
-    public static async Task<T> ExecuteWithLockAsync<T>(
-        string lockPath,
-        Func<CancellationToken, Task<T>> action,
-        CancellationToken cancellationToken = default)
+    private readonly FileStream _stream;
+
+    private FileLock(FileStream stream)
     {
-        // Ensure the directory exists before creating the lock file
-        var directory = Path.GetDirectoryName(lockPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        FileStream? lockStream = null;
-        try
-        {
-            lockStream = await AcquireAsync(lockPath, cancellationToken).ConfigureAwait(false);
-
-            // The action runs inside the lock — the lock is released in the finally block
-            return await action(cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            // Disposing the stream releases the OS-level file lock and deletes
-            // the lock file (FileOptions.DeleteOnClose).
-            lockStream?.Dispose();
-        }
+        _stream = stream;
     }
 
     /// <summary>
-    /// Executes a synchronous action while holding an exclusive file lock.
-    /// </summary>
-    /// <param name="lockPath">The full path of the lock file.</param>
-    /// <param name="action">The action to execute while holding the lock.</param>
-    /// <param name="cancellationToken">Token to cancel the wait for the lock.</param>
-    public static void ExecuteWithLock(
-        string lockPath,
-        Action action,
-        CancellationToken cancellationToken = default)
-    {
-        var directory = Path.GetDirectoryName(lockPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        FileStream? lockStream = null;
-        try
-        {
-            lockStream = Acquire(lockPath, cancellationToken);
-            action();
-        }
-        finally
-        {
-            lockStream?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Acquires a file lock asynchronously, retrying on contention.
+    /// Acquires an exclusive file lock, retrying on contention.
     /// Uses <see cref="Task.Delay(TimeSpan, CancellationToken)"/> between retries to avoid blocking the thread pool.
     /// </summary>
-    private static async Task<FileStream> AcquireAsync(string lockPath, CancellationToken cancellationToken)
+    /// <param name="lockPath">The full path of the lock file.</param>
+    /// <param name="cancellationToken">Token to cancel the wait for the lock.</param>
+    /// <returns>A <see cref="FileLock"/> that releases the lock when disposed.</returns>
+    public static async Task<FileLock> AcquireAsync(string lockPath, CancellationToken cancellationToken = default)
     {
+        var directory = Path.GetDirectoryName(lockPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             try
             {
-                return CreateLockStream(lockPath);
+                return new FileLock(CreateLockStream(lockPath));
             }
             catch (IOException)
             {
@@ -128,28 +79,11 @@ internal static class FileLock
     }
 
     /// <summary>
-    /// Acquires a file lock synchronously, retrying on contention.
-    /// Uses <see cref="Thread.Sleep(TimeSpan)"/> between retries.
+    /// Releases the OS-level file lock and deletes the lock file (<see cref="FileOptions.DeleteOnClose"/>).
     /// </summary>
-    private static FileStream Acquire(string lockPath, CancellationToken cancellationToken)
+    public void Dispose()
     {
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            try
-            {
-                return CreateLockStream(lockPath);
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(s_defaultRetryDelay);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Thread.Sleep(s_defaultRetryDelay);
-            }
-        }
+        _stream.Dispose();
     }
 
     /// <summary>
