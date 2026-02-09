@@ -27,7 +27,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         "tools"
     ];
 
-    private const string MutexName = "Global\\AspireBundleExtraction";
+    private const string LockFileName = ".aspire-bundle-lock";
 
     /// <inheritdoc/>
     public async Task EnsureExtractedAsync(CancellationToken cancellationToken = default)
@@ -62,15 +62,10 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             return BundleExtractResult.NoPayload;
         }
 
-        using var mutex = new Mutex(false, MutexName);
-        try
-        {
-            mutex.WaitOne();
-        }
-        catch (AbandonedMutexException)
-        {
-            // Previous owner crashed — we now own it, safe to proceed
-        }
+        // Use a file lock for cross-process synchronization (works on all platforms)
+        Directory.CreateDirectory(destinationPath);
+        var lockPath = Path.Combine(destinationPath, LockFileName);
+        using var lockFile = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
         try
         {
@@ -90,10 +85,6 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         {
             logger.LogError(ex, "Failed to extract bundle to {Path}", destinationPath);
             return BundleExtractResult.ExtractionFailed;
-        }
-        finally
-        {
-            mutex.ReleaseMutex();
         }
     }
 
