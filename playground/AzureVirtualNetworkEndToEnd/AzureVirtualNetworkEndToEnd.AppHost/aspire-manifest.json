@@ -3,7 +3,14 @@
   "resources": {
     "vnet": {
       "type": "azure.bicep.v0",
-      "path": "vnet.module.bicep"
+      "path": "vnet.module.bicep",
+      "params": {
+        "nat_outputs_id": "{nat.outputs.id}"
+      }
+    },
+    "nat": {
+      "type": "azure.bicep.v0",
+      "path": "nat.module.bicep"
     },
     "env-acr": {
       "type": "azure.bicep.v0",

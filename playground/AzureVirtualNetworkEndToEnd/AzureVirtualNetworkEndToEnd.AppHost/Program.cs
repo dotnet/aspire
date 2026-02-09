@@ -11,6 +11,10 @@ var vnet = builder.AddAzureVirtualNetwork("vnet");
 var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23");
 var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27");
 
+// Create a NAT Gateway for deterministic outbound IP on the ACA subnet
+var natGateway = builder.AddNatGateway("nat");
+containerAppsSubnet.WithNatGateway(natGateway);
+
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")
     .WithDelegatedSubnet(containerAppsSubnet);
