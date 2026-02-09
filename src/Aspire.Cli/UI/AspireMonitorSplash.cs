@@ -76,71 +76,66 @@ internal sealed class AspireMonitorSplash
         // Ease-out cubic for smooth deceleration
         var t = 1f - (1f - progress) * (1f - progress) * (1f - progress);
 
-        return ctx.ThemePanel(AspireTheme.Apply, ctx.VStack(outer => [
-            outer.Text("").Fill(),
-            outer.Center(
-                ctx.Surface(layerCtx => [
-                    layerCtx.Layer(surface =>
-                    {
-                        RenderFrame(surface, t);
-                    })
-                ]).Size(LogoWidth, LogoCellHeight)
-            ),
-            outer.Text("").Fill()
-        ]).Fill()).Fill();
+        return ctx.ThemePanel(AspireTheme.Apply,
+            ctx.Surface(layerCtx => [
+                layerCtx.Layer(surface =>
+                {
+                    // Center the logo within the full terminal surface
+                    var offsetX = Math.Max(0, (surface.Width - LogoWidth) / 2);
+                    var offsetY = Math.Max(0, (surface.Height - LogoCellHeight) / 2);
+                    RenderFrame(surface, t, offsetX, offsetY);
+                })
+            ]).Fill()
+        ).Fill();
     }
 
-    private void RenderFrame(Hex1b.Surfaces.Surface surface, float t)
+    private void RenderFrame(Hex1b.Surfaces.Surface surface, float t, int offsetX, int offsetY)
     {
-        // Build a pixel grid: for each cell (cx, cy), we need the top and bottom logical pixel
-        // Top pixel = logical row cy*2, bottom pixel = logical row cy*2+1
-        // Use ▀ with fg=top color, bg=bottom color
-
-        // Collect animated pixel positions into a sparse grid
-        var grid = new (byte R, byte G, byte B, bool HasPixel)[LogoWidth, LogoHeight];
+        // Use the full surface for scattering, then render half-block pairs
+        // Grid covers the entire terminal surface in logical pixels (2 rows per cell)
+        var gridW = surface.Width;
+        var gridH = surface.Height * 2;
+        var grid = new (byte R, byte G, byte B, bool HasPixel)[gridW, gridH];
 
         foreach (var pixel in _pixels)
         {
-            // Lerp from start to final position
-            var currentX = pixel.FinalX + pixel.StartOffsetX * (1f - t);
-            var currentY = pixel.FinalY + pixel.StartOffsetY * (1f - t);
+            // Lerp from start to final position, offset to center
+            var currentX = (pixel.FinalX + offsetX) + pixel.StartOffsetX * (1f - t);
+            var currentY = (pixel.FinalY + offsetY * 2) + pixel.StartOffsetY * (1f - t);
 
             var ix = (int)Math.Round(currentX);
             var iy = (int)Math.Round(currentY);
 
-            if (ix >= 0 && ix < LogoWidth && iy >= 0 && iy < LogoHeight)
+            if (ix >= 0 && ix < gridW && iy >= 0 && iy < gridH)
             {
                 grid[ix, iy] = (pixel.R, pixel.G, pixel.B, true);
             }
         }
 
-        // Render half-block pairs
-        for (var cy = 0; cy < LogoCellHeight && cy < surface.Height; cy++)
+        // Render half-block pairs across the entire surface
+        for (var cy = 0; cy < surface.Height; cy++)
         {
-            for (var cx = 0; cx < LogoWidth && cx < surface.Width; cx++)
+            for (var cx = 0; cx < surface.Width; cx++)
             {
                 var topRow = cy * 2;
                 var botRow = cy * 2 + 1;
 
                 var top = grid[cx, topRow];
-                var bot = botRow < LogoHeight ? grid[cx, botRow] : default;
+                var bot = botRow < gridH ? grid[cx, botRow] : default;
 
                 if (top.HasPixel && bot.HasPixel)
                 {
-                    // Both pixels visible: ▀ with fg=top, bg=bottom
                     var fg = Hex1bColor.FromRgb(top.R, top.G, top.B);
                     var bg = Hex1bColor.FromRgb(bot.R, bot.G, bot.B);
                     surface.WriteChar(cx, cy, '\u2580', fg, bg);
                 }
                 else if (top.HasPixel)
                 {
-                    // Only top pixel: ▀ with fg=top color
                     var fg = Hex1bColor.FromRgb(top.R, top.G, top.B);
                     surface.WriteChar(cx, cy, '\u2580', fg);
                 }
                 else if (bot.HasPixel)
                 {
-                    // Only bottom pixel: ▄ with fg=bottom color
                     var fg = Hex1bColor.FromRgb(bot.R, bot.G, bot.B);
                     surface.WriteChar(cx, cy, '\u2584', fg);
                 }
