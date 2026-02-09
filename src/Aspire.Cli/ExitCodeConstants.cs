@@ -22,4 +22,6 @@ internal static class ExitCodeConstants
     public const int CentralPackageManagementNotSupported = 14;
     public const int SingleFileAppHostNotSupported = 15;
     public const int FailedToExecuteResourceCommand = 16;
+    public const int WaitTimeout = 17;
+    public const int WaitResourceFailed = 18;
 }
