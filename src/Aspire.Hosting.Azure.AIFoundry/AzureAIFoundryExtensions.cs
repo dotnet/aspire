@@ -407,7 +407,7 @@ public static class AzureAIFoundryExtensions
         else
         {
             // Provision a default capability host for hosted agents
-            var capHost = new CognitiveServicesCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{resource.Name}-caphost"))
+            var capHost = new CognitiveServicesCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{resource.Name}-caphost"), "2025-10-01-preview")
             {
                 Name = $"{resource.Name}-caphost",
                 Parent = cogServicesAccount,

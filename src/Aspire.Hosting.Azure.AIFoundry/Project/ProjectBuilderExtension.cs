@@ -352,6 +352,7 @@ public static class AzureCognitiveServicesProjectExtensions
             appInsights = new ApplicationInsightsComponent(Infrastructure.NormalizeBicepIdentifier($"{prefix}-ai"))
             {
                 ApplicationType = ApplicationInsightsApplicationType.Web,
+                Name = $"{aspireResource.Name}-ai",
                 Kind = "web",
                 Tags = tags
             };
@@ -369,7 +370,7 @@ public static class AzureCognitiveServicesProjectExtensions
         var appInsightsConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_ai_conn")
         {
             Parent = project,
-            Name = $"{project.Name}-ai-conn",
+            Name = $"{aspireResource.Name}-ai-conn",
             Properties = new AppInsightsConnectionProperties()
             {
                 Target = appInsights.Id,
@@ -401,7 +402,7 @@ public static class AzureCognitiveServicesProjectExtensions
             return;
         }
 
-        var capHostProps = new CognitiveServicesCapabilityHostProperties()
+        var capHostProps = new PublicHostingCognitiveServicesCapabilityHostProperties()
         {
             CapabilityHostKind = CapabilityHostKind.Agents
         };
@@ -551,7 +552,8 @@ public static class AzureCognitiveServicesProjectExtensions
             capHostProps.AiServicesConnections = [aoaiConn.Name];
         }
 
-        var capHost = new CognitiveServicesProjectCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{prefix}-caphost"))
+        // Necesssary to have parameter enablePublicHostingEnvironment
+        var capHost = new CognitiveServicesProjectCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{prefix}-caphost"), "2025-10-01-preview")
         {
             Parent = project,
             Name = $"{project.Name}-ch",

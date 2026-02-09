@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -131,7 +132,7 @@ public static class HostedAgentResourceBuilderExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
             builder
-                .WithHttpEndpoint(name: "http", env: "PORT", port: 9999, targetPort: 9999, isProxied: false)
+                .WithHttpEndpoint(name: "http", env: "DEFAULT_AD_PORT", port: 8088, targetPort: 8088, isProxied: false)
                 .WithUrls((ctx) =>
                 {
                     var http = ctx.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "http" || u.Endpoint?.EndpointName == "https");
@@ -177,6 +178,8 @@ public static class HostedAgentResourceBuilderExtensions
                     commandOptions: new()
                     {
                         Method = HttpMethod.Post,
+                        IconName = "Agents",
+                        IconVariant = IconVariant.Regular,
                         IsHighlighted = true,
                         PrepareRequest = async ctx =>
                         {
@@ -191,7 +194,7 @@ public static class HostedAgentResourceBuilderExtensions
                             if (result.Canceled || string.IsNullOrWhiteSpace(result.Data.Value))
                             {
                                 ctx.HttpClient.CancelPendingRequests();
-                                return;
+                                throw new OperationCanceledException("User canceled the input prompt.");
                             }
                             var request = ctx.Request;
                             var input = result.Data.Value;
@@ -199,29 +202,60 @@ public static class HostedAgentResourceBuilderExtensions
                         },
                         GetCommandResult = async ctx =>
                         {
-                            var response = await ctx.Response
-                                .EnsureSuccessStatusCode()
-                                .Content
-                                .ReadAsStringAsync(ctx.CancellationToken)
-                                .ConfigureAwait(true);
-                            var responseJson = JsonSerializer.Deserialize<JsonObject>(response);
-                            var formattedResponse = $"```json\n{JsonSerializer.Serialize(responseJson, new JsonSerializerOptions { WriteIndented = true })}\n```";
-                            var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
-                            await interactionService.PromptMessageBoxAsync(
-                                title: "Agent Response",
-                                message: formattedResponse,
-                                options: new()
-                                {
-                                    Intent = MessageIntent.Success,
-                                    EnableMessageMarkdown = true,
-                                    PrimaryButtonText = "Thanks!"
-                                },
-                                cancellationToken: ctx.CancellationToken
-                            ).ConfigureAwait(true);
-                            return new() { Success = true };
+                            ctx.CancellationToken.ThrowIfCancellationRequested();
+                            try
+                            {
+                                var response = await ctx.Response
+                                    .EnsureSuccessStatusCode()
+                                    .Content
+                                    .ReadFromJsonAsync<JsonObject>(cancellationToken: ctx.CancellationToken)
+                                    .ConfigureAwait(true);
+                                var formattedResponse = $"```\n{JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true })}\n```";
+                                var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
+                                await interactionService.PromptMessageBoxAsync(
+                                    title: "Agent Response",
+                                    message: formattedResponse,
+                                    options: new()
+                                    {
+                                        Intent = MessageIntent.Success,
+                                        EnableMessageMarkdown = true,
+                                        PrimaryButtonText = "Thanks!"
+                                    },
+                                    cancellationToken: ctx.CancellationToken
+                                ).ConfigureAwait(true);
+                                return new() { Success = true };
+                            }
+                            catch (Exception ex)
+                            {
+                                var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
+                                await interactionService.PromptMessageBoxAsync(
+                                    title: "Error",
+                                    message: $"An error occurred while processing the agent's response: {ex.Message}",
+                                    options: new()
+                                    {
+                                        Intent = MessageIntent.Error,
+                                        PrimaryButtonText = "OK"
+                                    },
+                                    cancellationToken: ctx.CancellationToken
+                                ).ConfigureAwait(true);
+                                Console.Error.Write($"Error processing agent response: {ex}");
+                                return new() { Success = false };
+                            }
                         },
                     }
-                );
+                )
+                .WithOtlpExporter()
+                .WithEnvironment((ctx) =>
+                {
+                    var endpointVar = ctx.EnvironmentVariables.FirstOrDefault((item) => item.Key == "OTEL_EXPORTER_OTLP_ENDPOINT");
+                    if (endpointVar.Equals(default(KeyValuePair<string, string>)))
+                    {
+                        return;
+                    }
+                    var endpoint = endpointVar.Value;
+                    // The Foundry agentserver SDK expects the exporter to be at OTEL_EXPORTER_ENDPOINT instead.
+                    ctx.EnvironmentVariables["OTEL_EXPORTER_ENDPOINT"] = endpoint;
+                });
             return builder;
         }
 
