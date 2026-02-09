@@ -77,6 +77,7 @@ internal sealed class AspireMonitorTui
             .ToList();
 
         await using var terminal = Hex1bTerminal.CreateBuilder()
+            .WithDiagnostics("aspire-monitor")
             .WithHex1bApp((app, options) =>
             {
                 _app = app;
