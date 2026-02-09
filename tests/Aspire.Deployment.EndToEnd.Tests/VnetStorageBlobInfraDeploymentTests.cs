@@ -1,0 +1,280 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.Tests.Utils;
+using Aspire.Deployment.EndToEnd.Tests.Helpers;
+using Hex1b;
+using Hex1b.Automation;
+using Xunit;
+
+namespace Aspire.Deployment.EndToEnd.Tests;
+
+/// <summary>
+/// L1 infrastructure verification test for Azure Storage Blob with VNet and Private Endpoint.
+/// Deploys VNet + subnets + ACA delegation + Storage with PE, then verifies infrastructure via az CLI.
+/// </summary>
+public sealed class VnetStorageBlobInfraDeploymentTests(ITestOutputHelper output)
+{
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
+
+    [Fact]
+    public async Task DeployVnetStorageBlobInfrastructure()
+    {
+        using var cts = new CancellationTokenSource(s_testTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cts.Token, TestContext.Current.CancellationToken);
+        var cancellationToken = linkedCts.Token;
+
+        await DeployVnetStorageBlobInfrastructureCore(cancellationToken);
+    }
+
+    private async Task DeployVnetStorageBlobInfrastructureCore(CancellationToken cancellationToken)
+    {
+        var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
+        if (string.IsNullOrEmpty(subscriptionId))
+        {
+            Assert.Skip("Azure subscription not configured. Set ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION.");
+        }
+
+        if (!AzureAuthenticationHelpers.IsAzureAuthAvailable())
+        {
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                Assert.Fail("Azure authentication not available in CI. Check OIDC configuration.");
+            }
+            else
+            {
+                Assert.Skip("Azure authentication not available. Run 'az login' to authenticate.");
+            }
+        }
+
+        var workspace = TemporaryWorkspace.Create(output);
+        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployVnetStorageBlobInfrastructure));
+        var startTime = DateTime.UtcNow;
+        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("vnet-blob-l1");
+
+        output.WriteLine($"Test: {nameof(DeployVnetStorageBlobInfrastructure)}");
+        output.WriteLine($"Resource Group: {resourceGroupName}");
+        output.WriteLine($"Subscription: {subscriptionId[..8]}...");
+        output.WriteLine($"Workspace: {workspace.WorkspaceRoot.FullName}");
+
+        try
+        {
+            var builder = Hex1bTerminal.CreateBuilder()
+                .WithHeadless()
+                .WithDimensions(160, 48)
+                .WithAsciinemaRecording(recordingPath)
+                .WithPtyProcess("/bin/bash", ["--norc"]);
+
+            using var terminal = builder.Build();
+            var pendingRun = terminal.RunAsync(cancellationToken);
+
+            var waitingForInitComplete = new CellPatternSearcher()
+                .Find("Aspire initialization complete");
+
+            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
+                .Find("Select an integration to add:");
+
+            var waitingForVersionSelectionPrompt = new CellPatternSearcher()
+                .Find("(based on NuGet.config)");
+
+            var waitingForPipelineSucceeded = new CellPatternSearcher()
+                .Find("PIPELINE SUCCEEDED");
+
+            var counter = new SequenceCounter();
+            var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+            // Step 1: Prepare environment
+            output.WriteLine("Step 1: Preparing environment...");
+            sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+            // Step 2: Set up CLI environment (in CI)
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
+                sequenceBuilder.SourceAspireCliEnvironment(counter);
+            }
+
+            // Step 3: Create single-file AppHost using aspire init
+            output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
+            sequenceBuilder.Type("aspire init")
+                .Enter()
+                .Wait(TimeSpan.FromSeconds(5))
+                .Enter()
+                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+            // Step 4a: Add Aspire.Hosting.Azure.AppContainers
+            output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
+                .Enter();
+
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter()
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter();
+            }
+
+            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+
+            // Step 4b: Add Aspire.Hosting.Azure.Network
+            output.WriteLine("Step 4b: Adding Azure Network hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.Network")
+                .Enter();
+
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter();
+            }
+
+            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+
+            // Step 4c: Add Aspire.Hosting.Azure.Storage
+            output.WriteLine("Step 4c: Adding Azure Storage hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.Storage")
+                .Enter();
+
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter();
+            }
+
+            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+
+            // Step 5: Modify apphost.cs to add VNet + PE infrastructure
+            sequenceBuilder.ExecuteCallback(() =>
+            {
+                var appHostFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
+                output.WriteLine($"Looking for apphost.cs at: {appHostFilePath}");
+
+                var content = File.ReadAllText(appHostFilePath);
+
+                var buildRunPattern = "builder.Build().Run();";
+                var replacement = """
+#pragma warning disable ASPIREAZURE003
+
+// VNet with delegated subnet for ACA and PE subnet for storage
+var vnet = builder.AddAzureVirtualNetwork("vnet");
+var acaSubnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23");
+var peSubnet = vnet.AddSubnet("pe-subnet", "10.0.2.0/24");
+
+_ = builder.AddAzureContainerAppEnvironment("env")
+    .WithDelegatedSubnet(acaSubnet);
+
+// Storage with Private Endpoint
+var storage = builder.AddAzureStorage("storage");
+var blobs = storage.AddBlobs("blobs");
+peSubnet.AddPrivateEndpoint(blobs);
+
+#pragma warning restore ASPIREAZURE003
+
+builder.Build().Run();
+""";
+
+                content = content.Replace(buildRunPattern, replacement);
+                File.WriteAllText(appHostFilePath, content);
+
+                output.WriteLine($"Modified apphost.cs with VNet + Storage PE infrastructure");
+                output.WriteLine($"New content:\n{content}");
+            });
+
+            // Step 6: Set environment variables for deployment
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 7: Deploy to Azure
+            output.WriteLine("Step 7: Starting Azure deployment...");
+            sequenceBuilder
+                .Type("aspire deploy --clear-cache")
+                .Enter()
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(25))
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+            // Step 8: Verify VNet infrastructure
+            output.WriteLine("Step 8: Verifying VNet infrastructure...");
+            sequenceBuilder
+                .Type($"az network vnet list -g \"{resourceGroupName}\" --query \"[].name\" -o tsv | head -5 && " +
+                      $"echo \"---PE---\" && az network private-endpoint list -g \"{resourceGroupName}\" --query \"[].{{name:name,state:provisioningState}}\" -o table && " +
+                      $"echo \"---DNS---\" && az network private-dns zone list -g \"{resourceGroupName}\" --query \"[].name\" -o tsv")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+
+            // Step 9: Exit terminal
+            sequenceBuilder
+                .Type("exit")
+                .Enter();
+
+            var sequence = sequenceBuilder.Build();
+            await sequence.ApplyAsync(terminal, cancellationToken);
+            await pendingRun;
+
+            var duration = DateTime.UtcNow - startTime;
+            output.WriteLine($"Deployment completed in {duration}");
+
+            DeploymentReporter.ReportDeploymentSuccess(
+                nameof(DeployVnetStorageBlobInfrastructure),
+                resourceGroupName,
+                new Dictionary<string, string>(),
+                duration);
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"Test failed: {ex.Message}");
+
+            DeploymentReporter.ReportDeploymentFailure(
+                nameof(DeployVnetStorageBlobInfrastructure),
+                resourceGroupName,
+                ex.Message);
+
+            throw;
+        }
+        finally
+        {
+            output.WriteLine($"Cleaning up resource group: {resourceGroupName}");
+            await CleanupResourceGroupAsync(resourceGroupName);
+        }
+    }
+
+    private async Task CleanupResourceGroupAsync(string resourceGroupName)
+    {
+        try
+        {
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "az",
+                    Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                }
+            };
+
+            process.Start();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                output.WriteLine($"Resource group deletion initiated: {resourceGroupName}");
+            }
+            else
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                output.WriteLine($"Resource group deletion may have failed (exit code {process.ExitCode}): {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"Failed to cleanup resource group: {ex.Message}");
+        }
+    }
+}
