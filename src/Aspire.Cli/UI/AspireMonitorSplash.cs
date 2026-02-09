@@ -8,17 +8,19 @@ using Hex1b.Widgets;
 namespace Aspire.Cli.UI;
 
 /// <summary>
-/// Animated splash screen that renders the Aspire logo using half-block characters.
-/// Pixels fly in from random off-screen positions, hold, then dissolve into braille
-/// dots that fall with gravity and bounce off the bottom of the screen.
+/// Animated splash screen that renders the Aspire logo.
+/// Braille particles whirlwind into position, crossfade to half-blocks,
+/// then dissolve and fall with gravity.
 /// </summary>
 internal sealed class AspireMonitorSplash
 {
-    // Timing
-    private const int FlyInDurationMs = 1800;
-    private const int HoldEndMs = 2800;
+    // Phase timing (ms from start)
+    private const int WhirlwindDurationMs = 2200;
+    private const int BrailleHoldEndMs = 2600;
+    private const int CrossfadeEndMs = 3200;
+    private const int HoldEndMs = 4000;
     private const int DissolveDurationMs = 900;
-    private const int ExitDurationMs = 3200;
+    private const int ExitDurationMs = 3000;
     public const int TotalDurationMs = HoldEndMs + ExitDurationMs;
 
     // Logo dimensions in logical pixels (each pixel is half a character cell vertically)
@@ -36,6 +38,10 @@ internal sealed class AspireMonitorSplash
         int FinalX, int FinalY, byte R, byte G, byte B,
         float StartOffsetX, float StartOffsetY);
 
+    private readonly record struct BrailleDot(
+        int FinalBx, int FinalBy, byte R, byte G, byte B,
+        float StartRadius, float StartAngle, float TotalRotations);
+
     private sealed class Particle
     {
         public float X;
@@ -50,6 +56,7 @@ internal sealed class AspireMonitorSplash
     }
 
     private readonly PixelState[] _pixels;
+    private readonly BrailleDot[] _dots;
     private readonly long _startTicks;
     private List<Particle>? _particles;
     private long _lastPhysicsTick;
@@ -66,6 +73,7 @@ internal sealed class AspireMonitorSplash
         var pixelCount = s_pixelData.Length / 5;
         _pixels = new PixelState[pixelCount];
 
+        // Create pixel states for half-block rendering
         for (var i = 0; i < pixelCount; i++)
         {
             var offset = i * 5;
@@ -82,6 +90,35 @@ internal sealed class AspireMonitorSplash
 
             _pixels[i] = new PixelState(x, y, r, g, b, startOffsetX, startOffsetY);
         }
+
+        // Create braille dots for the whirlwind animation
+        var dotList = new List<BrailleDot>(pixelCount * 4);
+        var dotRng = new Random(99);
+
+        foreach (var pixel in _pixels)
+        {
+            var cellY = pixel.FinalY / 2;
+            var isTop = pixel.FinalY % 2 == 0;
+            var baseBx = pixel.FinalX * 2;
+            var baseBy = cellY * 4 + (isTop ? 0 : 2);
+
+            for (var dr = 0; dr < 2; dr++)
+            {
+                for (var dc = 0; dc < 2; dc++)
+                {
+                    var startRadius = (float)(40 + dotRng.NextDouble() * 60);
+                    var startAngle = (float)(dotRng.NextDouble() * Math.PI * 2);
+                    var rotations = (float)(1.5 + dotRng.NextDouble() * 2.5);
+
+                    dotList.Add(new BrailleDot(
+                        baseBx + dc, baseBy + dr,
+                        pixel.R, pixel.G, pixel.B,
+                        startRadius, startAngle, rotations));
+                }
+            }
+        }
+
+        _dots = dotList.ToArray();
     }
 
     private long ElapsedMs => Environment.TickCount64 - _startTicks;
@@ -98,18 +135,45 @@ internal sealed class AspireMonitorSplash
                 {
                     var offsetX = Math.Max(0, (surface.Width - LogoWidth) / 2);
                     var offsetY = Math.Max(0, (surface.Height - LogoCellHeight) / 2);
+                    var offsetBx = offsetX * 2;
+                    var offsetBy = offsetY * 4;
 
-                    if (elapsed < FlyInDurationMs)
+                    if (elapsed < WhirlwindDurationMs)
                     {
-                        var t = EaseOutCubic(elapsed / (float)FlyInDurationMs);
-                        RenderFlyIn(surface, t, offsetX, offsetY);
+                        // Braille particles spiral into position
+                        var progress = elapsed / (float)WhirlwindDurationMs;
+                        RenderBrailleLogo(surface, progress, 1f, offsetBx, offsetBy);
+                    }
+                    else if (elapsed < BrailleHoldEndMs)
+                    {
+                        // Braille logo settled at final positions
+                        RenderBrailleLogo(surface, 1f, 1f, offsetBx, offsetBy);
+                    }
+                    else if (elapsed < CrossfadeEndMs)
+                    {
+                        // Crossfade: braille dims through black, half-blocks brighten
+                        var crossfadeProgress = (elapsed - BrailleHoldEndMs) / (float)(CrossfadeEndMs - BrailleHoldEndMs);
+                        if (crossfadeProgress < 0.5f)
+                        {
+                            // First half: braille dimming
+                            var brightness = 1f - crossfadeProgress * 2f;
+                            RenderBrailleLogo(surface, 1f, brightness, offsetBx, offsetBy);
+                        }
+                        else
+                        {
+                            // Second half: half-blocks brightening
+                            var brightness = (crossfadeProgress - 0.5f) * 2f;
+                            RenderStaticWithBrightness(surface, offsetX, offsetY, brightness);
+                        }
                     }
                     else if (elapsed < HoldEndMs)
                     {
+                        // Static half-block logo
                         RenderStatic(surface, offsetX, offsetY);
                     }
                     else if (elapsed < TotalDurationMs)
                     {
+                        // Dissolve and melt
                         var exitElapsed = elapsed - HoldEndMs;
                         RenderExit(surface, exitElapsed, offsetX, offsetY);
                     }
@@ -118,7 +182,84 @@ internal sealed class AspireMonitorSplash
         ).Fill();
     }
 
+    // ── Braille whirlwind rendering ───────────────────────────────────────
+
+    private void RenderBrailleLogo(Hex1b.Surfaces.Surface surface, float spiralProgress, float brightness, int offsetBx, int offsetBy)
+    {
+        var t = EaseOutCubic(spiralProgress);
+        var cells = new Dictionary<(int cx, int cy), (int pattern, int totalR, int totalG, int totalB, int count)>();
+
+        foreach (var dot in _dots)
+        {
+            // Parametric spiral: radius shrinks, angle unwinds as t → 1
+            var radius = dot.StartRadius * (1f - t);
+            var angle = dot.StartAngle + dot.TotalRotations * 2f * MathF.PI * (1f - t);
+            var bx = (int)Math.Round(dot.FinalBx + offsetBx + radius * MathF.Cos(angle));
+            var by = (int)Math.Round(dot.FinalBy + offsetBy + radius * MathF.Sin(angle));
+
+            if (bx < 0 || bx >= surface.Width * 2 || by < 0 || by >= surface.Height * 4)
+            {
+                continue;
+            }
+
+            var cx = bx / 2;
+            var cy = by / 4;
+            var dotCol = bx % 2;
+            var dotRow = by % 4;
+            var bit = s_brailleBits[dotCol * 4 + dotRow];
+
+            var key = (cx, cy);
+            if (cells.TryGetValue(key, out var existing))
+            {
+                cells[key] = (existing.pattern | bit, existing.totalR + dot.R, existing.totalG + dot.G, existing.totalB + dot.B, existing.count + 1);
+            }
+            else
+            {
+                cells[key] = (bit, dot.R, dot.G, dot.B, 1);
+            }
+        }
+
+        foreach (var ((cx, cy), (pattern, totalR, totalG, totalB, count)) in cells)
+        {
+            if (cx < 0 || cx >= surface.Width || cy < 0 || cy >= surface.Height)
+            {
+                continue;
+            }
+
+            var r = Dim((byte)(totalR / count), brightness);
+            var g = Dim((byte)(totalG / count), brightness);
+            var b = Dim((byte)(totalB / count), brightness);
+            var ch = (char)(0x2800 | pattern);
+            surface.WriteChar(cx, cy, ch, Hex1bColor.FromRgb(r, g, b));
+        }
+    }
+
+    // ── Half-block rendering ──────────────────────────────────────────────
+
+    private void RenderStaticWithBrightness(Hex1b.Surfaces.Surface surface, int offsetX, int offsetY, float brightness)
+    {
+        var gridW = surface.Width;
+        var gridH = surface.Height * 2;
+        var grid = new (byte R, byte G, byte B, bool HasPixel)[gridW, gridH];
+
+        foreach (var pixel in _pixels)
+        {
+            var sx = pixel.FinalX + offsetX;
+            var sy = pixel.FinalY + offsetY * 2;
+
+            if (sx >= 0 && sx < gridW && sy >= 0 && sy < gridH)
+            {
+                grid[sx, sy] = (Dim(pixel.R, brightness), Dim(pixel.G, brightness), Dim(pixel.B, brightness), true);
+            }
+        }
+
+        RenderHalfBlocks(surface, grid, gridH);
+    }
+
+    // Kept for potential future use — original half-block fly-in animation
+#pragma warning disable IDE0051
     private void RenderFlyIn(Hex1b.Surfaces.Surface surface, float t, int offsetX, int offsetY)
+#pragma warning restore IDE0051
     {
         var gridW = surface.Width;
         var gridH = surface.Height * 2;
@@ -161,6 +302,8 @@ internal sealed class AspireMonitorSplash
         RenderHalfBlocks(surface, grid, gridH);
     }
 
+    // ── Dissolve / melt exit ──────────────────────────────────────────────
+
     private void RenderExit(Hex1b.Surfaces.Surface surface, long exitElapsedMs, int offsetX, int offsetY)
     {
         EnsureParticlesCreated(surface.Height, offsetX, offsetY);
@@ -182,7 +325,7 @@ internal sealed class AspireMonitorSplash
         }
 
         // Render particles as braille
-        RenderBrailleParticles(surface, exitElapsedMs, fadeFactor);
+        RenderFallingParticles(surface, exitElapsedMs, fadeFactor);
     }
 
     private void EnsureParticlesCreated(int surfaceHeight, int offsetX, int offsetY)
@@ -315,7 +458,7 @@ internal sealed class AspireMonitorSplash
         }
     }
 
-    private void RenderBrailleParticles(Hex1b.Surfaces.Surface surface, long exitElapsedMs, float fadeFactor)
+    private void RenderFallingParticles(Hex1b.Surfaces.Surface surface, long exitElapsedMs, float fadeFactor)
     {
         if (_particles is null)
         {
@@ -371,6 +514,8 @@ internal sealed class AspireMonitorSplash
             surface.WriteChar(cx, cy, ch, Hex1bColor.FromRgb(r, g, b));
         }
     }
+
+    // ── Shared helpers ────────────────────────────────────────────────────
 
     private static void RenderHalfBlocks(Hex1b.Surfaces.Surface surface, (byte R, byte G, byte B, bool HasPixel)[,] grid, int gridH)
     {
