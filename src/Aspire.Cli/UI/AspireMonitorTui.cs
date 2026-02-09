@@ -121,8 +121,6 @@ internal sealed class AspireMonitorTui
             return _splash.Build(ctx);
         }
 
-        var themedMain = ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx)).Fill();
-
         if (_revealing)
         {
             var progress = Math.Clamp(
@@ -131,8 +129,11 @@ internal sealed class AspireMonitorTui
             if (progress >= 1.0)
             {
                 _revealing = false;
-                return themedMain;
+                return ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx, interactive: true)).Fill();
             }
+
+            // During reveal, build without NotificationPanel (it requires ZStack context)
+            var revealContent = ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx, interactive: false)).Fill();
 
             _hackReveal.Update(1, 1);
 
@@ -141,7 +142,7 @@ internal sealed class AspireMonitorTui
                 _hackReveal.Update(s.Width, s.Height);
                 return
                 [
-                    s.WidgetLayer(themedMain),
+                    s.WidgetLayer(revealContent),
                     s.Layer(_hackReveal.GetCompute(progress))
                 ];
             })
@@ -149,15 +150,15 @@ internal sealed class AspireMonitorTui
             .Fill();
         }
 
-        return themedMain;
+        return ctx.ThemePanel(AspireTheme.Apply, BuildMainScreen(ctx, interactive: true)).Fill();
     }
 
-    private Hex1bWidget BuildMainScreen(RootContext ctx)
+    private Hex1bWidget BuildMainScreen(RootContext ctx, bool interactive)
     {
         // When no AppHosts are connected, show a waiting panel
         if (_appHosts.Count == 0)
         {
-            return BuildWaitingForAppHostsPanel(ctx);
+            return BuildWaitingForAppHostsPanel(ctx, interactive);
         }
 
         // Build right-side content depending on selected AppHost state
@@ -179,8 +180,10 @@ internal sealed class AspireMonitorTui
             rightContent = tabPanel;
         }
 
-        // Wrap content in notification panel
-        var mainContent = ctx.NotificationPanel(rightContent).Fill();
+        // NotificationPanel requires ZStack context — only use in interactive mode
+        var mainContent = interactive
+            ? ctx.NotificationPanel(rightContent).Fill()
+            : rightContent;
 
         // AppHost list for the left pane
         var appHostList = ctx.VStack(nav => [
@@ -208,25 +211,25 @@ internal sealed class AspireMonitorTui
         ]).Fill();
     }
 
-    private static Hex1bWidget BuildWaitingForAppHostsPanel(RootContext ctx)
+    private static Hex1bWidget BuildWaitingForAppHostsPanel(RootContext ctx, bool interactive)
     {
+        var centerContent = ctx.VStack(v => [
+            v.Text("").Fill(),
+            v.Center(
+                ctx.VStack(inner => [
+                    inner.Text("  ⏳  Waiting for AppHosts...").FixedHeight(1),
+                    inner.Text("").FixedHeight(1),
+                    inner.Text("  No running Aspire AppHosts detected.").FixedHeight(1),
+                    inner.Text("").FixedHeight(1),
+                    inner.Text("  Start an AppHost with 'aspire run' and it will").FixedHeight(1),
+                    inner.Text("  appear here automatically.").FixedHeight(1)
+                ])
+            ),
+            v.Text("").Fill()
+        ]).Fill();
+
         return ctx.VStack(outer => [
-            ctx.NotificationPanel(
-                ctx.VStack(v => [
-                    v.Text("").Fill(),
-                    v.Center(
-                        ctx.VStack(inner => [
-                            inner.Text("  ⏳  Waiting for AppHosts...").FixedHeight(1),
-                            inner.Text("").FixedHeight(1),
-                            inner.Text("  No running Aspire AppHosts detected.").FixedHeight(1),
-                            inner.Text("").FixedHeight(1),
-                            inner.Text("  Start an AppHost with 'aspire run' and it will").FixedHeight(1),
-                            inner.Text("  appear here automatically.").FixedHeight(1)
-                        ])
-                    ),
-                    v.Text("").Fill()
-                ]).Fill()
-            ).Fill(),
+            interactive ? ctx.NotificationPanel(centerContent).Fill() : centerContent,
             outer.InfoBar(bar => [
                 bar.Section("q: " + MonitorCommandStrings.QuitShortcut),
                 bar.Separator(" │ "),
