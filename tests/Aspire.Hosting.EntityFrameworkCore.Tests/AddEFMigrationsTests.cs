@@ -189,7 +189,7 @@ public class AddEFMigrationsTests
         var snapshotAnnotation = migrations.Resource.Annotations.OfType<ResourceSnapshotAnnotation>().FirstOrDefault();
         Assert.NotNull(snapshotAnnotation);
         Assert.Equal("EFMigration", snapshotAnnotation.InitialSnapshot.ResourceType);
-        Assert.Equal("Active", snapshotAnnotation.InitialSnapshot.State?.Text);
+        Assert.Equal("NotStarted", snapshotAnnotation.InitialSnapshot.State?.Text);
     }
 
     [Fact]

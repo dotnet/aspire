@@ -15,8 +15,8 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        // Commands are added to the project resource, not the migration resource
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        // Commands are added to the migration resource
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var updateCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-update"));
 
         Assert.NotNull(updateCommand);
@@ -30,7 +30,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var dropCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-drop"));
 
         Assert.NotNull(dropCommand);
@@ -45,7 +45,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var resetCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-reset"));
 
         Assert.NotNull(resetCommand);
@@ -60,7 +60,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var addCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-migrations-add"));
 
         Assert.NotNull(addCommand);
@@ -74,7 +74,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var removeCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-migrations-remove"));
 
         Assert.NotNull(removeCommand);
@@ -88,7 +88,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var statusCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-status"));
 
         Assert.NotNull(statusCommand);
@@ -102,7 +102,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
         // Should have 6 EF-related commands
         var efCommands = commands.Where(c => c.Name.Contains("ef-")).ToList();
@@ -116,7 +116,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var updateCommand = commands.FirstOrDefault(c => c.Name == "ef-database-update");
 
         Assert.NotNull(updateCommand);
@@ -124,17 +124,14 @@ public class EFMigrationCommandsTests
     }
 
     [Fact]
-    public void AddEFMigrationsWithContextAddsCommandsWithContextSuffix()
+    public void AddEFMigrationsWithContextUsesContextTypeName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
-        var updateCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-update"));
-
-        Assert.NotNull(updateCommand);
-        Assert.Contains("TestDbContext", updateCommand.DisplayName);
+        // Verify the context type name is stored on the resource
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -144,7 +141,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
         foreach (var command in commands.Where(c => c.Name.Contains("ef-")))
         {
@@ -159,7 +156,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
         var dropCommand = commands.First(c => c.Name.Contains("ef-database-drop"));
         var resetCommand = commands.First(c => c.Name.Contains("ef-database-reset"));
@@ -175,7 +172,7 @@ public class EFMigrationCommandsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        var commands = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
         var updateCommand = commands.First(c => c.Name.Contains("ef-database-update"));
         var statusCommand = commands.First(c => c.Name.Contains("ef-database-status"));
