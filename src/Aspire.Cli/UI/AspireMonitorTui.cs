@@ -75,16 +75,13 @@ internal sealed class AspireMonitorTui
         // Animate the splash, then transition to main screen
         _ = Task.Run(async () =>
         {
-            // Drive the animation by invalidating at ~30fps
+            // Drive the animation by invalidating at ~30fps until all phases complete
             while (!_splash.IsComplete)
             {
                 _app?.Invalidate();
                 await Task.Delay(33, cancellationToken).ConfigureAwait(false);
             }
-            _app?.Invalidate();
 
-            // Hold the completed logo briefly
-            await Task.Delay(AspireMonitorSplash.SplashDurationMs - AspireMonitorSplash.AnimationDurationMs, cancellationToken).ConfigureAwait(false);
             _showSplash = false;
             _app?.Invalidate();
 

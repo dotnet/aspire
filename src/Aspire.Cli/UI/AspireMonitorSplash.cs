@@ -9,29 +9,59 @@ namespace Aspire.Cli.UI;
 
 /// <summary>
 /// Animated splash screen that renders the Aspire logo using half-block characters.
-/// Pixels fly in from random off-screen positions to their final locations.
+/// Pixels fly in from random off-screen positions, hold, then dissolve into braille
+/// dots that fall with gravity and bounce off the bottom of the screen.
 /// </summary>
 internal sealed class AspireMonitorSplash
 {
-    public const int SplashDurationMs = 3500;
+    // Timing
+    private const int FlyInDurationMs = 1800;
+    private const int HoldEndMs = 2800;
+    private const int DissolveDurationMs = 600;
+    private const int ExitDurationMs = 2200;
+    public const int TotalDurationMs = HoldEndMs + ExitDurationMs;
 
     // Logo dimensions in logical pixels (each pixel is half a character cell vertically)
     private const int LogoWidth = 40;
     private const int LogoHeight = 40;
     private const int LogoCellHeight = LogoHeight / 2;
-    public const int AnimationDurationMs = 1800;
+
+    // Physics (in braille sub-pixel units per second)
+    private const float Gravity = 80f;
+    private const float BounceDecay = 0.3f;
+    private const float SettleThreshold = 3f;
+    private const int FadeOutMs = 500;
 
     private readonly record struct PixelState(
         int FinalX, int FinalY, byte R, byte G, byte B,
         float StartOffsetX, float StartOffsetY);
 
+    private sealed class Particle
+    {
+        public float X;
+        public float Y;
+        public float Vx;
+        public float Vy;
+        public byte R;
+        public byte G;
+        public byte B;
+        public float SpawnTimeMs;
+        public bool Settled;
+    }
+
     private readonly PixelState[] _pixels;
     private readonly long _startTicks;
+    private List<Particle>? _particles;
+    private long _lastPhysicsTick;
+    private float _maxBrailleY;
+
+    // Braille dot bit positions: index = col*4 + row
+    private static readonly int[] s_brailleBits = [0x01, 0x02, 0x04, 0x40, 0x08, 0x10, 0x20, 0x80];
 
     public AspireMonitorSplash()
     {
         _startTicks = Environment.TickCount64;
-        var rng = new Random(42); // Fixed seed for deterministic animation
+        var rng = new Random(42);
 
         var pixelCount = s_pixelData.Length / 5;
         _pixels = new PixelState[pixelCount];
@@ -45,7 +75,6 @@ internal sealed class AspireMonitorSplash
             var g = s_pixelData[offset + 3];
             var b = s_pixelData[offset + 4];
 
-            // Random start direction — fly in from outside the logo bounds
             var angle = rng.NextDouble() * Math.PI * 2;
             var distance = 30 + rng.NextDouble() * 40;
             var startOffsetX = (float)(Math.Cos(angle) * distance);
@@ -55,51 +84,48 @@ internal sealed class AspireMonitorSplash
         }
     }
 
-    /// <summary>
-    /// Gets the animation progress from 0.0 to 1.0.
-    /// </summary>
-    public float Progress
-    {
-        get
-        {
-            var elapsed = Environment.TickCount64 - _startTicks;
-            return Math.Clamp(elapsed / (float)AnimationDurationMs, 0f, 1f);
-        }
-    }
+    private long ElapsedMs => Environment.TickCount64 - _startTicks;
 
-    public bool IsComplete => Progress >= 1f;
+    public bool IsComplete => ElapsedMs >= TotalDurationMs;
 
     public Hex1bWidget Build(RootContext ctx)
     {
-        var progress = Progress;
-
-        // Ease-out cubic for smooth deceleration
-        var t = 1f - (1f - progress) * (1f - progress) * (1f - progress);
+        var elapsed = ElapsedMs;
 
         return ctx.ThemePanel(AspireTheme.Apply,
             ctx.Surface(layerCtx => [
                 layerCtx.Layer(surface =>
                 {
-                    // Center the logo within the full terminal surface
                     var offsetX = Math.Max(0, (surface.Width - LogoWidth) / 2);
                     var offsetY = Math.Max(0, (surface.Height - LogoCellHeight) / 2);
-                    RenderFrame(surface, t, offsetX, offsetY);
+
+                    if (elapsed < FlyInDurationMs)
+                    {
+                        var t = EaseOutCubic(elapsed / (float)FlyInDurationMs);
+                        RenderFlyIn(surface, t, offsetX, offsetY);
+                    }
+                    else if (elapsed < HoldEndMs)
+                    {
+                        RenderStatic(surface, offsetX, offsetY);
+                    }
+                    else if (elapsed < TotalDurationMs)
+                    {
+                        var exitElapsed = elapsed - HoldEndMs;
+                        RenderExit(surface, exitElapsed, offsetX, offsetY);
+                    }
                 })
             ]).Fill()
         ).Fill();
     }
 
-    private void RenderFrame(Hex1b.Surfaces.Surface surface, float t, int offsetX, int offsetY)
+    private void RenderFlyIn(Hex1b.Surfaces.Surface surface, float t, int offsetX, int offsetY)
     {
-        // Use the full surface for scattering, then render half-block pairs
-        // Grid covers the entire terminal surface in logical pixels (2 rows per cell)
         var gridW = surface.Width;
         var gridH = surface.Height * 2;
         var grid = new (byte R, byte G, byte B, bool HasPixel)[gridW, gridH];
 
         foreach (var pixel in _pixels)
         {
-            // Lerp from start to final position, offset to center
             var currentX = (pixel.FinalX + offsetX) + pixel.StartOffsetX * (1f - t);
             var currentY = (pixel.FinalY + offsetY * 2) + pixel.StartOffsetY * (1f - t);
 
@@ -112,7 +138,242 @@ internal sealed class AspireMonitorSplash
             }
         }
 
-        // Render half-block pairs across the entire surface
+        RenderHalfBlocks(surface, grid, gridH);
+    }
+
+    private void RenderStatic(Hex1b.Surfaces.Surface surface, int offsetX, int offsetY)
+    {
+        var gridW = surface.Width;
+        var gridH = surface.Height * 2;
+        var grid = new (byte R, byte G, byte B, bool HasPixel)[gridW, gridH];
+
+        foreach (var pixel in _pixels)
+        {
+            var sx = pixel.FinalX + offsetX;
+            var sy = pixel.FinalY + offsetY * 2;
+
+            if (sx >= 0 && sx < gridW && sy >= 0 && sy < gridH)
+            {
+                grid[sx, sy] = (pixel.R, pixel.G, pixel.B, true);
+            }
+        }
+
+        RenderHalfBlocks(surface, grid, gridH);
+    }
+
+    private void RenderExit(Hex1b.Surfaces.Surface surface, long exitElapsedMs, int offsetX, int offsetY)
+    {
+        EnsureParticlesCreated(surface.Height, offsetX, offsetY);
+        UpdateParticles(exitElapsedMs);
+
+        var dissolveProgress = Math.Clamp(exitElapsedMs / (float)DissolveDurationMs, 0f, 1f);
+        var dissolvedUpToRow = (int)(dissolveProgress * LogoCellHeight);
+
+        // Fade factor for the end of the exit
+        var fadeStart = ExitDurationMs - FadeOutMs;
+        var fadeFactor = exitElapsedMs > fadeStart
+            ? 1f - Math.Clamp((exitElapsedMs - fadeStart) / (float)FadeOutMs, 0f, 1f)
+            : 1f;
+
+        // Render undissolved rows as half-blocks
+        if (dissolvedUpToRow < LogoCellHeight)
+        {
+            RenderStaticRows(surface, offsetX, offsetY, dissolvedUpToRow, LogoCellHeight, fadeFactor);
+        }
+
+        // Render particles as braille
+        RenderBrailleParticles(surface, exitElapsedMs, fadeFactor);
+    }
+
+    private void EnsureParticlesCreated(int surfaceHeight, int offsetX, int offsetY)
+    {
+        if (_particles is not null)
+        {
+            return;
+        }
+
+        _maxBrailleY = surfaceHeight * 4 - 1;
+        _lastPhysicsTick = Environment.TickCount64;
+        _particles = new List<Particle>(_pixels.Length * 4);
+        var rng = new Random(123);
+
+        foreach (var pixel in _pixels)
+        {
+            var sx = offsetX + pixel.FinalX;
+            var sy = offsetY + pixel.FinalY / 2;
+            var isTopHalf = pixel.FinalY % 2 == 0;
+            var cellRow = pixel.FinalY / 2;
+
+            var spawnTimeMs = (cellRow / (float)LogoCellHeight) * DissolveDurationMs;
+
+            var baseBx = sx * 2;
+            var baseBy = sy * 4 + (isTopHalf ? 0 : 2);
+
+            for (var dr = 0; dr < 2; dr++)
+            {
+                for (var dc = 0; dc < 2; dc++)
+                {
+                    _particles.Add(new Particle
+                    {
+                        X = baseBx + dc,
+                        Y = baseBy + dr,
+                        Vx = (float)(rng.NextDouble() * 30 - 15),
+                        Vy = (float)(rng.NextDouble() * 25 + 10),
+                        R = pixel.R,
+                        G = pixel.G,
+                        B = pixel.B,
+                        SpawnTimeMs = spawnTimeMs
+                    });
+                }
+            }
+        }
+    }
+
+    private void UpdateParticles(long exitElapsedMs)
+    {
+        if (_particles is null)
+        {
+            return;
+        }
+
+        var currentTick = Environment.TickCount64;
+        var dt = (currentTick - _lastPhysicsTick) / 1000f;
+        _lastPhysicsTick = currentTick;
+        dt = Math.Min(dt, 0.1f);
+
+        foreach (var p in _particles)
+        {
+            if (p.SpawnTimeMs > exitElapsedMs || p.Settled)
+            {
+                continue;
+            }
+
+            p.Vy += Gravity * dt;
+            p.X += p.Vx * dt;
+            p.Y += p.Vy * dt;
+
+            if (p.Y >= _maxBrailleY)
+            {
+                p.Y = _maxBrailleY;
+                p.Vy = -p.Vy * BounceDecay;
+                p.Vx *= 0.8f;
+
+                if (Math.Abs(p.Vy) < SettleThreshold)
+                {
+                    p.Settled = true;
+                }
+            }
+        }
+    }
+
+    private void RenderStaticRows(Hex1b.Surfaces.Surface surface, int offsetX, int offsetY, int fromRow, int toRow, float fadeFactor)
+    {
+        var grid = new (byte R, byte G, byte B, bool HasPixel)[LogoWidth, LogoHeight];
+
+        foreach (var pixel in _pixels)
+        {
+            var cellRow = pixel.FinalY / 2;
+            if (cellRow >= fromRow && cellRow < toRow)
+            {
+                grid[pixel.FinalX, pixel.FinalY] = (pixel.R, pixel.G, pixel.B, true);
+            }
+        }
+
+        for (var cy = fromRow; cy < toRow; cy++)
+        {
+            for (var cx = 0; cx < LogoWidth; cx++)
+            {
+                var sx = offsetX + cx;
+                var sy = offsetY + cy;
+                if (sx < 0 || sx >= surface.Width || sy < 0 || sy >= surface.Height)
+                {
+                    continue;
+                }
+
+                var topRow = cy * 2;
+                var botRow = cy * 2 + 1;
+                var top = grid[cx, topRow];
+                var bot = botRow < LogoHeight ? grid[cx, botRow] : default;
+
+                if (top.HasPixel && bot.HasPixel)
+                {
+                    var fg = Hex1bColor.FromRgb(Dim(top.R, fadeFactor), Dim(top.G, fadeFactor), Dim(top.B, fadeFactor));
+                    var bg = Hex1bColor.FromRgb(Dim(bot.R, fadeFactor), Dim(bot.G, fadeFactor), Dim(bot.B, fadeFactor));
+                    surface.WriteChar(sx, sy, '\u2580', fg, bg);
+                }
+                else if (top.HasPixel)
+                {
+                    var fg = Hex1bColor.FromRgb(Dim(top.R, fadeFactor), Dim(top.G, fadeFactor), Dim(top.B, fadeFactor));
+                    surface.WriteChar(sx, sy, '\u2580', fg);
+                }
+                else if (bot.HasPixel)
+                {
+                    var fg = Hex1bColor.FromRgb(Dim(bot.R, fadeFactor), Dim(bot.G, fadeFactor), Dim(bot.B, fadeFactor));
+                    surface.WriteChar(sx, sy, '\u2584', fg);
+                }
+            }
+        }
+    }
+
+    private void RenderBrailleParticles(Hex1b.Surfaces.Surface surface, long exitElapsedMs, float fadeFactor)
+    {
+        if (_particles is null)
+        {
+            return;
+        }
+
+        // Group active particles by cell position, accumulating color for averaging
+        var cells = new Dictionary<(int cx, int cy), (int pattern, int r, int g, int b, int count)>();
+
+        foreach (var p in _particles)
+        {
+            if (p.SpawnTimeMs > exitElapsedMs)
+            {
+                continue;
+            }
+
+            var bx = (int)Math.Round(p.X);
+            var by = (int)Math.Round(p.Y);
+
+            if (bx < 0 || bx >= surface.Width * 2 || by < 0 || by >= surface.Height * 4)
+            {
+                continue;
+            }
+
+            var cx = bx / 2;
+            var cy = by / 4;
+            var dotCol = bx % 2;
+            var dotRow = by % 4;
+            var bit = s_brailleBits[dotCol * 4 + dotRow];
+
+            var key = (cx, cy);
+            if (cells.TryGetValue(key, out var existing))
+            {
+                cells[key] = (existing.pattern | bit, existing.r + p.R, existing.g + p.G, existing.b + p.B, existing.count + 1);
+            }
+            else
+            {
+                cells[key] = (bit, p.R, p.G, p.B, 1);
+            }
+        }
+
+        foreach (var ((cx, cy), (pattern, totalR, totalG, totalB, count)) in cells)
+        {
+            if (cx < 0 || cx >= surface.Width || cy < 0 || cy >= surface.Height)
+            {
+                continue;
+            }
+
+            var r = Dim((byte)(totalR / count), fadeFactor);
+            var g = Dim((byte)(totalG / count), fadeFactor);
+            var b = Dim((byte)(totalB / count), fadeFactor);
+            var ch = (char)(0x2800 | pattern);
+            surface.WriteChar(cx, cy, ch, Hex1bColor.FromRgb(r, g, b));
+        }
+    }
+
+    private static void RenderHalfBlocks(Hex1b.Surfaces.Surface surface, (byte R, byte G, byte B, bool HasPixel)[,] grid, int gridH)
+    {
         for (var cy = 0; cy < surface.Height; cy++)
         {
             for (var cx = 0; cx < surface.Width; cx++)
@@ -142,6 +403,10 @@ internal sealed class AspireMonitorSplash
             }
         }
     }
+
+    private static float EaseOutCubic(float x) => 1f - (1f - x) * (1f - x) * (1f - x);
+
+    private static byte Dim(byte value, float factor) => (byte)(value * factor);
 
     private static readonly byte[] s_pixelData =
     [
