@@ -82,6 +82,10 @@ internal sealed class RunCommand : BaseCommand
     {
         Description = RunCommandStrings.IsolatedArgumentDescription
     };
+    private static readonly Option<bool> s_noBuildOption = new("--no-build")
+    {
+        Description = RunCommandStrings.NoBuildArgumentDescription
+    };
     private readonly Option<bool>? _startDebugSessionOption;
 
     public RunCommand(
@@ -121,6 +125,7 @@ internal sealed class RunCommand : BaseCommand
         Options.Add(s_detachOption);
         Options.Add(s_formatOption);
         Options.Add(s_isolatedOption);
+        Options.Add(s_noBuildOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -140,6 +145,7 @@ internal sealed class RunCommand : BaseCommand
         var detach = parseResult.GetValue(s_detachOption);
         var format = parseResult.GetValue(s_formatOption);
         var isolated = parseResult.GetValue(s_isolatedOption);
+        var noBuild = parseResult.GetValue(s_noBuildOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = false;
         if (isExtensionHost)
@@ -155,6 +161,15 @@ internal sealed class RunCommand : BaseCommand
         if (format is not null && !detach)
         {
             InteractionService.DisplayError(RunCommandStrings.FormatRequiresDetach);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        // Validate that --no-build is not used when watch mode would be enabled
+        // Watch mode is enabled when DefaultWatchEnabled feature is true, or when running under extension host (not in debug session)
+        var watchModeEnabled = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession);
+        if (noBuild && watchModeEnabled)
+        {
+            InteractionService.DisplayError(RunCommandStrings.NoBuildNotSupportedWithWatchMode);
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -220,7 +235,8 @@ internal sealed class RunCommand : BaseCommand
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
                 Debug = parseResult.GetValue(RootCommand.DebugOption),
-                NoBuild = false,
+                NoBuild = noBuild,
+                NoRestore = noBuild, // --no-build implies --no-restore
                 WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
                 Isolated = isolated,
                 StartDebugSession = startDebugSession,
@@ -660,6 +676,10 @@ internal sealed class RunCommand : BaseCommand
         if (parseResult.GetValue(s_isolatedOption))
         {
             args.Add("--isolated");
+        }
+        if (parseResult.GetValue(s_noBuildOption))
+        {
+            args.Add("--no-build");
         }
 
         // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)

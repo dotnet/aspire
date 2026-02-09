@@ -454,7 +454,7 @@ public class DotNetTemplateFactoryTests
         public Task<int> NewProjectAsync(string templateName, string projectName, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> BuildAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> BuildAsync(FileInfo projectFile, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string version, string? packageSourceUrl, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -478,7 +478,7 @@ public class DotNetTemplateFactoryTests
         public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

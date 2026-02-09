@@ -425,7 +425,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             StandardErrorCallback = outputCollector.AppendError
         };
 
-        var exitCode = await _dotNetCliRunner.BuildAsync(projectFile, options, cancellationToken);
+        var exitCode = await _dotNetCliRunner.BuildAsync(projectFile, noRestore: false, options, cancellationToken);
 
         return (exitCode == 0, outputCollector);
     }
