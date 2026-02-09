@@ -18,6 +18,7 @@ internal sealed class AppHostEntry
     public required string DisplayName { get; init; }
     public required string FullPath { get; init; }
     public required IAppHostAuxiliaryBackchannel Connection { get; init; }
+    public bool IsOffline { get; set; }
 }
 
 /// <summary>
@@ -39,6 +40,7 @@ internal sealed class AspireMonitorTui
     private object? _focusedResourceKey;
     private object? _focusedParameterKey;
     private CancellationTokenSource? _watchCts;
+    private NotificationStack? _notificationStack;
     private Hex1bApp? _app;
 
     public AspireMonitorTui(IAuxiliaryBackchannelMonitor backchannelMonitor, ILogger logger)
@@ -89,6 +91,9 @@ internal sealed class AspireMonitorTui
             {
                 await ConnectToAppHostAsync(0, cancellationToken).ConfigureAwait(false);
             }
+
+            // Start background polling for new/offline AppHosts
+            _ = PollAppHostsAsync(cancellationToken);
         }, cancellationToken);
 
         await terminal.RunAsync(cancellationToken).ConfigureAwait(false);
@@ -106,16 +111,27 @@ internal sealed class AspireMonitorTui
 
     private Hex1bWidget BuildMainScreen(RootContext ctx)
     {
-        var appHostItems = _appHosts.Select(a => a.DisplayName).ToArray();
+        // Build right-side content depending on selected AppHost state
+        Hex1bWidget rightContent;
+        var selectedAppHost = _selectedAppHostIndex < _appHosts.Count ? _appHosts[_selectedAppHostIndex] : null;
 
-        // Tab panel with Resources and Parameters tabs
-        var tabPanel = ctx.TabPanel(tabs => [
-            tabs.Tab(MonitorCommandStrings.ResourcesTab, c => BuildResourcesTab(c)),
-            tabs.Tab(MonitorCommandStrings.ParametersTab, c => BuildParametersTab(c))
-        ]).Fill();
+        if (selectedAppHost?.IsOffline == true)
+        {
+            rightContent = BuildOfflinePanel(ctx, selectedAppHost);
+        }
+        else
+        {
+            // Tab panel with Resources and Parameters tabs
+            var tabPanel = ctx.TabPanel(tabs => [
+                tabs.Tab(MonitorCommandStrings.ResourcesTab, c => BuildResourcesTab(c)),
+                tabs.Tab(MonitorCommandStrings.ParametersTab, c => BuildParametersTab(c))
+            ]).Fill();
 
-        // Wrap tab panel in notification panel
-        var mainContent = ctx.NotificationPanel(tabPanel).Fill();
+            rightContent = tabPanel;
+        }
+
+        // Wrap content in notification panel
+        var mainContent = ctx.NotificationPanel(rightContent).Fill();
 
         // AppHost list for the left pane
         var appHostList = ctx.VStack(nav => [
@@ -151,18 +167,24 @@ internal sealed class AspireMonitorTui
         }
 
         return _appHosts.Select((appHost, i) =>
-            nav.Button(_selectedAppHostIndex == i
-                ? $" ▸ {appHost.DisplayName}"
-                : $"   {appHost.DisplayName}")
+        {
+            var prefix = _selectedAppHostIndex == i ? " ▸ " : "   ";
+            var suffix = appHost.IsOffline ? " ⚠" : "";
+            return nav.Button($"{prefix}{appHost.DisplayName}{suffix}")
                 .OnClick(e =>
                 {
+                    _notificationStack ??= e.Context.Notifications;
+
                     if (i != _selectedAppHostIndex)
                     {
                         _selectedAppHostIndex = i;
-                        _ = ConnectToAppHostAsync(i, CancellationToken.None);
+                        if (!appHost.IsOffline)
+                        {
+                            _ = ConnectToAppHostAsync(i, CancellationToken.None);
+                        }
                     }
-                })
-        );
+                });
+        });
     }
 
     private IEnumerable<Hex1bWidget> BuildResourcesTab(WidgetContext<VStackWidget> ctx)
@@ -263,6 +285,136 @@ internal sealed class AspireMonitorTui
         ];
     }
 
+    private Hex1bWidget BuildOfflinePanel(RootContext ctx, AppHostEntry appHost)
+    {
+        return ctx.VStack(v => [
+            v.Text("").Fill(),
+            v.Center(
+                ctx.VStack(inner => [
+                    inner.Text("⚠ AppHost Offline").FixedHeight(1),
+                    inner.Text("").FixedHeight(1),
+                    inner.Text($"{appHost.DisplayName} is no longer running.").FixedHeight(1),
+                    inner.Text("").FixedHeight(1),
+                    inner.HStack(buttons => [
+                        buttons.Button(" Remove from list ").OnClick(e =>
+                        {
+                            _notificationStack ??= e.Context.Notifications;
+                            var idx = _appHosts.IndexOf(appHost);
+                            _appHosts.Remove(appHost);
+                            if (_appHosts.Count == 0)
+                            {
+                                _selectedAppHostIndex = 0;
+                            }
+                            else if (_selectedAppHostIndex >= _appHosts.Count)
+                            {
+                                _selectedAppHostIndex = _appHosts.Count - 1;
+                                _ = ConnectToAppHostAsync(_selectedAppHostIndex, CancellationToken.None);
+                            }
+                            else if (idx == _selectedAppHostIndex)
+                            {
+                                _ = ConnectToAppHostAsync(_selectedAppHostIndex, CancellationToken.None);
+                            }
+                        }),
+                        buttons.Text("  ").FixedWidth(2),
+                        buttons.Button(" Try reconnecting ").OnClick(e =>
+                        {
+                            _notificationStack ??= e.Context.Notifications;
+                            appHost.IsOffline = false;
+                            _ = ConnectToAppHostAsync(_appHosts.IndexOf(appHost), CancellationToken.None);
+                        })
+                    ]).FixedHeight(1)
+                ])
+            ),
+            v.Text("").Fill()
+        ]).Fill();
+    }
+
+    private async Task PollAppHostsAsync(CancellationToken cancellationToken)
+    {
+        var knownPaths = new HashSet<string>(_appHosts.Select(a => a.FullPath));
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+
+                var currentConnections = _backchannelMonitor.Connections
+                    .Where(c => c.AppHostInfo is not null)
+                    .ToList();
+
+                var currentPaths = new HashSet<string>(
+                    currentConnections.Select(c => c.AppHostInfo!.AppHostPath ?? "Unknown"));
+
+                // Detect new AppHosts
+                foreach (var connection in currentConnections)
+                {
+                    var path = connection.AppHostInfo!.AppHostPath ?? "Unknown";
+                    if (!knownPaths.Contains(path))
+                    {
+                        var entry = new AppHostEntry
+                        {
+                            DisplayName = ShortenPath(path),
+                            FullPath = path,
+                            Connection = connection
+                        };
+                        _appHosts.Add(entry);
+                        knownPaths.Add(path);
+
+                        _notificationStack?.Post(
+                            new Notification("New AppHost Detected", entry.DisplayName)
+                                .Timeout(TimeSpan.FromSeconds(10))
+                                .PrimaryAction("Connect", async ctx =>
+                                {
+                                    var idx = _appHosts.IndexOf(entry);
+                                    if (idx >= 0)
+                                    {
+                                        await ConnectToAppHostAsync(idx, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    ctx.Dismiss();
+                                }));
+
+                        _app?.Invalidate();
+                    }
+                    else
+                    {
+                        // Check if a previously offline AppHost came back
+                        var existing = _appHosts.FirstOrDefault(a => a.FullPath == path && a.IsOffline);
+                        if (existing is not null)
+                        {
+                            existing.IsOffline = false;
+
+                            _notificationStack?.Post(
+                                new Notification("AppHost Back Online", existing.DisplayName)
+                                    .Timeout(TimeSpan.FromSeconds(5)));
+
+                            _app?.Invalidate();
+                        }
+                    }
+                }
+
+                // Detect offline AppHosts
+                foreach (var appHost in _appHosts)
+                {
+                    if (!appHost.IsOffline && !currentPaths.Contains(appHost.FullPath))
+                    {
+                        appHost.IsOffline = true;
+                        _app?.Invalidate();
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error polling for AppHosts");
+            }
+        }
+    }
+
     private async Task ConnectToAppHostAsync(int index, CancellationToken cancellationToken)
     {
         if (_watchCts is not null)
@@ -304,6 +456,14 @@ internal sealed class AspireMonitorTui
                         _resources[snapshot.Name] = snapshot;
                         _app?.Invalidate();
                     }
+
+                    // Stream ended normally — AppHost likely shut down
+                    if (index < _appHosts.Count)
+                    {
+                        _appHosts[index].IsOffline = true;
+                        _resources.Clear();
+                        _app?.Invalidate();
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -312,7 +472,14 @@ internal sealed class AspireMonitorTui
                 catch (Exception ex)
                 {
                     _logger.LogDebug(ex, "Error watching resource snapshots");
-                    _errorMessage = ex.Message;
+
+                    // Connection lost — mark as offline
+                    if (index < _appHosts.Count)
+                    {
+                        _appHosts[index].IsOffline = true;
+                        _resources.Clear();
+                    }
+
                     _app?.Invalidate();
                 }
             }, _watchCts.Token);
@@ -321,7 +488,12 @@ internal sealed class AspireMonitorTui
         {
             _logger.LogDebug(ex, "Error connecting to AppHost");
             _isConnecting = false;
-            _errorMessage = ex.Message;
+
+            if (index < _appHosts.Count)
+            {
+                _appHosts[index].IsOffline = true;
+            }
+
             _app?.Invalidate();
         }
     }
