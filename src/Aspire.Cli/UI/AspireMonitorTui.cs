@@ -211,7 +211,8 @@ internal sealed class AspireMonitorTui
                     h.Cell("Type").Fixed(12),
                     h.Cell("State").Fixed(12),
                     h.Cell("Health").Fixed(12),
-                    h.Cell("Endpoints").Width(SizeHint.Fill)
+                    h.Cell("URLs").Width(SizeHint.Fill),
+                    h.Cell("Actions").Fixed(20)
                 ])
                 .Row((r, resource, state) => [
                     r.Cell(resource.DisplayName ?? resource.Name),
@@ -220,7 +221,21 @@ internal sealed class AspireMonitorTui
                     r.Cell(resource.HealthStatus ?? ""),
                     r.Cell(resource.Urls.Length > 0
                         ? string.Join(", ", resource.Urls.Select(u => u.Url))
-                        : "")
+                        : ""),
+                    r.Cell(cell => cell.HStack(h => [
+                        h.Button("▶").OnClick(e =>
+                        {
+                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-start");
+                        }),
+                        h.Button("■").OnClick(e =>
+                        {
+                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-stop");
+                        }),
+                        h.Button("↻").OnClick(e =>
+                        {
+                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-restart");
+                        })
+                    ]))
                 ])
                 .Fill()
                 .Full()
@@ -322,6 +337,22 @@ internal sealed class AspireMonitorTui
             _isConnecting = false;
             _errorMessage = ex.Message;
             _app?.Invalidate();
+        }
+    }
+
+    private async Task ExecuteResourceCommandAsync(string resourceName, string commandName)
+    {
+        try
+        {
+            if (_selectedAppHostIndex < _appHosts.Count)
+            {
+                var connection = _appHosts[_selectedAppHostIndex].Connection;
+                await connection.ExecuteResourceCommandAsync(resourceName, commandName, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error executing {Command} on {Resource}", commandName, resourceName);
         }
     }
 
