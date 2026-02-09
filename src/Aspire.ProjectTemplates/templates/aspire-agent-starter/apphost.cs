@@ -11,8 +11,6 @@ var project = builder.AddAzureAIFoundryProject($"{name}-proj");
 
 builder.AddPythonApp(name, "../agent", "main.py")
     .WithUv()
-    .WithHttpEndpoint(port: 9999, name: "api", env: "PORT")
-    .WithExternalHttpEndpoints()
     .WithReference(project)
     .WithReference(project.AddModelDeployment($"gpt41mini", AIFoundryModel.OpenAI.Gpt41Mini))
     .PublishAsHostedAgent();

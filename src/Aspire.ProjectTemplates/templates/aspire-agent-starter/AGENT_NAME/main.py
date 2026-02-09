@@ -3,6 +3,12 @@ import logging
 import os
 import sys
 
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
+from opentelemetry import _logs
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogRecordExporter
 from rich.console import Console
 from rich.logging import RichHandler
 
@@ -30,30 +36,77 @@ def init_telemetry():
     )
 
     log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    otlp_endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT')
+    otlp_protocol = os.getenv('OTEL_EXPORTER_OTLP_PROTOCOL', 'http/protobuf')
+    traces_exporter = os.getenv('OTEL_TRACES_EXPORTER')
+    logs_exporter = os.getenv('OTEL_LOGS_EXPORTER')
+    app_insights_connection_string = os.getenv('APPLICATIONINSIGHTS_CONNECTION_STRING')
+
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level, logging.INFO))
-    if sys.stderr.isatty():
-        console_handler = RichHandler(
-            console=Console(stderr=True),
-            show_time=True,
-            show_path=False,
-            rich_tracebacks=True,
-        )
-        console_handler.name = 'console'
-        console_handler.setFormatter(logging.Formatter("%(message)s"))
+
+    normalized_protocol = otlp_protocol.strip().lower()
+    if normalized_protocol != 'grpc':
+        normalized_protocol = 'http/protobuf'
+
+    trace_provider = TracerProvider()
+    trace.set_tracer_provider(trace_provider)
+    trace_exporter: SpanExporter | None = None
+    if otlp_endpoint and traces_exporter:
+        if normalized_protocol == 'grpc':
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+            trace_exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+        else:
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+            trace_exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+    elif app_insights_connection_string:
+        from azure.monitor.opentelemetry.exporter import AzureMonitorTraceExporter
+        trace_exporter = AzureMonitorTraceExporter.from_connection_string(app_insights_connection_string)
+    if trace_exporter:
+        trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
+
+    log_exporter: LogRecordExporter | None = None
+    if otlp_endpoint and logs_exporter:
+        if normalized_protocol == 'grpc':
+            from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+            log_exporter = OTLPLogExporter(endpoint=otlp_endpoint)
+        else:
+            from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+            log_exporter = OTLPLogExporter(endpoint=otlp_endpoint)
+    elif app_insights_connection_string:
+        from azure.monitor.opentelemetry.exporter import AzureMonitorLogExporter
+        logger_provider = LoggerProvider()
+        _logs.set_logger_provider(logger_provider)
+        log_exporter = AzureMonitorLogExporter.from_connection_string(app_insights_connection_string)
+
+    if log_exporter:
+        logger_provider = LoggerProvider()
+        _logs.set_logger_provider(logger_provider)
+        logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+        logging_handler = LoggingHandler(level=root_logger.level, logger_provider=logger_provider)
     else:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
-        console_handler.name = 'console'
-    root_logger.addHandler(console_handler)
+        if sys.stdout.isatty():
+            logging_handler = RichHandler(
+                console=Console(file=sys.stdout),
+                show_time=True,
+                show_path=False,
+                rich_tracebacks=True,
+            )
+            logging_handler.setFormatter(logging.Formatter("%(message)s"))
+        else:
+            logging_handler = logging.StreamHandler(sys.stdout)
+            logging_handler.setFormatter(
+                logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            )
+
+    root_logger.addHandler(logging_handler)
     for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
         uv_logger = logging.getLogger(logger_name)
-        uv_logger.addHandler(console_handler)
+        uv_logger.addHandler(logging_handler)
         uv_logger.setLevel(root_logger.level)
         uv_logger.propagate = False
 
 
 if __name__ == "__main__":
+    init_telemetry()
     main()
