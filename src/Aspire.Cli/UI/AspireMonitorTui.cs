@@ -271,9 +271,7 @@ internal sealed class AspireMonitorTui
                 r.Cell(resource.ResourceType ?? ""),
                 r.Cell(resource.State ?? "Unknown"),
                 r.Cell(FormatHealthStatus(resource.HealthStatus)),
-                r.Cell(resource.Urls.Length > 0
-                    ? string.Join(", ", resource.Urls.Select(u => u.Url))
-                    : ""),
+                r.Cell(cell => BuildUrlsCell(cell, resource)),
                 r.Cell(cell => cell.HStack(h => [
                     h.Button("▶").OnClick(e =>
                     {
@@ -655,6 +653,17 @@ internal sealed class AspireMonitorTui
             : "💔";
 
         return $"{icon} {healthStatus}";
+    }
+
+    private static Hex1bWidget BuildUrlsCell(TableCellContext cell, ResourceSnapshot resource)
+    {
+        if (resource.Urls.Length == 0)
+        {
+            return cell.Text("");
+        }
+
+        return cell.HStack(h =>
+            resource.Urls.Select(u => (Hex1bWidget)h.Hyperlink(u.Url, u.Url)).ToArray());
     }
 
     private static string ShortenPath(string path)
