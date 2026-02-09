@@ -16,14 +16,13 @@ internal interface IBundleService
     Task EnsureExtractedAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Extracts the bundle payload from the specified binary to the specified directory.
+    /// Extracts the bundle payload to the specified directory.
     /// </summary>
-    /// <param name="binaryPath">Path to the CLI binary containing the embedded payload.</param>
     /// <param name="destinationPath">Directory to extract into.</param>
     /// <param name="force">If true, re-extract even if the version matches.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the extraction attempt.</returns>
-    Task<BundleExtractResult> ExtractAsync(string binaryPath, string destinationPath, bool force = false, CancellationToken cancellationToken = default);
+    Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

@@ -5,7 +5,6 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
@@ -26,7 +25,6 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
-    private readonly IBundleService _bundleService;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
@@ -48,7 +46,6 @@ internal sealed class UpdateCommand : BaseCommand
         IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
-        IBundleService bundleService,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -62,7 +59,6 @@ internal sealed class UpdateCommand : BaseCommand
         _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
-        _bundleService = bundleService;
         _updateNotifier = updateNotifier;
         _features = features;
         _configurationService = configurationService;
@@ -393,14 +389,9 @@ internal sealed class UpdateCommand : BaseCommand
                 // If we get here, the update was successful, clean up old backups
                 CleanupOldBackupFiles(targetExePath);
 
-                // If the new binary is a self-extracting bundle, proactively extract it
-                // so the user doesn't have to wait on next run
-                var extractDir = Path.GetDirectoryName(installDir) ?? installDir;
-                var extractResult = await _bundleService.ExtractAsync(targetExePath, extractDir, force: true, cancellationToken);
-                if (extractResult is BundleExtractResult.Extracted)
-                {
-                    InteractionService.DisplayMessage("package", "Embedded bundle extracted successfully.");
-                }
+                // The new binary will extract its embedded bundle on first run via EnsureExtractedAsync.
+                // No proactive extraction needed — the payload is inside the new binary's embedded resources,
+                // which are only accessible when that binary is running.
 
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))

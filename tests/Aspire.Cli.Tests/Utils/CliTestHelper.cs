@@ -570,7 +570,7 @@ internal sealed class NullBundleService : IBundleService
 {
     public Task EnsureExtractedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    public Task<BundleExtractResult> ExtractAsync(string binaryPath, string destinationPath, bool force = false, CancellationToken cancellationToken = default)
+    public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
         => Task.FromResult(BundleExtractResult.NoPayload);
 }
 

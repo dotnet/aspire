@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
+using System.Reflection;
 using Aspire.Cli.Layout;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
@@ -16,6 +17,27 @@ namespace Aspire.Cli.Bundles;
 /// </summary>
 internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<BundleService> logger) : IBundleService
 {
+    private const string PayloadResourceName = "bundle.tar.gz";
+
+    /// <summary>
+    /// Name of the marker file written after successful extraction.
+    /// </summary>
+    internal const string VersionMarkerFileName = ".aspire-bundle-version";
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the current CLI binary contains an embedded bundle payload.
+    /// This is a cheap metadata check — it does not open or read the payload.
+    /// </summary>
+    public static bool IsBundle { get; } =
+        typeof(BundleService).Assembly.GetManifestResourceInfo(PayloadResourceName) is not null;
+
+    /// <summary>
+    /// Opens a read-only stream over the embedded bundle payload.
+    /// Returns <see langword="null"/> if no payload is embedded.
+    /// </summary>
+    public static Stream? OpenPayload() =>
+        typeof(BundleService).Assembly.GetManifestResourceStream(PayloadResourceName);
+
     /// <summary>
     /// Well-known layout subdirectories that are cleaned before re-extraction.
     /// The bin/ directory is intentionally excluded since it contains the running CLI binary.
@@ -31,6 +53,12 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     /// <inheritdoc/>
     public async Task EnsureExtractedAsync(CancellationToken cancellationToken = default)
     {
+        if (!IsBundle)
+        {
+            logger.LogDebug("No embedded bundle payload, skipping extraction.");
+            return;
+        }
+
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
         {
@@ -45,8 +73,8 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             return;
         }
 
-        logger.LogDebug("Ensuring bundle is extracted from {ProcessPath} to {ExtractDir}.", processPath, extractDir);
-        var result = await ExtractAsync(processPath, extractDir, force: false, cancellationToken);
+        logger.LogDebug("Ensuring bundle is extracted to {ExtractDir}.", extractDir);
+        var result = await ExtractAsync(extractDir, force: false, cancellationToken);
 
         if (result is BundleExtractResult.ExtractionFailed)
         {
@@ -56,17 +84,13 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     }
 
     /// <inheritdoc/>
-    public async Task<BundleExtractResult> ExtractAsync(string binaryPath, string destinationPath, bool force = false, CancellationToken cancellationToken = default)
+    public async Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
     {
-        var trailer = BundleTrailer.TryRead(binaryPath);
-        if (trailer is null)
+        if (!IsBundle)
         {
-            logger.LogDebug("No bundle trailer found in {BinaryPath}.", binaryPath);
+            logger.LogDebug("No embedded bundle payload.");
             return BundleExtractResult.NoPayload;
         }
-
-        logger.LogDebug("Bundle trailer found: PayloadOffset={Offset}, PayloadSize={Size}, VersionHash={Hash}.",
-            trailer.PayloadOffset, trailer.PayloadSize, trailer.VersionHash);
 
         // Use a file lock for cross-process synchronization
         var lockPath = Path.Combine(destinationPath, ".aspire-bundle-lock");
@@ -79,17 +103,18 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             // Re-check after acquiring lock — another process may have already extracted
             if (!force && layoutDiscovery.DiscoverLayout() is not null)
             {
-                var existingHash = BundleTrailer.ReadVersionMarker(destinationPath);
-                if (existingHash == trailer.VersionHash)
+                var existingVersion = ReadVersionMarker(destinationPath);
+                var currentVersion = GetCurrentVersion();
+                if (existingVersion == currentVersion)
                 {
-                    logger.LogDebug("Bundle already extracted and up to date (hash: {Hash}).", existingHash);
+                    logger.LogDebug("Bundle already extracted and up to date (version: {Version}).", existingVersion);
                     return BundleExtractResult.AlreadyUpToDate;
                 }
 
-                logger.LogDebug("Version mismatch: existing={ExistingHash}, bundle={BundleHash}. Re-extracting.", existingHash, trailer.VersionHash);
+                logger.LogDebug("Version mismatch: existing={ExistingVersion}, current={CurrentVersion}. Re-extracting.", existingVersion, currentVersion);
             }
 
-            return await ExtractCoreAsync(binaryPath, destinationPath, trailer, cancellationToken);
+            return await ExtractCoreAsync(destinationPath, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -98,7 +123,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         }
     }
 
-    private async Task<BundleExtractResult> ExtractCoreAsync(string binaryPath, string destinationPath, BundleTrailerInfo trailer, CancellationToken cancellationToken)
+    private async Task<BundleExtractResult> ExtractCoreAsync(string destinationPath, CancellationToken cancellationToken)
     {
         logger.LogInformation("Extracting embedded bundle to {Path}...", destinationPath);
 
@@ -107,13 +132,14 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         CleanLayoutDirectories(destinationPath);
 
         var sw = Stopwatch.StartNew();
-        await ExtractPayloadAsync(binaryPath, trailer, destinationPath, cancellationToken);
+        await ExtractPayloadAsync(destinationPath, cancellationToken);
         sw.Stop();
         logger.LogDebug("Payload extraction completed in {ElapsedMs}ms.", sw.ElapsedMilliseconds);
 
         // Write version marker so subsequent runs skip extraction
-        BundleTrailer.WriteVersionMarker(destinationPath, trailer.VersionHash);
-        logger.LogDebug("Version marker written (hash: {Hash}).", trailer.VersionHash);
+        var currentVersion = GetCurrentVersion();
+        WriteVersionMarker(destinationPath, currentVersion);
+        logger.LogDebug("Version marker written (version: {Version}).", currentVersion);
 
         // Verify extraction produced a valid layout
         if (layoutDiscovery.DiscoverLayout() is null)
@@ -158,7 +184,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         }
 
         // Remove version marker so it's rewritten after extraction
-        var markerPath = Path.Combine(layoutPath, BundleTrailer.VersionMarkerFileName);
+        var markerPath = Path.Combine(layoutPath, VersionMarkerFileName);
         if (File.Exists(markerPath))
         {
             File.Delete(markerPath);
@@ -166,76 +192,50 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     }
 
     /// <summary>
-    /// Extracts the embedded tar.gz payload from the CLI binary to the specified directory.
-    /// Uses system tar on Unix (more robust with platform-specific archives) and .NET TarReader on Windows.
+    /// Gets the assembly informational version of the current CLI binary.
+    /// Used as the version marker to detect when re-extraction is needed.
     /// </summary>
-    internal static async Task ExtractPayloadAsync(string binaryPath, BundleTrailerInfo trailer, string destinationPath, CancellationToken cancellationToken)
+    internal static string GetCurrentVersion()
+    {
+        return typeof(BundleService).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? typeof(BundleService).Assembly.GetName().Version?.ToString()
+            ?? "unknown";
+    }
+
+    /// <summary>
+    /// Writes a version marker file to the extraction directory.
+    /// </summary>
+    internal static void WriteVersionMarker(string extractDir, string version)
+    {
+        var markerPath = Path.Combine(extractDir, VersionMarkerFileName);
+        File.WriteAllText(markerPath, version);
+    }
+
+    /// <summary>
+    /// Reads the version string from a previously written marker file.
+    /// Returns null if the marker doesn't exist or is empty.
+    /// </summary>
+    internal static string? ReadVersionMarker(string extractDir)
+    {
+        var markerPath = Path.Combine(extractDir, VersionMarkerFileName);
+        if (!File.Exists(markerPath))
+        {
+            return null;
+        }
+
+        var content = File.ReadAllText(markerPath).Trim();
+        return string.IsNullOrEmpty(content) ? null : content;
+    }
+
+    /// <summary>
+    /// Extracts the embedded tar.gz payload to the specified directory using .NET TarReader.
+    /// </summary>
+    internal static async Task ExtractPayloadAsync(string destinationPath, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(destinationPath);
 
-        if (OperatingSystem.IsWindows())
-        {
-            await ExtractPayloadWithTarReaderAsync(binaryPath, trailer, destinationPath, cancellationToken);
-        }
-        else
-        {
-            await ExtractPayloadWithSystemTarAsync(binaryPath, trailer, destinationPath, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// Extracts using the system tar command (Unix). More robust than .NET TarReader
-    /// for archives created by macOS tar which may contain extended attribute headers.
-    /// </summary>
-    private static async Task ExtractPayloadWithSystemTarAsync(string binaryPath, BundleTrailerInfo trailer, string destinationPath, CancellationToken cancellationToken)
-    {
-        var tempArchive = Path.GetTempFileName();
-        try
-        {
-            using (var payloadStream = BundleTrailer.OpenPayload(binaryPath, trailer))
-            await using (var tempFile = File.Create(tempArchive))
-            {
-                await payloadStream.CopyToAsync(tempFile, cancellationToken);
-            }
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = "tar",
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-
-            psi.ArgumentList.Add("-xzf");
-            psi.ArgumentList.Add(tempArchive);
-            psi.ArgumentList.Add("--strip-components=1");
-            psi.ArgumentList.Add("-C");
-            psi.ArgumentList.Add(destinationPath);
-
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                throw new InvalidOperationException("Failed to start tar process for bundle extraction.");
-            }
-
-            await process.WaitForExitAsync(cancellationToken);
-            if (process.ExitCode != 0)
-            {
-                var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
-                throw new InvalidOperationException($"Failed to extract bundle (exit code {process.ExitCode}): {stderr}");
-            }
-        }
-        finally
-        {
-            File.Delete(tempArchive);
-        }
-    }
-
-    /// <summary>
-    /// Extracts using .NET TarReader (Windows, or fallback).
-    /// </summary>
-    private static async Task ExtractPayloadWithTarReaderAsync(string binaryPath, BundleTrailerInfo trailer, string destinationPath, CancellationToken cancellationToken)
-    {
-        using var payloadStream = BundleTrailer.OpenPayload(binaryPath, trailer);
+        using var payloadStream = OpenPayload() ?? throw new InvalidOperationException("No embedded bundle payload.");
         await using var gzipStream = new GZipStream(payloadStream, CompressionMode.Decompress);
         await using var tarReader = new TarReader(gzipStream);
 
@@ -255,7 +255,15 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
                 continue;
             }
 
-            var fullPath = Path.Combine(destinationPath, relativePath);
+            var fullPath = Path.GetFullPath(Path.Combine(destinationPath, relativePath));
+            var normalizedDestination = Path.GetFullPath(destinationPath);
+
+            // Guard against path traversal attacks (e.g., entries containing ".." segments)
+            if (!fullPath.StartsWith(normalizedDestination + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+                !fullPath.Equals(normalizedDestination, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Tar entry '{entry.Name}' would extract outside the destination directory.");
+            }
 
             switch (entry.EntryType)
             {
@@ -273,6 +281,10 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
                     break;
 
                 case TarEntryType.SymbolicLink:
+                    if (string.IsNullOrEmpty(entry.LinkName))
+                    {
+                        continue;
+                    }
                     var linkDir = Path.GetDirectoryName(fullPath);
                     if (linkDir is not null)
                     {

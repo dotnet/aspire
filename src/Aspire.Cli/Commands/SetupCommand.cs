@@ -72,7 +72,7 @@ internal sealed class SetupCommand : BaseCommand
             ":package:  Extracting Aspire bundle...",
             async () =>
             {
-                result = await _bundleService.ExtractAsync(processPath, installPath, force, cancellationToken);
+                result = await _bundleService.ExtractAsync(installPath, force, cancellationToken);
                 return ExitCodeConstants.Success;
             });
 

@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Aspire.Shared;
 
 namespace Aspire.Tools.CreateLayout;
 
@@ -71,11 +70,6 @@ public static class Program
             Description = "Enable verbose output"
         };
 
-        var embedInCliOption = new Option<string?>("--embed-in-cli")
-        {
-            Description = "Path to native CLI binary to embed the archive payload into (creates self-extracting binary)"
-        };
-
         var rootCommand = new RootCommand("CreateLayout - Build Aspire bundle layout for distribution");
         rootCommand.Options.Add(outputOption);
         rootCommand.Options.Add(artifactsOption);
@@ -86,7 +80,6 @@ public static class Program
         rootCommand.Options.Add(downloadRuntimeOption);
         rootCommand.Options.Add(archiveOption);
         rootCommand.Options.Add(verboseOption);
-        rootCommand.Options.Add(embedInCliOption);
 
         rootCommand.SetAction(async (parseResult, cancellationToken) =>
         {
@@ -99,22 +92,15 @@ public static class Program
             var downloadRuntime = parseResult.GetValue(downloadRuntimeOption);
             var createArchive = parseResult.GetValue(archiveOption);
             var verbose = parseResult.GetValue(verboseOption);
-            var embedInCli = parseResult.GetValue(embedInCliOption);
 
             try
             {
                 using var builder = new LayoutBuilder(outputPath, artifactsPath, runtimePath, rid, version, runtimeVersion, downloadRuntime, verbose);
                 await builder.BuildAsync().ConfigureAwait(false);
 
-                string? archivePath = null;
-                if (createArchive || !string.IsNullOrEmpty(embedInCli))
+                if (createArchive)
                 {
-                    archivePath = await builder.CreateArchiveAsync().ConfigureAwait(false);
-                }
-
-                if (!string.IsNullOrEmpty(embedInCli) && archivePath is not null)
-                {
-                    EmbedPayloadInCli(embedInCli, archivePath, version, verbose);
+                    await builder.CreateArchiveAsync().ConfigureAwait(false);
                 }
 
                 return 0;
@@ -133,80 +119,6 @@ public static class Program
         return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Copies the native CLI binary and appends the tar.gz payload + trailer to create
-    /// a self-extracting bundle executable.
-    /// </summary>
-    private static void EmbedPayloadInCli(string cliPath, string archivePath, string version, bool verbose)
-    {
-        if (!File.Exists(cliPath))
-        {
-            throw new FileNotFoundException($"CLI binary not found: {cliPath}");
-        }
-
-        if (!File.Exists(archivePath))
-        {
-            throw new FileNotFoundException($"Archive not found: {archivePath}");
-        }
-
-        var outputPath = cliPath + ".bundle";
-
-        if (verbose)
-        {
-            Console.WriteLine($"Creating self-extracting bundle...");
-            Console.WriteLine($"  CLI:     {cliPath}");
-            Console.WriteLine($"  Payload: {archivePath}");
-            Console.WriteLine($"  Output:  {outputPath}");
-        }
-
-        using (var output = File.Create(outputPath))
-        {
-            // Copy native CLI binary
-            using (var cliStream = File.OpenRead(cliPath))
-            {
-                cliStream.CopyTo(output);
-            }
-
-            var payloadOffset = (ulong)output.Position;
-
-            // Append tar.gz payload
-            using (var archiveStream = File.OpenRead(archivePath))
-            {
-                archiveStream.CopyTo(output);
-            }
-
-            var payloadSize = (ulong)output.Position - payloadOffset;
-
-            // Write trailer
-            var versionHash = BundleTrailer.ComputeVersionHash(version);
-            BundleTrailer.Write(output, payloadOffset, payloadSize, versionHash);
-        }
-
-        // Preserve original file permissions before replacing (Unix only)
-        UnixFileMode originalMode = default;
-        var isUnix = !OperatingSystem.IsWindows();
-        if (isUnix)
-        {
-            originalMode = File.GetUnixFileMode(cliPath);
-        }
-
-        // Replace original CLI with the bundle
-        File.Move(outputPath, cliPath, overwrite: true);
-
-        // Restore executable permissions (File.Create inherits umask, not original permissions)
-        if (isUnix)
-        {
-            File.SetUnixFileMode(cliPath, originalMode);
-        }
-
-        var fileInfo = new FileInfo(cliPath);
-        if (verbose)
-        {
-            Console.WriteLine($"  Size:    {fileInfo.Length:N0} bytes ({fileInfo.Length / (1024 * 1024):N1} MB)");
-        }
-
-        Console.WriteLine($"Self-extracting bundle created: {cliPath}");
-    }
 }
 
 /// <summary>
@@ -685,33 +597,27 @@ internal sealed class LayoutBuilder : IDisposable
     public async Task<string> CreateArchiveAsync()
     {
         var archiveName = $"aspire-{_version}-{_rid}";
-        var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
-        var archiveExt = isWindows ? ".zip" : ".tar.gz";
-        var archivePath = Path.Combine(Path.GetDirectoryName(_outputPath)!, archiveName + archiveExt);
+        var archivePath = Path.Combine(Path.GetDirectoryName(_outputPath)!, archiveName + ".tar.gz");
 
         Log($"Creating archive: {archivePath}");
 
-        if (isWindows)
+        if (OperatingSystem.IsWindows())
         {
-            // Use PowerShell for zip
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell",
-                Arguments = $"-NoProfile -Command \"Compress-Archive -Path '{_outputPath}\\*' -DestinationPath '{archivePath}' -Force\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
+            // Use .NET TarWriter + GZip on Windows (no system tar available)
+            await using var fileStream = File.Create(archivePath);
+            await using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
+            await using var tarWriter = new System.Formats.Tar.TarWriter(gzipStream, leaveOpen: true);
 
-            using var process = Process.Start(psi);
-            if (process is not null)
+            var topLevelDir = Path.GetFileName(_outputPath);
+            foreach (var filePath in Directory.EnumerateFiles(_outputPath, "*", SearchOption.AllDirectories))
             {
-                await process.WaitForExitAsync().ConfigureAwait(false);
-                if (process.ExitCode != 0)
+                var relativePath = Path.GetRelativePath(Path.GetDirectoryName(_outputPath)!, filePath).Replace('\\', '/');
+                await using var dataStream = File.OpenRead(filePath);
+                var entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, relativePath)
                 {
-                    var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-                    throw new InvalidOperationException($"Failed to create archive (exit code {process.ExitCode}): {stderr}");
-                }
+                    DataStream = dataStream
+                };
+                await tarWriter.WriteEntryAsync(entry).ConfigureAwait(false);
             }
         }
         else

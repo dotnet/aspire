@@ -222,14 +222,12 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner implementations - factory chooses based on bundle trailer
+        // Register certificate tool runner implementations - factory chooses based on embedded bundle
         builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
         {
-            var processPath = Environment.ProcessPath;
-            var isBundle = !string.IsNullOrEmpty(processPath) && BundleTrailer.TryRead(processPath) is not null;
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
-            if (isBundle)
+            if (BundleService.IsBundle)
             {
                 return new BundleCertificateToolRunner(
                     sp.GetRequiredService<ILayoutDiscovery>(),
@@ -246,15 +244,12 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
 
-        // Register both NuGetPackageCache implementations - factory chooses based on bundle trailer
+        // Register both NuGetPackageCache implementations - factory chooses based on embedded bundle
         builder.Services.AddSingleton<NuGetPackageCache>();
         builder.Services.AddSingleton<BundleNuGetPackageCache>();
         builder.Services.AddSingleton<INuGetPackageCache>(sp =>
         {
-            var processPath = Environment.ProcessPath;
-            var isBundle = !string.IsNullOrEmpty(processPath) && BundleTrailer.TryRead(processPath) is not null;
-
-            if (isBundle)
+            if (BundleService.IsBundle)
             {
                 return sp.GetRequiredService<BundleNuGetPackageCache>();
             }
