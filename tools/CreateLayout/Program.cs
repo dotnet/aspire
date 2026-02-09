@@ -166,8 +166,8 @@ internal sealed class LayoutBuilder : IDisposable
         }
         Directory.CreateDirectory(_outputPath);
 
-        // Copy components
-        await CopyCliAsync().ConfigureAwait(false);
+        // Copy components (CLI is not included - the native AOT binary IS the CLI,
+        // and the bundle payload is embedded as a resource inside it)
         await CopyRuntimeAsync().ConfigureAwait(false);
         await CopyNuGetHelperAsync().ConfigureAwait(false);
         await CopyAppHostServerAsync().ConfigureAwait(false);
@@ -178,36 +178,6 @@ internal sealed class LayoutBuilder : IDisposable
         EnableRollForwardForAllTools();
 
         Log("Layout build complete!");
-    }
-
-    private async Task CopyCliAsync()
-    {
-        Log("Copying CLI...");
-
-        var cliPublishPath = FindPublishPath("Aspire.Cli");
-        if (cliPublishPath is null)
-        {
-            throw new InvalidOperationException("CLI publish output not found. Run 'dotnet publish' on Aspire.Cli first.");
-        }
-
-        var cliExe = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase) ? "aspire.exe" : "aspire";
-        var sourceExe = Path.Combine(cliPublishPath, cliExe);
-
-        if (!File.Exists(sourceExe))
-        {
-            throw new InvalidOperationException($"CLI executable not found at {sourceExe}");
-        }
-
-        var destExe = Path.Combine(_outputPath, cliExe);
-        File.Copy(sourceExe, destExe, overwrite: true);
-
-        // Make executable on Unix
-        if (!_rid.StartsWith("win", StringComparison.OrdinalIgnoreCase))
-        {
-            await SetExecutableAsync(destExe).ConfigureAwait(false);
-        }
-
-        Log($"  Copied {cliExe}");
     }
 
     private async Task CopyRuntimeAsync()
