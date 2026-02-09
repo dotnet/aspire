@@ -47,13 +47,46 @@ for (int i = 0; i < args.Length; i++)
             checkPrereqs = true;
             break;
         case "--poll-interval":
-            pollInterval = int.Parse(args[++i]);
+            if (i + 1 >= args.Length)
+            {
+                LogError("Missing value for --poll-interval. Expected a positive integer (seconds).");
+                PrintUsage();
+                return;
+            }
+            if (!int.TryParse(args[i + 1], out int parsedPollInterval) || parsedPollInterval <= 0)
+            {
+                LogError($"Invalid value for --poll-interval: '{args[i + 1]}'. Expected a positive integer (seconds).");
+                PrintUsage();
+                return;
+            }
+            pollInterval = parsedPollInterval;
+            i++;
             break;
         case "--timeout":
-            timeout = int.Parse(args[++i]);
+            if (i + 1 >= args.Length)
+            {
+                LogError("Missing value for --timeout. Expected a positive integer (seconds).");
+                PrintUsage();
+                return;
+            }
+            if (!int.TryParse(args[i + 1], out int parsedTimeout) || parsedTimeout <= 0)
+            {
+                LogError($"Invalid value for --timeout: '{args[i + 1]}'. Expected a positive integer (seconds).");
+                PrintUsage();
+                return;
+            }
+            timeout = parsedTimeout;
+            i++;
             break;
         case "--migration-type":
-            migrationType = args[++i];
+            if (i + 1 >= args.Length)
+            {
+                LogError("Missing value for --migration-type.");
+                PrintUsage();
+                return;
+            }
+            migrationType = args[i + 1];
+            i++;
             break;
         case "--no-wait":
             noWait = true;
@@ -378,8 +411,21 @@ async Task<(bool Success, string Output)> RunProcessAsync(string fileName, strin
         return (false, string.Empty);
     }
 
-    var output = await process.StandardOutput.ReadToEndAsync();
+    // Read both stdout and stderr asynchronously to avoid deadlocks
+    var outputTask = process.StandardOutput.ReadToEndAsync();
+    var errorTask = process.StandardError.ReadToEndAsync();
+    
     await process.WaitForExitAsync();
+    
+    var output = await outputTask;
+    var error = await errorTask;
+    
+    // If the command failed and stderr has content, return that instead
+    if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(error))
+    {
+        return (false, error);
+    }
+    
     return (process.ExitCode == 0, output);
 }
 
