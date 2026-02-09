@@ -13,13 +13,13 @@ namespace Aspire.Cli.UI;
 /// </summary>
 internal sealed class AspireMonitorSplash
 {
-    public const int SplashDurationMs = 2000;
+    public const int SplashDurationMs = 3500;
 
     // Logo dimensions in logical pixels (each pixel is half a character cell vertically)
     private const int LogoWidth = 40;
     private const int LogoHeight = 40;
     private const int LogoCellHeight = LogoHeight / 2;
-    public const int AnimationDurationMs = 1200;
+    public const int AnimationDurationMs = 1800;
 
     private readonly record struct PixelState(
         int FinalX, int FinalY, byte R, byte G, byte B,
