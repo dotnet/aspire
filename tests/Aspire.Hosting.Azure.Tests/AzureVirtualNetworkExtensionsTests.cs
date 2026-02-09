@@ -221,247 +221,171 @@ public class AzureVirtualNetworkExtensionsTests
     }
 
     [Fact]
-    public void AddNetworkSecurityGroup_CreatesResource()
+    public void AllowInbound_AutoCreatesNsg()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var nsg = vnet.AddNetworkSecurityGroup("web-nsg");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp);
 
-        Assert.NotNull(nsg);
-        Assert.Equal("web-nsg", nsg.Resource.Name);
-        Assert.IsType<AzureNetworkSecurityGroupResource>(nsg.Resource);
-        Assert.Same(vnet.Resource, nsg.Resource.Parent);
-        Assert.Contains(nsg.Resource, vnet.Resource.NetworkSecurityGroups);
+        Assert.NotNull(subnet.Resource.NetworkSecurityGroup);
+        Assert.Equal("web-nsg", subnet.Resource.NetworkSecurityGroup.Name);
+        Assert.Single(subnet.Resource.NetworkSecurityGroup.SecurityRules);
     }
 
     [Fact]
-    public void AddNetworkSecurityGroup_InRunMode_DoesNotAddToBuilder()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-
-        var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var nsg = vnet.AddNetworkSecurityGroup("web-nsg");
-
-        Assert.DoesNotContain(nsg.Resource, builder.Resources);
-    }
-
-    [Fact]
-    public async Task AddNetworkSecurityGroup_GeneratesCorrectBicep()
+    public void AllowInbound_UsesExistingNsg()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        vnet.AddNetworkSecurityGroup("web-nsg");
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
-
-        await Verify(manifest.BicepText, extension: "bicep");
-    }
-
-    [Fact]
-    public async Task AddNetworkSecurityGroup_WithSecurityRules_GeneratesCorrectBicep()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        vnet.AddNetworkSecurityGroup("web-nsg")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            })
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "deny-all-inbound",
-                Priority = 4096,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Deny,
-                Protocol = SecurityRuleProtocol.Asterisk,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "*"
-            });
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
-
-        await Verify(manifest.BicepText, extension: "bicep");
-    }
-
-    [Fact]
-    public async Task AddSubnet_WithNetworkSecurityGroup_GeneratesCorrectBicep()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            });
-
-        vnet.AddSubnet("web-subnet", "10.0.1.0/24")
-            .WithNetworkSecurityGroup(nsg);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
-
-        await Verify(manifest.BicepText, extension: "bicep");
-    }
-
-    [Fact]
-    public async Task AddNetworkSecurityGroup_SharedAcrossSubnets_GeneratesCorrectBicep()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var nsg = vnet.AddNetworkSecurityGroup("shared-nsg")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            });
-
-        vnet.AddSubnet("subnet1", "10.0.1.0/24")
-            .WithNetworkSecurityGroup(nsg);
-        vnet.AddSubnet("subnet2", "10.0.2.0/24")
-            .WithNetworkSecurityGroup(nsg);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
-
-        await Verify(manifest.BicepText, extension: "bicep");
-    }
-
-    [Fact]
-    public void WithNetworkSecurityGroup_SetsSubnetNetworkSecurityGroup()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var nsg = vnet.AddNetworkSecurityGroup("web-nsg");
-        var subnet = vnet.AddSubnet("web-subnet", "10.0.1.0/24")
-            .WithNetworkSecurityGroup(nsg);
+        var nsg = builder.AddNetworkSecurityGroup("my-nsg");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .WithNetworkSecurityGroup(nsg)
+            .AllowInbound(port: "443", from: "AzureLoadBalancer");
 
         Assert.Same(nsg.Resource, subnet.Resource.NetworkSecurityGroup);
+        Assert.Single(nsg.Resource.SecurityRules);
     }
 
     [Fact]
-    public void WithSecurityRule_DuplicateName_Throws()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var nsg = builder.AddAzureVirtualNetwork("myvnet")
-            .AddNetworkSecurityGroup("web-nsg")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            });
-
-        var exception = Assert.Throws<ArgumentException>(() => nsg.WithSecurityRule(new AzureSecurityRule
-        {
-            Name = "ALLOW-HTTPS",
-            Priority = 110,
-            Direction = SecurityRuleDirection.Inbound,
-            Access = SecurityRuleAccess.Allow,
-            Protocol = SecurityRuleProtocol.Tcp,
-            SourceAddressPrefix = "*",
-            SourcePortRange = "*",
-            DestinationAddressPrefix = "*",
-            DestinationPortRange = "443"
-        }));
-
-        Assert.Contains("allow-https", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task MultipleNSGs_WithSameRuleName_GeneratesDistinctBicepIdentifiers()
+    public void Shorthand_AutoIncrementsPriority()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer")
+            .DenyInbound(from: "VirtualNetwork")
+            .DenyInbound(from: "Internet");
 
-        var nsg1 = vnet.AddNetworkSecurityGroup("nsg-one")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "*",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            });
-
-        var nsg2 = vnet.AddNetworkSecurityGroup("nsg-two")
-            .WithSecurityRule(new AzureSecurityRule
-            {
-                Name = "allow-https",
-                Priority = 100,
-                Direction = SecurityRuleDirection.Inbound,
-                Access = SecurityRuleAccess.Allow,
-                Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "VirtualNetwork",
-                SourcePortRange = "*",
-                DestinationAddressPrefix = "*",
-                DestinationPortRange = "443"
-            });
-
-        vnet.AddSubnet("subnet1", "10.0.1.0/24")
-            .WithNetworkSecurityGroup(nsg1);
-        vnet.AddSubnet("subnet2", "10.0.2.0/24")
-            .WithNetworkSecurityGroup(nsg2);
-
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(3, rules.Count);
+        Assert.Equal(100, rules[0].Priority);
+        Assert.Equal(200, rules[1].Priority);
+        Assert.Equal(300, rules[2].Priority);
     }
 
     [Fact]
-    public void WithNetworkSecurityGroup_DifferentVNet_Throws()
+    public void Shorthand_ExplicitPriorityOverridesAutoIncrement()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var vnet1 = builder.AddAzureVirtualNetwork("vnet1");
-        var vnet2 = builder.AddAzureVirtualNetwork("vnet2");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", priority: 500)
+            .DenyInbound(from: "Internet");
 
-        var nsg = vnet1.AddNetworkSecurityGroup("web-nsg");
-        var subnet = vnet2.AddSubnet("web-subnet", "10.0.1.0/24");
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(500, rules[0].Priority);
+        Assert.Equal(600, rules[1].Priority); // auto-increments from max (500) + 100
+    }
 
-        var exception = Assert.Throws<ArgumentException>(() => subnet.WithNetworkSecurityGroup(nsg));
+    [Fact]
+    public void Shorthand_AutoGeneratesRuleNames()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        Assert.Contains("vnet1", exception.Message);
-        Assert.Contains("vnet2", exception.Message);
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer")
+            .DenyInbound(from: "Internet")
+            .AllowOutbound(port: "443")
+            .DenyOutbound();
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal("allow-inbound-443-AzureLoadBalancer", rules[0].Name);
+        Assert.Equal("deny-inbound-Internet", rules[1].Name);
+        Assert.Equal("allow-outbound-443", rules[2].Name);
+        Assert.Equal("deny-outbound", rules[3].Name);
+    }
+
+    [Fact]
+    public void Shorthand_ExplicitNameOverridesAutoGeneration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", name: "my-custom-rule");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal("my-custom-rule", rules[0].Name);
+    }
+
+    [Fact]
+    public void Shorthand_DefaultsProtocolToAsterisk()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .DenyInbound(from: "Internet");
+
+        var rule = Assert.Single(subnet.Resource.NetworkSecurityGroup!.SecurityRules);
+        Assert.Equal(SecurityRuleProtocol.Asterisk, rule.Protocol);
+    }
+
+    [Fact]
+    public void Shorthand_DefaultsPortsAndAddressesToWildcard()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .DenyInbound();
+
+        var rule = Assert.Single(subnet.Resource.NetworkSecurityGroup!.SecurityRules);
+        Assert.Equal("*", rule.SourcePortRange);
+        Assert.Equal("*", rule.SourceAddressPrefix);
+        Assert.Equal("*", rule.DestinationAddressPrefix);
+        Assert.Equal("*", rule.DestinationPortRange);
+    }
+
+    [Fact]
+    public async Task Shorthand_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+            .DenyInbound(from: "VirtualNetwork")
+            .DenyInbound(from: "Internet");
+
+        var vnetManifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+        var nsgManifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource.Subnets[0].NetworkSecurityGroup!);
+
+        await Verify(vnetManifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(nsgManifest.BicepText, "bicep", "nsg");
+    }
+
+    [Fact]
+    public void AllFourDirectionAccessCombos_SetCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443")
+            .DenyInbound(from: "Internet")
+            .AllowOutbound(port: "443")
+            .DenyOutbound(to: "Internet");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(4, rules.Count);
+
+        Assert.Equal(SecurityRuleAccess.Allow, rules[0].Access);
+        Assert.Equal(SecurityRuleDirection.Inbound, rules[0].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Deny, rules[1].Access);
+        Assert.Equal(SecurityRuleDirection.Inbound, rules[1].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Allow, rules[2].Access);
+        Assert.Equal(SecurityRuleDirection.Outbound, rules[2].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Deny, rules[3].Access);
+        Assert.Equal(SecurityRuleDirection.Outbound, rules[3].Direction);
     }
 }

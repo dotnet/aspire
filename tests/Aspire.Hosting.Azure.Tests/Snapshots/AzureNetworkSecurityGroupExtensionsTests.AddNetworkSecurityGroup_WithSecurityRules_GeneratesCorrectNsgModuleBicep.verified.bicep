@@ -1,26 +1,6 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
-  name: take('myvnet-${uniqueString(resourceGroup().id)}', 64)
-  properties: {
-    addressSpace: {
-      addressPrefixes: [
-        '10.0.0.0/16'
-      ]
-    }
-  }
-  location: location
-  tags: {
-    'aspire-resource-name': 'myvnet'
-  }
-}
-
-resource web_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('web_nsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
-}
-
 resource web_nsg_allow_https 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
   name: 'allow-https'
   properties: {
@@ -51,6 +31,14 @@ resource web_nsg_deny_all_inbound 'Microsoft.Network/networkSecurityGroups/secur
   parent: web_nsg
 }
 
-output id string = myvnet.id
+resource web_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
+  name: take('web_nsg-${uniqueString(resourceGroup().id)}', 80)
+  location: location
+  tags: {
+    'aspire-resource-name': 'web-nsg'
+  }
+}
 
-output name string = myvnet.name
+output id string = web_nsg.id
+
+output name string = web_nsg.name

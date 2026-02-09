@@ -1,6 +1,8 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param web_nsg_outputs_id string
+
 resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   name: take('myvnet-${uniqueString(resourceGroup().id)}', 64)
   properties: {
@@ -16,10 +18,18 @@ resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   }
 }
 
-resource web_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('web_nsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
+resource web 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
+  name: 'web'
+  properties: {
+    addressPrefix: '10.0.1.0/24'
+    networkSecurityGroup: {
+      id: web_nsg_outputs_id
+    }
+  }
+  parent: myvnet
 }
+
+output web_Id string = web.id
 
 output id string = myvnet.id
 

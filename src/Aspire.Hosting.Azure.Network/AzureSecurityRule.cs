@@ -40,19 +40,19 @@ public sealed class AzureSecurityRule
     public required SecurityRuleProtocol Protocol { get; set; }
 
     /// <summary>
-    /// Gets or sets the source address prefix. Use "*" for any.
+    /// Gets or sets the source address prefix. Defaults to "*" (any).
     /// </summary>
-    public required string SourceAddressPrefix { get; set; }
+    public string SourceAddressPrefix { get; set; } = "*";
 
     /// <summary>
-    /// Gets or sets the source port range. Use "*" for any.
+    /// Gets or sets the source port range. Defaults to "*" (any).
     /// </summary>
-    public required string SourcePortRange { get; set; }
+    public string SourcePortRange { get; set; } = "*";
 
     /// <summary>
-    /// Gets or sets the destination address prefix. Use "*" for any.
+    /// Gets or sets the destination address prefix. Defaults to "*" (any).
     /// </summary>
-    public required string DestinationAddressPrefix { get; set; }
+    public string DestinationAddressPrefix { get; set; } = "*";
 
     /// <summary>
     /// Gets or sets the destination port range. Use "*" for any, or a range like "80-443".

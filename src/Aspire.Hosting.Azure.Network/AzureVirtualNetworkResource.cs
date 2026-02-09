@@ -22,8 +22,6 @@ public class AzureVirtualNetworkResource(string name, Action<AzureResourceInfras
 
     internal List<AzureSubnetResource> Subnets { get; } = [];
 
-    internal List<AzureNetworkSecurityGroupResource> NetworkSecurityGroups { get; } = [];
-
     /// <summary>
     /// Gets the address prefix for the virtual network (e.g., "10.0.0.0/16"), or <c>null</c> if the address prefix is provided via a <see cref="ParameterResource"/>.
     /// </summary>

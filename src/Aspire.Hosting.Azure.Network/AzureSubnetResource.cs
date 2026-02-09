@@ -93,7 +93,7 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
-    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra, ProvisionableResource? dependsOn, Dictionary<AzureNetworkSecurityGroupResource, NetworkSecurityGroup> nsgMap)
+    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra, ProvisionableResource? dependsOn)
     {
         var subnet = new SubnetResource(Infrastructure.NormalizeBicepIdentifier(Name))
         {
@@ -136,15 +136,8 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
 
         if (NetworkSecurityGroup is not null)
         {
-            if (!nsgMap.TryGetValue(NetworkSecurityGroup, out var provisioningNsg))
-            {
-                throw new InvalidOperationException(
-                    $"The Network Security Group '{NetworkSecurityGroup.Name}' referenced by subnet '{Name}' was not found in the parent Virtual Network's NetworkSecurityGroups collection.");
-            }
-
-            // Set the NSG reference on the subnet by setting the model's Id property.
-            // This produces the correct bicep: networkSecurityGroup: { id: nsg.id }
-            subnet.NetworkSecurityGroup.Id = provisioningNsg.Id;
+            // The NSG lives in a separate bicep module, so reference its ID via parameter
+            subnet.NetworkSecurityGroup.Id = NetworkSecurityGroup.Id.AsProvisioningParameter(infra);
         }
 
         // add a provisioning output for the subnet ID so it can be referenced by other resources

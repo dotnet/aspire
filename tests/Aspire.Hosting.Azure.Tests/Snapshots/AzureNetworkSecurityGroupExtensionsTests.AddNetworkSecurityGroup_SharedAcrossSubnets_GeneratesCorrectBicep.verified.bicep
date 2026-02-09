@@ -1,6 +1,8 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param shared_nsg_outputs_id string
+
 resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   name: take('myvnet-${uniqueString(resourceGroup().id)}', 64)
   properties: {
@@ -16,32 +18,12 @@ resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   }
 }
 
-resource shared_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('shared_nsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
-}
-
-resource shared_nsg_allow_https 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
-  name: 'allow-https'
-  properties: {
-    access: 'Allow'
-    destinationAddressPrefix: '*'
-    destinationPortRange: '443'
-    direction: 'Inbound'
-    priority: 100
-    protocol: 'Tcp'
-    sourceAddressPrefix: '*'
-    sourcePortRange: '*'
-  }
-  parent: shared_nsg
-}
-
 resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   name: 'subnet1'
   properties: {
     addressPrefix: '10.0.1.0/24'
     networkSecurityGroup: {
-      id: shared_nsg.id
+      id: shared_nsg_outputs_id
     }
   }
   parent: myvnet
@@ -52,7 +34,7 @@ resource subnet2 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   properties: {
     addressPrefix: '10.0.2.0/24'
     networkSecurityGroup: {
-      id: shared_nsg.id
+      id: shared_nsg_outputs_id
     }
   }
   parent: myvnet

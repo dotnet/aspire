@@ -85,10 +85,20 @@ Use `ConfigureInfrastructure` for advanced settings like idle timeout or availab
 
 ### Adding Network Security Groups
 
-You can add Network Security Groups (NSGs) with security rules to control traffic flow:
+Add security rules to control traffic flow on subnets using shorthand methods:
 
 ```csharp
 var vnet = builder.AddAzureVirtualNetwork("vnet");
+var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+    .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: "Internet");
+```
+
+An NSG is automatically created when shorthand methods are used. Priority auto-increments (100, 200, 300...) and rule names are auto-generated.
+
+For full control, create an explicit NSG with `AzureSecurityRule` objects:
+
+```csharp
 var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
     .WithSecurityRule(new AzureSecurityRule
     {
@@ -97,9 +107,6 @@ var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
         Direction = SecurityRuleDirection.Inbound,
         Access = SecurityRuleAccess.Allow,
         Protocol = SecurityRuleProtocol.Tcp,
-        SourceAddressPrefix = "*",
-        SourcePortRange = "*",
-        DestinationAddressPrefix = "*",
         DestinationPortRange = "443"
     });
 

@@ -5,12 +5,22 @@
       "type": "azure.bicep.v0",
       "path": "vnet.module.bicep",
       "params": {
-        "nat_outputs_id": "{nat.outputs.id}"
+        "nat_outputs_id": "{nat.outputs.id}",
+        "container_apps_nsg_outputs_id": "{container-apps-nsg.outputs.id}",
+        "private_endpoints_nsg_outputs_id": "{private-endpoints-nsg.outputs.id}"
       }
+    },
+    "container-apps-nsg": {
+      "type": "azure.bicep.v0",
+      "path": "container-apps-nsg.module.bicep"
     },
     "nat": {
       "type": "azure.bicep.v0",
       "path": "nat.module.bicep"
+    },
+    "private-endpoints-nsg": {
+      "type": "azure.bicep.v0",
+      "path": "private-endpoints-nsg.module.bicep"
     },
     "env-acr": {
       "type": "azure.bicep.v0",

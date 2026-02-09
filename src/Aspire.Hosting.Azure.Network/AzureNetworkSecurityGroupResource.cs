@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning;
 using Azure.Provisioning.Network;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -11,57 +10,50 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Network Security Group resource.
 /// </summary>
 /// <remarks>
-/// Use <see cref="AzureVirtualNetworkExtensions.AddNetworkSecurityGroup"/> to create an instance
-/// and <see cref="AzureVirtualNetworkExtensions.WithSecurityRule"/> to add security rules.
-/// Associate the NSG with a subnet using <see cref="AzureVirtualNetworkExtensions.WithNetworkSecurityGroup"/>.
+/// A Network Security Group contains security rules that control inbound and outbound network traffic.
+/// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/>
+/// to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-public class AzureNetworkSecurityGroupResource : Resource, IResourceWithParent<AzureVirtualNetworkResource>
+/// <param name="name">The name of the resource.</param>
+/// <param name="configureInfrastructure">Callback to configure the Azure Network Security Group resource.</param>
+public class AzureNetworkSecurityGroupResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure)
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="AzureNetworkSecurityGroupResource"/> class.
+    /// Gets the "id" output reference from the Azure Network Security Group resource.
     /// </summary>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="parent">The parent Virtual Network resource.</param>
-    public AzureNetworkSecurityGroupResource(string name, AzureVirtualNetworkResource parent)
-        : base(name)
-    {
-        Parent = parent ?? throw new ArgumentNullException(nameof(parent));
-    }
+    public BicepOutputReference Id => new("id", this);
 
     /// <summary>
-    /// Gets the parent Azure Virtual Network resource.
+    /// Gets the "name" output reference for the resource.
     /// </summary>
-    public AzureVirtualNetworkResource Parent { get; }
+    public BicepOutputReference NameOutput => new("name", this);
+
+    internal bool IsImplicitlyCreated { get; set; }
 
     internal List<AzureSecurityRule> SecurityRules { get; } = [];
 
-    /// <summary>
-    /// Converts the current instance to provisioning entities: the NSG and its security rules.
-    /// </summary>
-    internal (NetworkSecurityGroup Nsg, List<SecurityRule> Rules) ToProvisioningEntity()
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var nsg = new NetworkSecurityGroup(Infrastructure.NormalizeBicepIdentifier(Name));
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
 
-        var rules = new List<SecurityRule>();
-        foreach (var rule in SecurityRules)
+        var existing = resources.OfType<NetworkSecurityGroup>().SingleOrDefault(r => r.BicepIdentifier == bicepIdentifier);
+
+        if (existing is not null)
         {
-            var ruleIdentifier = Infrastructure.NormalizeBicepIdentifier($"{nsg.BicepIdentifier}_{rule.Name}");
-            var securityRule = new SecurityRule(ruleIdentifier)
-            {
-                Name = rule.Name,
-                Priority = rule.Priority,
-                Direction = rule.Direction,
-                Access = rule.Access,
-                Protocol = rule.Protocol,
-                SourceAddressPrefix = rule.SourceAddressPrefix,
-                SourcePortRange = rule.SourcePortRange,
-                DestinationAddressPrefix = rule.DestinationAddressPrefix,
-                DestinationPortRange = rule.DestinationPortRange,
-                Parent = nsg,
-            };
-            rules.Add(securityRule);
+            return existing;
         }
 
-        return (nsg, rules);
+        var nsg = NetworkSecurityGroup.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(this, infra, nsg))
+        {
+            nsg.Name = NameOutput.AsProvisioningParameter(infra);
+        }
+
+        infra.Add(nsg);
+        return nsg;
     }
 }
