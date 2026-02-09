@@ -762,6 +762,50 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Contains("[[1-10]]", promptCall.PromptText);
         Assert.Contains("[[required]]", promptCall.PromptText);
     }
+
+    [Fact]
+    public async Task PublishCommand_ChoicePrompt_WithSquareBracketsInOptions_DoesNotThrow()
+    {
+        // Arrange - simulates Azure subscription names containing brackets like "[Prod]"
+        // This is the root cause of https://github.com/dotnet/aspire/issues/13955
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        var options = new List<KeyValuePair<string, string>>
+        {
+            new("sub-1", "DevDiv Test labs V2 [Prod] (00000000-0000-0000-0000-000000000001)"),
+            new("sub-2", "Azure SDK [Dev/Test] (00000000-0000-0000-0000-000000000002)"),
+            new("sub-3", "My <Team> Subscription (00000000-0000-0000-0000-000000000003)")
+        };
+        promptBackchannel.AddPrompt("subscription-prompt", "Azure Subscription", InputTypes.Choice, "Select subscription:", isRequired: true, options: options);
+
+        // Select the option with [Prod] in the name
+        consoleService.SetupSelectionResponse("DevDiv Test labs V2 [Prod] (00000000-0000-0000-0000-000000000001)");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the correct subscription was selected and sent back
+        Assert.Single(promptBackchannel.CompletedPrompts);
+        var completedPrompt = promptBackchannel.CompletedPrompts[0];
+        Assert.Equal("sub-1", completedPrompt.Answers[0].Value);
+    }
 }
 
 // Test implementation of IAppHostCliBackchannel that simulates prompt interactions

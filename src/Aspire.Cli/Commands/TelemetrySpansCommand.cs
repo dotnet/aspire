@@ -264,6 +264,6 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         var durationStr = TelemetryCommandHelpers.FormatDuration(duration);
 
         var escapedName = name.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName,-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
+        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName.EscapeMarkup(),-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
     }
 }
