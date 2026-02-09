@@ -264,10 +264,8 @@ internal sealed class AspireMonitorTui
         {
             return [
                 ctx.VStack(v => [
-                    table,
-                    v.DragBarPanel(
-                        ctx.Terminal(_logTerminalHandle)
-                    ).InitialSize(12).MinSize(4)
+                    v.DragBarPanel(table).InitialSize(15).MinSize(6),
+                    ctx.Terminal(_logTerminalHandle).Fill()
                 ]).Fill()
             ];
         }
