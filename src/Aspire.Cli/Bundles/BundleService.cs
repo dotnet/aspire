@@ -27,8 +27,6 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         "tools"
     ];
 
-    private const string LockFileName = ".aspire-bundle-lock";
-
     /// <inheritdoc/>
     public async Task EnsureExtractedAsync(CancellationToken cancellationToken = default)
     {
@@ -62,10 +60,8 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             return BundleExtractResult.NoPayload;
         }
 
-        // Use a file lock for cross-process synchronization (works on all platforms)
-        Directory.CreateDirectory(destinationPath);
-        var lockPath = Path.Combine(destinationPath, LockFileName);
-        using var lockFile = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        // Use a file lock for cross-process synchronization
+        using var fileLock = FileLock.Acquire(destinationPath, ".aspire-bundle-lock");
 
         try
         {
