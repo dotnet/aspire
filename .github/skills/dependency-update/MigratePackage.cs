@@ -415,11 +415,10 @@ async Task<(bool Success, string Output)> RunProcessAsync(string fileName, strin
     var outputTask = process.StandardOutput.ReadToEndAsync();
     var errorTask = process.StandardError.ReadToEndAsync();
     
-    await Task.WhenAll(outputTask, errorTask);
     await process.WaitForExitAsync();
     
-    var output = outputTask.Result;
-    var error = errorTask.Result;
+    var output = await outputTask;
+    var error = await errorTask;
     
     // If the command failed and stderr has content, return that instead
     if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(error))
