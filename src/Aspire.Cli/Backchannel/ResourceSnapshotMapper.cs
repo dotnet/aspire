@@ -17,10 +17,11 @@ internal static class ResourceSnapshotMapper
     /// </summary>
     /// <param name="snapshots">The resource snapshots to map.</param>
     /// <param name="dashboardBaseUrl">Optional base URL of the Aspire Dashboard for generating resource URLs.</param>
-    public static List<ResourceJson> MapToResourceJsonList(IEnumerable<ResourceSnapshot> snapshots, string? dashboardBaseUrl = null)
+    /// <param name="includeEnvironmentVariableValues">Whether to include environment variable values. Defaults to <c>true</c>. Set to <c>false</c> to exclude values for security reasons.</param>
+    public static List<ResourceJson> MapToResourceJsonList(IEnumerable<ResourceSnapshot> snapshots, string? dashboardBaseUrl = null, bool includeEnvironmentVariableValues = true)
     {
         var snapshotList = snapshots.ToList();
-        return snapshotList.Select(s => MapToResourceJson(s, snapshotList, dashboardBaseUrl)).ToList();
+        return snapshotList.Select(s => MapToResourceJson(s, snapshotList, dashboardBaseUrl, includeEnvironmentVariableValues)).ToList();
     }
 
     /// <summary>
@@ -29,9 +30,10 @@ internal static class ResourceSnapshotMapper
     /// <param name="snapshot">The resource snapshot to map.</param>
     /// <param name="allSnapshots">All resource snapshots for resolving relationships.</param>
     /// <param name="dashboardBaseUrl">Optional base URL of the Aspire Dashboard for generating resource URLs.</param>
-    public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null)
+    /// <param name="includeEnvironmentVariableValues">Whether to include environment variable values. Defaults to <c>true</c>. Set to <c>false</c> to exclude values for security reasons.</param>
+    public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null, bool includeEnvironmentVariableValues = true)
     {
-        var urls = snapshot.Urls
+        var urls = (snapshot.Urls ?? [])
             .Select(u => new ResourceUrlJson
             {
                 Name = u.Name,
@@ -41,7 +43,7 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var volumes = snapshot.Volumes
+        var volumes = (snapshot.Volumes ?? [])
             .Select(v => new ResourceVolumeJson
             {
                 Source = v.Source,
@@ -51,7 +53,7 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var healthReports = snapshot.HealthReports
+        var healthReports = (snapshot.HealthReports ?? [])
             .Select(h => new ResourceHealthReportJson
             {
                 Name = h.Name,
@@ -61,16 +63,16 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var environment = snapshot.EnvironmentVariables
+        var environment = (snapshot.EnvironmentVariables ?? [])
             .Where(e => e.IsFromSpec)
             .Select(e => new ResourceEnvironmentVariableJson
             {
                 Name = e.Name,
-                Value = e.Value
+                Value = includeEnvironmentVariableValues ? e.Value : null
             })
             .ToArray();
 
-        var properties = snapshot.Properties
+        var properties = (snapshot.Properties ?? [])
             .Select(p => new ResourcePropertyJson
             {
                 Name = p.Key,
@@ -80,7 +82,7 @@ internal static class ResourceSnapshotMapper
 
         // Build relationships by matching DisplayName
         var relationships = new List<ResourceRelationshipJson>();
-        foreach (var relationship in snapshot.Relationships)
+        foreach (var relationship in snapshot.Relationships ?? [])
         {
             var matches = allSnapshots
                 .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
@@ -97,7 +99,7 @@ internal static class ResourceSnapshotMapper
         }
 
         // Only include enabled commands
-        var commands = snapshot.Commands
+        var commands = (snapshot.Commands ?? [])
             .Where(c => string.Equals(c.State, "Enabled", StringComparison.OrdinalIgnoreCase))
             .Select(c => new ResourceCommandJson
             {
@@ -107,7 +109,9 @@ internal static class ResourceSnapshotMapper
             .ToArray();
 
         // Get source information using the shared ResourceSourceViewModel
-        var sourceViewModel = ResourceSource.GetSourceModel(snapshot.ResourceType, snapshot.Properties);
+        var sourceViewModel = snapshot.Properties is not null
+            ? ResourceSource.GetSourceModel(snapshot.ResourceType, snapshot.Properties)
+            : null;
 
         // Generate dashboard URL for this resource if a base URL is provided
         string? dashboardUrl = null;

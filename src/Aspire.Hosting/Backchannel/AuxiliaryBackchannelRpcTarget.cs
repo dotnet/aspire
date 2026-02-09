@@ -205,6 +205,27 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         return new StopAppHostResponse();
     }
 
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    /// <param name="request">The request containing resource name and command name.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The response indicating success or failure.</returns>
+    public async Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(ExecuteResourceCommandRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
+        var result = await resourceCommandService.ExecuteCommandAsync(request.ResourceName, request.CommandName, cancellationToken).ConfigureAwait(false);
+
+        return new ExecuteResourceCommandResponse
+        {
+            Success = result.Success,
+            Canceled = result.Canceled,
+            ErrorMessage = result.ErrorMessage
+        };
+    }
+
     #endregion
 
     #region V1 API Methods (Legacy - Keep for backward compatibility)

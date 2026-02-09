@@ -251,6 +251,8 @@ internal static class CliE2ETestHelpers
     /// <summary>
     /// Enables polyglot support feature flag using the aspire config set command.
     /// This allows the CLI to create TypeScript and Python AppHosts.
+    /// Uses the global (-g) flag to ensure the setting persists across CLI invocations,
+    /// even when aspire init creates a new local settings.json file.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -260,7 +262,7 @@ internal static class CliE2ETestHelpers
         SequenceCounter counter)
     {
         return builder
-            .Type("aspire config set features.polyglotSupportEnabled true")
+            .Type("aspire config set features.polyglotSupportEnabled true -g")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -316,6 +318,45 @@ internal static class CliE2ETestHelpers
     {
         return builder
             .Type("clear")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Clears the first-time use sentinel file to simulate a fresh CLI installation.
+    /// The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel and controls
+    /// whether the welcome banner and telemetry notice are displayed.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearFirstRunSentinel(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Remove the sentinel file to trigger first-time use behavior
+        return builder
+            .Type("rm -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Verifies that the first-time use sentinel file was successfully deleted.
+    /// This is a debugging aid to help diagnose banner test failures.
+    /// The command will fail if the sentinel file still exists after deletion.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifySentinelDeleted(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Verify the sentinel file doesn't exist - this will return exit code 1 (ERR) if file exists
+        // Using test -f which returns 0 if file exists, 1 if not. We negate with ! to fail if exists.
+        return builder
+            .Type("test ! -f ~/.aspire/cli/cli.firstUseSentinel")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -412,5 +453,80 @@ internal static class CliE2ETestHelpers
                     $"File {filePath} unexpectedly contains: {unexpectedContent}");
             }
         });
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
+    /// The bundle is a self-contained distribution that includes:
+    /// - Native AOT Aspire CLI
+    /// - .NET runtime
+    /// - Dashboard, DCP, AppHost Server (for polyglot apps)
+    /// This is required for polyglot (TypeScript, Python) AppHost scenarios which
+    /// cannot use SDK-based fallback mode.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="prNumber">The pull request number to download from.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireBundleFromPullRequest(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        int prNumber,
+        SequenceCounter counter)
+    {
+        // The bundle script may not be on main yet, so we need to fetch it from the PR's branch.
+        // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
+        // which can serve stale script content for several minutes after a push.
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell: Get PR head SHA, then fetch and run bundle script from that SHA
+            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
+                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.ps1) }} {prNumber}\"";
+        }
+        else
+        {
+            // Bash: Get PR head SHA, then fetch and run bundle script from that SHA
+            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.sh | bash -s -- {prNumber}";
+        }
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Sources the Aspire Bundle environment after installation.
+    /// Adds both the bundle's bin/ directory and root directory to PATH so the CLI
+    /// is discoverable regardless of which version of the install script ran
+    /// (the script is fetched from raw.githubusercontent.com which has CDN caching).
+    /// The CLI auto-discovers bundle components (runtime, dashboard, DCP, AppHost server)
+    /// in the parent directory via relative path resolution.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder SourceAspireBundleEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell environment setup for bundle
+            return builder
+                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$HOME\\.aspire;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
+        // Bash environment setup for bundle
+        // Add both ~/.aspire/bin (new layout) and ~/.aspire (old layout) to PATH
+        // The install script is downloaded from raw.githubusercontent.com which has CDN caching,
+        // so the old version may still be served for a while after push.
+        return builder
+            .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 }

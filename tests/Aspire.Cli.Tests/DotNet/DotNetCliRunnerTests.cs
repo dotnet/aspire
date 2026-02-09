@@ -22,7 +22,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
         var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
     }
 
     [Fact]
@@ -1191,5 +1191,20 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, result.ExitCode);
         Assert.NotNull(result.Packages);
         Assert.Equal(1, executor.AttemptCount); // Should have attempted only once
+    }
+
+    [Theory]
+    [InlineData("Success: Aspire.ProjectTemplates@13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // New .NET 10.0 SDK format with @ separator
+    [InlineData("Success: Aspire.ProjectTemplates::13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // Old SDK format with :: separator
+    [InlineData("Some other output", false, null)] // Missing success line
+    [InlineData("Success: Aspire.ProjectTemplates installed the following templates:", false, null)] // Invalid format without version separator
+    public void TryParsePackageVersionFromStdout_ParsesCorrectly(string stdout, bool expectedResult, string? expectedVersion)
+    {
+        // Act
+        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
+
+        // Assert
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedVersion, version);
     }
 }

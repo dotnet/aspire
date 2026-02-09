@@ -260,6 +260,43 @@ internal sealed class StopAppHostRequest
 /// </summary>
 internal sealed class StopAppHostResponse { }
 
+/// <summary>
+/// Request for executing a resource command.
+/// </summary>
+internal sealed class ExecuteResourceCommandRequest
+{
+    /// <summary>
+    /// Gets the resource name (or resource ID for replicas).
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// </summary>
+    public required string CommandName { get; init; }
+}
+
+/// <summary>
+/// Response from executing a resource command.
+/// </summary>
+internal sealed class ExecuteResourceCommandResponse
+{
+    /// <summary>
+    /// Gets whether the command executed successfully.
+    /// </summary>
+    public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets whether the command was canceled.
+    /// </summary>
+    public bool Canceled { get; init; }
+
+    /// <summary>
+    /// Gets the error message if the command failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+}
+
 #endregion
 
 /// <summary>

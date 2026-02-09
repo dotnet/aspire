@@ -10,6 +10,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -20,6 +21,13 @@ internal sealed class StopCommand : BaseCommand
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<StopCommand> _logger;
     private readonly TimeProvider _timeProvider;
+
+    private static readonly Argument<string?> s_resourceArgument = new("resource")
+    {
+        Description = "The name of the resource to stop. If not specified, stops the entire AppHost.",
+        Arity = ArgumentArity.ZeroOrOne
+    };
+
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = StopCommandStrings.ProjectArgumentDescription
@@ -41,11 +49,13 @@ internal sealed class StopCommand : BaseCommand
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
+        Arguments.Add(s_resourceArgument);
         Options.Add(s_projectOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
 
         var result = await _connectionResolver.ResolveConnectionAsync(
@@ -63,6 +73,12 @@ internal sealed class StopCommand : BaseCommand
         }
 
         var selectedConnection = result.Connection!;
+
+        // If a resource name is provided, stop that specific resource instead of the AppHost
+        if (!string.IsNullOrEmpty(resourceName))
+        {
+            return await StopResourceAsync(selectedConnection, resourceName, cancellationToken);
+        }
 
         // Stop the selected AppHost
         var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
@@ -192,5 +208,22 @@ internal sealed class StopCommand : BaseCommand
         {
             // Some other error (e.g., permission denied) - ignore
         }
+    }
+
+    /// <summary>
+    /// Stops a specific resource instead of the entire AppHost.
+    /// </summary>
+    private Task<int> StopResourceAsync(IAppHostAuxiliaryBackchannel connection, string resourceName, CancellationToken cancellationToken)
+    {
+        return ResourceCommandHelper.ExecuteResourceCommandAsync(
+            connection,
+            _interactionService,
+            _logger,
+            resourceName,
+            KnownResourceCommands.StopCommand,
+            "Stopping",
+            "stop",
+            "stopped",
+            cancellationToken);
     }
 }

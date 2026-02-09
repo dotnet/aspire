@@ -48,8 +48,10 @@
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.KeyVault" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.Kusto" Version="1.0.0-beta.1" />
+    <PackageVersion Include="Azure.Provisioning.Network" Version="1.0.0-beta.3" />
     <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="1.1.1" />
+    <PackageVersion Include="Azure.Provisioning.PrivateDns" Version="1.0.0-beta.1" />
     <PackageVersion Include="Azure.Provisioning.Redis" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.RedisEnterprise" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="1.0.0" />
@@ -84,7 +86,10 @@
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.9.5" /> <!-- This should not be updated, so we support older VS versions -->
     <PackageVersion Include="Microsoft.IO.Redist" Version="6.1.3" /> <!-- Pinned transitive dependency to address vulnerability. This is a transitive dependency of Microsoft.Build.Utilities.Core -->
     <!-- NuGet dependencies -->
+    <PackageVersion Include="NuGet.Commands" Version="6.14.0" />
     <PackageVersion Include="NuGet.ProjectModel" Version="6.14.0" />
+    <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
+    <PackageVersion Include="NuGet.Resolver" Version="6.14.0" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="Dapper" Version="2.1.66" />

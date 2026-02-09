@@ -285,6 +285,90 @@ public class EndpointReferenceTests
         Assert.Null(targetPort);
     }
 
+    [Theory]
+    [InlineData(EndpointProperty.Url, ResourceKind.Host, ResourceKind.Host, "blah://localhost:1234")]
+    [InlineData(EndpointProperty.Url, ResourceKind.Host, ResourceKind.Container, "blah://localhost:1234")]
+    [InlineData(EndpointProperty.Url, ResourceKind.Container, ResourceKind.Host, "blah://host.docker.internal:1234")]
+    [InlineData(EndpointProperty.Url, ResourceKind.Container, ResourceKind.Container, "blah://destination.dev.internal:4567")]
+    [InlineData(EndpointProperty.Host, ResourceKind.Host, ResourceKind.Host, "localhost")]
+    [InlineData(EndpointProperty.Host, ResourceKind.Host, ResourceKind.Container, "localhost")]
+    [InlineData(EndpointProperty.Host, ResourceKind.Container, ResourceKind.Host, "host.docker.internal")]
+    [InlineData(EndpointProperty.Host, ResourceKind.Container, ResourceKind.Container, "destination.dev.internal")]
+    [InlineData(EndpointProperty.IPV4Host, ResourceKind.Host, ResourceKind.Host, "127.0.0.1")]
+    [InlineData(EndpointProperty.IPV4Host, ResourceKind.Host, ResourceKind.Container, "127.0.0.1")]
+    [InlineData(EndpointProperty.IPV4Host, ResourceKind.Container, ResourceKind.Host, "host.docker.internal")]
+    [InlineData(EndpointProperty.IPV4Host, ResourceKind.Container, ResourceKind.Container, "destination.dev.internal")]
+    [InlineData(EndpointProperty.Port, ResourceKind.Host, ResourceKind.Host, "1234")]
+    [InlineData(EndpointProperty.Port, ResourceKind.Host, ResourceKind.Container, "1234")]
+    [InlineData(EndpointProperty.Port, ResourceKind.Container, ResourceKind.Host, "1234")]
+    [InlineData(EndpointProperty.Port, ResourceKind.Container, ResourceKind.Container, "4567")]
+    [InlineData(EndpointProperty.Scheme, ResourceKind.Host, ResourceKind.Host, "blah")]
+    [InlineData(EndpointProperty.Scheme, ResourceKind.Host, ResourceKind.Container, "blah")]
+    [InlineData(EndpointProperty.Scheme, ResourceKind.Container, ResourceKind.Host, "blah")]
+    [InlineData(EndpointProperty.Scheme, ResourceKind.Container, ResourceKind.Container, "blah")]
+    [InlineData(EndpointProperty.HostAndPort, ResourceKind.Host, ResourceKind.Host, "localhost:1234")]
+    [InlineData(EndpointProperty.HostAndPort, ResourceKind.Host, ResourceKind.Container, "localhost:1234")]
+    [InlineData(EndpointProperty.HostAndPort, ResourceKind.Container, ResourceKind.Host, "host.docker.internal:1234")]
+    [InlineData(EndpointProperty.HostAndPort, ResourceKind.Container, ResourceKind.Container, "destination.dev.internal:4567")]
+    public async Task PropertyResolutionTest(EndpointProperty property, ResourceKind sourceKind, ResourceKind destinationKind, object expectedResult)
+    {
+        int port = 1234;
+        int targetPort = 4567;
+
+        var source = CreateResource("caller", sourceKind);
+        var destination = CreateResource("destination", destinationKind);
+
+        var network = source.GetDefaultResourceNetwork();
+
+        // This logic is tightly coupled to how `DcpExecutor` allocates endpoints
+        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "blah", name: "http");
+        annotation.AllocatedEndpoint = new(annotation, "localhost", port);
+        destination.Annotations.Add(annotation);
+
+        (string containerHost, int containerPort) = destination.IsContainer()
+            ? ("destination.dev.internal", targetPort)
+            : ("host.docker.internal", port);
+
+        var containerEndpoint = new AllocatedEndpoint(annotation, containerHost, containerPort, EndpointBindingMode.SingleAddress, targetPortExpression: targetPort.ToString(), KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+        snapshot.SetValue(containerEndpoint);
+        annotation.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+
+        var expression = destination.GetEndpoint(annotation.Name).Property(property);
+
+        var resultFromCaller = await expression.GetValueAsync(new ValueProviderContext
+        {
+            Caller = source
+        });
+        Assert.Equal(expectedResult, resultFromCaller);
+
+        var resultFromNetwork = await expression.GetValueAsync(new ValueProviderContext
+        {
+            Network = network
+        });
+        Assert.Equal(expectedResult, resultFromNetwork);
+
+        static IResourceWithEndpoints CreateResource(string name, ResourceKind kind)
+        {
+            if (kind == ResourceKind.Container)
+            {
+                var resource = new TestResource(name);
+                resource.Annotations.Add(new ContainerImageAnnotation { Image = "test-image" });
+                return resource;
+            }
+            else
+            {
+                return new TestResource(name);
+            }
+        }
+    }
+
+    public enum ResourceKind
+    {
+        Host,
+        Container
+    }
+
     private sealed class TestResource(string name) : Resource(name), IResourceWithEndpoints
     {
     }

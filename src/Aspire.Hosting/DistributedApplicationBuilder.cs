@@ -470,6 +470,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
+
+            // Required command validation for resources
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddSingleton<IRequiredCommandValidator, RequiredCommandValidator>();
+#pragma warning restore ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddEventingSubscriber<RequiredCommandValidationLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)

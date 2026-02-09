@@ -62,10 +62,10 @@ internal interface IAppHostServerSessionFactory
 /// </summary>
 /// <param name="Success">Whether the build was successful.</param>
 /// <param name="Session">The session if successful, null otherwise.</param>
-/// <param name="BuildOutput">The build output for error diagnostics.</param>
+/// <param name="BuildOutput">The build output for error diagnostics, may be null.</param>
 /// <param name="ChannelName">The NuGet channel name used, if any.</param>
 internal record AppHostServerSessionResult(
     bool Success,
     IAppHostServerSession? Session,
-    OutputCollector BuildOutput,
+    OutputCollector? BuildOutput,
     string? ChannelName);

@@ -55,12 +55,8 @@ internal sealed class ListResourcesTool(IAuxiliaryBackchannelMonitor auxiliaryBa
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates via backchannel
-        _ = mcpClient;
-        _ = arguments;
-
         var connection = await AppHostConnectionHelper.GetSelectedConnectionAsync(auxiliaryBackchannelMonitor, logger, cancellationToken).ConfigureAwait(false);
         if (connection is null)
         {
@@ -89,7 +85,7 @@ internal sealed class ListResourcesTool(IAuxiliaryBackchannelMonitor auxiliaryBa
 
             // Use the dashboard base URL if available
             var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
-            var resources = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl);
+            var resources = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl, includeEnvironmentVariableValues: false);
             var resourceGraphData = JsonSerializer.Serialize(resources.ToArray(), ListResourcesToolJsonContext.RelaxedEscaping.ResourceJsonArray);
 
             var response = $"""

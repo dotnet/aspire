@@ -70,7 +70,7 @@ internal static class DashboardUrlsHelper
             var apiEndpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
             if (apiEndpoint.Exists)
             {
-                apiBaseUrl = await apiEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                apiBaseUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(apiEndpoint, cancellationToken).ConfigureAwait(false);
             }
 
             // MCP endpoint
