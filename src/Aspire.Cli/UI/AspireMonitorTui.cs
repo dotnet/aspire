@@ -43,6 +43,11 @@ internal sealed class AspireMonitorTui
     private NotificationStack? _notificationStack;
     private Hex1bApp? _app;
 
+    // Embedded terminal for resource console logs
+    private AspireResourceConsoleLogWorkload? _logWorkload;
+    private TerminalWidgetHandle? _logTerminalHandle;
+    private Hex1bTerminal? _logTerminal;
+
     public AspireMonitorTui(IAuxiliaryBackchannelMonitor backchannelMonitor, ILogger logger)
     {
         _backchannelMonitor = backchannelMonitor;
@@ -209,45 +214,67 @@ internal sealed class AspireMonitorTui
             return [ctx.Text($"  {MonitorCommandStrings.NoResourcesAvailable}")];
         }
 
-        return [
-            ctx.Table<ResourceSnapshot, VStackWidget>(resources)
-                .RowKey(r => r.Name)
-                .Focus(_focusedResourceKey)
-                .OnFocusChanged(key => { _focusedResourceKey = key; })
-                .Header(h => [
-                    h.Cell("Name").Width(SizeHint.Fill),
-                    h.Cell("Type").Fixed(12),
-                    h.Cell("State").Fixed(12),
-                    h.Cell("Health").Fixed(12),
-                    h.Cell("URLs").Width(SizeHint.Fill),
-                    h.Cell("Actions").Fixed(20)
-                ])
-                .Row((r, resource, state) => [
-                    r.Cell(resource.DisplayName ?? resource.Name),
-                    r.Cell(resource.ResourceType ?? ""),
-                    r.Cell(resource.State ?? "Unknown"),
-                    r.Cell(resource.HealthStatus ?? ""),
-                    r.Cell(resource.Urls.Length > 0
-                        ? string.Join(", ", resource.Urls.Select(u => u.Url))
-                        : ""),
-                    r.Cell(cell => cell.HStack(h => [
-                        h.Button("▶").OnClick(e =>
-                        {
-                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-start");
-                        }),
-                        h.Button("■").OnClick(e =>
-                        {
-                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-stop");
-                        }),
-                        h.Button("↻").OnClick(e =>
-                        {
-                            _ = ExecuteResourceCommandAsync(resource.Name, "resource-restart");
-                        })
-                    ]))
-                ])
-                .Fill()
-                .Full()
-        ];
+        var table = ctx.Table<ResourceSnapshot, VStackWidget>(resources)
+            .RowKey(r => r.Name)
+            .Focus(_focusedResourceKey)
+            .OnFocusChanged(key =>
+            {
+                _focusedResourceKey = key;
+                if (key is string resourceName)
+                {
+                    SwitchLogStream(resourceName);
+                }
+            })
+            .Header(h => [
+                h.Cell("Name").Width(SizeHint.Fill),
+                h.Cell("Type").Fixed(12),
+                h.Cell("State").Fixed(12),
+                h.Cell("Health").Fixed(12),
+                h.Cell("URLs").Width(SizeHint.Fill),
+                h.Cell("Actions").Fixed(20)
+            ])
+            .Row((r, resource, state) => [
+                r.Cell(resource.DisplayName ?? resource.Name),
+                r.Cell(resource.ResourceType ?? ""),
+                r.Cell(resource.State ?? "Unknown"),
+                r.Cell(resource.HealthStatus ?? ""),
+                r.Cell(resource.Urls.Length > 0
+                    ? string.Join(", ", resource.Urls.Select(u => u.Url))
+                    : ""),
+                r.Cell(cell => cell.HStack(h => [
+                    h.Button("▶").OnClick(e =>
+                    {
+                        _ = ExecuteResourceCommandAsync(resource.Name, "resource-start");
+                    }),
+                    h.Button("■").OnClick(e =>
+                    {
+                        _ = ExecuteResourceCommandAsync(resource.Name, "resource-stop");
+                    }),
+                    h.Button("↻").OnClick(e =>
+                    {
+                        _ = ExecuteResourceCommandAsync(resource.Name, "resource-restart");
+                    })
+                ]))
+            ])
+            .Fill()
+            .Full();
+
+        // If we have a terminal handle, show table+logs in a vertical split
+        if (_logTerminalHandle is not null)
+        {
+            var logPanel = ctx.DragBarPanel(
+                ctx.Terminal(_logTerminalHandle)
+            ).InitialSize(12).MinSize(4);
+
+            return [
+                ctx.VStack(v => [
+                    v.DragBarPanel(table).InitialSize(15).MinSize(6),
+                    logPanel
+                ]).Fill()
+            ];
+        }
+
+        return [table];
     }
 
     private IEnumerable<Hex1bWidget> BuildParametersTab(WidgetContext<VStackWidget> ctx)
@@ -437,6 +464,17 @@ internal sealed class AspireMonitorTui
         _errorMessage = null;
         _resources.Clear();
         _selectedAppHostIndex = index;
+
+        // Tear down previous log terminal
+        _logWorkload?.StopStreaming();
+        if (_logTerminal is not null)
+        {
+            await _logTerminal.DisposeAsync().ConfigureAwait(false);
+        }
+        _logWorkload = null;
+        _logTerminalHandle = null;
+        _logTerminal = null;
+
         _app?.Invalidate();
 
         try
@@ -447,6 +485,15 @@ internal sealed class AspireMonitorTui
             }
 
             var connection = _appHosts[index].Connection;
+
+            // Create the embedded log terminal for this connection
+            _logWorkload = new AspireResourceConsoleLogWorkload(connection);
+            _logTerminal = Hex1bTerminal.CreateBuilder()
+                .WithWorkload(_logWorkload)
+                .WithTerminalWidget(out var handle)
+                .Build();
+            _logTerminalHandle = handle;
+            _ = _logTerminal.RunAsync(cancellationToken);
 
             var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
             _isConnecting = false;
@@ -505,6 +552,16 @@ internal sealed class AspireMonitorTui
 
             _app?.Invalidate();
         }
+    }
+
+    private void SwitchLogStream(string resourceName)
+    {
+        if (_logWorkload is null || _logWorkload.CurrentResourceName == resourceName)
+        {
+            return;
+        }
+
+        _logWorkload.StartStreaming(resourceName, _watchCts?.Token ?? CancellationToken.None);
     }
 
     private async Task ExecuteResourceCommandAsync(string resourceName, string commandName)
