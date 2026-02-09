@@ -35,7 +35,6 @@ internal sealed class AspireMonitorTui
     private bool _isConnecting;
     private string? _errorMessage;
     private bool _showSplash = true;
-    private bool _isNavExpanded = true;
     private object? _focusedResourceKey;
     private object? _focusedParameterKey;
     private CancellationTokenSource? _watchCts;
@@ -110,40 +109,19 @@ internal sealed class AspireMonitorTui
         // Wrap tab panel in notification panel
         var mainContent = ctx.NotificationPanel(tabPanel).Fill();
 
-        // Drawer content: list of AppHosts
-        Hex1bWidget drawerBody = appHostItems.Length > 0
-            ? ctx.List(appHostItems)
-                .OnSelectionChanged(args =>
-                {
-                    if (args.SelectedIndex != _selectedAppHostIndex)
-                    {
-                        _selectedAppHostIndex = args.SelectedIndex;
-                        _ = ConnectToAppHostAsync(_selectedAppHostIndex, CancellationToken.None);
-                    }
-                })
-                .Fill()
-            : ctx.Text(MonitorCommandStrings.NoRunningAppHostsFound);
-
-        // Main layout: drawer on the left, content on the right
-        var body = ctx.HStack(h => [
-            h.Drawer()
-                .Expanded(_isNavExpanded)
-                .ExpandedContent(e => [
-                    e.VStack(nav => [
-                        nav.HStack(header => [
-                            header.Text($" {MonitorCommandStrings.AppHostsDrawerTitle}"),
-                            header.Text("").Fill(),
-                            header.Button("«").OnClick(_ => { _isNavExpanded = false; })
-                        ]).FixedHeight(1),
-                        nav.Separator(),
-                        ..BuildAppHostList(nav)
-                    ])
-                ])
-                .CollapsedContent(c => [
-                    c.Button("»").OnClick(_ => { _isNavExpanded = true; })
-                ]),
-            h.Border(mainContent, title: GetSelectedAppHostTitle()).Fill()
+        // AppHost list for the left pane
+        var appHostList = ctx.VStack(nav => [
+            nav.Text($" {MonitorCommandStrings.AppHostsDrawerTitle}").FixedHeight(1),
+            nav.Separator(),
+            ..BuildAppHostList(nav)
         ]).Fill();
+
+        // Main layout: splitter with AppHost list on the left, content on the right
+        var body = ctx.HSplitter(
+            ctx.Border(appHostList, title: "App Hosts"),
+            ctx.Border(mainContent, title: GetSelectedAppHostTitle()).Fill(),
+            leftWidth: 30
+        ).Fill();
 
         return ctx.VStack(outer => [
             body,
