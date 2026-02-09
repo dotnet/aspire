@@ -333,8 +333,8 @@ async Task<string?> GetAzCliTenantIdAsync()
 
     var currentTenant = output.Trim();
 
-    // If already on a Microsoft corp tenant, use it directly
-    if (currentTenant.EndsWith("db47"))
+    // If already on the Microsoft corp tenant, use it directly
+    if (string.Equals(currentTenant, "72f988bf-86f1-41af-91ab-2d7cd011db47", global::System.StringComparison.OrdinalIgnoreCase))
     {
         return currentTenant;
     }
