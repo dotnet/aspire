@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
@@ -76,7 +75,7 @@ internal sealed class WaitCommand : BaseCommand
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
         var resourceName = parseResult.GetValue(s_resourceArgument)!;
-        var status = parseResult.GetValue(s_statusOption)!;
+        var status = parseResult.GetValue(s_statusOption)!.ToLowerInvariant();
         var timeoutSeconds = parseResult.GetValue(s_timeoutOption);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
 
@@ -125,10 +124,18 @@ internal sealed class WaitCommand : BaseCommand
 
         _logger.LogDebug("Waiting for resource '{ResourceName}' to reach status '{Status}' with timeout {Timeout}s", resourceName, status, timeoutSeconds);
 
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        // Verify the resource exists before starting the wait loop
+        var initialSnapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        if (!initialSnapshots.Any(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
+            return ExitCodeConstants.WaitResourceFailed;
+        }
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds), _timeProvider);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        var stopwatch = Stopwatch.StartNew();
+        var startTimestamp = _timeProvider.GetTimestamp();
 
         var exitCode = await _interactionService.ShowStatusAsync(
             string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, resourceName, statusLabel),
@@ -136,8 +143,6 @@ internal sealed class WaitCommand : BaseCommand
             {
                 try
                 {
-                    var resourceFound = false;
-
                     await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(linkedCts.Token).ConfigureAwait(false))
                     {
                         // Only process snapshots for the target resource
@@ -145,8 +150,6 @@ internal sealed class WaitCommand : BaseCommand
                         {
                             continue;
                         }
-
-                        resourceFound = true;
 
                         _logger.LogDebug("Resource '{ResourceName}' state: {State}, health: {HealthStatus}", resourceName, snapshot.State, snapshot.HealthStatus);
 
@@ -162,19 +165,12 @@ internal sealed class WaitCommand : BaseCommand
                             return ExitCodeConstants.WaitResourceFailed;
                         }
 
-                        // When waiting for "healthy" or "up", check if the resource exited (non-zero exit code)
+                        // When waiting for "healthy" or "up", check if the resource exited
                         if (status is not "down" && IsTerminalState(snapshot))
                         {
                             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, resourceName, snapshot.State));
                             return ExitCodeConstants.WaitResourceFailed;
                         }
-                    }
-
-                    // Stream ended without finding the resource
-                    if (!resourceFound)
-                    {
-                        _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
-                        return ExitCodeConstants.FailedToFindProject;
                     }
 
                     // Stream ended without reaching target status
@@ -187,14 +183,13 @@ internal sealed class WaitCommand : BaseCommand
                 }
             });
 
-        stopwatch.Stop();
-
         // Reset cursor position after spinner
         _interactionService.DisplayPlainText("");
 
         if (exitCode == ExitCodeConstants.Success)
         {
-            _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceReachedTargetStatus, resourceName, statusLabel, stopwatch.Elapsed.TotalSeconds));
+            var elapsed = _timeProvider.GetElapsedTime(startTimestamp);
+            _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceReachedTargetStatus, resourceName, statusLabel, elapsed.TotalSeconds));
         }
 
         return exitCode;
@@ -206,10 +201,22 @@ internal sealed class WaitCommand : BaseCommand
         {
             "up" => string.Equals(snapshot.State, "Running", StringComparison.OrdinalIgnoreCase),
             "healthy" => string.Equals(snapshot.State, "Running", StringComparison.OrdinalIgnoreCase)
-                         && (snapshot.HealthStatus is null or "Healthy"),
+                         && IsHealthy(snapshot),
             "down" => IsTerminalState(snapshot),
             _ => false
         };
+    }
+
+    private static bool IsHealthy(ResourceSnapshot snapshot)
+    {
+        // If health reports exist, require an explicit "Healthy" status
+        if (snapshot.HealthReports.Length > 0)
+        {
+            return string.Equals(snapshot.HealthStatus, "Healthy", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // No health checks configured — treat as healthy when running
+        return snapshot.HealthStatus is null;
     }
 
     private static bool IsTerminalState(ResourceSnapshot snapshot)
