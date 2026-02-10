@@ -2,7 +2,7 @@ import { createBuilder } from './.modules/aspire.js';
 
 const builder = await createBuilder();
 
-const storage = builder.addAzureStorage("storage");
+const storage = await builder.addAzureStorage("storage");
 await storage.runAsEmulator();
 
 // Callbacks are currently not working

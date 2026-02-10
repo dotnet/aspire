@@ -523,7 +523,6 @@ public static class AzureStorageExtensions
     /// <param name="blobContainerName">The name of the blob container.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageContainerResource"/>.</returns>
     [Obsolete("Use AddBlobContainer on IResourceBuilder<AzureStorageResource> instead.")]
-    [AspireExportIgnore]
     public static IResourceBuilder<AzureBlobStorageContainerResource> AddBlobContainer(this IResourceBuilder<AzureBlobStorageResource> builder, [ResourceName] string name, string? blobContainerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -687,7 +686,6 @@ public static class AzureStorageExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureStorageResource> target,
