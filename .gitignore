@@ -168,9 +168,6 @@ playground/**/dist/
 #Aspire CLI
 .aspire/
 
-# Required for polyglot apps
-!playground/polyglot/**/.aspire/
-
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
 tools/ReleaseNotes/release-notes-*.md
