@@ -10,8 +10,8 @@ public class BundleServiceTests
     [Fact]
     public void IsBundle_ReturnsFalse_WhenNoEmbeddedResource()
     {
-        // Test assembly has no embedded bundle.tar.gz resource
-        Assert.False(BundleService.IsBundle);
+        // Test assembly has no embedded bundle.tar.gz resource — verify via OpenPayload
+        Assert.Null(BundleService.OpenPayload());
     }
 
     [Fact]

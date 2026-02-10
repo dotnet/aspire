@@ -130,7 +130,6 @@ internal static class CliTestHelper
         // Bundle layout services - return null/no-op implementations to trigger SDK mode fallback
         // This ensures backward compatibility: no layout found = use legacy SDK mode
         services.AddSingleton(options.LayoutDiscoveryFactory);
-        services.AddSingleton(options.BundleDownloaderFactory);
         services.AddSingleton<IBundleService, NullBundleService>();
         services.AddSingleton<BundleNuGetService>();
 
@@ -501,13 +500,6 @@ internal sealed class CliServiceCollectionTestOptions
     // Layout discovery - returns null by default (no bundle layout), causing SDK mode fallback
     public Func<IServiceProvider, ILayoutDiscovery> LayoutDiscoveryFactory { get; set; } = _ => new NullLayoutDiscovery();
 
-    // Bundle downloader - returns a no-op implementation that indicates no bundle mode
-    // This causes UpdateCommand to fall back to CLI-only update or show dotnet tool instructions
-    public Func<IServiceProvider, IBundleDownloader> BundleDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
-    {
-        return new NullBundleDownloader();
-    };
-
     public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
@@ -544,34 +536,20 @@ internal sealed class NullLayoutDiscovery : ILayoutDiscovery
 }
 
 /// <summary>
-/// A no-op bundle downloader that always returns "no updates available".
-/// Used in tests to ensure backward compatibility - no layout = SDK mode.
-/// </summary>
-internal sealed class NullBundleDownloader : IBundleDownloader
-{
-    public Task<string> DownloadLatestBundleAsync(CancellationToken cancellationToken)
-        => throw new NotSupportedException("Bundle downloads not available in test environment");
-
-    public Task<string?> GetLatestVersionAsync(CancellationToken cancellationToken)
-        => Task.FromResult<string?>(null);
-
-    public Task<bool> IsUpdateAvailableAsync(string currentVersion, CancellationToken cancellationToken)
-        => Task.FromResult(false);
-
-    public Task<BundleUpdateResult> ApplyUpdateAsync(string archivePath, string installPath, CancellationToken cancellationToken)
-        => Task.FromResult(BundleUpdateResult.Failed("Bundle updates not available in test environment"));
-}
-
-/// <summary>
 /// A no-op bundle service that never extracts anything.
 /// Used in tests to ensure SDK mode fallback.
 /// </summary>
 internal sealed class NullBundleService : IBundleService
 {
+    public bool IsBundle => false;
+
     public Task EnsureExtractedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
         => Task.FromResult(BundleExtractResult.NoPayload);
+
+    public Task<Layout.LayoutConfiguration?> EnsureExtractedAndGetLayoutAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<Layout.LayoutConfiguration?>(null);
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

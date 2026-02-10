@@ -226,12 +226,12 @@ public class Program
         builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var bundleService = sp.GetRequiredService<IBundleService>();
 
-            if (BundleService.IsBundle)
+            if (bundleService.IsBundle)
             {
                 return new BundleCertificateToolRunner(
-                    sp.GetRequiredService<ILayoutDiscovery>(),
-                    sp.GetRequiredService<IBundleService>(),
+                    bundleService,
                     loggerFactory.CreateLogger<BundleCertificateToolRunner>());
             }
 
@@ -249,7 +249,7 @@ public class Program
         builder.Services.AddSingleton<BundleNuGetPackageCache>();
         builder.Services.AddSingleton<INuGetPackageCache>(sp =>
         {
-            if (BundleService.IsBundle)
+            if (sp.GetRequiredService<IBundleService>().IsBundle)
             {
                 return sp.GetRequiredService<BundleNuGetPackageCache>();
             }
@@ -269,7 +269,6 @@ public class Program
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
-        builder.Services.AddSingleton<IBundleDownloader, BundleDownloader>();
         builder.Services.AddSingleton<IBannerService, BannerService>();
         builder.Services.AddMemoryCache();
 

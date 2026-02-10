@@ -6,7 +6,6 @@ using System.Text;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Layout;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Microsoft.Extensions.Logging;
@@ -29,7 +28,6 @@ internal sealed class AppHostServerProjectFactory(
     IDotNetCliRunner dotNetCliRunner,
     IPackagingService packagingService,
     IConfigurationService configurationService,
-    ILayoutDiscovery layoutDiscovery,
     IBundleService bundleService,
     BundleNuGetService bundleNuGetService,
     ILoggerFactory loggerFactory) : IAppHostServerProjectFactory
@@ -73,11 +71,10 @@ internal sealed class AppHostServerProjectFactory(
                 loggerFactory.CreateLogger<DotNetBasedAppHostServerProject>());
         }
 
-        // Priority 2: Ensure bundle is extracted if we have an embedded payload
-        await bundleService.EnsureExtractedAsync(cancellationToken);
+        // Priority 2: Ensure bundle is extracted and check for layout
+        var layout = await bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken);
 
         // Priority 3: Check if we have a bundle layout with a pre-built AppHost server
-        var layout = layoutDiscovery.DiscoverLayout();
         if (layout is not null && layout.GetAppHostServerPath() is string serverPath && File.Exists(serverPath))
         {
             return new PrebuiltAppHostServer(

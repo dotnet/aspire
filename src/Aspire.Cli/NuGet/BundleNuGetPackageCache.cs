@@ -17,7 +17,6 @@ namespace Aspire.Cli.NuGet;
 /// </summary>
 internal sealed class BundleNuGetPackageCache : INuGetPackageCache
 {
-    private readonly ILayoutDiscovery _layoutDiscovery;
     private readonly IBundleService _bundleService;
     private readonly ILogger<BundleNuGetPackageCache> _logger;
     private readonly IFeatures _features;
@@ -29,12 +28,10 @@ internal sealed class BundleNuGetPackageCache : INuGetPackageCache
     };
 
     public BundleNuGetPackageCache(
-        ILayoutDiscovery layoutDiscovery,
         IBundleService bundleService,
         ILogger<BundleNuGetPackageCache> logger,
         IFeatures features)
     {
-        _layoutDiscovery = layoutDiscovery;
         _bundleService = bundleService;
         _logger = logger;
         _features = features;
@@ -114,10 +111,8 @@ internal sealed class BundleNuGetPackageCache : INuGetPackageCache
         FileInfo? nugetConfigFile,
         CancellationToken cancellationToken)
     {
-        // Ensure the bundle is extracted before attempting to use the layout
-        await _bundleService.EnsureExtractedAsync(cancellationToken).ConfigureAwait(false);
-
-        var layout = _layoutDiscovery.DiscoverLayout();
+        // Ensure the bundle is extracted and get the layout in a single call
+        var layout = await _bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken).ConfigureAwait(false);
         if (layout is null)
         {
             throw new InvalidOperationException("Bundle layout not found. Cannot perform NuGet search in bundle mode.");

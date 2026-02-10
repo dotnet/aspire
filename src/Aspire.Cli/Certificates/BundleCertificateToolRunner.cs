@@ -15,14 +15,12 @@ namespace Aspire.Cli.Certificates;
 /// Certificate tool runner that uses the bundled dev-certs DLL with the bundled runtime.
 /// </summary>
 internal sealed class BundleCertificateToolRunner(
-    ILayoutDiscovery layoutDiscovery,
     IBundleService bundleService,
     ILogger<BundleCertificateToolRunner> logger) : ICertificateToolRunner
 {
     private async Task<LayoutConfiguration> GetLayoutAsync(CancellationToken cancellationToken)
     {
-        await bundleService.EnsureExtractedAsync(cancellationToken).ConfigureAwait(false);
-        return layoutDiscovery.DiscoverLayout()
+        return await bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Bundle layout not found after extraction.");
     }
 

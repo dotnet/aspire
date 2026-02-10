@@ -89,6 +89,9 @@
       <_CliBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishCli.binlog</_CliBinlog>
       <!-- The tar.gz archive produced by CreateLayout is embedded as a resource in the CLI binary -->
       <_BundleArchivePath>$(ArtifactsDir)bundle\aspire-$(BundleVersion)-$(TargetRid).tar.gz</_BundleArchivePath>
+      <!-- VersionSuffix must be forwarded explicitly because this is an Exec (outer MSBuild process),
+           so inner MSBuild properties like VersionSuffix don't flow automatically. Without this,
+           the CLI binary gets a version like "13.2.0-dev" instead of the CI-provided suffix. -->
       <_VersionSuffixArg Condition="'$(VersionSuffix)' != ''">/p:VersionSuffix=$(VersionSuffix)</_VersionSuffixArg>
     </PropertyGroup>
     <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)" />
@@ -122,7 +125,9 @@
       <_BundleOutputDirArg>$(BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
       <_ArtifactsDirArg>$(ArtifactsDir.TrimEnd('\').TrimEnd('/'))</_ArtifactsDirArg>
       
-      <!-- Use local runtime path if provided, otherwise download -->
+      <!-- BundleRuntimePath is provided for local development builds when the .NET runtime
+           is already available on disk (e.g., from a previous download). When not set,
+           CreateLayout downloads the runtime automatically. -->
       <_RuntimeArgs Condition="'$(BundleRuntimePath)' != ''">--runtime "$(BundleRuntimePath)"</_RuntimeArgs>
       <_RuntimeArgs Condition="'$(BundleRuntimePath)' == ''">--download-runtime</_RuntimeArgs>
       

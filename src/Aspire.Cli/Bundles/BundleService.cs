@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
-using System.Reflection;
 using Aspire.Cli.Layout;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
@@ -24,12 +23,11 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     /// </summary>
     internal const string VersionMarkerFileName = ".aspire-bundle-version";
 
-    /// <summary>
-    /// Returns <see langword="true"/> if the current CLI binary contains an embedded bundle payload.
-    /// This is a cheap metadata check — it does not open or read the payload.
-    /// </summary>
-    public static bool IsBundle { get; } =
+    private static readonly bool s_isBundle =
         typeof(BundleService).Assembly.GetManifestResourceInfo(PayloadResourceName) is not null;
+
+    /// <inheritdoc/>
+    public bool IsBundle => s_isBundle;
 
     /// <summary>
     /// Opens a read-only stream over the embedded bundle payload.
@@ -81,6 +79,13 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             throw new InvalidOperationException(
                 "Bundle extraction failed. Run 'aspire setup --force' to retry, or reinstall the Aspire CLI.");
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task<LayoutConfiguration?> EnsureExtractedAndGetLayoutAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureExtractedAsync(cancellationToken).ConfigureAwait(false);
+        return layoutDiscovery.DiscoverLayout();
     }
 
     /// <inheritdoc/>
@@ -197,10 +202,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     /// </summary>
     internal static string GetCurrentVersion()
     {
-        return typeof(BundleService).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? typeof(BundleService).Assembly.GetName().Version?.ToString()
-            ?? "unknown";
+        return VersionHelper.GetDefaultTemplateVersion();
     }
 
     /// <summary>
@@ -278,6 +280,12 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
                         Directory.CreateDirectory(dir);
                     }
                     await entry.ExtractToFileAsync(fullPath, overwrite: true, cancellationToken);
+
+                    // Preserve Unix file permissions from tar entry (e.g., execute bit)
+                    if (!OperatingSystem.IsWindows() && entry.Mode != default)
+                    {
+                        File.SetUnixFileMode(fullPath, (UnixFileMode)entry.Mode);
+                    }
                     break;
 
                 case TarEntryType.SymbolicLink:

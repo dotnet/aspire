@@ -226,31 +226,24 @@ The Aspire CLI can be distributed as a **self-extracting binary** — a single n
 
 ### Binary Format
 
+The payload is embedded as a .NET assembly resource (`bundle.tar.gz`) in the native AOT CLI binary. This means the payload lives inside the PE/ELF binary's resource section, which is covered by code signing.
+
 ```text
 ┌─────────────────────────────────────────────────┐
 │        Native AOT CLI (~29 MB)                  │
 │        (fully functional without payload)       │
-├─────────────────────────────────────────────────┤
-│        tar.gz payload (~100 MB compressed)      │
-│        (runtime, dashboard, dcp, etc.)          │
-├─────────────────────────────────────────────────┤
-│        Trailer (32 bytes)                       │
-│        ┌──────────────────────────────────────┐ │
-│        │ 8 bytes: magic "ASPIRE\0\0"         │ │
-│        │ 8 bytes: payload offset (u64 LE)    │ │
-│        │ 8 bytes: payload size (u64 LE)      │ │
-│        │ 8 bytes: version hash (FNV-1a)      │ │
-│        └──────────────────────────────────────┘ │
+│                                                 │
+│        Embedded resource: bundle.tar.gz         │
+│        (~100 MB compressed payload:             │
+│         runtime, dashboard, dcp, etc.)          │
 └─────────────────────────────────────────────────┘
 ```
 
-**Validation**: `payloadOffset + payloadSize + 32 == fileLength`
+**Detection**: `Assembly.GetManifestResourceInfo("bundle.tar.gz")` — metadata-only check, no I/O.
 
-A CLI binary without a trailer (dev build, dotnet tool install, or previously-extracted copy) has no embedded payload. All extraction commands gracefully no-op.
+**Payload access**: `Assembly.GetManifestResourceStream("bundle.tar.gz")` — demand-paged by the OS, zero memory overhead at startup until extraction is needed.
 
-#### Format Versioning
-
-The current trailer uses a fixed 32-byte format identified by the "ASPIRE\0\0" magic. If the format needs to change in the future (e.g., additional fields, different hash algorithm), the magic bytes should be changed (e.g., "ASPIRE02") so that older CLIs fail cleanly with "no payload" rather than misinterpreting the trailer. The trailer is always read from the end of the file, so increasing the size is safe as long as the magic changes.
+A CLI binary without an embedded resource (dev build, dotnet tool install, or previously-extracted copy) has no payload. All extraction commands gracefully no-op.
 
 ### BundleService
 
@@ -259,17 +252,20 @@ All extraction logic is centralized in `IBundleService` / `BundleService` (`src/
 | Method | Purpose | Used by |
 |--------|---------|---------|
 | `EnsureExtractedAsync()` | Lazy extraction from `Environment.ProcessPath` | `AppHostServerProjectFactory` |
-| `ExtractAsync(path, dest, force)` | Explicit extraction, returns `BundleExtractResult` | `SetupCommand`, `UpdateCommand` |
+| `ExtractAsync(dest, force)` | Explicit extraction, returns `BundleExtractResult` | `SetupCommand` |
+| `IsBundle` | Whether the CLI binary contains an embedded bundle | DI factory methods |
+| `EnsureExtractedAndGetLayoutAsync()` | Ensures extraction + returns discovered layout | `BundleNuGetPackageCache`, etc. |
 
 The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory for cross-process synchronization and is registered as a singleton.
 
 **Extraction flow:**
-1. Read trailer from binary — if no magic bytes, return `NoPayload`
-2. Check version marker (`.aspire-bundle-version`) — if hash matches, return `AlreadyUpToDate`
+1. Check for embedded `bundle.tar.gz` resource — if absent, return `NoPayload`
+2. Check version marker (`.aspire-bundle-version`) — if version matches, return `AlreadyUpToDate`
 3. Clean well-known layout directories (runtime, dashboard, dcp, aspire-server, tools) — preserves `bin/`
-4. Extract payload: system `tar` on Unix, .NET `TarReader` on Windows
-5. Write version marker with FNV-1a hash of the version string
-6. Validate layout via `LayoutDiscovery`
+4. Extract payload using .NET `TarReader` with path-traversal and symlink validation
+5. Set Unix file permissions from tar entry metadata (execute bit, etc.)
+6. Write version marker with assembly informational version
+7. Validate layout via `LayoutDiscovery`
 
 ### Extraction Modes
 
@@ -298,28 +294,25 @@ When a polyglot project runs `aspire run`, `AppHostServerProjectFactory.CreateAs
 
 ### Version Tracking
 
-The file `.aspire-bundle-version` in the layout root contains the hex-encoded FNV-1a hash of the bundle version string (e.g., `939D3D82D58A46D5`). This enables:
+The file `.aspire-bundle-version` in the layout root contains the assembly informational version string (e.g., `13.2.0-pr.14398.gabc1234`). This enables:
 
 - **Skip extraction** when version matches (normal startup is free)
-- **Re-extract** when CLI binary is updated (hash changes)
-- **Force re-extract** with `aspire setup --force` (ignores hash)
+- **Re-extract** when CLI binary is updated (version changes)
+- **Force re-extract** with `aspire setup --force` (ignores version)
 
 ### Platform Notes
 
-- **macOS**: Archives are created with `COPYFILE_DISABLE=1` to suppress `SCHILY.xattr` PAX headers that break .NET's `TarReader`. Extraction uses system `tar` which handles these natively.
-- **Unix**: System `tar` preserves file permissions — no manual `chmod` needed after extraction.
-- **Windows**: Uses .NET `TarReader` for extraction (no system `tar` dependency).
-- **Layout cleanup**: Before re-extraction, well-known directories are removed to avoid macOS `tar` "Operation not permitted" errors on existing files in temp directories.
+- **macOS**: Archives are created with `COPYFILE_DISABLE=1` to suppress `SCHILY.xattr` PAX headers that break .NET's `TarReader`.
+- **Unix**: `TarReader` extraction preserves file permissions from tar entry metadata (execute bit, etc.).
+- **Windows**: Uses .NET `TarReader` for extraction (no system `tar` dependency). Unix file permissions are not applicable.
+- **Layout cleanup**: Before re-extraction, well-known directories are removed to avoid file conflicts.
 
 ### Shared Code
 
 | File | Purpose |
 |------|---------|
-| `src/Shared/BundleTrailer.cs` | Trailer read/write, version marker, `SubStream`, FNV-1a hash |
 | `src/Aspire.Cli/Bundles/IBundleService.cs` | Interface + `BundleExtractResult` enum |
-| `src/Aspire.Cli/Bundles/BundleService.cs` | Implementation with platform-aware extraction |
-
-`BundleTrailer.cs` is source-linked into both `Aspire.Cli` and `CreateLayout` via `<Compile Include>`.
+| `src/Aspire.Cli/Bundles/BundleService.cs` | Implementation with .NET TarReader extraction |
 
 ---
 
@@ -1326,7 +1319,7 @@ This section tracks the implementation progress of the bundle feature.
 - [x] **Self-update simplified** - `src/Aspire.Cli/Commands/UpdateCommand.cs`
   - `aspire update --self` downloads new CLI, swaps binary, extracts via `IBundleService`
   - Removed old `ExecuteBundleSelfUpdateAsync` / `IBundleDownloader` dependency
-- [x] **Unit tests** - `tests/Aspire.Cli.Tests/BundleTrailerTests.cs`
+- [x] **Unit tests** - `tests/Aspire.Cli.Tests/BundleServiceTests.cs`
   - 10 tests: roundtrip, edge cases, version marker, tar.gz extraction with strip-components
 
 ### In Progress
@@ -1353,14 +1346,14 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Aspire.Cli/Certificates/ICertificateToolRunner.cs` | Certificate tool abstraction |
 | `src/Aspire.Cli/Certificates/BundleCertificateToolRunner.cs` | Bundled dev-certs runner |
 | `src/Aspire.Cli/Certificates/SdkCertificateToolRunner.cs` | SDK-based dev-certs runner |
-| `src/Shared/BundleTrailer.cs` | Trailer read/write, version marker, SubStream, FNV-1a hash |
+| `src/Shared/BundleTrailer.cs` | (Deleted) Previously held trailer read/write logic |
 | `src/Aspire.Cli/Bundles/IBundleService.cs` | Bundle extraction interface + result enum |
-| `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with platform-aware tar handling |
+| `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with .NET TarReader |
 | `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command |
 | `src/Aspire.Cli/Utils/ArchiveHelper.cs` | Shared .zip/.tar.gz extraction utility |
 | `tools/CreateLayout/Program.cs` | Bundle build tool (layout assembly + self-extracting binary) |
 | `eng/Bundle.proj` | MSBuild orchestration for bundle creation |
-| `tests/Aspire.Cli.Tests/BundleTrailerTests.cs` | Unit tests for trailer format and extraction |
+| `tests/Aspire.Cli.Tests/BundleServiceTests.cs` | Unit tests for bundle service and extraction |
 
 ---
 
