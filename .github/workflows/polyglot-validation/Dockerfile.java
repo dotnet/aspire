@@ -54,6 +54,7 @@ ENTRYPOINT ["/bin/bash", "-c", "\
     echo '' && \
     echo '=== Enabling polyglot support ===' && \
     aspire config set features:polyglotSupportEnabled true --global && \
+    aspire config set features:experimentalPolyglot:java true --global && \
     echo '' && \
     echo '=== Running validation ===' && \
     /scripts/test-java.sh \
