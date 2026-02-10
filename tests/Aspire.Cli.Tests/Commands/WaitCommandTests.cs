@@ -137,6 +137,7 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
+        // Stream contains a different resource; target resource never appears
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
             ResourceSnapshots = [new ResourceSnapshot { Name = "otherresource", State = "Running" }]

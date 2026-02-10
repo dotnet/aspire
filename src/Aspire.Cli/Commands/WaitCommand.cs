@@ -124,14 +124,6 @@ internal sealed class WaitCommand : BaseCommand
 
         _logger.LogDebug("Waiting for resource '{ResourceName}' to reach status '{Status}' with timeout {Timeout}s", resourceName, status, timeoutSeconds);
 
-        // Verify the resource exists before starting the wait loop
-        var initialSnapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
-        if (!initialSnapshots.Any(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)))
-        {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
-            return ExitCodeConstants.WaitResourceFailed;
-        }
-
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds), _timeProvider);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
@@ -143,6 +135,8 @@ internal sealed class WaitCommand : BaseCommand
             {
                 try
                 {
+                    var resourceFound = false;
+
                     await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(linkedCts.Token).ConfigureAwait(false))
                     {
                         // Only process snapshots for the target resource
@@ -150,6 +144,8 @@ internal sealed class WaitCommand : BaseCommand
                         {
                             continue;
                         }
+
+                        resourceFound = true;
 
                         _logger.LogDebug("Resource '{ResourceName}' state: {State}, health: {HealthStatus}", resourceName, snapshot.State, snapshot.HealthStatus);
 
@@ -173,7 +169,13 @@ internal sealed class WaitCommand : BaseCommand
                         }
                     }
 
-                    // Stream ended without reaching target status
+                    // Stream ended without finding the resource or reaching target status
+                    if (!resourceFound)
+                    {
+                        _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
+                        return ExitCodeConstants.WaitResourceFailed;
+                    }
+
                     return ExitCodeConstants.WaitTimeout;
                 }
                 catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
