@@ -115,32 +115,30 @@ public static class AzureNetworkSecurityGroupExtensions
             },
             (infrastructure) =>
             {
-                var nsg = new NetworkSecurityGroup(infrastructure.AspireResource.GetBicepIdentifier())
+                return new NetworkSecurityGroup(infrastructure.AspireResource.GetBicepIdentifier())
                 {
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 };
-
-                foreach (var rule in azureResource.SecurityRules)
-                {
-                    var ruleIdentifier = Infrastructure.NormalizeBicepIdentifier($"{nsg.BicepIdentifier}_{rule.Name}");
-                    var securityRule = new SecurityRule(ruleIdentifier)
-                    {
-                        Name = rule.Name,
-                        Priority = rule.Priority,
-                        Direction = rule.Direction,
-                        Access = rule.Access,
-                        Protocol = rule.Protocol,
-                        SourceAddressPrefix = rule.SourceAddressPrefix,
-                        SourcePortRange = rule.SourcePortRange,
-                        DestinationAddressPrefix = rule.DestinationAddressPrefix,
-                        DestinationPortRange = rule.DestinationPortRange,
-                        Parent = nsg,
-                    };
-                    infrastructure.Add(securityRule);
-                }
-
-                return nsg;
             });
+
+        foreach (var rule in azureResource.SecurityRules)
+        {
+            var ruleIdentifier = Infrastructure.NormalizeBicepIdentifier($"{nsg.BicepIdentifier}_{rule.Name}");
+            var securityRule = new SecurityRule(ruleIdentifier)
+            {
+                Name = rule.Name,
+                Priority = rule.Priority,
+                Direction = rule.Direction,
+                Access = rule.Access,
+                Protocol = rule.Protocol,
+                SourceAddressPrefix = rule.SourceAddressPrefix,
+                SourcePortRange = rule.SourcePortRange,
+                DestinationAddressPrefix = rule.DestinationAddressPrefix,
+                DestinationPortRange = rule.DestinationPortRange,
+                Parent = nsg,
+            };
+            infra.Add(securityRule);
+        }
 
         infra.Add(new ProvisioningOutput("id", typeof(string))
         {

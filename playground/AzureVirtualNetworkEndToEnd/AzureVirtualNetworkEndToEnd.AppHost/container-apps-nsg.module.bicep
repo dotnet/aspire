@@ -1,6 +1,14 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+resource container_apps_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
+  name: take('container_apps_nsg-${uniqueString(resourceGroup().id)}', 80)
+  location: location
+  tags: {
+    'aspire-resource-name': 'container-apps-nsg'
+  }
+}
+
 resource container_apps_nsg_allow_inbound_443_AzureLoadBalancer 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
   name: 'allow-inbound-443-AzureLoadBalancer'
   properties: {
@@ -44,14 +52,6 @@ resource container_apps_nsg_deny_inbound_Internet 'Microsoft.Network/networkSecu
     sourcePortRange: '*'
   }
   parent: container_apps_nsg
-}
-
-resource container_apps_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('container_apps_nsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
-  tags: {
-    'aspire-resource-name': 'container-apps-nsg'
-  }
 }
 
 output id string = container_apps_nsg.id

@@ -277,4 +277,27 @@ public class AzureNetworkSecurityGroupExtensionsTests
 
         Assert.Contains("shorthand", exception.Message);
     }
+
+    [Fact]
+    public async Task AddNetworkSecurityGroup_ExistingWithSecurityRules_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingName = builder.AddParameter("existingNsgName");
+        var nsg = builder.AddNetworkSecurityGroup("web-nsg")
+            .PublishAsExisting(existingName, resourceGroupParameter: default)
+            .WithSecurityRule(new AzureSecurityRule
+            {
+                Name = "allow-https",
+                Priority = 100,
+                Direction = SecurityRuleDirection.Inbound,
+                Access = SecurityRuleAccess.Allow,
+                Protocol = SecurityRuleProtocol.Tcp,
+                DestinationPortRange = "443"
+            });
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(nsg.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
 }

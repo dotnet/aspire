@@ -1,6 +1,14 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+resource web_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
+  name: take('web_nsg-${uniqueString(resourceGroup().id)}', 80)
+  location: location
+  tags: {
+    'aspire-resource-name': 'web-nsg'
+  }
+}
+
 resource web_nsg_allow_https 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
   name: 'allow-https'
   properties: {
@@ -29,14 +37,6 @@ resource web_nsg_deny_all_inbound 'Microsoft.Network/networkSecurityGroups/secur
     sourcePortRange: '*'
   }
   parent: web_nsg
-}
-
-resource web_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('web_nsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
-  tags: {
-    'aspire-resource-name': 'web-nsg'
-  }
 }
 
 output id string = web_nsg.id
