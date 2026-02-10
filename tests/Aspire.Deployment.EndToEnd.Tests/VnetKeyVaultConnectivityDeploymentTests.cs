@@ -180,7 +180,7 @@ public sealed class VnetKeyVaultConnectivityDeploymentTests(ITestOutputHelper ou
             // Step 6: Add Aspire client package to the Web project
             output.WriteLine("Step 6: Adding Key Vault client package to Web project...");
             sequenceBuilder
-                .Type($"dotnet add {projectName}.Web package Aspire.Azure.Security.KeyVault")
+                .Type($"dotnet add {projectName}.Web package Aspire.Azure.Security.KeyVault --prerelease")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
 

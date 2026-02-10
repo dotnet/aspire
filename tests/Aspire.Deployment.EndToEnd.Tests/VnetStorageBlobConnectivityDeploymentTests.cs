@@ -183,7 +183,7 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
             // Step 6: Add Aspire client package to the Web project
             output.WriteLine("Step 6: Adding blob client package to Web project...");
             sequenceBuilder
-                .Type($"dotnet add {projectName}.Web package Aspire.Azure.Storage.Blobs")
+                .Type($"dotnet add {projectName}.Web package Aspire.Azure.Storage.Blobs --prerelease")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
 

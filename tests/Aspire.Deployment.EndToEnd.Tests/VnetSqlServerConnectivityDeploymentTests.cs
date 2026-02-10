@@ -180,7 +180,7 @@ public sealed class VnetSqlServerConnectivityDeploymentTests(ITestOutputHelper o
             // Step 6: Add Aspire client package to the Web project
             output.WriteLine("Step 6: Adding SQL client package to Web project...");
             sequenceBuilder
-                .Type($"dotnet add {projectName}.Web package Aspire.Microsoft.Data.SqlClient")
+                .Type($"dotnet add {projectName}.Web package Aspire.Microsoft.Data.SqlClient --prerelease")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
 
