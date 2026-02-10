@@ -91,9 +91,6 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
             var waitingForTestPrompt = new CellPatternSearcher()
                 .Find("Do you want to create a test project?");
 
-            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
-                .Find("Select an integration to add:");
-
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -149,8 +146,6 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter()
                     .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                     .Enter();
             }

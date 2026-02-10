@@ -72,9 +72,6 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
             var waitingForInitComplete = new CellPatternSearcher()
                 .Find("Aspire initialization complete");
 
-            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
-                .Find("Select an integration to add:");
-
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -111,8 +108,6 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter()
                     .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                     .Enter();
             }
