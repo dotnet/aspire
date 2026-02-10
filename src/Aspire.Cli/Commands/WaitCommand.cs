@@ -139,8 +139,9 @@ internal sealed class WaitCommand : BaseCommand
 
                     await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(linkedCts.Token).ConfigureAwait(false))
                     {
-                        // Only process snapshots for the target resource
-                        if (!string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase))
+                        // Match against both Name (ResourceId) and DisplayName
+                        if (!string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(snapshot.DisplayName, resourceName, StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }

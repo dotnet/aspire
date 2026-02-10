@@ -61,8 +61,8 @@ public sealed class WaitCommandTests(ITestOutputHelper output)
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
 
-        var waitForResourceHealthy = new CellPatternSearcher()
-            .Find("is healthy.");
+        var waitForResourceUp = new CellPatternSearcher()
+            .Find("is up (running).");
 
         var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
@@ -108,10 +108,10 @@ public sealed class WaitCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
-        // Wait for the webfrontend resource to be healthy
-        sequenceBuilder.Type("aspire wait webfrontend --status healthy --timeout 120")
+        // Wait for the webfrontend resource to be up (running)
+        sequenceBuilder.Type("aspire wait webfrontend --status up --timeout 120")
             .Enter()
-            .WaitUntil(s => waitForResourceHealthy.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+            .WaitUntil(s => waitForResourceUp.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
         // Stop the AppHost using aspire stop
