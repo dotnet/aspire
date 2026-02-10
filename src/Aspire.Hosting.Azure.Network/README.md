@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Network library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Virtual Networks, Subnets, NAT Gateways, Public IP Addresses, and Private Endpoints.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Virtual Networks, Subnets, NAT Gateways, Public IP Addresses, Network Security Groups, and Private Endpoints.
 
 ## Getting started
 
@@ -82,6 +82,39 @@ var natGateway = builder.AddNatGateway("nat")
 ```
 
 Use `ConfigureInfrastructure` for advanced settings like idle timeout or availability zones.
+
+### Adding Network Security Groups
+
+Add security rules to control traffic flow on subnets using shorthand methods:
+
+```csharp
+var vnet = builder.AddAzureVirtualNetwork("vnet");
+var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+    .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: "Internet");
+```
+
+An NSG is automatically created when shorthand methods are used. Priority auto-increments (100, 200, 300...) and rule names are auto-generated.
+
+For full control, create an explicit NSG with `AzureSecurityRule` objects:
+
+```csharp
+var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
+    .WithSecurityRule(new AzureSecurityRule
+    {
+        Name = "allow-https",
+        Priority = 100,
+        Direction = SecurityRuleDirection.Inbound,
+        Access = SecurityRuleAccess.Allow,
+        Protocol = SecurityRuleProtocol.Tcp,
+        DestinationPortRange = "443"
+    });
+
+var subnet = vnet.AddSubnet("web-subnet", "10.0.1.0/24")
+    .WithNetworkSecurityGroup(nsg);
+```
+
+A single NSG can be shared across multiple subnets.
 
 ### Adding Private Endpoints
 
