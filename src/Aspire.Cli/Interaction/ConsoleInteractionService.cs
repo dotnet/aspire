@@ -190,7 +190,7 @@ internal class ConsoleInteractionService : IInteractionService
         Console.WriteLine();
         _outConsole.MarkupLine(
             $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion.EscapeMarkup()}");
-        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
+        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion.EscapeMarkup()}");
         _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability.EscapeMarkup()}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;

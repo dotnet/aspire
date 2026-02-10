@@ -310,7 +310,7 @@ internal sealed class RunCommand : BaseCommand
 
                             endpointsGrid.AddRow(
                                 firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint.EscapeMarkup()}[/]")
+                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint.EscapeMarkup()}]{endpoint.EscapeMarkup()}[/]")
                             );
 
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
