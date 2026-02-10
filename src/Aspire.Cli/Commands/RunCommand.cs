@@ -348,7 +348,7 @@ internal sealed class RunCommand : BaseCommand
         catch (AppHostIncompatibleException ex)
         {
             Telemetry.RecordError(ex.Message, ex);
-            return InteractionService.DisplayIncompatibleVersionError(ex, ex.RequiredCapability);
+            return InteractionService.DisplayIncompatibleVersionError(ex, ex.AspireHostingVersion ?? ex.RequiredCapability);
         }
         catch (CertificateServiceException ex)
         {
