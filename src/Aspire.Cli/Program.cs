@@ -92,6 +92,28 @@ public class Program
         return (logLevel, debugMode);
     }
 
+    /// <summary>
+    /// Parses --log-file from raw args before the host is built.
+    /// Used by --detach to tell the child CLI where to write its log.
+    /// </summary>
+    private static string? ParseLogFileOption(string[]? args)
+    {
+        if (args is null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--log-file" && i + 1 < args.Length)
+            {
+                return args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
     private static string GetGlobalSettingsPath()
     {
         var usersAspirePath = GetUsersAspirePath();
@@ -159,7 +181,10 @@ public class Program
         // Always register FileLoggerProvider to capture logs to disk
         // This captures complete CLI session details for diagnostics
         var logsDirectory = Path.Combine(GetUsersAspirePath(), "logs");
-        var fileLoggerProvider = new FileLoggerProvider(logsDirectory, TimeProvider.System);
+        var logFilePath = ParseLogFileOption(args);
+        var fileLoggerProvider = logFilePath is not null
+            ? new FileLoggerProvider(logFilePath)
+            : new FileLoggerProvider(logsDirectory, TimeProvider.System);
         builder.Services.AddSingleton(fileLoggerProvider); // Register for direct access to LogFilePath
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(fileLoggerProvider));
 

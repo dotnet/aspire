@@ -86,6 +86,11 @@ internal sealed class RunCommand : BaseCommand
     {
         Description = RunCommandStrings.NoBuildArgumentDescription
     };
+    private static readonly Option<string?> s_logFileOption = new("--log-file")
+    {
+        Description = "Path to write the log file (used internally by --detach).",
+        Hidden = true
+    };
     private readonly Option<bool>? _startDebugSessionOption;
 
     public RunCommand(
@@ -126,6 +131,7 @@ internal sealed class RunCommand : BaseCommand
         Options.Add(s_formatOption);
         Options.Add(s_isolatedOption);
         Options.Add(s_noBuildOption);
+        Options.Add(s_logFileOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -294,9 +300,9 @@ internal sealed class RunCommand : BaseCommand
 
             // Handle remote environments (Codespaces, Remote Containers, SSH)
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
-            var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-            var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
-                              && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
+            var isRemoteContainers = string.Equals(_configuration["REMOTE_CONTAINERS"], "true", StringComparison.OrdinalIgnoreCase);
+            var isSshRemote = _configuration["VSCODE_IPC_HOOK_CLI"] is not null
+                              && _configuration["SSH_CONNECTION"] is not null;
 
             AppendCtrlCMessage(longestLocalizedLengthWithColon);
 
@@ -492,7 +498,7 @@ internal sealed class RunCommand : BaseCommand
                     new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
                     new Markup("[dim]N/A[/]"));
             }
-            grid.AddRow(Text.Empty, Text.Empty);   
+            grid.AddRow(Text.Empty, Text.Empty);
         }
 
         // Logs row
@@ -655,18 +661,23 @@ internal sealed class RunCommand : BaseCommand
             _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
             var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
             // Stop all running instances in parallel - don't block on failures
-            var stopTasks = existingSockets.Select(socket => 
+            var stopTasks = existingSockets.Select(socket =>
                 manager.StopRunningInstanceAsync(socket, cancellationToken));
             await Task.WhenAll(stopTasks).ConfigureAwait(false);
         }
 
         // Build the arguments for the child CLI process
+        // Tell the child where to write its log so we can find it on failure.
+        var childLogFile = GenerateChildLogFilePath();
+
         var args = new List<string>
         {
             "run",
             "--non-interactive",
             "--project",
-            effectiveAppHostFile.FullName
+            effectiveAppHostFile.FullName,
+            "--log-file",
+            childLogFile
         };
 
         // Pass through global options that should be forwarded to child CLI
@@ -707,14 +718,17 @@ internal sealed class RunCommand : BaseCommand
             dotnetPath, isDotnetHost, string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
 
-        // Redirect stdout/stderr to suppress child output - it writes to log file anyway
+        // Don't redirect stdout/stderr - child writes to log file anyway.
+        // Redirecting creates pipe handles that get inherited by the AppHost grandchild,
+        // which prevents callers using synchronous process APIs (e.g. execSync) from
+        // detecting that the CLI has exited, since the pipe stays open until the AppHost dies.
         var startInfo = new ProcessStartInfo
         {
             FileName = dotnetPath,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
             RedirectStandardInput = false,
             WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
         };
@@ -747,24 +761,6 @@ internal sealed class RunCommand : BaseCommand
                     return null;
                 }
 
-                // Start async reading of stdout/stderr to prevent buffer blocking
-                // Log output for debugging purposes
-                childProcess.OutputDataReceived += (_, e) =>
-                {
-                    if (e.Data is not null)
-                    {
-                        _logger.LogDebug("Child stdout: {Line}", e.Data);
-                    }
-                };
-                childProcess.ErrorDataReceived += (_, e) =>
-                {
-                    if (e.Data is not null)
-                    {
-                        _logger.LogDebug("Child stderr: {Line}", e.Data);
-                    }
-                };
-                childProcess.BeginOutputReadLine();
-                childProcess.BeginErrorReadLine();
             }
             catch (Exception ex)
             {
@@ -843,10 +839,13 @@ internal sealed class RunCommand : BaseCommand
 
             if (childExitedEarly)
             {
-                _interactionService.DisplayError(string.Format(
-                    CultureInfo.CurrentCulture,
-                    RunCommandStrings.AppHostExitedWithCode,
-                    childExitCode));
+                // Show a friendly message based on well-known exit codes from the child
+                var errorMessage = childExitCode switch
+                {
+                    ExitCodeConstants.FailedToBuildArtifacts => RunCommandStrings.AppHostFailedToBuild,
+                    _ => string.Format(CultureInfo.CurrentCulture, RunCommandStrings.AppHostExitedWithCode, childExitCode)
+                };
+                _interactionService.DisplayError(errorMessage);
             }
             else
             {
@@ -866,11 +865,11 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            // Always show log file path for troubleshooting
+            // Point to the child's log file — it contains the actual build/runtime errors
             _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
                 CultureInfo.CurrentCulture,
                 RunCommandStrings.CheckLogsForDetails,
-                _fileLoggerProvider.LogFilePath.EscapeMarkup()));
+                childLogFile.EscapeMarkup()));
 
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
@@ -912,5 +911,13 @@ internal sealed class RunCommand : BaseCommand
         }
 
         return ExitCodeConstants.Success;
+    }
+
+    private string GenerateChildLogFilePath()
+    {
+        return Diagnostics.FileLoggerProvider.GenerateLogFilePath(
+            ExecutionContext.LogsDirectory.FullName,
+            _timeProvider,
+            suffix: "detach-child");
     }
 }
