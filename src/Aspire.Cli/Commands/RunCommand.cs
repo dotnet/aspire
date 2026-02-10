@@ -58,10 +58,8 @@ internal sealed class RunCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly IConfiguration _configuration;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
-    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
@@ -94,12 +92,10 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
-        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -114,9 +110,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
-        _sdkInstaller = sdkInstaller;
         _features = features;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
         _projectFactory = projectFactory;
         _backchannelMonitor = backchannelMonitor;
@@ -178,12 +172,6 @@ internal sealed class RunCommand : BaseCommand
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
             await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
             return ExitCodeConstants.Success;
-        }
-
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
         }
 
         AppHostProjectContext? context = null;
@@ -322,7 +310,7 @@ internal sealed class RunCommand : BaseCommand
 
                             endpointsGrid.AddRow(
                                 firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint.EscapeMarkup()}]{endpoint.EscapeMarkup()}[/]")
                             );
 
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
@@ -360,31 +348,31 @@ internal sealed class RunCommand : BaseCommand
         catch (AppHostIncompatibleException ex)
         {
             Telemetry.RecordError(ex.Message, ex);
-            return InteractionService.DisplayIncompatibleVersionError(ex, ex.RequiredCapability);
+            return InteractionService.DisplayIncompatibleVersionError(ex, ex.AspireHostingVersion ?? ex.RequiredCapability);
         }
         catch (CertificateServiceException ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
+            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
+            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
@@ -862,7 +850,7 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
                 CultureInfo.CurrentCulture,
                 RunCommandStrings.CheckLogsForDetails,
-                _fileLoggerProvider.LogFilePath));
+                _fileLoggerProvider.LogFilePath.EscapeMarkup()));
 
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

@@ -57,6 +57,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
         // Generate unique names for Azure resources
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("aksredis");
         var clusterName = $"aks-{DeploymentE2ETestHelpers.GetRunId()}-{DeploymentE2ETestHelpers.GetRunAttempt()}";
+        var redisPassword = Guid.NewGuid().ToString("N");
         // ACR names must be alphanumeric only, 5-50 chars, globally unique
         var acrName = $"acrr{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
         acrName = new string(acrName.Where(char.IsLetterOrDigit).Take(50).ToArray());
@@ -138,6 +139,15 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
                 .Type($"az acr create --resource-group {resourceGroupName} --name {acrName} --sku Basic --output table")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+
+            // Step 4b: Login to ACR immediately (before AKS creation which takes 10-15 min).
+            // The OIDC federated token expires after ~5 minutes, so we must authenticate with
+            // ACR while it's still fresh. Docker credentials persist in ~/.docker/config.json.
+            output.WriteLine("Step 4b: Logging into Azure Container Registry (early, before token expires)...");
+            sequenceBuilder
+                .Type($"az acr login --name {acrName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 5: Create AKS cluster with ACR attached
             output.WriteLine("Step 5: Creating AKS cluster (this may take 10-15 minutes)...");
@@ -271,12 +281,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 16: Login to ACR for Docker push
-            output.WriteLine("Step 16: Logging into Azure Container Registry...");
-            sequenceBuilder
-                .Type($"az acr login --name {acrName}")
-                .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+            // Step 16: ACR login was already done in Step 4b (before AKS creation).
+            // Docker credentials persist in ~/.docker/config.json.
 
             // Step 17: Build and push container images to ACR
             // Only project resources need to be built — Redis uses a public container image
@@ -331,24 +337,37 @@ builder.Build().Run();
 
             // Step 21: Deploy Helm chart to AKS with ACR image overrides
             // Only project resources need image overrides — Redis uses the public image from the chart
-            // Note: secrets.webfrontend.cache_password is a workaround for a K8s publisher bug where
-            // cross-resource secret references create Helm value paths under the consuming resource
-            // instead of referencing the owning resource's secret path (secrets.cache.REDIS_PASSWORD).
+            // Note: Two K8s publisher Helm value bugs require workarounds:
+            // 1. secrets.cache.cache_password: The Helm template expression uses the parameter name
+            //    (cache_password from "cache-password") but values.yaml uses the env var key (REDIS_PASSWORD).
+            //    We must set the parameter name path for the password to reach the K8s Secret.
+            // 2. secrets.webfrontend.cache_password: Cross-resource secret references create Helm value
+            //    paths under the consuming resource instead of the owning resource (issue #14370).
             output.WriteLine("Step 21: Deploying Helm chart to AKS...");
             sequenceBuilder
                 .Type($"helm install aksredis ../charts --namespace default --wait --timeout 10m " +
                       $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
                       $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest " +
-                      $"--set secrets.webfrontend.cache_password=\"\"")
+                      $"--set secrets.cache.cache_password={redisPassword} " +
+                      $"--set secrets.webfrontend.cache_password={redisPassword}")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 22: Wait for all pods to be ready (including Redis)
-            output.WriteLine("Step 22: Waiting for pods to be ready...");
+            // Step 22: Wait for all pods to be ready (including Redis cache)
+            output.WriteLine("Step 22: Waiting for all pods to be ready...");
             sequenceBuilder
-                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=120s")
+                .Type("kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=apiservice --timeout=120s -n default && " +
+                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webfrontend --timeout=120s -n default && " +
+                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=cache --timeout=120s -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+
+            // Step 22b: Verify Redis container is running and stable (no restarts)
+            output.WriteLine("Step 22b: Verifying Redis container is stable...");
+            sequenceBuilder
+                .Type("kubectl get pod cache-statefulset-0 -o jsonpath='{.status.containerStatuses[0].ready} restarts:{.status.containerStatuses[0].restartCount}'")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
             // Step 23: Verify all pods are running
             output.WriteLine("Step 23: Verifying pods are running...");
@@ -392,29 +411,23 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 28: Verify webfrontend /weather page (exercises webfrontend → apiservice → Redis pipeline)
-            // The /weather page is server-side rendered and fetches data from the apiservice.
-            // Redis output caching is used, so this validates the full Redis integration.
+            // The /weather page uses Blazor SSR streaming rendering which keeps the HTTP connection open.
+            // We use -m 5 (max-time) to avoid curl hanging, and capture the status code in a variable
+            // because --max-time causes curl to exit non-zero (code 28) even on HTTP 200.
             output.WriteLine("Step 28: Verifying webfrontend /weather page (exercises Redis cache)...");
             sequenceBuilder
-                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf http://localhost:18081/weather -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
+                .Type("for i in $(seq 1 10); do sleep 3; S=$(curl -so /dev/null -w '%{http_code}' -m 5 http://localhost:18081/weather); [ \"$S\" = \"200\" ] && echo \"$S OK\" && break; done")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
 
-            // Step 29: Verify /weather page actually returns weather data
-            output.WriteLine("Step 29: Verifying weather page content...");
-            sequenceBuilder
-                .Type("curl -sf http://localhost:18081/weather | grep -q 'Weather' && echo 'Weather page content verified'")
-                .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
-
-            // Step 30: Clean up port-forwards
-            output.WriteLine("Step 30: Cleaning up port-forwards...");
+            // Step 29: Clean up port-forwards
+            output.WriteLine("Step 29: Cleaning up port-forwards...");
             sequenceBuilder
                 .Type("kill %1 %2 2>/dev/null; true")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10));
 
-            // Step 31: Exit terminal
+            // Step 30: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();

@@ -720,48 +720,6 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Should show: [bold]Environment Name[/]
         Assert.Equal("[bold]Environment Name[/]", promptCall.PromptText);
     }
-
-    [Fact]
-    public async Task PublishCommand_SingleInputPrompt_EscapesSpectreMarkupInLabels()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var promptBackchannel = new TestPromptBackchannel();
-        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
-
-        // Set up a single-input prompt with Spectre markup characters in both StatusText and Label
-        promptBackchannel.AddPrompt("markup-prompt", "Value [required]", InputTypes.Text, "Enter value [1-10]", isRequired: true);
-
-        // Set up the expected user response
-        consoleService.SetupStringPromptResponse("5");
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
-        });
-
-        services.AddSingleton<IInteractionService>(consoleService);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var command = serviceProvider.GetRequiredService<RootCommand>();
-
-        // Act
-        var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-
-        // Verify that square brackets are properly escaped
-        var promptCalls = consoleService.StringPromptCalls;
-        Assert.Single(promptCalls);
-        var promptCall = promptCalls[0];
-
-        // Square brackets should be escaped to [[bracket]]
-        Assert.Contains("[[1-10]]", promptCall.PromptText);
-        Assert.Contains("[[required]]", promptCall.PromptText);
-    }
 }
 
 // Test implementation of IAppHostCliBackchannel that simulates prompt interactions

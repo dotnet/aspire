@@ -145,7 +145,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         var prompt = new SelectionPrompt<T>()
             .Title(promptText)
-            .UseConverter(choiceFormatter)
+            .UseConverter(item => choiceFormatter(item).EscapeMarkup())
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
@@ -174,7 +174,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
-            .UseConverter(choiceFormatter)
+            .UseConverter(item => choiceFormatter(item).EscapeMarkup())
             .AddChoices(choices)
             .PageSize(10);
 
@@ -189,9 +189,9 @@ internal class ConsoleInteractionService : IInteractionService
         DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
         _outConsole.MarkupLine(
-            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
-        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
-        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
+            $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion.EscapeMarkup()}");
+        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion.EscapeMarkup()}");
+        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability.EscapeMarkup()}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -303,11 +303,11 @@ internal class ConsoleInteractionService : IInteractionService
     {
         // Write to stderr to avoid corrupting stdout when JSON output is used
         _errorConsole.WriteLine();
-        _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion.EscapeMarkup()));
         
         if (!string.IsNullOrEmpty(updateCommand))
         {
-            _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+            _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand.EscapeMarkup()));
         }
         
         _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));

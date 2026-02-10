@@ -13,7 +13,6 @@ public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/14325")]
     public async Task ContainerTunnelWorksWithYarp()
     {
         const string testName = "container-tunnel-works-with-yarp";

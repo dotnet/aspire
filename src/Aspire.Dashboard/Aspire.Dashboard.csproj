@@ -25,6 +25,9 @@
       See https://devblogs.microsoft.com/dotnet/enhancing-razor-productivity-with-new-features/
     -->
     <Features>use-roslyn-tokenizer</Features>
+
+    <!-- Bundle optimization: disable web.config generation -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
 
   <PropertyGroup>

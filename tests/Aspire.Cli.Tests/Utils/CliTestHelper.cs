@@ -10,6 +10,7 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
@@ -91,6 +92,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ExtensionRpcTargetFactory);
         services.AddTransient(options.ExtensionBackchannelFactory);
         services.AddSingleton(options.InteractionServiceFactory);
+        services.AddSingleton(options.CertificateToolRunnerFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
@@ -103,7 +105,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
-        services.AddSingleton(options.DotNetSdkInstallerFactory);
+        services.AddSingleton<IDotNetSdkInstaller>(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
         services.AddSingleton(options.DiskCacheFactory);
@@ -123,6 +125,12 @@ internal static class CliTestHelper
         services.AddSingleton(options.AppHostServerSessionFactory);
         services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
         services.AddSingleton(options.LanguageServiceFactory);
+
+        // Bundle layout services - return null/no-op implementations to trigger SDK mode fallback
+        // This ensures backward compatibility: no layout found = use legacy SDK mode
+        services.AddSingleton(options.LayoutDiscoveryFactory);
+        services.AddSingleton(options.BundleDownloaderFactory);
+        services.AddSingleton<BundleNuGetService>();
 
         // AppHost project handlers - must match Program.cs registration pattern
         services.AddSingleton<DotNetAppHostProject>();
@@ -349,11 +357,19 @@ internal sealed class CliServiceCollectionTestOptions
         return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
     };
 
+    public Func<IServiceProvider, ICertificateToolRunner> CertificateToolRunnerFactory { get; set; } = (IServiceProvider _) =>
+    {
+        // Use TestCertificateToolRunner by default to avoid calling real dotnet dev-certs
+        // which can be slow or block on macOS (keychain access prompts)
+        return new TestCertificateToolRunner();
+    };
+
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
+        var certificateToolRunner = serviceProvider.GetRequiredService<ICertificateToolRunner>();
         var interactiveService = serviceProvider.GetRequiredService<IInteractionService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new CertificateService(interactiveService, telemetry);
+        return new CertificateService(certificateToolRunner, interactiveService, telemetry);
     };
 
     public Func<IServiceProvider, IDotNetCliExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -413,7 +429,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IFeatures> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new Features(configuration);
+        var logger = serviceProvider.GetRequiredService<ILogger<Features>>();
+        return new Features(configuration, logger);
     };
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -426,7 +443,8 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService);
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService, hostEnvironment);
         return new TemplateProvider([factory]);
     };
 
@@ -477,6 +495,16 @@ internal sealed class CliServiceCollectionTestOptions
         return new TestAppHostServerSessionFactory();
     };
 
+    // Layout discovery - returns null by default (no bundle layout), causing SDK mode fallback
+    public Func<IServiceProvider, ILayoutDiscovery> LayoutDiscoveryFactory { get; set; } = _ => new NullLayoutDiscovery();
+
+    // Bundle downloader - returns a no-op implementation that indicates no bundle mode
+    // This causes UpdateCommand to fall back to CLI-only update or show dotnet tool instructions
+    public Func<IServiceProvider, IBundleDownloader> BundleDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new NullBundleDownloader();
+    };
+
     public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
@@ -497,6 +525,38 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<DocsSearchService>>();
         return new DocsSearchService(indexService, logger);
     };
+}
+
+/// <summary>
+/// A layout discovery that always returns null (no bundle layout).
+/// Used in tests to ensure SDK mode is used.
+/// </summary>
+internal sealed class NullLayoutDiscovery : ILayoutDiscovery
+{
+    public LayoutConfiguration? DiscoverLayout(string? projectDirectory = null) => null;
+
+    public string? GetComponentPath(LayoutComponent component, string? projectDirectory = null) => null;
+
+    public bool IsBundleModeAvailable(string? projectDirectory = null) => false;
+}
+
+/// <summary>
+/// A no-op bundle downloader that always returns "no updates available".
+/// Used in tests to ensure backward compatibility - no layout = SDK mode.
+/// </summary>
+internal sealed class NullBundleDownloader : IBundleDownloader
+{
+    public Task<string> DownloadLatestBundleAsync(CancellationToken cancellationToken)
+        => throw new NotSupportedException("Bundle downloads not available in test environment");
+
+    public Task<string?> GetLatestVersionAsync(CancellationToken cancellationToken)
+        => Task.FromResult<string?>(null);
+
+    public Task<bool> IsUpdateAvailableAsync(string currentVersion, CancellationToken cancellationToken)
+        => Task.FromResult(false);
+
+    public Task<BundleUpdateResult> ApplyUpdateAsync(string archivePath, string installPath, CancellationToken cancellationToken)
+        => Task.FromResult(BundleUpdateResult.Failed("Bundle updates not available in test environment"));
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

@@ -21,6 +21,7 @@ using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
@@ -219,11 +220,47 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
+
+        // Register certificate tool runner implementations - factory chooses based on layout availability
+        builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
+        {
+            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
+            var layout = layoutDiscovery.DiscoverLayout();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+
+            // Use bundle runner if layout exists and has dev-certs tool
+            if (layout is not null && layout.GetDevCertsPath() is string devCertsPath && File.Exists(devCertsPath))
+            {
+                return new BundleCertificateToolRunner(layout, loggerFactory.CreateLogger<BundleCertificateToolRunner>());
+            }
+
+            // Fall back to SDK-based runner
+            return new SdkCertificateToolRunner(loggerFactory.CreateLogger<SdkCertificateToolRunner>());
+        });
+
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
-        builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
+
+        // Register both NuGetPackageCache implementations - factory chooses based on layout availability
+        builder.Services.AddSingleton<NuGetPackageCache>();
+        builder.Services.AddSingleton<BundleNuGetPackageCache>();
+        builder.Services.AddSingleton<INuGetPackageCache>(sp =>
+        {
+            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
+            var layout = layoutDiscovery.DiscoverLayout();
+
+            // Use bundle cache if layout exists and has NuGetHelper
+            if (layout is not null && layout.GetNuGetHelperPath() is string helperPath && File.Exists(helperPath))
+            {
+                return sp.GetRequiredService<BundleNuGetPackageCache>();
+            }
+
+            // Fall back to SDK-based cache
+            return sp.GetRequiredService<NuGetPackageCache>();
+        });
+
         builder.Services.AddSingleton<NuGetPackagePrefetcher>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<AuxiliaryBackchannelMonitor>();
@@ -234,6 +271,7 @@ public class Program
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
+        builder.Services.AddSingleton<IBundleDownloader, BundleDownloader>();
         builder.Services.AddSingleton<IBannerService, BannerService>();
         builder.Services.AddMemoryCache();
 
@@ -242,6 +280,11 @@ public class Program
         builder.Services.AddHttpClient<IDocsFetcher, DocsFetcher>();
         builder.Services.AddSingleton<IDocsIndexService, DocsIndexService>();
         builder.Services.AddSingleton<IDocsSearchService, DocsSearchService>();
+
+        // Bundle layout services (for polyglot apphost without .NET SDK).
+        // Registered before NuGetPackageCache so the factory can choose implementation.
+        builder.Services.AddSingleton<ILayoutDiscovery, LayoutDiscovery>();
+        builder.Services.AddSingleton<BundleNuGetService>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
@@ -664,3 +707,4 @@ internal class AspirePlaygroundEnricher : IProfileEnricher
         profile.Capabilities.Interactive = true;
     }
 }
+

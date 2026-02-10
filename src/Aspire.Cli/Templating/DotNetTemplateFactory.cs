@@ -25,7 +25,8 @@ internal class DotNetTemplateFactory(
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
     IFeatures features,
-    IConfigurationService configurationService)
+    IConfigurationService configurationService,
+    ICliHostEnvironment hostEnvironment)
     : ITemplateFactory
 {
     // Template-specific options
@@ -51,7 +52,8 @@ internal class DotNetTemplateFactory(
     public IEnumerable<ITemplate> GetTemplates()
     {
         var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
-        return GetTemplatesCore(showAllTemplates);
+        var nonInteractive = !hostEnvironment.SupportsInteractiveInput;
+        return GetTemplatesCore(showAllTemplates, nonInteractive);
     }
 
     public IEnumerable<ITemplate> GetInitTemplates()
@@ -484,7 +486,7 @@ internal class DotNetTemplateFactory(
             }
 
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
+            _ = await certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.
