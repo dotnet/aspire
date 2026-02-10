@@ -202,4 +202,19 @@ public class AzureVirtualNetworkExtensionsTests
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public async Task AddSubnet_WithNatGateway_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var natGw = builder.AddNatGateway("mynat");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        vnet.AddSubnet("mysubnet", "10.0.1.0/24")
+            .WithNatGateway(natGw);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
 }

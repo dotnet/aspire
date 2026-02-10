@@ -77,6 +77,11 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
     /// </summary>
     public AzureVirtualNetworkResource Parent { get; }
 
+    /// <summary>
+    /// Gets or sets the NAT Gateway associated with the subnet.
+    /// </summary>
+    internal AzureNatGatewayResource? NatGateway { get; set; }
+
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => !string.IsNullOrEmpty(argument) ? argument : throw new ArgumentNullException(paramName);
 
@@ -116,6 +121,12 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
                 Name = serviceDelegationAnnotation.Name,
                 ServiceName = serviceDelegationAnnotation.ServiceName
             });
+        }
+
+        if (NatGateway is not null)
+        {
+            // The NAT Gateway lives in a separate bicep module, so reference its ID via parameter
+            subnet.NatGatewayId = NatGateway.Id.AsProvisioningParameter(infra);
         }
 
         // add a provisioning output for the subnet ID so it can be referenced by other resources

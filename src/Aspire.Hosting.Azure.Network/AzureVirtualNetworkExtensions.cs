@@ -273,4 +273,34 @@ public static class AzureVirtualNetworkExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Associates a NAT Gateway with the subnet.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="natGateway">The NAT Gateway to associate with the subnet.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// A NAT Gateway provides outbound internet connectivity for resources in the subnet.
+    /// A subnet can have at most one NAT Gateway.
+    /// </remarks>
+    /// <example>
+    /// This example creates a subnet with an associated NAT Gateway:
+    /// <code>
+    /// var natGateway = builder.AddNatGateway("nat");
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23")
+    ///     .WithNatGateway(natGateway);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureSubnetResource> WithNatGateway(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        IResourceBuilder<AzureNatGatewayResource> natGateway)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(natGateway);
+
+        builder.Resource.NatGateway = natGateway.Resource;
+        return builder;
+    }
 }
