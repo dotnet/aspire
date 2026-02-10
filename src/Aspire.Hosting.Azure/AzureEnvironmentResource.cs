@@ -139,9 +139,20 @@ public sealed class AzureEnvironmentResource : Resource
         var subscriptionId = provisioningContext.Subscription?.Id.Name ?? "unknown";
         var location = provisioningContext.Location.Name;
 
+        // Build resource group value with a portal link when possible
+        var resourceGroupValue = resourceGroupName;
+        if (resourceGroupName != "unknown" && subscriptionId != "unknown")
+        {
+            var tenantId = provisioningContext.Tenant?.TenantId;
+            var portalUrl = tenantId.HasValue
+                ? $"https://portal.azure.com/#@{tenantId.Value}/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/overview"
+                : $"https://portal.azure.com/#/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/overview";
+            resourceGroupValue = $"{resourceGroupName} ([link]({portalUrl}))";
+        }
+
 #pragma warning disable ASPIREPIPELINES001 // PipelineSummary is experimental
         ctx.Summary.Add("☁️ Target", "Azure");
-        ctx.Summary.Add("📦 Resource Group", resourceGroupName);
+        ctx.Summary.Add("📦 Resource Group", resourceGroupValue);
         ctx.Summary.Add("🔑 Subscription", subscriptionId);
         ctx.Summary.Add("🌐 Location", location);
 #pragma warning restore ASPIREPIPELINES001
