@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.AspNetCore.InternalTesting;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -353,5 +354,197 @@ public class ConsoleInteractionServiceTests
         var outputString = output.ToString();
         Assert.Contains(outerStatusText, outputString);
         Assert.Contains(innerStatusText, outputString);
+    }
+
+    [Fact]
+    public void DisplayIncompatibleVersionError_WithMarkupCharactersInVersion_DoesNotThrow()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        var ex = new AppHostIncompatibleException("Incompatible [version]", "capability [Prod]");
+
+        // Act - should not throw due to unescaped markup characters
+        var exception = Record.Exception(() => interactionService.DisplayIncompatibleVersionError(ex, "9.0.0-preview.1 [rc]"));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains("capability [Prod]", outputString);
+        Assert.Contains("9.0.0-preview.1 [rc]", outputString);
+    }
+
+    [Fact]
+    public void DisplayMessage_WithMarkupCharactersInMessage_DoesNotThrow()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // DisplayMessage passes its message directly to MarkupLine.
+        // Callers that embed external data must escape it first.
+        var message = "See logs at C:\\Users\\test [Dev]\\logs\\aspire.log";
+
+        // Act - should not throw due to unescaped markup characters
+        var exception = Record.Exception(() => interactionService.DisplayMessage("page_facing_up", message.EscapeMarkup()));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains("C:\\Users\\test [Dev]\\logs\\aspire.log", outputString);
+    }
+
+    [Fact]
+    public void DisplayVersionUpdateNotification_WithMarkupCharactersInVersion_DoesNotThrow()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // Version strings are unlikely to have brackets, but the method should handle it
+        var version = "13.2.0-preview [beta]";
+        var updateCommand = "aspire update --channel [stable]";
+
+        // Act - should not throw due to unescaped markup characters
+        var exception = Record.Exception(() => interactionService.DisplayVersionUpdateNotification(version, updateCommand));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains("13.2.0-preview [beta]", outputString);
+        Assert.Contains("aspire update --channel [stable]", outputString);
+    }
+
+    [Fact]
+    public void DisplayError_WithMarkupCharactersInMessage_DoesNotDoubleEscape()
+    {
+        // Arrange - verifies that DisplayError escapes once (callers should NOT pre-escape)
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // Error message with brackets (e.g., from an exception)
+        var errorMessage = "Failed to connect to service [Prod]: Connection refused <timeout>";
+
+        // Act - should not throw
+        var exception = Record.Exception(() => interactionService.DisplayError(errorMessage));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        // Should contain the original text (not double-escaped like [[Prod]])
+        Assert.Contains("[Prod]", outputString);
+        Assert.DoesNotContain("[[Prod]]", outputString);
+    }
+
+    [Fact]
+    public void DisplayMessage_WithUnescapedLogFilePath_Throws()
+    {
+        // Arrange - verifies that DisplayMessage requires callers to escape external data
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // Path with brackets that looks like Spectre markup if not escaped
+        var path = @"C:\Users\[Dev Team]\logs\aspire.log";
+
+        // Act - unescaped path should cause a Spectre markup error
+        var exception = Record.Exception(() => interactionService.DisplayMessage("page_facing_up", $"See logs at {path}"));
+
+        // Assert - this should throw because [Dev Team] is interpreted as markup
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void DisplayMessage_WithEscapedLogFilePath_DoesNotThrow()
+    {
+        // Arrange - verifies that properly escaped paths work in DisplayMessage
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // Path with brackets - properly escaped
+        var path = @"C:\Users\[Dev Team]\logs\aspire.log".EscapeMarkup();
+
+        // Act
+        var exception = Record.Exception(() => interactionService.DisplayMessage("page_facing_up", $"See logs at {path}"));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains(@"C:\Users\[Dev Team]\logs\aspire.log", outputString);
+    }
+
+    [Fact]
+    public void DisplaySubtleMessage_WithMarkupCharacters_EscapesByDefault()
+    {
+        // Arrange - verifies that DisplaySubtleMessage escapes by default
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var interactionService = CreateInteractionService(console, executionContext);
+
+        // Message with all kinds of markup characters
+        var message = "Error in [Module]: <Config> value $.items[0] invalid";
+
+        // Act
+        var exception = Record.Exception(() => interactionService.DisplaySubtleMessage(message));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains("[Module]", outputString);
     }
 }

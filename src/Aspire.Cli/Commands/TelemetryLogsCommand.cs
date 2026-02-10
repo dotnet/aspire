@@ -258,6 +258,6 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         var severityColor = TelemetryCommandHelpers.GetSeverityColor(log.SeverityNumber);
 
         var escapedBody = body.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{timestamp}[/] [{severityColor}]{severity,-5}[/] [cyan]{resourceName}[/] {escapedBody}");
+        AnsiConsole.MarkupLine($"[grey]{timestamp}[/] [{severityColor}]{severity,-5}[/] [cyan]{resourceName.EscapeMarkup()}[/] {escapedBody}");
     }
 }

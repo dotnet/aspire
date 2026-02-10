@@ -379,7 +379,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             {
                 var exception = new AppHostIncompatibleException(
                     $"The app host is not compatible. Aspire.Hosting version: {compatibilityCheck.AspireHostingVersion}",
-                    "Aspire.Hosting");
+                    "Aspire.Hosting",
+                    compatibilityCheck.AspireHostingVersion);
                 // Signal the backchannel completion source so the caller doesn't wait forever
                 context.BackchannelCompletionSource?.TrySetException(exception);
                 throw exception;

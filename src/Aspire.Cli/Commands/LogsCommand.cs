@@ -334,7 +334,7 @@ internal sealed class LogsCommand : BaseCommand
             // Colorized output: assign a consistent color to each resource
             var color = GetResourceColor(logLine.ResourceName);
             var escapedContent = logLine.Content.EscapeMarkup();
-            AnsiConsole.MarkupLine($"[{color}][[{logLine.ResourceName}]][/] {escapedContent}");
+            AnsiConsole.MarkupLine($"[{color}][[{logLine.ResourceName.EscapeMarkup()}]][/] {escapedContent}");
         }
         else
         {
