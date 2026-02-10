@@ -51,6 +51,12 @@
     <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
+  <!-- When BundlePayloadPath is set (by Bundle.proj), embed the tar.gz as a resource.
+       Inner-loop builds without this property produce an unbundled CLI. -->
+  <ItemGroup Condition="'$(BundlePayloadPath)' != '' and Exists('$(BundlePayloadPath)')">
+    <EmbeddedResource Include="$(BundlePayloadPath)" LogicalName="bundle.tar.gz" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Layout\BundleDiscovery.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />

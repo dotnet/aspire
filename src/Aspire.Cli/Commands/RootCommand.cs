@@ -128,6 +128,7 @@ internal sealed class RootCommand : BaseRootCommand
         TelemetryCommand telemetryCommand,
         DocsCommand docsCommand,
         SdkCommand sdkCommand,
+        SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -205,6 +206,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
         Subcommands.Add(docsCommand);
+        Subcommands.Add(setupCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

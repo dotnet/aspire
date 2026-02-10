@@ -57,10 +57,10 @@
   <Target Name="Build" DependsOnTargets="
     _ShowBanner;
     _CleanCaches;
-    _PublishNativeCli;
     _PublishManagedProjects;
     _RestoreDcpPackage;
-    _RunCreateLayout">
+    _RunCreateLayout;
+    _PublishNativeCli">
     <Message Importance="high" Text="" />
     <Message Importance="high" Text="Bundle created at: $(BundleOutputDir)" />
   </Target>
@@ -87,9 +87,15 @@
   <Target Name="_PublishNativeCli" Condition="'$(SkipNativeBuild)' != 'true'">
     <PropertyGroup>
       <_CliBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishCli.binlog</_CliBinlog>
+      <!-- The tar.gz archive produced by CreateLayout is embedded as a resource in the CLI binary -->
+      <_BundleArchivePath>$(ArtifactsDir)bundle\aspire-$(BundleVersion)-$(TargetRid).tar.gz</_BundleArchivePath>
+      <!-- VersionSuffix must be forwarded explicitly because this is an Exec (outer MSBuild process),
+           so inner MSBuild properties like VersionSuffix don't flow automatically. Without this,
+           the CLI binary gets a version like "13.2.0-dev" instead of the CI-provided suffix. -->
+      <_VersionSuffixArg Condition="'$(VersionSuffix)' != ''">/p:VersionSuffix=$(VersionSuffix)</_VersionSuffixArg>
     </PropertyGroup>
-    <Message Importance="high" Text="Publishing native AOT CLI..." />
-    <Exec Command="dotnet publish &quot;$(CliProjectPath)&quot; -c $(Configuration) -r $(TargetRid) $(_CliBinlog)" />
+    <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)" />
+    <Exec Command="dotnet publish &quot;$(CliProjectPath)&quot; -c $(Configuration) -r $(TargetRid) /p:BundlePayloadPath=&quot;$(_BundleArchivePath)&quot; $(_VersionSuffixArg) $(_CliBinlog)" />
   </Target>
 
   <Target Name="_PublishManagedProjects" Condition="'$(SkipManagedBuild)' != 'true'">
@@ -118,7 +124,14 @@
       <!-- Remove trailing slashes for command line arguments -->
       <_BundleOutputDirArg>$(BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
       <_ArtifactsDirArg>$(ArtifactsDir.TrimEnd('\').TrimEnd('/'))</_ArtifactsDirArg>
-      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --archive --verbose --download-runtime</_CreateLayoutArgs>
+      
+      <!-- BundleRuntimePath is provided for local development builds when the .NET runtime
+           is already available on disk (e.g., from a previous download). When not set,
+           CreateLayout downloads the runtime automatically. -->
+      <_RuntimeArgs Condition="'$(BundleRuntimePath)' != ''">--runtime "$(BundleRuntimePath)"</_RuntimeArgs>
+      <_RuntimeArgs Condition="'$(BundleRuntimePath)' == ''">--download-runtime</_RuntimeArgs>
+      
+      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --rid $(TargetRid) --bundle-version $(BundleVersion) --runtime-version $(BundleRuntimeVersion) --verbose $(_RuntimeArgs) --archive</_CreateLayoutArgs>
     </PropertyGroup>
     
     <Message Importance="high" Text="Creating bundle layout..." />

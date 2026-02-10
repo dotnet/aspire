@@ -118,6 +118,7 @@ public static class Program
 
         return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
     }
+
 }
 
 /// <summary>
@@ -165,8 +166,8 @@ internal sealed class LayoutBuilder : IDisposable
         }
         Directory.CreateDirectory(_outputPath);
 
-        // Copy components
-        await CopyCliAsync().ConfigureAwait(false);
+        // Copy components (CLI is not included - the native AOT binary IS the CLI,
+        // and the bundle payload is embedded as a resource inside it)
         await CopyRuntimeAsync().ConfigureAwait(false);
         await CopyNuGetHelperAsync().ConfigureAwait(false);
         await CopyAppHostServerAsync().ConfigureAwait(false);
@@ -177,36 +178,6 @@ internal sealed class LayoutBuilder : IDisposable
         EnableRollForwardForAllTools();
 
         Log("Layout build complete!");
-    }
-
-    private async Task CopyCliAsync()
-    {
-        Log("Copying CLI...");
-
-        var cliPublishPath = FindPublishPath("Aspire.Cli");
-        if (cliPublishPath is null)
-        {
-            throw new InvalidOperationException("CLI publish output not found. Run 'dotnet publish' on Aspire.Cli first.");
-        }
-
-        var cliExe = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase) ? "aspire.exe" : "aspire";
-        var sourceExe = Path.Combine(cliPublishPath, cliExe);
-
-        if (!File.Exists(sourceExe))
-        {
-            throw new InvalidOperationException($"CLI executable not found at {sourceExe}");
-        }
-
-        var destExe = Path.Combine(_outputPath, cliExe);
-        File.Copy(sourceExe, destExe, overwrite: true);
-
-        // Make executable on Unix
-        if (!_rid.StartsWith("win", StringComparison.OrdinalIgnoreCase))
-        {
-            await SetExecutableAsync(destExe).ConfigureAwait(false);
-        }
-
-        Log($"  Copied {cliExe}");
     }
 
     private async Task CopyRuntimeAsync()
@@ -593,35 +564,40 @@ internal sealed class LayoutBuilder : IDisposable
         return Task.CompletedTask;
     }
 
-    public async Task CreateArchiveAsync()
+    public async Task<string> CreateArchiveAsync()
     {
         var archiveName = $"aspire-{_version}-{_rid}";
-        var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
-        var archiveExt = isWindows ? ".zip" : ".tar.gz";
-        var archivePath = Path.Combine(Path.GetDirectoryName(_outputPath)!, archiveName + archiveExt);
+        var archivePath = Path.Combine(Path.GetDirectoryName(_outputPath)!, archiveName + ".tar.gz");
 
         Log($"Creating archive: {archivePath}");
 
-        if (isWindows)
+        if (OperatingSystem.IsWindows())
         {
-            // Use PowerShell for zip
-            var psi = new ProcessStartInfo
+            // Use .NET TarWriter + GZip on Windows (no system tar available)
+            var fileStream = File.Create(archivePath);
+            await using (fileStream.ConfigureAwait(false))
             {
-                FileName = "powershell",
-                Arguments = $"-NoProfile -Command \"Compress-Archive -Path '{_outputPath}\\*' -DestinationPath '{archivePath}' -Force\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-
-            using var process = Process.Start(psi);
-            if (process is not null)
-            {
-                await process.WaitForExitAsync().ConfigureAwait(false);
-                if (process.ExitCode != 0)
+                var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
+                await using (gzipStream.ConfigureAwait(false))
                 {
-                    var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-                    throw new InvalidOperationException($"Failed to create archive (exit code {process.ExitCode}): {stderr}");
+                    var tarWriter = new System.Formats.Tar.TarWriter(gzipStream, leaveOpen: true);
+                    await using (tarWriter.ConfigureAwait(false))
+                    {
+                        var topLevelDir = Path.GetFileName(_outputPath);
+                        foreach (var filePath in Directory.EnumerateFiles(_outputPath, "*", SearchOption.AllDirectories))
+                        {
+                            var relativePath = Path.GetRelativePath(Path.GetDirectoryName(_outputPath)!, filePath).Replace('\\', '/');
+                            var dataStream = File.OpenRead(filePath);
+                            await using (dataStream.ConfigureAwait(false))
+                            {
+                                var entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, relativePath)
+                                {
+                                    DataStream = dataStream
+                                };
+                                await tarWriter.WriteEntryAsync(entry).ConfigureAwait(false);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -636,6 +612,8 @@ internal sealed class LayoutBuilder : IDisposable
                 RedirectStandardError = true,
                 UseShellExecute = false
             };
+            // Prevent macOS from including resource forks/extended attributes in the archive
+            psi.Environment["COPYFILE_DISABLE"] = "1";
 
             using var process = Process.Start(psi);
             if (process is not null)
@@ -650,6 +628,7 @@ internal sealed class LayoutBuilder : IDisposable
         }
 
         Log($"Archive created: {archivePath}");
+        return archivePath;
     }
 
     private string? FindPublishPath(string projectName)

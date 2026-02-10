@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 
-# get-aspire-cli-bundle-pr.sh - Download and unpack the Aspire CLI Bundle from a specific PR's build artifacts
+# get-aspire-cli-bundle-pr.sh - Download and install the Aspire CLI Bundle from a specific PR's build artifacts
 # Usage: ./get-aspire-cli-bundle-pr.sh PR_NUMBER [OPTIONS]
 #
-# The bundle is a self-contained distribution that includes:
-# - Native AOT Aspire CLI
-# - .NET runtime
-# - Dashboard
-# - DCP (Developer Control Plane)
-# - AppHost Server (for polyglot apps)
-# - NuGet Helper tools
+# The bundle artifact contains a self-extracting Aspire CLI binary that embeds all
+# runtime components. The script downloads the binary, places it in the install
+# directory, and runs `aspire setup` to extract the embedded components.
 
 set -euo pipefail
 
@@ -50,15 +46,16 @@ DESCRIPTION:
     Downloads and installs the Aspire CLI Bundle from a specific pull request's latest successful build.
     Automatically detects the current platform (OS and architecture) and downloads the appropriate artifact.
 
-    The bundle is a self-contained distribution that includes:
-    - Native AOT Aspire CLI
-    - .NET runtime (for running managed components)
+    The bundle artifact contains a self-extracting Aspire CLI binary that embeds all runtime
+    components. The script downloads the binary, places it in the install directory, and runs
+    `aspire setup` to extract the embedded components:
     - Dashboard (web-based monitoring UI)
     - DCP (Developer Control Plane for orchestration)
+    - .NET runtime (for running managed components)
     - AppHost Server (for polyglot apps - TypeScript, Python, Go, etc.)
     - NuGet Helper tools
 
-    This bundle allows running Aspire applications WITHOUT requiring a globally-installed .NET SDK.
+    This enables running Aspire applications WITHOUT requiring a globally-installed .NET SDK.
 
     The script queries the GitHub API to find the latest successful run of the 'ci.yml' workflow
     for the specified PR, then downloads and extracts the bundle archive for your platform.
@@ -314,52 +311,6 @@ remove_temp_dir() {
 }
 
 # =============================================================================
-# Archive handling
-# =============================================================================
-
-install_archive() {
-    local archive_file="$1"
-    local destination_path="$2"
-
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would install archive $archive_file to $destination_path"
-        return 0
-    fi
-
-    say_verbose "Installing archive to: $destination_path"
-
-    if [[ ! -d "$destination_path" ]]; then
-        say_verbose "Creating install directory: $destination_path"
-        mkdir -p "$destination_path"
-    fi
-
-    if [[ "$archive_file" =~ \.zip$ ]]; then
-        if ! command -v unzip >/dev/null 2>&1; then
-            say_error "unzip command not found. Please install unzip."
-            return 1
-        fi
-        if ! unzip -o "$archive_file" -d "$destination_path"; then
-            say_error "Failed to extract ZIP archive: $archive_file"
-            return 1
-        fi
-    elif [[ "$archive_file" =~ \.tar\.gz$ ]]; then
-        if ! command -v tar >/dev/null 2>&1; then
-            say_error "tar command not found. Please install tar."
-            return 1
-        fi
-        if ! tar -xzf "$archive_file" -C "$destination_path"; then
-            say_error "Failed to extract tar.gz archive: $archive_file"
-            return 1
-        fi
-    else
-        say_error "Unsupported archive format: $archive_file"
-        return 1
-    fi
-
-    say_verbose "Successfully installed archive"
-}
-
-# =============================================================================
 # PATH management
 # =============================================================================
 
@@ -573,36 +524,28 @@ install_aspire_bundle() {
         return 0
     fi
 
-    # Create install directory (may already exist with other aspire state like logs, certs, etc.)
-    mkdir -p "$install_dir"
+    # Find the self-extracting binary in the downloaded artifact
+    local binary_name="aspire"
+    local binary_path=""
+    if [[ -f "$download_dir/$binary_name" ]]; then
+        binary_path="$download_dir/$binary_name"
+    else
+        # Search for the binary in subdirectories
+        binary_path=$(find "$download_dir" -name "$binary_name" -type f | head -1)
+    fi
 
-    # Copy bundle contents, overwriting existing files
-    say_verbose "Installing bundle from $download_dir to $install_dir"
-    if ! cp -rf "$download_dir"/* "$install_dir"/; then
-        say_error "Failed to copy bundle files"
+    if [[ -z "$binary_path" || ! -f "$binary_path" ]]; then
+        say_error "Could not find aspire binary in downloaded artifact"
         return 1
     fi
 
-    # Move CLI binary into bin/ subdirectory so it shares the same path as CLI-only install
-    # Layout: ~/.aspire/bin/aspire (CLI) + ~/.aspire/runtime/ + ~/.aspire/dashboard/ + ...
-    mkdir -p "$install_dir/bin"
-    if [[ -f "$install_dir/aspire" ]]; then
-        mv "$install_dir/aspire" "$install_dir/bin/aspire"
-    fi
+    # Place the self-extracting binary in bin/
+    local bin_dir="$install_dir/bin"
+    mkdir -p "$bin_dir"
+    cp "$binary_path" "$bin_dir/aspire"
+    chmod +x "$bin_dir/aspire"
 
-    # Make CLI executable
-    local cli_path="$install_dir/bin/aspire"
-    if [[ -f "$cli_path" ]]; then
-        chmod +x "$cli_path"
-    fi
-
-    # Make other executables executable
-    for exe in "$install_dir"/dcp/dcp "$install_dir"/runtime/dotnet; do
-        if [[ -f "$exe" ]]; then
-            chmod +x "$exe"
-        fi
-    done
-
+    # Bundle extraction happens lazily on first command that needs the layout
     say_success "Aspire CLI bundle successfully installed to: $install_dir"
 }
 

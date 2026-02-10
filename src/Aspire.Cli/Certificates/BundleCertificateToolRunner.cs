@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
 using Microsoft.Extensions.Logging;
@@ -14,13 +15,20 @@ namespace Aspire.Cli.Certificates;
 /// Certificate tool runner that uses the bundled dev-certs DLL with the bundled runtime.
 /// </summary>
 internal sealed class BundleCertificateToolRunner(
-    LayoutConfiguration layout,
+    IBundleService bundleService,
     ILogger<BundleCertificateToolRunner> logger) : ICertificateToolRunner
 {
+    private async Task<LayoutConfiguration> GetLayoutAsync(CancellationToken cancellationToken)
+    {
+        return await bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Bundle layout not found after extraction.");
+    }
+
     public async Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
+        var layout = await GetLayoutAsync(cancellationToken);
         var muxerPath = layout.GetMuxerPath();
         var devCertsPath = layout.GetDevCertsPath();
 
@@ -130,6 +138,7 @@ internal sealed class BundleCertificateToolRunner(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
+        var layout = await GetLayoutAsync(cancellationToken);
         var muxerPath = layout.GetMuxerPath();
         var devCertsPath = layout.GetDevCertsPath();
 
