@@ -285,14 +285,18 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     {
         var resourceEvent = await notificationService.WaitForResourceAsync(
             resourceName,
-            re => re.Snapshot.State?.Text == KnownResourceStates.Running,
+            re => re.Snapshot.State?.Text == KnownResourceStates.Running || KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
             cancellationToken).ConfigureAwait(false);
+
+        var state = resourceEvent.Snapshot.State?.Text;
+        var isRunning = state == KnownResourceStates.Running;
 
         return new WaitForResourceResponse
         {
-            Success = true,
-            State = resourceEvent.Snapshot.State?.Text,
-            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+            Success = isRunning,
+            State = state,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString(),
+            ErrorMessage = isRunning ? null : $"Resource '{resourceName}' failed to reach 'Running' state. Current state: {state ?? "Unknown"}."
         };
     }
 
