@@ -320,9 +320,7 @@ public static class AzureContainerAppExtensions
             {
                 Debug.Assert(resourceToken is not null);
 
-#pragma warning disable IDE0031 // Use null propagation (IDE0031)
                 if (storageVolume is not null)
-#pragma warning restore IDE0031
                 {
                     // Sanitize env name for storage accounts: lowercase alphanumeric only.
                     // Reserve 2 chars for "sv" prefix + 13 for uniqueString = 15, leaving 9 for the env name.
