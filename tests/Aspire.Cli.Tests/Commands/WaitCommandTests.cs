@@ -137,10 +137,14 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        // Stream contains a different resource; target resource never appears
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot { Name = "otherresource", State = "Running" }]
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = false,
+                ResourceNotFound = true,
+                ErrorMessage = "Resource 'nonexistent' was not found."
+            }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
@@ -165,7 +169,7 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
 
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot { Name = "myapp", State = "Running" }]
+            WaitForResourceResult = new WaitForResourceResponse { Success = true, State = "Running" }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
@@ -190,13 +194,7 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
 
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot
-            {
-                Name = "mydb",
-                State = "Running",
-                HealthStatus = "Healthy",
-                HealthReports = [new ResourceSnapshotHealthReport { Name = "db-check", Status = "Healthy" }]
-            }]
+            WaitForResourceResult = new WaitForResourceResponse { Success = true, State = "Running", HealthStatus = "Healthy" }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
@@ -215,46 +213,18 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WaitCommand_ResourceRunningNoHealthChecks_WaitForHealthy_ReturnsSuccess()
+    public async Task WaitCommand_Timeout_ReturnsTimeoutExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        // No HealthReports and null HealthStatus means no health checks configured
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot { Name = "myapp", State = "Running" }]
-        };
-        var monitor = new TestAuxiliaryBackchannelMonitor();
-        monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("wait myapp --status healthy --timeout 5");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task WaitCommand_ResourceRunningWithPendingHealthChecks_WaitForHealthy_DoesNotReturnEarly()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        // HealthReports exist but HealthStatus is null — checks haven't reported yet
-        var backchannel = new TestAppHostAuxiliaryBackchannel
-        {
-            ResourceSnapshots = [new ResourceSnapshot
+            WaitForResourceResult = new WaitForResourceResponse
             {
-                Name = "mydb",
-                State = "Running",
-                HealthStatus = null,
-                HealthReports = [new ResourceSnapshotHealthReport { Name = "db-check", Status = null }]
-            }]
+                Success = false,
+                TimedOut = true,
+                ErrorMessage = "Timed out waiting for resource 'mydb'."
+            }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
@@ -269,7 +239,6 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("wait mydb --status healthy --timeout 2");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
-        // Should timeout because health checks exist but haven't reported healthy yet
         Assert.Equal(ExitCodeConstants.WaitTimeout, exitCode);
     }
 
@@ -280,7 +249,7 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
 
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot { Name = "worker", State = "Exited", ExitCode = 0 }]
+            WaitForResourceResult = new WaitForResourceResponse { Success = true, State = "Exited" }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);
@@ -305,7 +274,12 @@ public class WaitCommandTests(ITestOutputHelper outputHelper)
 
         var backchannel = new TestAppHostAuxiliaryBackchannel
         {
-            ResourceSnapshots = [new ResourceSnapshot { Name = "myapp", State = "FailedToStart" }]
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = false,
+                State = "FailedToStart",
+                ErrorMessage = "Resource 'myapp' failed to start."
+            }
         };
         var monitor = new TestAuxiliaryBackchannelMonitor();
         monitor.AddConnection("hash", "/tmp/test.sock", backchannel);

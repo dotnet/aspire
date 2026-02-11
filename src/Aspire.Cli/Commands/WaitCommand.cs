@@ -42,12 +42,6 @@ internal sealed class WaitCommand : BaseCommand
         Description = WaitCommandStrings.ProjectOptionDescription
     };
 
-    // Terminal states where the resource has stopped running
-    private static readonly string[] s_terminalStates = ["Finished", "Exited", "FailedToStart"];
-
-    // Failed states that indicate the resource won't recover
-    private static readonly string[] s_failedStates = ["FailedToStart", "RuntimeUnhealthy"];
-
     public WaitCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -124,66 +118,34 @@ internal sealed class WaitCommand : BaseCommand
 
         _logger.LogDebug("Waiting for resource '{ResourceName}' to reach status '{Status}' with timeout {Timeout}s", resourceName, status, timeoutSeconds);
 
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds), _timeProvider);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
         var startTimestamp = _timeProvider.GetTimestamp();
 
         var exitCode = await _interactionService.ShowStatusAsync(
             string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, resourceName, statusLabel),
             async () =>
             {
-                try
+                var response = await connection.WaitForResourceAsync(resourceName, status, timeoutSeconds, cancellationToken).ConfigureAwait(false);
+
+                if (response.Success)
                 {
-                    var resourceFound = false;
-
-                    await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(linkedCts.Token).ConfigureAwait(false))
-                    {
-                        // Match against both Name (ResourceId) and DisplayName
-                        if (!string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase)
-                            && !string.Equals(snapshot.DisplayName, resourceName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        resourceFound = true;
-
-                        _logger.LogDebug("Resource '{ResourceName}' state: {State}, health: {HealthStatus}", resourceName, snapshot.State, snapshot.HealthStatus);
-
-                        if (IsTargetStatusReached(snapshot, status))
-                        {
-                            return ExitCodeConstants.Success;
-                        }
-
-                        // When waiting for "healthy" or "up", check if the resource has entered a terminal failure state
-                        if (status is not "down" && IsFailedState(snapshot))
-                        {
-                            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, resourceName, snapshot.State));
-                            return ExitCodeConstants.WaitResourceFailed;
-                        }
-
-                        // When waiting for "healthy" or "up", check if the resource exited
-                        if (status is not "down" && IsTerminalState(snapshot))
-                        {
-                            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, resourceName, snapshot.State));
-                            return ExitCodeConstants.WaitResourceFailed;
-                        }
-                    }
-
-                    // Stream ended without finding the resource or reaching target status
-                    if (!resourceFound)
-                    {
-                        _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
-                        return ExitCodeConstants.WaitResourceFailed;
-                    }
-
-                    return ExitCodeConstants.WaitTimeout;
+                    return ExitCodeConstants.Success;
                 }
-                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+
+                if (response.ResourceNotFound)
+                {
+                    _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, resourceName));
+                    return ExitCodeConstants.WaitResourceFailed;
+                }
+
+                if (response.TimedOut)
                 {
                     _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitTimedOut, resourceName, statusLabel, timeoutSeconds));
                     return ExitCodeConstants.WaitTimeout;
                 }
+
+                // Resource entered a failed state
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, resourceName, response.State ?? response.ErrorMessage));
+                return ExitCodeConstants.WaitResourceFailed;
             });
 
         // Reset cursor position after spinner
@@ -196,40 +158,6 @@ internal sealed class WaitCommand : BaseCommand
         }
 
         return exitCode;
-    }
-
-    private static bool IsTargetStatusReached(ResourceSnapshot snapshot, string status)
-    {
-        return status switch
-        {
-            "up" => string.Equals(snapshot.State, "Running", StringComparison.OrdinalIgnoreCase),
-            "healthy" => string.Equals(snapshot.State, "Running", StringComparison.OrdinalIgnoreCase)
-                         && IsHealthy(snapshot),
-            "down" => IsTerminalState(snapshot),
-            _ => false
-        };
-    }
-
-    private static bool IsHealthy(ResourceSnapshot snapshot)
-    {
-        // If health reports exist, require an explicit "Healthy" status
-        if (snapshot.HealthReports.Length > 0)
-        {
-            return string.Equals(snapshot.HealthStatus, "Healthy", StringComparison.OrdinalIgnoreCase);
-        }
-
-        // No health checks configured — treat as healthy when running
-        return snapshot.HealthStatus is null;
-    }
-
-    private static bool IsTerminalState(ResourceSnapshot snapshot)
-    {
-        return s_terminalStates.Any(s => string.Equals(snapshot.State, s, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool IsFailedState(ResourceSnapshot snapshot)
-    {
-        return s_failedStates.Any(s => string.Equals(snapshot.State, s, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsValidStatus(string status)

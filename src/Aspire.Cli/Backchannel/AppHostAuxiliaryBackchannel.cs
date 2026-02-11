@@ -733,6 +733,43 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
         return response;
     }
 
+    /// <inheritdoc />
+    public async Task<WaitForResourceResponse> WaitForResourceAsync(
+        string resourceName,
+        string status,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default)
+    {
+        if (!SupportsV2)
+        {
+            return new WaitForResourceResponse
+            {
+                Success = false,
+                ErrorMessage = "Wait command is not supported by the AppHost version. Update the AppHost to use this command."
+            };
+        }
+
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Waiting for resource '{ResourceName}' to reach status '{Status}' with timeout {Timeout}s", resourceName, status, timeoutSeconds);
+
+        var request = new WaitForResourceRequest
+        {
+            ResourceName = resourceName,
+            Status = status,
+            TimeoutSeconds = timeoutSeconds
+        };
+
+        var response = await rpc.InvokeWithCancellationAsync<WaitForResourceResponse>(
+            "WaitForResourceAsync",
+            [request],
+            cancellationToken).ConfigureAwait(false);
+
+        _logger?.LogDebug("Wait for resource '{ResourceName}' completed: success={Success}, state={State}", resourceName, response.Success, response.State);
+
+        return response;
+    }
+
     #endregion
 
     /// <summary>
