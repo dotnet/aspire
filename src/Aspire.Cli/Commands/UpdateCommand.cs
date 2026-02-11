@@ -147,8 +147,7 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             var project = _projectFactory.GetProject(projectFile);
-            var isGuestProject = !project.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
-            var isProjectReferenceMode = isGuestProject && AspireRepositoryDetector.DetectRepositoryRoot(projectFile.Directory?.FullName) is not null;
+            var isProjectReferenceMode = project.IsUsingProjectReferences(projectFile);
 
             // Check if channel or quality option was provided (channel takes precedence)
             var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);

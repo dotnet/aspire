@@ -128,6 +128,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
+    /// <inheritdoc />
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return AspireRepositoryDetector.DetectRepositoryRoot(appHostFile.Directory?.FullName) is not null;
+    }
+
     /// <summary>
     /// Gets all packages including the code generation package for the current language.
     /// </summary>

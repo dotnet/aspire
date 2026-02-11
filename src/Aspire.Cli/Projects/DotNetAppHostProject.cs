@@ -139,6 +139,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => "apphost.cs";
 
+    /// <inheritdoc />
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return false;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
     // ═══════════════════════════════════════════════════════════════
