@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard;
-using Aspire.Managed.DevCerts;
 
 return args switch
 {
     ["dashboard", .. var rest] => RunDashboard(rest),
     ["server", .. var rest] => await RunServer(rest).ConfigureAwait(false),
     ["nuget", .. var rest] => await RunNuGet(rest).ConfigureAwait(false),
-    ["dev-certs", .. var rest] => DevCertsCommand.Run(rest),
     _ => ShowUsage()
 };
 
@@ -38,6 +36,6 @@ static async Task<int> RunNuGet(string[] args)
 
 static int ShowUsage()
 {
-    Console.Error.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} <dashboard|server|nuget|dev-certs> [args...]");
+    Console.Error.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} <dashboard|server|nuget> [args...]");
     return 1;
 }

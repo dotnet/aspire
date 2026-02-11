@@ -222,18 +222,11 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner - bundle uses aspire-managed dev-certs, SDK mode uses global dotnet
+        // Register certificate tool runner - uses native CertificateManager directly (no subprocess needed)
         builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            if (sp.GetRequiredService<IBundleService>().IsBundle)
-            {
-                return new BundleCertificateToolRunner(
-                    sp.GetRequiredService<ILayoutDiscovery>(),
-                    loggerFactory.CreateLogger<BundleCertificateToolRunner>());
-            }
-
-            return new SdkCertificateToolRunner(loggerFactory.CreateLogger<SdkCertificateToolRunner>());
+            return new NativeCertificateToolRunner(loggerFactory.CreateLogger<NativeCertificateToolRunner>());
         });
 
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();

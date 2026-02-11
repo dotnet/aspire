@@ -3,12 +3,13 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Tracing;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 #nullable enable
 
@@ -58,7 +59,7 @@ internal abstract class CertificateManager
             new MacOSCertificateManager() as CertificateManager :
             new UnixCertificateManager();
 
-    public static CertificateManagerEventSource Log { get; set; } = new CertificateManagerEventSource();
+    public static CertificateManagerLogger Log { get; set; } = new CertificateManagerLogger();
 
     // Setting to 0 means we don't append the version byte,
     // which is what all machines currently have.
@@ -678,7 +679,7 @@ internal abstract class CertificateManager
                 }
             }
         }
-        catch (Exception e) when (Log.IsEnabled())
+        catch (Exception e)
         {
             Log.ExportCertificateError(e.ToString());
             throw;
@@ -701,7 +702,7 @@ internal abstract class CertificateManager
 
             File.WriteAllBytes(path, bytes);
         }
-        catch (Exception ex) when (Log.IsEnabled())
+        catch (Exception ex)
         {
             Log.WriteCertificateToDiskError(ex.ToString());
             throw;
@@ -729,7 +730,7 @@ internal abstract class CertificateManager
 
                 File.WriteAllBytes(keyPath, pemEnvelope);
             }
-            catch (Exception ex) when (Log.IsEnabled())
+            catch (Exception ex)
             {
                 Log.WritePemKeyToDiskError(ex.ToString());
                 throw;
@@ -834,7 +835,7 @@ internal abstract class CertificateManager
             Log.TrustCertificateEnd();
             return trustLevel;
         }
-        catch (Exception ex) when (Log.IsEnabled())
+        catch (Exception ex)
         {
             Log.TrustCertificateError(ex.ToString());
             throw;
@@ -962,7 +963,7 @@ internal abstract class CertificateManager
             RemoveCertificateFromUserStoreCore(certificate);
             Log.RemoveCertificateFromUserStoreEnd();
         }
-        catch (Exception ex) when (Log.IsEnabled())
+        catch (Exception ex)
         {
             Log.RemoveCertificateFromUserStoreError(ex.ToString());
             throw;
@@ -1040,373 +1041,478 @@ internal abstract class CertificateManager
         return foundCertificate is not null;
     }
 
-    [EventSource(Name = "Dotnet-dev-certs")]
-    public sealed class CertificateManagerEventSource : EventSource
+    internal sealed class CertificateManagerLogger
     {
-        [Event(1, Level = EventLevel.Verbose, Message = "Listing certificates from {0}\\{1}")]
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Parameters passed to WriteEvent are all primative values.")]
-        public void ListCertificatesStart(StoreLocation location, StoreName storeName) => WriteEvent(1, location, storeName);
+        private readonly ILogger _logger;
 
-        [Event(2, Level = EventLevel.Verbose, Message = "Found certificates: {0}")]
-        public void DescribeFoundCertificates(string matchingCertificates) => WriteEvent(2, matchingCertificates);
+        public CertificateManagerLogger() : this(NullLogger.Instance) { }
 
-        [Event(3, Level = EventLevel.Verbose, Message = "Checking certificates validity")]
-        public void CheckCertificatesValidity() => WriteEvent(3);
+        public CertificateManagerLogger(ILogger logger)
+        {
+            _logger = logger;
+        }
 
-        [Event(4, Level = EventLevel.Verbose, Message = "Valid certificates: {0}")]
-        public void DescribeValidCertificates(string validCertificates) => WriteEvent(4, validCertificates);
+        public bool IsEnabled() => _logger.IsEnabled(LogLevel.Debug);
 
-        [Event(5, Level = EventLevel.Verbose, Message = "Invalid certificates: {0}")]
-        public void DescribeInvalidCertificates(string invalidCertificates) => WriteEvent(5, invalidCertificates);
+        // Event 1 - Verbose
+        public void ListCertificatesStart(StoreLocation location, StoreName storeName) =>
+            _logger.LogDebug("Listing certificates from {Location}\\{StoreName}", location, storeName);
 
-        [Event(6, Level = EventLevel.Verbose, Message = "Finished listing certificates.")]
-        public void ListCertificatesEnd() => WriteEvent(6);
+        // Event 2 - Verbose
+        public void DescribeFoundCertificates(string matchingCertificates) =>
+            _logger.LogDebug("Found certificates: {MatchingCertificates}", matchingCertificates);
 
-        [Event(7, Level = EventLevel.Error, Message = "An error occurred while listing the certificates: {0}")]
-        public void ListCertificatesError(string e) => WriteEvent(7, e);
+        // Event 3 - Verbose
+        public void CheckCertificatesValidity() =>
+            _logger.LogDebug("Checking certificates validity");
 
-        [Event(8, Level = EventLevel.Verbose, Message = "Filtered certificates: {0}")]
-        public void FilteredCertificates(string filteredCertificates) => WriteEvent(8, filteredCertificates);
+        // Event 4 - Verbose
+        public void DescribeValidCertificates(string validCertificates) =>
+            _logger.LogDebug("Valid certificates: {ValidCertificates}", validCertificates);
 
-        [Event(9, Level = EventLevel.Verbose, Message = "Excluded certificates: {0}")]
-        public void ExcludedCertificates(string excludedCertificates) => WriteEvent(9, excludedCertificates);
+        // Event 5 - Verbose
+        public void DescribeInvalidCertificates(string invalidCertificates) =>
+            _logger.LogDebug("Invalid certificates: {InvalidCertificates}", invalidCertificates);
 
-        [Event(14, Level = EventLevel.Verbose, Message = "Valid certificates: {0}")]
-        public void ValidCertificatesFound(string certificates) => WriteEvent(14, certificates);
+        // Event 6 - Verbose
+        public void ListCertificatesEnd() =>
+            _logger.LogDebug("Finished listing certificates.");
 
-        [Event(15, Level = EventLevel.Verbose, Message = "Selected certificate: {0}")]
-        public void SelectedCertificate(string certificate) => WriteEvent(15, certificate);
+        // Event 7 - Error
+        public void ListCertificatesError(string e) =>
+            _logger.LogError("An error occurred while listing the certificates: {Error}", e);
 
-        [Event(16, Level = EventLevel.Verbose, Message = "No valid certificates found.")]
-        public void NoValidCertificatesFound() => WriteEvent(16);
+        // Event 8 - Verbose
+        public void FilteredCertificates(string filteredCertificates) =>
+            _logger.LogDebug("Filtered certificates: {FilteredCertificates}", filteredCertificates);
 
-        [Event(17, Level = EventLevel.Verbose, Message = "Generating HTTPS development certificate.")]
-        public void CreateDevelopmentCertificateStart() => WriteEvent(17);
+        // Event 9 - Verbose
+        public void ExcludedCertificates(string excludedCertificates) =>
+            _logger.LogDebug("Excluded certificates: {ExcludedCertificates}", excludedCertificates);
 
-        [Event(18, Level = EventLevel.Verbose, Message = "Finished generating HTTPS development certificate.")]
-        public void CreateDevelopmentCertificateEnd() => WriteEvent(18);
+        // Event 14 - Verbose
+        public void ValidCertificatesFound(string certificates) =>
+            _logger.LogDebug("Valid certificates: {Certificates}", certificates);
 
-        [Event(19, Level = EventLevel.Error, Message = "An error has occurred generating the certificate: {0}.")]
-        public void CreateDevelopmentCertificateError(string e) => WriteEvent(19, e);
+        // Event 15 - Verbose
+        public void SelectedCertificate(string certificate) =>
+            _logger.LogDebug("Selected certificate: {Certificate}", certificate);
 
-        [Event(20, Level = EventLevel.Verbose, Message = "Saving certificate '{0}' to store {2}\\{1}.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Parameters passed to WriteEvent are all primitive values.")]
-        public void SaveCertificateInStoreStart(string certificate, StoreName name, StoreLocation location) => WriteEvent(20, certificate, name, location);
+        // Event 16 - Verbose
+        public void NoValidCertificatesFound() =>
+            _logger.LogDebug("No valid certificates found.");
 
-        [Event(21, Level = EventLevel.Verbose, Message = "Finished saving certificate to the store.")]
-        public void SaveCertificateInStoreEnd() => WriteEvent(21);
+        // Event 17 - Verbose
+        public void CreateDevelopmentCertificateStart() =>
+            _logger.LogDebug("Generating HTTPS development certificate.");
 
-        [Event(22, Level = EventLevel.Error, Message = "An error has occurred saving the certificate: {0}.")]
-        public void SaveCertificateInStoreError(string e) => WriteEvent(22, e);
+        // Event 18 - Verbose
+        public void CreateDevelopmentCertificateEnd() =>
+            _logger.LogDebug("Finished generating HTTPS development certificate.");
 
-        [Event(23, Level = EventLevel.Verbose, Message = "Saving certificate '{0}' to {1} {2} private key.")]
-        public void ExportCertificateStart(string certificate, string path, bool includePrivateKey) => WriteEvent(23, certificate, path, includePrivateKey ? "with" : "without");
+        // Event 19 - Error
+        public void CreateDevelopmentCertificateError(string e) =>
+            _logger.LogError("An error has occurred generating the certificate: {Error}.", e);
 
-        [Event(24, Level = EventLevel.Verbose, Message = "Exporting certificate with private key but no password.")]
-        public void NoPasswordForCertificate() => WriteEvent(24);
+        // Event 20 - Verbose
+        public void SaveCertificateInStoreStart(string certificate, StoreName name, StoreLocation location) =>
+            _logger.LogDebug("Saving certificate '{Certificate}' to store {Location}\\{StoreName}.", certificate, location, name);
 
-        [Event(25, Level = EventLevel.Verbose, Message = "Creating directory {0}.")]
-        public void CreateExportCertificateDirectory(string path) => WriteEvent(25, path);
+        // Event 21 - Verbose
+        public void SaveCertificateInStoreEnd() =>
+            _logger.LogDebug("Finished saving certificate to the store.");
 
-        [Event(26, Level = EventLevel.Error, Message = "An error has occurred while exporting the certificate: {0}.")]
-        public void ExportCertificateError(string error) => WriteEvent(26, error);
+        // Event 22 - Error
+        public void SaveCertificateInStoreError(string e) =>
+            _logger.LogError("An error has occurred saving the certificate: {Error}.", e);
 
-        [Event(27, Level = EventLevel.Verbose, Message = "Writing the certificate to: {0}.")]
-        public void WriteCertificateToDisk(string path) => WriteEvent(27, path);
+        // Event 23 - Verbose
+        public void ExportCertificateStart(string certificate, string path, bool includePrivateKey) =>
+            _logger.LogDebug("Saving certificate '{Certificate}' to {Path} {PrivateKey} private key.", certificate, path, includePrivateKey ? "with" : "without");
 
-        [Event(28, Level = EventLevel.Error, Message = "An error has occurred while writing the certificate to disk: {0}.")]
-        public void WriteCertificateToDiskError(string error) => WriteEvent(28, error);
+        // Event 24 - Verbose
+        public void NoPasswordForCertificate() =>
+            _logger.LogDebug("Exporting certificate with private key but no password.");
 
-        [Event(29, Level = EventLevel.Verbose, Message = "Trusting the certificate to: {0}.")]
-        public void TrustCertificateStart(string certificate) => WriteEvent(29, certificate);
+        // Event 25 - Verbose
+        public void CreateExportCertificateDirectory(string path) =>
+            _logger.LogDebug("Creating directory {Path}.", path);
 
-        [Event(30, Level = EventLevel.Verbose, Message = "Finished trusting the certificate.")]
-        public void TrustCertificateEnd() => WriteEvent(30);
+        // Event 26 - Error
+        public void ExportCertificateError(string error) =>
+            _logger.LogError("An error has occurred while exporting the certificate: {Error}.", error);
 
-        [Event(31, Level = EventLevel.Error, Message = "An error has occurred while trusting the certificate: {0}.")]
-        public void TrustCertificateError(string error) => WriteEvent(31, error);
-
-        [Event(32, Level = EventLevel.Verbose, Message = "Running the trust command {0}.")]
-        public void MacOSTrustCommandStart(string command) => WriteEvent(32, command);
-
-        [Event(33, Level = EventLevel.Verbose, Message = "Finished running the trust command.")]
-        public void MacOSTrustCommandEnd() => WriteEvent(33);
-
-        [Event(34, Level = EventLevel.Warning, Message = "An error has occurred while running the trust command: {0}.")]
-        public void MacOSTrustCommandError(int exitCode) => WriteEvent(34, exitCode);
-
-        [Event(35, Level = EventLevel.Verbose, Message = "Running the remove trust command for {0}.")]
-        public void MacOSRemoveCertificateTrustRuleStart(string certificate) => WriteEvent(35, certificate);
-
-        [Event(36, Level = EventLevel.Verbose, Message = "Finished running the remove trust command.")]
-        public void MacOSRemoveCertificateTrustRuleEnd() => WriteEvent(36);
-
-        [Event(37, Level = EventLevel.Warning, Message = "An error has occurred while running the remove trust command: {0}.")]
-        public void MacOSRemoveCertificateTrustRuleError(int exitCode) => WriteEvent(37, exitCode);
-
-        [Event(38, Level = EventLevel.Verbose, Message = "The certificate is not trusted: {0}.")]
-        public void MacOSCertificateUntrusted(string certificate) => WriteEvent(38, certificate);
-
-        [Event(39, Level = EventLevel.Verbose, Message = "Removing the certificate from the keychain {0} {1}.")]
-        public void MacOSRemoveCertificateFromKeyChainStart(string keyChain, string certificate) => WriteEvent(39, keyChain, certificate);
-
-        [Event(40, Level = EventLevel.Verbose, Message = "Finished removing the certificate from the keychain.")]
-        public void MacOSRemoveCertificateFromKeyChainEnd() => WriteEvent(40);
-
-        [Event(41, Level = EventLevel.Warning, Message = "An error has occurred while running the remove trust command: {0}.")]
-        public void MacOSRemoveCertificateFromKeyChainError(int exitCode) => WriteEvent(41, exitCode);
-
-        [Event(42, Level = EventLevel.Verbose, Message = "Removing the certificate from the user store {0}.")]
-        public void RemoveCertificateFromUserStoreStart(string certificate) => WriteEvent(42, certificate);
-
-        [Event(43, Level = EventLevel.Verbose, Message = "Finished removing the certificate from the user store.")]
-        public void RemoveCertificateFromUserStoreEnd() => WriteEvent(43);
-
-        [Event(44, Level = EventLevel.Error, Message = "An error has occurred while removing the certificate from the user store: {0}.")]
-        public void RemoveCertificateFromUserStoreError(string error) => WriteEvent(44, error);
-
-        [Event(45, Level = EventLevel.Verbose, Message = "Adding certificate to the trusted root certification authority store.")]
-        public void WindowsAddCertificateToRootStore() => WriteEvent(45);
-
-        [Event(46, Level = EventLevel.Verbose, Message = "The certificate is already trusted.")]
-        public void WindowsCertificateAlreadyTrusted() => WriteEvent(46);
-
-        [Event(47, Level = EventLevel.Verbose, Message = "Trusting the certificate was cancelled by the user.")]
-        public void WindowsCertificateTrustCanceled() => WriteEvent(47);
-
-        [Event(48, Level = EventLevel.Verbose, Message = "Removing the certificate from the trusted root certification authority store.")]
-        public void WindowsRemoveCertificateFromRootStoreStart() => WriteEvent(48);
-
-        [Event(49, Level = EventLevel.Verbose, Message = "Finished removing the certificate from the trusted root certification authority store.")]
-        public void WindowsRemoveCertificateFromRootStoreEnd() => WriteEvent(49);
-
-        [Event(50, Level = EventLevel.Verbose, Message = "The certificate was not trusted.")]
-        public void WindowsRemoveCertificateFromRootStoreNotFound() => WriteEvent(50);
-
-        [Event(51, Level = EventLevel.Verbose, Message = "Correcting the the certificate state for '{0}'.")]
-        public void CorrectCertificateStateStart(string certificate) => WriteEvent(51, certificate);
-
-        [Event(52, Level = EventLevel.Verbose, Message = "Finished correcting the certificate state.")]
-        public void CorrectCertificateStateEnd() => WriteEvent(52);
-
-        [Event(53, Level = EventLevel.Error, Message = "An error has occurred while correcting the certificate state: {0}.")]
-        public void CorrectCertificateStateError(string error) => WriteEvent(53, error);
-
-        [Event(54, Level = EventLevel.Verbose, Message = "Importing the certificate {1} to the keychain '{0}'.")]
-        internal void MacOSAddCertificateToKeyChainStart(string keychain, string certificate) => WriteEvent(54, keychain, certificate);
-
-        [Event(55, Level = EventLevel.Verbose, Message = "Finished importing the certificate to the keychain.")]
-        internal void MacOSAddCertificateToKeyChainEnd() => WriteEvent(55);
-
-        [Event(56, Level = EventLevel.Error, Message = "An error has occurred while importing the certificate to the keychain: {0}, {1}")]
-        internal void MacOSAddCertificateToKeyChainError(int exitCode, string output) => WriteEvent(56, exitCode, output);
-
-        [Event(57, Level = EventLevel.Verbose, Message = "Writing the certificate to: {0}.")]
-        public void WritePemKeyToDisk(string path) => WriteEvent(57, path);
-
-        [Event(58, Level = EventLevel.Error, Message = "An error has occurred while writing the certificate to disk: {0}.")]
-        public void WritePemKeyToDiskError(string error) => WriteEvent(58, error);
-
-        [Event(59, Level = EventLevel.Error, Message = "The file '{0}' does not exist.")]
-        internal void ImportCertificateMissingFile(string certificatePath) => WriteEvent(59, certificatePath);
-
-        [Event(60, Level = EventLevel.Error, Message = "One or more HTTPS certificates exist '{0}'.")]
-        internal void ImportCertificateExistingCertificates(string certificateDescription) => WriteEvent(60, certificateDescription);
-
-        [Event(61, Level = EventLevel.Verbose, Message = "Loading certificate from path '{0}'.")]
-        internal void LoadCertificateStart(string certificatePath) => WriteEvent(61, certificatePath);
-
-        [Event(62, Level = EventLevel.Verbose, Message = "The certificate '{0}' has been loaded successfully.")]
-        internal void LoadCertificateEnd(string description) => WriteEvent(62, description);
-
-        [Event(63, Level = EventLevel.Error, Message = "An error has occurred while loading the certificate from disk: {0}.")]
-        internal void LoadCertificateError(string error) => WriteEvent(63, error);
-
-        [Event(64, Level = EventLevel.Error, Message = "The provided certificate '{0}' is not a valid ASP.NET Core HTTPS development certificate.")]
-        internal void NoHttpsDevelopmentCertificate(string description) => WriteEvent(64, description);
-
-        [Event(65, Level = EventLevel.Verbose, Message = "The certificate is already trusted.")]
-        public void MacOSCertificateAlreadyTrusted() => WriteEvent(65);
-
-        [Event(66, Level = EventLevel.Verbose, Message = "Saving the certificate {1} to the user profile folder '{0}'.")]
-        internal void MacOSAddCertificateToUserProfileDirStart(string directory, string certificate) => WriteEvent(66, directory, certificate);
-
-        [Event(67, Level = EventLevel.Verbose, Message = "Finished saving the certificate to the user profile folder.")]
-        internal void MacOSAddCertificateToUserProfileDirEnd() => WriteEvent(67);
-
-        [Event(68, Level = EventLevel.Error, Message = "An error has occurred while saving certificate '{0}' in the user profile folder: {1}.")]
-        internal void MacOSAddCertificateToUserProfileDirError(string certificateThumbprint, string errorMessage) => WriteEvent(68, certificateThumbprint, errorMessage);
-
-        [Event(69, Level = EventLevel.Error, Message = "An error has occurred while removing certificate '{0}' from the user profile folder: {1}.")]
-        internal void MacOSRemoveCertificateFromUserProfileDirError(string certificateThumbprint, string errorMessage) => WriteEvent(69, certificateThumbprint, errorMessage);
-
-        [Event(70, Level = EventLevel.Error, Message = "The file '{0}' is not a valid certificate.")]
-        internal void MacOSFileIsNotAValidCertificate(string path) => WriteEvent(70, path);
-
-        [Event(71, Level = EventLevel.Warning, Message = "The on-disk store directory was not found.")]
-        internal void MacOSDiskStoreDoesNotExist() => WriteEvent(71);
-
-        [Event(72, Level = EventLevel.Verbose, Message = "Reading OpenSSL trusted certificates location from {0}.")]
-        internal void UnixOpenSslCertificateDirectoryOverridePresent(string nssDbOverrideVariableName) => WriteEvent(72, nssDbOverrideVariableName);
-
-        [Event(73, Level = EventLevel.Verbose, Message = "Reading NSS database locations from {0}.")]
-        internal void UnixNssDbOverridePresent(string environmentVariable) => WriteEvent(73, environmentVariable);
-
-        // Recoverable - just don't use it.
-        [Event(74, Level = EventLevel.Warning, Message = "The NSS database '{0}' provided via {1} does not exist.")]
-        internal void UnixNssDbDoesNotExist(string nssDb, string environmentVariable) => WriteEvent(74, nssDb, environmentVariable);
-
-        [Event(75, Level = EventLevel.Warning, Message = "The certificate is not trusted by .NET. This will likely affect System.Net.Http.HttpClient.")]
-        internal void UnixNotTrustedByDotnet() => WriteEvent(75);
-
-        [Event(76, Level = EventLevel.Warning, Message = "The certificate is not trusted by OpenSSL.  Ensure that the {0} environment variable is set correctly.")]
-        internal void UnixNotTrustedByOpenSsl(string envVarName) => WriteEvent(76, envVarName);
-
-        [Event(77, Level = EventLevel.Warning, Message = "The certificate is not trusted in the NSS database in '{0}'. This will likely affect the {1} family of browsers.")]
-        internal void UnixNotTrustedByNss(string path, string browser) => WriteEvent(77, path, browser);
-
-        // If there's no home directory, there are no NSS DBs to check (barring an override), but this isn't strictly a problem.
-        [Event(78, Level = EventLevel.Verbose, Message = "Home directory '{0}' does not exist. Unable to discover NSS databases for user '{1}'.  This will likely affect browsers.")]
-        internal void UnixHomeDirectoryDoesNotExist(string homeDirectory, string username) => WriteEvent(78, homeDirectory, username);
-
-        // Checking the system-wide OpenSSL directory is only used to make output more helpful - don't warn if it fails.
-        [Event(79, Level = EventLevel.Verbose, Message = "OpenSSL reported its directory in an unexpected format.")]
-        internal void UnixOpenSslVersionParsingFailed() => WriteEvent(79);
-
-        // Checking the system-wide OpenSSL directory is only used to make output more helpful - don't warn if it fails.
-        [Event(80, Level = EventLevel.Verbose, Message = "Unable to determine the OpenSSL directory.")]
-        internal void UnixOpenSslVersionFailed() => WriteEvent(80);
-
-        // Checking the system-wide OpenSSL directory is only used to make output more helpful - don't warn if it fails.
-        [Event(81, Level = EventLevel.Verbose, Message = "Unable to determine the OpenSSL directory: {0}.")]
-        internal void UnixOpenSslVersionException(string exceptionMessage) => WriteEvent(81, exceptionMessage);
-
-        // We'll continue on to NSS DB, but leaving the OpenSSL hash files in a bad state is a real problem.
-        [Event(82, Level = EventLevel.Error, Message = "Unable to compute the hash of certificate {0}. OpenSSL trust is likely in an inconsistent state.")]
-        internal void UnixOpenSslHashFailed(string certificatePath) => WriteEvent(82, certificatePath);
-
-        // We'll continue on to NSS DB, but leaving the OpenSSL hash files in a bad state is a real problem.
-        [Event(83, Level = EventLevel.Error, Message = "Unable to compute the certificate hash: {0}. OpenSSL trust is likely in an inconsistent state.")]
-        internal void UnixOpenSslHashException(string certificatePath, string exceptionMessage) => WriteEvent(83, certificatePath, exceptionMessage);
-
-        // We'll continue on to NSS DB, but leaving the OpenSSL hash files in a bad state is a real problem.
-        [Event(84, Level = EventLevel.Error, Message = "Unable to update certificate '{0}' in the OpenSSL trusted certificate hash collection - {2} certificates have the hash {1}.")]
-        internal void UnixOpenSslRehashTooManyHashes(string fullName, string hash, int maxHashCollisions) => WriteEvent(84, fullName, hash, maxHashCollisions);
-
-        // We'll continue on to NSS DB, but leaving the OpenSSL hash files in a bad state is a real problem.
-        [Event(85, Level = EventLevel.Error, Message = "Unable to update the OpenSSL trusted certificate hash collection: {0}. " +
-            "Manually rehashing may help. See https://aka.ms/dev-certs-trust for more information.")] // This should recommend manually running c_rehash.
-        internal void UnixOpenSslRehashException(string exceptionMessage) => WriteEvent(85, exceptionMessage);
-
-        [Event(86, Level = EventLevel.Warning, Message = "Failed to trust the certificate in .NET: {0}.")]
-        internal void UnixDotnetTrustException(string exceptionMessage) => WriteEvent(86, exceptionMessage);
-
-        [Event(87, Level = EventLevel.Verbose, Message = "Trusted the certificate in .NET.")]
-        internal void UnixDotnetTrustSucceeded() => WriteEvent(87);
-
-        [Event(88, Level = EventLevel.Warning, Message = "Clients that validate certificate trust using OpenSSL will not trust the certificate.")]
-        internal void UnixOpenSslTrustFailed() => WriteEvent(88);
-
-        [Event(89, Level = EventLevel.Verbose, Message = "Trusted the certificate in OpenSSL.")]
-        internal void UnixOpenSslTrustSucceeded() => WriteEvent(89);
-
-        [Event(90, Level = EventLevel.Warning, Message = "Failed to trust the certificate in the NSS database in '{0}'. This will likely affect the {1} family of browsers.")]
-        internal void UnixNssDbTrustFailed(string path, string browser) => WriteEvent(90, path, browser);
-
-        [Event(91, Level = EventLevel.Verbose, Message = "Trusted the certificate in the NSS database in '{0}'.")]
-        internal void UnixNssDbTrustSucceeded(string path) => WriteEvent(91, path);
-
-        [Event(92, Level = EventLevel.Warning, Message = "Failed to untrust the certificate in .NET: {0}.")]
-        internal void UnixDotnetUntrustException(string exceptionMessage) => WriteEvent(92, exceptionMessage);
-
-        [Event(93, Level = EventLevel.Warning, Message = "Failed to untrust the certificate in OpenSSL.")]
-        internal void UnixOpenSslUntrustFailed() => WriteEvent(93);
-
-        [Event(94, Level = EventLevel.Verbose, Message = "Untrusted the certificate in OpenSSL.")]
-        internal void UnixOpenSslUntrustSucceeded() => WriteEvent(94);
-
-        [Event(95, Level = EventLevel.Warning, Message = "Failed to remove the certificate from the NSS database in '{0}'.")]
-        internal void UnixNssDbUntrustFailed(string path) => WriteEvent(95, path);
-
-        [Event(96, Level = EventLevel.Verbose, Message = "Removed the certificate from the NSS database in '{0}'.")]
-        internal void UnixNssDbUntrustSucceeded(string path) => WriteEvent(96, path);
-
-        [Event(97, Level = EventLevel.Warning, Message = "The certificate is only partially trusted - some clients will not accept it.")]
-        internal void UnixTrustPartiallySucceeded() => WriteEvent(97);
-
-        [Event(98, Level = EventLevel.Warning, Message = "Failed to look up the certificate in the NSS database in '{0}': {1}.")]
-        internal void UnixNssDbCheckException(string path, string exceptionMessage) => WriteEvent(98, path, exceptionMessage);
-
-        [Event(99, Level = EventLevel.Warning, Message = "Failed to add the certificate to the NSS database in '{0}': {1}.")]
-        internal void UnixNssDbAdditionException(string path, string exceptionMessage) => WriteEvent(99, path, exceptionMessage);
-
-        [Event(100, Level = EventLevel.Warning, Message = "Failed to remove the certificate from the NSS database in '{0}': {1}.")]
-        internal void UnixNssDbRemovalException(string path, string exceptionMessage) => WriteEvent(100, path, exceptionMessage);
-
-        [Event(101, Level = EventLevel.Warning, Message = "Failed to find the Firefox profiles in directory '{0}': {1}.")]
-        internal void UnixFirefoxProfileEnumerationException(string firefoxDirectory, string message) => WriteEvent(101, firefoxDirectory, message);
-
-        [Event(102, Level = EventLevel.Verbose, Message = "No Firefox profiles found in directory '{0}'.")]
-        internal void UnixNoFirefoxProfilesFound(string firefoxDirectory) => WriteEvent(102, firefoxDirectory);
-
-        [Event(103, Level = EventLevel.Warning, Message = "Failed to trust the certificate in the NSS database in '{0}'. This will likely affect the {1} family of browsers. " +
-            "This likely indicates that the database already contains an entry for the certificate under a different name. Please remove it and try again.")]
-        internal void UnixNssDbTrustFailedWithProbableConflict(string path, string browser) => WriteEvent(103, path, browser);
-
-        // This may be annoying, since anyone setting the variable for un/trust will likely leave it set for --check.
-        // However, it seems important to warn users who set it specifically for --check.
-        [Event(104, Level = EventLevel.Warning, Message = "The {0} environment variable is set but will not be consumed while checking trust.")]
-        internal void UnixOpenSslCertificateDirectoryOverrideIgnored(string openSslCertDirectoryOverrideVariableName) => WriteEvent(104, openSslCertDirectoryOverrideVariableName);
-
-        [Event(105, Level = EventLevel.Warning, Message = "The {0} command is unavailable.  It is required for updating certificate trust in OpenSSL.")]
-        internal void UnixMissingOpenSslCommand(string openSslCommand) => WriteEvent(105, openSslCommand);
-
-        [Event(106, Level = EventLevel.Warning, Message = "The {0} command is unavailable.  It is required for querying and updating NSS databases, which are chiefly used to trust certificates in browsers.")]
-        internal void UnixMissingCertUtilCommand(string certUtilCommand) => WriteEvent(106, certUtilCommand);
-
-        [Event(107, Level = EventLevel.Verbose, Message = "Untrusting the certificate in OpenSSL was skipped since '{0}' does not exist.")]
-        internal void UnixOpenSslUntrustSkipped(string certPath) => WriteEvent(107, certPath);
-
-        [Event(108, Level = EventLevel.Warning, Message = "Failed to delete certificate file '{0}': {1}.")]
-        internal void UnixCertificateFileDeletionException(string certPath, string exceptionMessage) => WriteEvent(108, certPath, exceptionMessage);
-
-        [Event(109, Level = EventLevel.Error, Message = "Unable to export the certificate since '{0}' already exists. Please remove it.")]
-        internal void UnixNotOverwritingCertificate(string certPath) => WriteEvent(109, certPath);
-
-        [Event(110, Level = EventLevel.LogAlways, Message = "For OpenSSL trust to take effect, '{0}' must be listed in the {2} environment variable. " +
-            "For example, `export {2}=\"{0}:{1}\"`. " +
-            "See https://aka.ms/dev-certs-trust for more information.")]
-        internal void UnixSuggestSettingEnvironmentVariable(string certDir, string openSslDir, string envVarName) => WriteEvent(110, certDir, openSslDir, envVarName);
-
-        [Event(111, Level = EventLevel.LogAlways, Message = "For OpenSSL trust to take effect, '{0}' must be listed in the {2} environment variable. " +
-            "See https://aka.ms/dev-certs-trust for more information.")]
-        internal void UnixSuggestSettingEnvironmentVariableWithoutExample(string certDir, string envVarName) => WriteEvent(111, certDir, envVarName);
-
-        [Event(112, Level = EventLevel.Warning, Message = "Directory '{0}' may be readable by other users.")]
-        internal void DirectoryPermissionsNotSecure(string directoryPath) => WriteEvent(112, directoryPath);
-
-        [Event(113, Level = EventLevel.Verbose, Message = "The certificate directory '{0}' is already included in the {1} environment variable.")]
-        internal void UnixOpenSslCertificateDirectoryAlreadyConfigured(string certDir, string envVarName) => WriteEvent(113, certDir, envVarName);
-
-        [Event(114, Level = EventLevel.LogAlways, Message = "For OpenSSL trust to take effect, '{0}' must be listed in the {1} environment variable. " +
-            "For example, `export {1}=\"{0}:${1}\"`. " +
-            "See https://aka.ms/dev-certs-trust for more information.")]
-        internal void UnixSuggestAppendingToEnvironmentVariable(string certDir, string envVarName) => WriteEvent(114, certDir, envVarName);
-
-        [Event(115, Level = EventLevel.Verbose, Message = "Successfully trusted the certificate in the Windows certificate store via WSL.")]
-        internal void WslWindowsTrustSucceeded() => WriteEvent(115);
-
-        [Event(116, Level = EventLevel.Warning, Message = "Failed to trust the certificate in the Windows certificate store via WSL.")]
-        internal void WslWindowsTrustFailed() => WriteEvent(116);
-
-        [Event(117, Level = EventLevel.Warning, Message = "Failed to trust the certificate in the Windows certificate store via WSL: {0}.")]
-        internal void WslWindowsTrustException(string exceptionMessage) => WriteEvent(117, exceptionMessage);
-
-        [Event(118, Level = EventLevel.Verbose, Message = "Meets minimum version certificates: {0}")]
-        public void DescribeMinimumVersionCertificates(string meetsMinimumVersionCertificates) => WriteEvent(118, meetsMinimumVersionCertificates);
-
-        [Event(119, Level = EventLevel.Verbose, Message = "Below minimum version certificates: {0}")]
-        public void DescribeBelowMinimumVersionCertificates(string belowMinimumVersionCertificates) => WriteEvent(119, belowMinimumVersionCertificates);
+        // Event 27 - Verbose
+        public void WriteCertificateToDisk(string path) =>
+            _logger.LogDebug("Writing the certificate to: {Path}.", path);
+
+        // Event 28 - Error
+        public void WriteCertificateToDiskError(string error) =>
+            _logger.LogError("An error has occurred while writing the certificate to disk: {Error}.", error);
+
+        // Event 29 - Verbose
+        public void TrustCertificateStart(string certificate) =>
+            _logger.LogDebug("Trusting the certificate to: {Certificate}.", certificate);
+
+        // Event 30 - Verbose
+        public void TrustCertificateEnd() =>
+            _logger.LogDebug("Finished trusting the certificate.");
+
+        // Event 31 - Error
+        public void TrustCertificateError(string error) =>
+            _logger.LogError("An error has occurred while trusting the certificate: {Error}.", error);
+
+        // Event 32 - Verbose
+        public void MacOSTrustCommandStart(string command) =>
+            _logger.LogDebug("Running the trust command {Command}.", command);
+
+        // Event 33 - Verbose
+        public void MacOSTrustCommandEnd() =>
+            _logger.LogDebug("Finished running the trust command.");
+
+        // Event 34 - Warning
+        public void MacOSTrustCommandError(int exitCode) =>
+            _logger.LogWarning("An error has occurred while running the trust command: {ExitCode}.", exitCode);
+
+        // Event 35 - Verbose
+        public void MacOSRemoveCertificateTrustRuleStart(string certificate) =>
+            _logger.LogDebug("Running the remove trust command for {Certificate}.", certificate);
+
+        // Event 36 - Verbose
+        public void MacOSRemoveCertificateTrustRuleEnd() =>
+            _logger.LogDebug("Finished running the remove trust command.");
+
+        // Event 37 - Warning
+        public void MacOSRemoveCertificateTrustRuleError(int exitCode) =>
+            _logger.LogWarning("An error has occurred while running the remove trust command: {ExitCode}.", exitCode);
+
+        // Event 38 - Verbose
+        public void MacOSCertificateUntrusted(string certificate) =>
+            _logger.LogDebug("The certificate is not trusted: {Certificate}.", certificate);
+
+        // Event 39 - Verbose
+        public void MacOSRemoveCertificateFromKeyChainStart(string keyChain, string certificate) =>
+            _logger.LogDebug("Removing the certificate from the keychain {KeyChain} {Certificate}.", keyChain, certificate);
+
+        // Event 40 - Verbose
+        public void MacOSRemoveCertificateFromKeyChainEnd() =>
+            _logger.LogDebug("Finished removing the certificate from the keychain.");
+
+        // Event 41 - Warning
+        public void MacOSRemoveCertificateFromKeyChainError(int exitCode) =>
+            _logger.LogWarning("An error has occurred while running the remove trust command: {ExitCode}.", exitCode);
+
+        // Event 42 - Verbose
+        public void RemoveCertificateFromUserStoreStart(string certificate) =>
+            _logger.LogDebug("Removing the certificate from the user store {Certificate}.", certificate);
+
+        // Event 43 - Verbose
+        public void RemoveCertificateFromUserStoreEnd() =>
+            _logger.LogDebug("Finished removing the certificate from the user store.");
+
+        // Event 44 - Error
+        public void RemoveCertificateFromUserStoreError(string error) =>
+            _logger.LogError("An error has occurred while removing the certificate from the user store: {Error}.", error);
+
+        // Event 45 - Verbose
+        public void WindowsAddCertificateToRootStore() =>
+            _logger.LogDebug("Adding certificate to the trusted root certification authority store.");
+
+        // Event 46 - Verbose
+        public void WindowsCertificateAlreadyTrusted() =>
+            _logger.LogDebug("The certificate is already trusted.");
+
+        // Event 47 - Verbose
+        public void WindowsCertificateTrustCanceled() =>
+            _logger.LogDebug("Trusting the certificate was cancelled by the user.");
+
+        // Event 48 - Verbose
+        public void WindowsRemoveCertificateFromRootStoreStart() =>
+            _logger.LogDebug("Removing the certificate from the trusted root certification authority store.");
+
+        // Event 49 - Verbose
+        public void WindowsRemoveCertificateFromRootStoreEnd() =>
+            _logger.LogDebug("Finished removing the certificate from the trusted root certification authority store.");
+
+        // Event 50 - Verbose
+        public void WindowsRemoveCertificateFromRootStoreNotFound() =>
+            _logger.LogDebug("The certificate was not trusted.");
+
+        // Event 51 - Verbose
+        public void CorrectCertificateStateStart(string certificate) =>
+            _logger.LogDebug("Correcting the the certificate state for '{Certificate}'.", certificate);
+
+        // Event 52 - Verbose
+        public void CorrectCertificateStateEnd() =>
+            _logger.LogDebug("Finished correcting the certificate state.");
+
+        // Event 53 - Error
+        public void CorrectCertificateStateError(string error) =>
+            _logger.LogError("An error has occurred while correcting the certificate state: {Error}.", error);
+
+        // Event 54 - Verbose
+        internal void MacOSAddCertificateToKeyChainStart(string keychain, string certificate) =>
+            _logger.LogDebug("Importing the certificate {Certificate} to the keychain '{Keychain}'.", certificate, keychain);
+
+        // Event 55 - Verbose
+        internal void MacOSAddCertificateToKeyChainEnd() =>
+            _logger.LogDebug("Finished importing the certificate to the keychain.");
+
+        // Event 56 - Error
+        internal void MacOSAddCertificateToKeyChainError(int exitCode, string output) =>
+            _logger.LogError("An error has occurred while importing the certificate to the keychain: {ExitCode}, {Output}", exitCode, output);
+
+        // Event 57 - Verbose
+        public void WritePemKeyToDisk(string path) =>
+            _logger.LogDebug("Writing the certificate to: {Path}.", path);
+
+        // Event 58 - Error
+        public void WritePemKeyToDiskError(string error) =>
+            _logger.LogError("An error has occurred while writing the certificate to disk: {Error}.", error);
+
+        // Event 59 - Error
+        internal void ImportCertificateMissingFile(string certificatePath) =>
+            _logger.LogError("The file '{CertificatePath}' does not exist.", certificatePath);
+
+        // Event 60 - Error
+        internal void ImportCertificateExistingCertificates(string certificateDescription) =>
+            _logger.LogError("One or more HTTPS certificates exist '{CertificateDescription}'.", certificateDescription);
+
+        // Event 61 - Verbose
+        internal void LoadCertificateStart(string certificatePath) =>
+            _logger.LogDebug("Loading certificate from path '{CertificatePath}'.", certificatePath);
+
+        // Event 62 - Verbose
+        internal void LoadCertificateEnd(string description) =>
+            _logger.LogDebug("The certificate '{Description}' has been loaded successfully.", description);
+
+        // Event 63 - Error
+        internal void LoadCertificateError(string error) =>
+            _logger.LogError("An error has occurred while loading the certificate from disk: {Error}.", error);
+
+        // Event 64 - Error
+        internal void NoHttpsDevelopmentCertificate(string description) =>
+            _logger.LogError("The provided certificate '{Description}' is not a valid ASP.NET Core HTTPS development certificate.", description);
+
+        // Event 65 - Verbose
+        public void MacOSCertificateAlreadyTrusted() =>
+            _logger.LogDebug("The certificate is already trusted.");
+
+        // Event 66 - Verbose
+        internal void MacOSAddCertificateToUserProfileDirStart(string directory, string certificate) =>
+            _logger.LogDebug("Saving the certificate {Certificate} to the user profile folder '{Directory}'.", certificate, directory);
+
+        // Event 67 - Verbose
+        internal void MacOSAddCertificateToUserProfileDirEnd() =>
+            _logger.LogDebug("Finished saving the certificate to the user profile folder.");
+
+        // Event 68 - Error
+        internal void MacOSAddCertificateToUserProfileDirError(string certificateThumbprint, string errorMessage) =>
+            _logger.LogError("An error has occurred while saving certificate '{CertificateThumbprint}' in the user profile folder: {ErrorMessage}.", certificateThumbprint, errorMessage);
+
+        // Event 69 - Error
+        internal void MacOSRemoveCertificateFromUserProfileDirError(string certificateThumbprint, string errorMessage) =>
+            _logger.LogError("An error has occurred while removing certificate '{CertificateThumbprint}' from the user profile folder: {ErrorMessage}.", certificateThumbprint, errorMessage);
+
+        // Event 70 - Error
+        internal void MacOSFileIsNotAValidCertificate(string path) =>
+            _logger.LogError("The file '{Path}' is not a valid certificate.", path);
+
+        // Event 71 - Warning
+        internal void MacOSDiskStoreDoesNotExist() =>
+            _logger.LogWarning("The on-disk store directory was not found.");
+
+        // Event 72 - Verbose
+        internal void UnixOpenSslCertificateDirectoryOverridePresent(string nssDbOverrideVariableName) =>
+            _logger.LogDebug("Reading OpenSSL trusted certificates location from {NssDbOverrideVariableName}.", nssDbOverrideVariableName);
+
+        // Event 73 - Verbose
+        internal void UnixNssDbOverridePresent(string environmentVariable) =>
+            _logger.LogDebug("Reading NSS database locations from {EnvironmentVariable}.", environmentVariable);
+
+        // Event 74 - Warning
+        internal void UnixNssDbDoesNotExist(string nssDb, string environmentVariable) =>
+            _logger.LogWarning("The NSS database '{NssDb}' provided via {EnvironmentVariable} does not exist.", nssDb, environmentVariable);
+
+        // Event 75 - Warning
+        internal void UnixNotTrustedByDotnet() =>
+            _logger.LogWarning("The certificate is not trusted by .NET. This will likely affect System.Net.Http.HttpClient.");
+
+        // Event 76 - Warning
+        internal void UnixNotTrustedByOpenSsl(string envVarName) =>
+            _logger.LogWarning("The certificate is not trusted by OpenSSL.  Ensure that the {EnvVarName} environment variable is set correctly.", envVarName);
+
+        // Event 77 - Warning
+        internal void UnixNotTrustedByNss(string path, string browser) =>
+            _logger.LogWarning("The certificate is not trusted in the NSS database in '{Path}'. This will likely affect the {Browser} family of browsers.", path, browser);
+
+        // Event 78 - Verbose
+        internal void UnixHomeDirectoryDoesNotExist(string homeDirectory, string username) =>
+            _logger.LogDebug("Home directory '{HomeDirectory}' does not exist. Unable to discover NSS databases for user '{Username}'.  This will likely affect browsers.", homeDirectory, username);
+
+        // Event 79 - Verbose
+        internal void UnixOpenSslVersionParsingFailed() =>
+            _logger.LogDebug("OpenSSL reported its directory in an unexpected format.");
+
+        // Event 80 - Verbose
+        internal void UnixOpenSslVersionFailed() =>
+            _logger.LogDebug("Unable to determine the OpenSSL directory.");
+
+        // Event 81 - Verbose
+        internal void UnixOpenSslVersionException(string exceptionMessage) =>
+            _logger.LogDebug("Unable to determine the OpenSSL directory: {ExceptionMessage}.", exceptionMessage);
+
+        // Event 82 - Error
+        internal void UnixOpenSslHashFailed(string certificatePath) =>
+            _logger.LogError("Unable to compute the hash of certificate {CertificatePath}. OpenSSL trust is likely in an inconsistent state.", certificatePath);
+
+        // Event 83 - Error
+        internal void UnixOpenSslHashException(string certificatePath, string exceptionMessage) =>
+            _logger.LogError("Unable to compute the certificate hash: {CertificatePath}. OpenSSL trust is likely in an inconsistent state. {ExceptionMessage}", certificatePath, exceptionMessage);
+
+        // Event 84 - Error
+        internal void UnixOpenSslRehashTooManyHashes(string fullName, string hash, int maxHashCollisions) =>
+            _logger.LogError("Unable to update certificate '{FullName}' in the OpenSSL trusted certificate hash collection - {MaxHashCollisions} certificates have the hash {Hash}.", fullName, maxHashCollisions, hash);
+
+        // Event 85 - Error
+        internal void UnixOpenSslRehashException(string exceptionMessage) =>
+            _logger.LogError("Unable to update the OpenSSL trusted certificate hash collection: {ExceptionMessage}. Manually rehashing may help. See https://aka.ms/dev-certs-trust for more information.", exceptionMessage);
+
+        // Event 86 - Warning
+        internal void UnixDotnetTrustException(string exceptionMessage) =>
+            _logger.LogWarning("Failed to trust the certificate in .NET: {ExceptionMessage}.", exceptionMessage);
+
+        // Event 87 - Verbose
+        internal void UnixDotnetTrustSucceeded() =>
+            _logger.LogDebug("Trusted the certificate in .NET.");
+
+        // Event 88 - Warning
+        internal void UnixOpenSslTrustFailed() =>
+            _logger.LogWarning("Clients that validate certificate trust using OpenSSL will not trust the certificate.");
+
+        // Event 89 - Verbose
+        internal void UnixOpenSslTrustSucceeded() =>
+            _logger.LogDebug("Trusted the certificate in OpenSSL.");
+
+        // Event 90 - Warning
+        internal void UnixNssDbTrustFailed(string path, string browser) =>
+            _logger.LogWarning("Failed to trust the certificate in the NSS database in '{Path}'. This will likely affect the {Browser} family of browsers.", path, browser);
+
+        // Event 91 - Verbose
+        internal void UnixNssDbTrustSucceeded(string path) =>
+            _logger.LogDebug("Trusted the certificate in the NSS database in '{Path}'.", path);
+
+        // Event 92 - Warning
+        internal void UnixDotnetUntrustException(string exceptionMessage) =>
+            _logger.LogWarning("Failed to untrust the certificate in .NET: {ExceptionMessage}.", exceptionMessage);
+
+        // Event 93 - Warning
+        internal void UnixOpenSslUntrustFailed() =>
+            _logger.LogWarning("Failed to untrust the certificate in OpenSSL.");
+
+        // Event 94 - Verbose
+        internal void UnixOpenSslUntrustSucceeded() =>
+            _logger.LogDebug("Untrusted the certificate in OpenSSL.");
+
+        // Event 95 - Warning
+        internal void UnixNssDbUntrustFailed(string path) =>
+            _logger.LogWarning("Failed to remove the certificate from the NSS database in '{Path}'.", path);
+
+        // Event 96 - Verbose
+        internal void UnixNssDbUntrustSucceeded(string path) =>
+            _logger.LogDebug("Removed the certificate from the NSS database in '{Path}'.", path);
+
+        // Event 97 - Warning
+        internal void UnixTrustPartiallySucceeded() =>
+            _logger.LogWarning("The certificate is only partially trusted - some clients will not accept it.");
+
+        // Event 98 - Warning
+        internal void UnixNssDbCheckException(string path, string exceptionMessage) =>
+            _logger.LogWarning("Failed to look up the certificate in the NSS database in '{Path}': {ExceptionMessage}.", path, exceptionMessage);
+
+        // Event 99 - Warning
+        internal void UnixNssDbAdditionException(string path, string exceptionMessage) =>
+            _logger.LogWarning("Failed to add the certificate to the NSS database in '{Path}': {ExceptionMessage}.", path, exceptionMessage);
+
+        // Event 100 - Warning
+        internal void UnixNssDbRemovalException(string path, string exceptionMessage) =>
+            _logger.LogWarning("Failed to remove the certificate from the NSS database in '{Path}': {ExceptionMessage}.", path, exceptionMessage);
+
+        // Event 101 - Warning
+        internal void UnixFirefoxProfileEnumerationException(string firefoxDirectory, string message) =>
+            _logger.LogWarning("Failed to find the Firefox profiles in directory '{FirefoxDirectory}': {Message}.", firefoxDirectory, message);
+
+        // Event 102 - Verbose
+        internal void UnixNoFirefoxProfilesFound(string firefoxDirectory) =>
+            _logger.LogDebug("No Firefox profiles found in directory '{FirefoxDirectory}'.", firefoxDirectory);
+
+        // Event 103 - Warning
+        internal void UnixNssDbTrustFailedWithProbableConflict(string path, string browser) =>
+            _logger.LogWarning("Failed to trust the certificate in the NSS database in '{Path}'. This will likely affect the {Browser} family of browsers. This likely indicates that the database already contains an entry for the certificate under a different name. Please remove it and try again.", path, browser);
+
+        // Event 104 - Warning
+        internal void UnixOpenSslCertificateDirectoryOverrideIgnored(string openSslCertDirectoryOverrideVariableName) =>
+            _logger.LogWarning("The {OpenSslCertDirectoryOverrideVariableName} environment variable is set but will not be consumed while checking trust.", openSslCertDirectoryOverrideVariableName);
+
+        // Event 105 - Warning
+        internal void UnixMissingOpenSslCommand(string openSslCommand) =>
+            _logger.LogWarning("The {OpenSslCommand} command is unavailable.  It is required for updating certificate trust in OpenSSL.", openSslCommand);
+
+        // Event 106 - Warning
+        internal void UnixMissingCertUtilCommand(string certUtilCommand) =>
+            _logger.LogWarning("The {CertUtilCommand} command is unavailable.  It is required for querying and updating NSS databases, which are chiefly used to trust certificates in browsers.", certUtilCommand);
+
+        // Event 107 - Verbose
+        internal void UnixOpenSslUntrustSkipped(string certPath) =>
+            _logger.LogDebug("Untrusting the certificate in OpenSSL was skipped since '{CertPath}' does not exist.", certPath);
+
+        // Event 108 - Warning
+        internal void UnixCertificateFileDeletionException(string certPath, string exceptionMessage) =>
+            _logger.LogWarning("Failed to delete certificate file '{CertPath}': {ExceptionMessage}.", certPath, exceptionMessage);
+
+        // Event 109 - Error
+        internal void UnixNotOverwritingCertificate(string certPath) =>
+            _logger.LogError("Unable to export the certificate since '{CertPath}' already exists. Please remove it.", certPath);
+
+        // Event 110 - LogAlways (Info)
+        internal void UnixSuggestSettingEnvironmentVariable(string certDir, string openSslDir, string envVarName) =>
+            _logger.LogInformation("For OpenSSL trust to take effect, '{CertDir}' must be listed in the {EnvVarName} environment variable. For example, `export {EnvVarName}=\"{CertDir}:{OpenSslDir}\"`. See https://aka.ms/dev-certs-trust for more information.", certDir, envVarName, envVarName, certDir, openSslDir);
+
+        // Event 111 - LogAlways (Info)
+        internal void UnixSuggestSettingEnvironmentVariableWithoutExample(string certDir, string envVarName) =>
+            _logger.LogInformation("For OpenSSL trust to take effect, '{CertDir}' must be listed in the {EnvVarName} environment variable. See https://aka.ms/dev-certs-trust for more information.", certDir, envVarName);
+
+        // Event 112 - Warning
+        internal void DirectoryPermissionsNotSecure(string directoryPath) =>
+            _logger.LogWarning("Directory '{DirectoryPath}' may be readable by other users.", directoryPath);
+
+        // Event 113 - Verbose
+        internal void UnixOpenSslCertificateDirectoryAlreadyConfigured(string certDir, string envVarName) =>
+            _logger.LogDebug("The certificate directory '{CertDir}' is already included in the {EnvVarName} environment variable.", certDir, envVarName);
+
+        // Event 114 - LogAlways (Info)
+        internal void UnixSuggestAppendingToEnvironmentVariable(string certDir, string envVarName) =>
+            _logger.LogInformation("For OpenSSL trust to take effect, '{CertDir}' must be listed in the {EnvVarName} environment variable. For example, `export {EnvVarName}=\"{CertDir}:${EnvVarName}\"`. See https://aka.ms/dev-certs-trust for more information.", certDir, envVarName, envVarName, certDir, envVarName);
+
+        // Event 115 - Verbose
+        internal void WslWindowsTrustSucceeded() =>
+            _logger.LogDebug("Successfully trusted the certificate in the Windows certificate store via WSL.");
+
+        // Event 116 - Warning
+        internal void WslWindowsTrustFailed() =>
+            _logger.LogWarning("Failed to trust the certificate in the Windows certificate store via WSL.");
+
+        // Event 117 - Warning
+        internal void WslWindowsTrustException(string exceptionMessage) =>
+            _logger.LogWarning("Failed to trust the certificate in the Windows certificate store via WSL: {ExceptionMessage}.", exceptionMessage);
+
+        // Event 118 - Verbose
+        public void DescribeMinimumVersionCertificates(string meetsMinimumVersionCertificates) =>
+            _logger.LogDebug("Meets minimum version certificates: {MeetsMinimumVersionCertificates}", meetsMinimumVersionCertificates);
+
+        // Event 119 - Verbose
+        public void DescribeBelowMinimumVersionCertificates(string belowMinimumVersionCertificates) =>
+            _logger.LogDebug("Below minimum version certificates: {BelowMinimumVersionCertificates}", belowMinimumVersionCertificates);
     }
 
     internal sealed class UserCancelledTrustException : Exception
