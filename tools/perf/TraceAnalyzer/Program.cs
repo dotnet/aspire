@@ -25,8 +25,6 @@ if (!File.Exists(tracePath))
 const int DcpModelCreationStartEventId = 17;
 const int DcpModelCreationStopEventId = 18;
 
-// Provider name and GUID for Microsoft-Aspire-Hosting
-// The GUID is computed from the provider name using the standard EventSource algorithm
 const string AspireHostingProviderName = "Microsoft-Aspire-Hosting";
 
 try
@@ -36,9 +34,19 @@ try
 
     using (var source = new EventPipeEventSource(tracePath))
     {
-        // Register a callback only for the specific provider we care about,
-        // rather than subscribing to All events, to reduce overhead in TraceEvent.
-        source.Dynamic.AddCallbackForProviderEvents(AspireHostingProviderName, null, (TraceEvent traceEvent) =>
+        source.Dynamic.AddCallbackForProviderEvents((string pName, string eName) =>
+        {
+            if (pName != AspireHostingProviderName)
+            {
+                return EventFilterResponse.RejectProvider;
+            }
+            if (eName == null || eName.StartsWith("DcpModelCreation", StringComparison.Ordinal))
+            {
+                return EventFilterResponse.AcceptEvent;
+            }
+            return EventFilterResponse.RejectEvent;
+        }, 
+        (TraceEvent traceEvent) =>
         {
             if ((int)traceEvent.ID == DcpModelCreationStartEventId)
             {
