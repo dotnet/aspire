@@ -292,7 +292,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
-            // aspire-managed: self-contained binary, no DOTNET_ROOT or custom runtime config needed
+            // aspire-managed is self-contained, run directly with "dashboard" subcommand
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
 
             // Prepend "dashboard" subcommand

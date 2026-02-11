@@ -46,8 +46,7 @@
     <BundleVersion Condition="'$(BundleVersion)' == '' and '$(VersionSuffix)' != ''">$(VersionPrefix)-$(VersionSuffix)</BundleVersion>
     <BundleVersion Condition="'$(BundleVersion)' == ''">$(VersionPrefix)-dev</BundleVersion>
 
-    <!-- VersionSuffix must be forwarded explicitly because Exec invocations are outer MSBuild processes,
-         so inner MSBuild properties like VersionSuffix don't flow automatically. -->
+    <!-- Forward VersionSuffix to Exec-invoked dotnet commands (MSBuild properties don't flow to child processes) -->
     <_VersionSuffixArg Condition="'$(VersionSuffix)' != ''">/p:VersionSuffix=$(VersionSuffix)</_VersionSuffixArg>
 
     <!-- Binlog arguments for dotnet commands -->

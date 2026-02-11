@@ -267,7 +267,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             startInfo.Environment[BundleDiscovery.DcpPathEnvVar] = dcpPath;
         }
 
-        // Set ASPIRE_DASHBOARD_PATH to the aspire-managed exe (DashboardEventHandlers will detect it)
+        // Set the dashboard path so the AppHost can locate and launch the dashboard binary
         var managedPath = _layout.GetManagedPath();
         if (managedPath is not null)
         {
