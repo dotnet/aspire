@@ -6,6 +6,8 @@ schedules:
     include:
     - main
     - release/*
+    exclude:
+    - release/9.4
   always: true # Run even when there are no code changes
   
 # Excluding normal trigger as we're now using schedules
