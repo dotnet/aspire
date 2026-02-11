@@ -16,6 +16,7 @@ using Aspire.Cli.Bundles;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Microsoft.AspNetCore.Certificates.Generation;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Diagnostics;
@@ -223,11 +224,8 @@ public class Program
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
         // Register certificate tool runner - uses native CertificateManager directly (no subprocess needed)
-        builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
-        {
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            return new NativeCertificateToolRunner(loggerFactory.CreateLogger<NativeCertificateToolRunner>());
-        });
+        builder.Services.AddSingleton(sp => CertificateManager.Create(sp.GetRequiredService<ILogger<NativeCertificateToolRunner>>()));
+        builder.Services.AddSingleton<ICertificateToolRunner, NativeCertificateToolRunner>();
 
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();

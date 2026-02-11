@@ -4,30 +4,26 @@
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Cli.DotNet;
 using Microsoft.AspNetCore.Certificates.Generation;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Certificates;
 
 /// <summary>
 /// Certificate tool runner that uses the native CertificateManager directly (no subprocess needed).
 /// </summary>
-internal sealed class NativeCertificateToolRunner(ILogger<NativeCertificateToolRunner> logger) : ICertificateToolRunner
+internal sealed class NativeCertificateToolRunner(CertificateManager certificateManager) : ICertificateToolRunner
 {
     public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
-        CertificateManager.Log = new CertificateManager.CertificateManagerLogger(logger);
-
-        var availableCertificates = CertificateManager.Instance.ListCertificates(
+        var availableCertificates = certificateManager.ListCertificates(
             StoreName.My, StoreLocation.CurrentUser, isValid: true);
 
         var now = DateTimeOffset.Now;
         var certInfos = availableCertificates.Select(cert =>
         {
-            var mgr = CertificateManager.Instance;
-            var status = mgr.CheckCertificateState(cert);
-            var trustLevel = status.Success ? mgr.GetTrustLevel(cert).ToString() : "Invalid";
+            var status = certificateManager.CheckCertificateState(cert);
+            var trustLevel = status.Success ? certificateManager.GetTrustLevel(cert).ToString() : "Invalid";
 
             return new DevCertInfo
             {
@@ -38,7 +34,7 @@ internal sealed class NativeCertificateToolRunner(ILogger<NativeCertificateToolR
                 ValidityNotBefore = cert.NotBefore,
                 ValidityNotAfter = cert.NotAfter,
                 IsHttpsDevelopmentCertificate = CertificateManager.IsHttpsDevelopmentCertificate(cert),
-                IsExportable = mgr.IsExportable(cert),
+                IsExportable = certificateManager.IsExportable(cert),
                 TrustLevel = trustLevel
             };
         }).ToList();
@@ -64,10 +60,8 @@ internal sealed class NativeCertificateToolRunner(ILogger<NativeCertificateToolR
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
-        CertificateManager.Log = new CertificateManager.CertificateManagerLogger(logger);
-
         var now = DateTimeOffset.Now;
-        var result = CertificateManager.Instance.EnsureAspNetCoreHttpsDevelopmentCertificate(
+        var result = certificateManager.EnsureAspNetCoreHttpsDevelopmentCertificate(
             now, now.Add(TimeSpan.FromDays(365)),
             trust: true);
 

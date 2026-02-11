@@ -51,15 +51,15 @@ internal abstract class CertificateManager
 
     public const int RSAMinimumKeySizeInBits = 2048;
 
-    public static CertificateManager Instance { get; } = OperatingSystem.IsWindows() ?
+    public static CertificateManager Create(ILogger logger) => OperatingSystem.IsWindows() ?
 #pragma warning disable CA1416 // Validate platform compatibility
-            new WindowsCertificateManager() :
+            new WindowsCertificateManager(logger) :
 #pragma warning restore CA1416 // Validate platform compatibility
             OperatingSystem.IsMacOS() ?
-            new MacOSCertificateManager() as CertificateManager :
-            new UnixCertificateManager();
+            new MacOSCertificateManager(logger) as CertificateManager :
+            new UnixCertificateManager(logger);
 
-    public static CertificateManagerLogger Log { get; set; } = new CertificateManagerLogger();
+    protected CertificateManagerLogger Log { get; }
 
     // Setting to 0 means we don't append the version byte,
     // which is what all machines currently have.
@@ -93,19 +93,20 @@ internal abstract class CertificateManager
 
     public string Subject { get; }
 
-    public CertificateManager() : this(LocalhostHttpsDistinguishedName, CurrentAspNetCoreCertificateVersion, CurrentMinimumAspNetCoreCertificateVersion)
+    public CertificateManager(ILogger logger) : this(logger, LocalhostHttpsDistinguishedName, CurrentAspNetCoreCertificateVersion, CurrentMinimumAspNetCoreCertificateVersion)
     {
     }
 
     // For testing purposes only
     internal CertificateManager(string subject, int version)
-        : this(subject, version, version)
+        : this(NullLogger.Instance, subject, version, version)
     {
     }
 
     // For testing purposes only
-    internal CertificateManager(string subject, int generatedVersion, int minimumVersion)
+    internal CertificateManager(ILogger logger, string subject, int generatedVersion, int minimumVersion)
     {
+        Log = new CertificateManagerLogger(logger);
         Subject = subject;
         AspNetHttpsCertificateVersion = generatedVersion;
         MinimumAspNetHttpsCertificateVersion = minimumVersion;
@@ -981,7 +982,7 @@ internal abstract class CertificateManager
         store.Remove(matching);
     }
 
-    internal static string ToCertificateDescription(IEnumerable<X509Certificate2> certificates)
+    internal string ToCertificateDescription(IEnumerable<X509Certificate2> certificates)
     {
         var list = certificates.ToList();
         var certificatesDescription = list.Count switch
@@ -994,8 +995,8 @@ internal abstract class CertificateManager
         return string.Join(Environment.NewLine, description);
     }
 
-    internal static string GetDescription(X509Certificate2 c) =>
-        $"{c.Thumbprint} - {c.Subject} - Valid from {c.NotBefore:u} to {c.NotAfter:u} - IsHttpsDevelopmentCertificate: {IsHttpsDevelopmentCertificate(c).ToString().ToLowerInvariant()} - IsExportable: {Instance.IsExportable(c).ToString().ToLowerInvariant()}";
+    internal string GetDescription(X509Certificate2 c) =>
+        $"{c.Thumbprint} - {c.Subject} - Valid from {c.NotBefore:u} to {c.NotAfter:u} - IsHttpsDevelopmentCertificate: {IsHttpsDevelopmentCertificate(c).ToString().ToLowerInvariant()} - IsExportable: {IsExportable(c).ToString().ToLowerInvariant()}";
 
     /// <remarks>
     /// <see cref="X509Certificate.Equals(X509Certificate?)"/> is not adequate for security purposes.

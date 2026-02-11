@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Certificates.Generation;
 
@@ -72,7 +73,7 @@ internal sealed class MacOSCertificateManager : CertificateManager
         "and create a new untrusted developer certificate. " +
         "Use 'dotnet dev-certs https --trust' to trust the new certificate.";
 
-    public MacOSCertificateManager()
+    public MacOSCertificateManager(ILogger logger) : base(logger)
     {
     }
 
@@ -194,7 +195,7 @@ internal sealed class MacOSCertificateManager : CertificateManager
     }
 
     // Remove the certificate from the admin trust settings.
-    private static void RemoveAdminTrustRule(X509Certificate2 certificate)
+    private void RemoveAdminTrustRule(X509Certificate2 certificate)
     {
         Log.MacOSRemoveCertificateTrustRuleStart(GetDescription(certificate));
         var certificatePath = Path.GetTempFileName();
@@ -233,7 +234,7 @@ internal sealed class MacOSCertificateManager : CertificateManager
         }
     }
 
-    private static void RemoveCertificateFromKeychain(string keychain, X509Certificate2 certificate)
+    private void RemoveCertificateFromKeychain(string keychain, X509Certificate2 certificate)
     {
         var processInfo = new ProcessStartInfo(
             MacOSDeleteCertificateCommandLine,
@@ -332,7 +333,7 @@ internal sealed class MacOSCertificateManager : CertificateManager
         return certificate;
     }
 
-    private static void SaveCertificateToUserKeychain(X509Certificate2 certificate)
+    private void SaveCertificateToUserKeychain(X509Certificate2 certificate)
     {
         var passwordBytes = new byte[48];
         RandomNumberGenerator.Fill(passwordBytes.AsSpan()[0..35]);
@@ -427,7 +428,7 @@ internal sealed class MacOSCertificateManager : CertificateManager
             EqualityComparer<string>.Default.GetHashCode(obj.Thumbprint);
     }
 
-    private static ICollection<X509Certificate2> GetCertsFromDisk()
+    private ICollection<X509Certificate2> GetCertsFromDisk()
     {
         var certsFromDisk = new List<X509Certificate2>();
         if (!Directory.Exists(MacOSUserHttpsCertificateLocation))

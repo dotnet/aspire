@@ -6,6 +6,7 @@ using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Certificates.Generation;
 
@@ -14,7 +15,7 @@ internal sealed class WindowsCertificateManager : CertificateManager
 {
     private const int UserCancelledErrorCode = 1223;
 
-    public WindowsCertificateManager()
+    public WindowsCertificateManager(ILogger logger) : base(logger)
     {
     }
 

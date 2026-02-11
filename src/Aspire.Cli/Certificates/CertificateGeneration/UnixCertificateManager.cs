@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Certificates.Generation;
 
@@ -43,7 +44,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
 
     private HashSet<string>? _availableCommands;
 
-    public UnixCertificateManager()
+    public UnixCertificateManager(ILogger logger) : base(logger)
     {
     }
 
@@ -698,7 +699,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// <remarks>
     /// It is the caller's responsibility to ensure that <see cref="CertUtilCommand"/> is available.
     /// </remarks>
-    private static bool IsCertificateInNssDb(string nickname, NssDb nssDb)
+    private bool IsCertificateInNssDb(string nickname, NssDb nssDb)
     {
         // -V will validate that a cert can be used for a given purpose, in this case, server verification.
         // There is no corresponding -V check for the "Trusted CA" status required by Firefox, so we just check for existence.
@@ -728,7 +729,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// <remarks>
     /// It is the caller's responsibility to ensure that <see cref="CertUtilCommand"/> is available.
     /// </remarks>
-    private static bool TryAddCertificateToNssDb(string certificatePath, string nickname, NssDb nssDb)
+    private bool TryAddCertificateToNssDb(string certificatePath, string nickname, NssDb nssDb)
     {
         // Firefox doesn't seem to respected the more correct "trusted peer" (P) usage, so we use "trusted CA" (C) instead.
         var usage = nssDb.IsFirefox ? "C" : "P";
@@ -756,7 +757,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// <remarks>
     /// It is the caller's responsibility to ensure that <see cref="CertUtilCommand"/> is available.
     /// </remarks>
-    private static bool TryRemoveCertificateFromNssDb(string nickname, NssDb nssDb)
+    private bool TryRemoveCertificateFromNssDb(string nickname, NssDb nssDb)
     {
         var startInfo = new ProcessStartInfo(CertUtilCommand, $"-d sql:{nssDb.Path} -D -n {nickname}")
         {
@@ -783,7 +784,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
         }
     }
 
-    private static IEnumerable<string> GetFirefoxProfiles(string firefoxDirectory)
+    private IEnumerable<string> GetFirefoxProfiles(string firefoxDirectory)
     {
         try
         {
@@ -803,7 +804,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
         }
     }
 
-    private static string GetOpenSslCertificateDirectory(string homeDirectory)
+    private string GetOpenSslCertificateDirectory(string homeDirectory)
     {
         var @override = Environment.GetEnvironmentVariable(OpenSslCertDirectoryOverrideVariableName);
         if (!string.IsNullOrEmpty(@override))
@@ -815,7 +816,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
         return Path.Combine(homeDirectory, ".aspnet", "dev-certs", "trust");
     }
 
-    private static bool TryDeleteCertificateFile(string certPath)
+    private bool TryDeleteCertificateFile(string certPath)
     {
         try
         {
@@ -829,7 +830,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
         }
     }
 
-    private static bool TryGetNssDbOverrides(out IReadOnlyList<string> overrides)
+    private bool TryGetNssDbOverrides(out IReadOnlyList<string> overrides)
     {
         var nssDbOverride = Environment.GetEnvironmentVariable(NssDbOverrideVariableName);
         if (string.IsNullOrEmpty(nssDbOverride))
@@ -860,7 +861,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
         return true;
     }
 
-    private static List<NssDb> GetNssDbs(string homeDirectory)
+    private List<NssDb> GetNssDbs(string homeDirectory)
     {
         var nssDbs = new List<NssDb>();
 
@@ -926,7 +927,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// <remarks>
     /// It is the caller's responsibility to ensure that <see cref="OpenSslCommand"/> is available.
     /// </remarks>
-    private static bool TryGetOpenSslDirectory([NotNullWhen(true)] out string? openSslDir)
+    private bool TryGetOpenSslDirectory([NotNullWhen(true)] out string? openSslDir)
     {
         openSslDir = null;
 
@@ -968,7 +969,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// <remarks>
     /// It is the caller's responsibility to ensure that <see cref="OpenSslCommand"/> is available.
     /// </remarks>
-    private static bool TryGetOpenSslHash(string certificatePath, [NotNullWhen(true)] out string? hash)
+    private bool TryGetOpenSslHash(string certificatePath, [NotNullWhen(true)] out string? hash)
     {
         hash = null;
 
@@ -1016,7 +1017,7 @@ internal sealed partial class UnixCertificateManager : CertificateManager
     /// This is a simplified version of c_rehash from OpenSSL.  Using the real one would require
     /// installing the OpenSSL perl tools and perl itself, which might be annoying in a container.
     /// </remarks>
-    private static bool TryRehashOpenSslCertificates(string certificateDirectory)
+    private bool TryRehashOpenSslCertificates(string certificateDirectory)
     {
         try
         {
