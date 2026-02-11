@@ -1351,10 +1351,9 @@ public class AzureContainerAppsTests
 
         var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
 
-        var (manifest, bicep) = await GetManifestWithBicep(environment);
+        var manifest = await GetManifestWithBicep(environment);
 
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
+        await Verify(manifest.BicepText, "bicep");
     }
 
     [Fact]
@@ -1379,10 +1378,9 @@ public class AzureContainerAppsTests
 
         var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
 
-        var (manifest, bicep) = await GetManifestWithBicep(environment);
+        var manifest = await GetManifestWithBicep(environment);
 
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
+        await Verify(manifest.BicepText, "bicep");
     }
 
     // see https://github.com/dotnet/aspire/issues/8381 for more information on this scenario

@@ -1,8 +1,0 @@
-﻿{
-  "type": "azure.bicep.v0",
-  "path": "my-long-env-name.module.bicep",
-  "params": {
-    "my_long_env_name_acr_outputs_name": "{my-long-env-name-acr.outputs.name}",
-    "userPrincipalId": ""
-  }
-}
