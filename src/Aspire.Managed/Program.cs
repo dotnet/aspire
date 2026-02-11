@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard;
+using Aspire.Managed.NuGet.Commands;
+using System.CommandLine;
 
 return args switch
 {
@@ -31,7 +33,11 @@ static async Task<int> RunServer(string[] args)
 
 static async Task<int> RunNuGet(string[] args)
 {
-    return await Aspire.Cli.NuGetHelper.Program.Main(args).ConfigureAwait(false);
+    var rootCommand = new RootCommand("Aspire NuGet Helper - Package operations for Aspire CLI bundle");
+    rootCommand.Subcommands.Add(SearchCommand.Create());
+    rootCommand.Subcommands.Add(RestoreCommand.Create());
+    rootCommand.Subcommands.Add(LayoutCommand.Create());
+    return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
 }
 
 static int ShowUsage()

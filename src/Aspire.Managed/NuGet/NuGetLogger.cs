@@ -5,7 +5,7 @@ using NuGetLogLevel = NuGet.Common.LogLevel;
 using NuGetLogMessage = NuGet.Common.ILogMessage;
 using INuGetLogger = NuGet.Common.ILogger;
 
-namespace Aspire.Cli.NuGetHelper;
+namespace Aspire.Managed.NuGet;
 
 /// <summary>
 /// Console logger adapter for NuGet operations.

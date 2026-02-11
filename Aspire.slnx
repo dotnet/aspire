@@ -370,7 +370,6 @@
   <Folder Name="/src/">
     <Project Path="src/Aspire.Hosting.CodeGeneration.TypeScript/Aspire.Hosting.CodeGeneration.TypeScript.csproj" />
     <Project Path="src/Aspire.Hosting.CodeGeneration.Python/Aspire.Hosting.CodeGeneration.Python.csproj" />
-    <Project Path="src/Aspire.Cli.NuGetHelper/Aspire.Cli.NuGetHelper.csproj" />
     <Project Path="src/Aspire.Hosting.CodeGeneration.Go/Aspire.Hosting.CodeGeneration.Go.csproj" />
     <Project Path="src/Aspire.Hosting.CodeGeneration.Java/Aspire.Hosting.CodeGeneration.Java.csproj" />
     <Project Path="src/Aspire.Hosting.CodeGeneration.Rust/Aspire.Hosting.CodeGeneration.Rust.csproj" />
