@@ -106,7 +106,7 @@ The `backmerge-release.yml` workflow automatically creates PRs to merge changes 
 
 ### Schedule
 
-Runs daily at 4pm PST (midnight UTC). Can also be triggered manually via `workflow_dispatch`.
+Runs daily at 00:00 UTC (4pm PT during standard time, 5pm PT during daylight saving time). Can also be triggered manually via `workflow_dispatch`.
 
 ### Behavior
 
