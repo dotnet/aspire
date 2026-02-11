@@ -145,6 +145,21 @@ internal static class DeploymentE2ETestHelpers
     }
 
     /// <summary>
+    /// Installs the latest GA (release quality) Aspire CLI.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireCliRelease(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        var command = "curl -fsSL https://aka.ms/aspire/get/install.sh | bash -s -- --quality release";
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
     /// Configures the PATH and environment variables for the Aspire CLI.
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
