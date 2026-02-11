@@ -298,6 +298,19 @@
     "sdkVersion": {
       "description": "The Aspire SDK version used for this polyglot AppHost project. Determines the version of Aspire.Hosting packages to use.",
       "type": "string"
+    },
+    "overrideStagingFeed": {
+      "description": "Override the NuGet feed URL used by the staging channel. When set, this URL is used instead of the default SHA-based build-specific feed.",
+      "type": "string"
+    },
+    "overrideStagingQuality": {
+      "description": "Override the package quality filter for the staging channel. Set to \"Prerelease\" when staging builds are not yet marked as stable to use the shared daily feed instead of the SHA-based feed. Valid values: \"Stable\", \"Prerelease\", \"Both\".",
+      "type": "string",
+      "enum": [
+        "Stable",
+        "Prerelease",
+        "Both"
+      ]
     }
   },
   "additionalProperties": false

@@ -75,24 +75,32 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
     private PackageChannel? CreateStagingChannel()
     {
-        var stagingFeedUrl = GetStagingFeedUrl();
+        var stagingQuality = GetStagingQuality();
+        var hasExplicitFeedOverride = !string.IsNullOrEmpty(configuration["overrideStagingFeed"]);
+
+        // When quality is Prerelease or Both and no explicit feed override is set,
+        // use the shared daily feed instead of the SHA-specific feed. SHA-specific
+        // darc-pub-* feeds are only created for stable-quality builds, so a non-Stable
+        // quality without an explicit feed override can only work with the shared feed.
+        var useSharedFeed = !hasExplicitFeedOverride &&
+                            stagingQuality is not PackageChannelQuality.Stable;
+
+        var stagingFeedUrl = GetStagingFeedUrl(useSharedFeed);
         if (stagingFeedUrl is null)
         {
             return null;
         }
 
-        var stagingQuality = GetStagingQuality();
-
         var stagingChannel = PackageChannel.CreateExplicitChannel(PackageChannelNames.Staging, stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache, configureGlobalPackagesFolder: true, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily");
+        }, nuGetPackageCache, configureGlobalPackagesFolder: !useSharedFeed, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily");
 
         return stagingChannel;
     }
 
-    private string? GetStagingFeedUrl()
+    private string? GetStagingFeedUrl(bool useSharedFeed)
     {
         // Check for configuration override first
         var overrideFeed = configuration["overrideStagingFeed"];
@@ -105,6 +113,12 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
                 return overrideFeed;
             }
             // Invalid URL, fall through to default behavior
+        }
+
+        // Use the shared daily feed when builds aren't marked stable
+        if (useSharedFeed)
+        {
+            return "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json";
         }
 
         // Extract commit hash from assembly version to build staging feed URL
