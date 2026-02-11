@@ -342,6 +342,7 @@ public class Program
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
         builder.Services.AddTransient<RestartCommand>();
+        builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
         builder.Services.AddTransient<ResourcesCommand>();
