@@ -176,11 +176,9 @@ internal sealed class AspireJsonConfiguration
     /// Empty package versions in settings are resolved to the effective SDK version.
     /// </summary>
     /// <param name="defaultSdkVersion">Default SDK version to use when not configured.</param>
-    /// <param name="useProjectReferences">Unused compatibility parameter.</param>
     /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
-    public IEnumerable<(string Name, string Version)> GetAllPackages(string defaultSdkVersion, bool useProjectReferences)
+    public IEnumerable<(string Name, string Version)> GetAllPackages(string defaultSdkVersion)
     {
-        _ = useProjectReferences;
         var sdkVersion = GetEffectiveSdkVersion(defaultSdkVersion);
 
         // Base package always included (Aspire.Hosting.AppHost is an SDK, not a runtime DLL)
@@ -212,7 +210,9 @@ internal sealed class AspireJsonConfiguration
     /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
     public IEnumerable<(string Name, string Version)> GetAllPackages()
     {
-        var sdkVersion = SdkVersion ?? throw new InvalidOperationException("SdkVersion must be set before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
-        return GetAllPackages(sdkVersion, useProjectReferences: false);
+        var sdkVersion = !string.IsNullOrWhiteSpace(SdkVersion)
+            ? SdkVersion
+            : throw new InvalidOperationException("SdkVersion must be set to a non-empty value before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
+        return GetAllPackages(sdkVersion);
     }
 }

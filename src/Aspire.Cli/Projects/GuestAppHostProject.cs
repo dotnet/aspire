@@ -136,7 +136,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         CancellationToken cancellationToken)
     {
         var defaultSdkVersion = GetEffectiveSdkVersion();
-        var packages = config.GetAllPackages(defaultSdkVersion, useProjectReferences: false).ToList();
+        var packages = config.GetAllPackages(defaultSdkVersion).ToList();
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
         if (codeGenPackage is not null)
         {

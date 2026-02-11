@@ -156,16 +156,16 @@ internal sealed class UpdateCommand : BaseCommand
 
             var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            if (isProjectReferenceMode)
-            {
-                channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
-                    ?? allChannels.First();
-            }
-            else if (!string.IsNullOrEmpty(channelName))
+            if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
                 channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
                     ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            else if (isProjectReferenceMode)
+            {
+                channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
+                    ?? allChannels.First();
             }
             else
             {

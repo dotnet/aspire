@@ -166,6 +166,20 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
     }
 
     [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_WithWhitespaceSdkVersion_Throws()
+    {
+        var config = new AspireJsonConfiguration
+        {
+            SdkVersion = " ",
+            Language = "typescript"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => config.GetAllPackages().ToList());
+
+        Assert.Contains("non-empty", exception.Message);
+    }
+
+    [Fact]
     public void AspireJsonConfiguration_GetAllPackages_WithDefaultSdkVersion_UsesFallbackVersion()
     {
         // Arrange
@@ -179,7 +193,7 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages("13.1.0", useProjectReferences: false).ToList();
+        var packages = config.GetAllPackages("13.1.0").ToList();
 
         // Assert
         Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
@@ -187,7 +201,7 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
     }
 
     [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_ProjectReferenceMode_ResolvesVersions()
+    public void AspireJsonConfiguration_GetAllPackages_WithConfiguredSdkVersion_ReturnsConfiguredVersions()
     {
         // Arrange
         var config = new AspireJsonConfiguration
@@ -202,7 +216,7 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages("13.1.0", useProjectReferences: true).ToList();
+        var packages = config.GetAllPackages("13.1.0").ToList();
 
         // Assert
         Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");

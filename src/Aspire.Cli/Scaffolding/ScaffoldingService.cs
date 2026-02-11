@@ -61,7 +61,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
-        var packages = config.GetAllPackages(sdkVersion, useProjectReferences: false).ToList();
+        var packages = config.GetAllPackages(sdkVersion).ToList();
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(sdkVersion);
