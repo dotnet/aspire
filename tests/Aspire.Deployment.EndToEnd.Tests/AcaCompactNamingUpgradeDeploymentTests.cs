@@ -76,6 +76,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForInitComplete = new CellPatternSearcher()
                 .Find("Aspire initialization complete");
 
+            var waitingForVersionSelectionPrompt = new CellPatternSearcher()
+                .Find("(based on NuGet.config)");
+
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
 
@@ -90,8 +93,15 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             // Phase 1: Install GA CLI and deploy
             // ============================================================
 
-            // Step 2: Install the GA (release) Aspire CLI
-            output.WriteLine("Step 2: Installing GA Aspire CLI...");
+            // Step 2: Back up the dev CLI (pre-installed by CI), then install the GA CLI
+            output.WriteLine("Step 2: Backing up dev CLI and installing GA Aspire CLI...");
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .Type("cp ~/.aspire/bin/aspire /tmp/aspire-dev-backup && cp -r ~/.aspire/hives /tmp/aspire-hives-backup 2>/dev/null; echo 'dev CLI backed up'")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+            }
             sequenceBuilder.InstallAspireCliRelease(counter);
 
             // Step 3: Source CLI environment
@@ -116,6 +126,8 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
+                .Enter()
+                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
@@ -171,18 +183,29 @@ builder.Build().Run();
             // Step 11: Install the dev (PR) CLI, overwriting the GA installation
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                output.WriteLine("Step 11: Upgrading to dev CLI (pre-installed in CI)...");
-                // In CI, the dev CLI is already available — just re-source with the dev build path
-                // The CI workflow builds the CLI and places it in ~/.aspire/bin before tests run.
-                // Since we installed GA over it in step 2, we need to reinstall the dev build.
-                // Use the workflow's pre-built CLI artifact path.
+                output.WriteLine("Step 11: Restoring dev CLI from backup...");
+                // Restore the dev CLI and hive that we backed up before GA install
                 sequenceBuilder
-                    .Type("cp -f /tmp/aspire-cli-dev/aspire ~/.aspire/bin/aspire 2>/dev/null || echo 'Dev CLI not at /tmp, checking env...'")
+                    .Type("cp -f /tmp/aspire-dev-backup ~/.aspire/bin/aspire && cp -rf /tmp/aspire-hives-backup/* ~/.aspire/hives/ 2>/dev/null; echo 'dev CLI restored'")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+                // Ensure the dev CLI uses the local channel (GA install may have changed it)
+                sequenceBuilder
+                    .Type("aspire config set channel local --global 2>/dev/null; echo 'channel set'")
                     .Enter()
                     .WaitForSuccessPrompt(counter);
 
                 // Re-source environment to pick up the dev CLI
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
+
+                // Update the ACA package to the dev version so the dev naming code is used
+                output.WriteLine("Step 11b: Updating package to dev version...");
+                sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
+                    .Enter()
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
             }
             else
             {
