@@ -55,25 +55,25 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var directory = context.TargetDirectory;
         var language = context.Language;
 
-        // Step 1: Resolve SDK version from channel (if configured) or use default
+        // Step 1: Resolve SDK and package strategy
         var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
-        
-        // Load or create config with resolved SDK version
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, sdkVersion);
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
-        var packages = config.GetAllPackages().ToList();
+        var packages = config.GetAllPackages(sdkVersion, useProjectReferences: false).ToList();
         if (codeGenPackage is not null)
         {
-            packages.Add((codeGenPackage, config.SdkVersion!));
+            var codeGenVersion = config.GetEffectiveSdkVersion(sdkVersion);
+            packages.Add((codeGenPackage, codeGenVersion));
         }
 
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
+        var prepareSdkVersion = config.GetEffectiveSdkVersion(sdkVersion);
 
         var prepareResult = await _interactionService.ShowStatusAsync(
             ":gear:  Preparing Aspire server...",
-            () => appHostServerProject.PrepareAsync(config.SdkVersion!, packages, cancellationToken));
+            () => appHostServerProject.PrepareAsync(prepareSdkVersion, packages, cancellationToken));
         if (!prepareResult.Success)
         {
             if (prepareResult.Output is not null)
@@ -134,6 +134,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
             {
                 config.Channel = prepareResult.ChannelName;
             }
+
             config.Language = language.LanguageId;
             config.Save(directory.FullName);
         }

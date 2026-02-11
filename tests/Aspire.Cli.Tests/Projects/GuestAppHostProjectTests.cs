@@ -166,6 +166,50 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
     }
 
     [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_WithDefaultSdkVersion_UsesFallbackVersion()
+    {
+        // Arrange
+        var config = new AspireJsonConfiguration
+        {
+            Language = "typescript",
+            Packages = new Dictionary<string, string>
+            {
+                ["Aspire.Hosting.Redis"] = string.Empty
+            }
+        };
+
+        // Act
+        var packages = config.GetAllPackages("13.1.0", useProjectReferences: false).ToList();
+
+        // Assert
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+    }
+
+    [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_ProjectReferenceMode_ResolvesVersions()
+    {
+        // Arrange
+        var config = new AspireJsonConfiguration
+        {
+            SdkVersion = "13.1.0",
+            Language = "typescript",
+            Channel = "daily",
+            Packages = new Dictionary<string, string>
+            {
+                ["Aspire.Hosting.Redis"] = "13.1.0"
+            }
+        };
+
+        // Act
+        var packages = config.GetAllPackages("13.1.0", useProjectReferences: true).ToList();
+
+        // Assert
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+    }
+
+    [Fact]
     public void AspireJsonConfiguration_Save_PreservesExtensionData()
     {
         // Arrange - create settings.json with extra properties

@@ -146,13 +146,22 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var project = _projectFactory.GetProject(projectFile);
+            var isGuestProject = !project.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+            var isProjectReferenceMode = isGuestProject && AspireRepositoryDetector.DetectRepositoryRoot(projectFile.Directory?.FullName) is not null;
 
             // Check if channel or quality option was provided (channel takes precedence)
             var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
             PackageChannel channel;
 
-            if (!string.IsNullOrEmpty(channelName))
+            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+            if (isProjectReferenceMode)
+            {
+                channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
+                    ?? allChannels.First();
+            }
+            else if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
                 channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
@@ -181,8 +190,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
 
-            // Get the appropriate project handler and update packages
-            var project = _projectFactory.GetProject(projectFile);
+            // Update packages using the appropriate project handler
             var updateContext = new UpdatePackagesContext
             {
                 AppHostFile = projectFile,
