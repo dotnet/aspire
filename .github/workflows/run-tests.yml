@@ -108,7 +108,14 @@ jobs:
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
-        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+        # Allow the task to succeed on partial trust
+        run: |
+          EXIT_CODE=0
+          ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 4 ]; then
+            echo "dev-certs https --trust failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
         env:
           WSL_INTEROP: ""
 
