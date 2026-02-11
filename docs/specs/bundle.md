@@ -916,7 +916,7 @@ Changes to internal CLI classes maintain backward compatibility through:
 
 3. **Graceful degradation**
    - If bundle components are missing, fall back to SDK
-   - If NuGetHelper is unavailable, fall back to `dotnet` commands
+   - If NuGet operations are unavailable, fall back to `dotnet` commands
    - Error messages guide users to resolution
 
 ### Test Compatibility
@@ -1221,7 +1221,7 @@ This section tracks the implementation progress of the bundle feature.
 - [x] **Layout discovery service** - `src/Aspire.Cli/Layout/LayoutDiscovery.cs`
 - [x] **Layout process runner** - `src/Aspire.Cli/Layout/LayoutProcessRunner.cs`
 - [x] **Bundle NuGet service** - `src/Aspire.Cli/NuGet/BundleNuGetService.cs`
-- [x] **NuGet Helper tool** - `src/Aspire.Cli.NuGetHelper/`
+- [x] **NuGet operations** - embedded in `src/Aspire.Managed/NuGet/`
   - [x] Search command (NuGet v3 HTTP API)
   - [x] Restore command (NuGet RestoreRunner)
   - [x] Layout command (flat DLL + XML doc layout from project.assets.json)
@@ -1291,7 +1291,7 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Aspire.Cli/Layout/LayoutDiscovery.cs` | Priority-based layout discovery (env > config > relative) |
 | `src/Aspire.Cli/Layout/LayoutProcessRunner.cs` | Run managed DLLs via layout's .NET runtime |
 | `src/Aspire.Cli/NuGet/BundleNuGetService.cs` | NuGet operations wrapper for bundle mode |
-| `src/Aspire.Cli.NuGetHelper/` | Managed tool for search/restore/layout |
+| `src/Aspire.Managed/NuGet/` | NuGet search/restore/layout commands (embedded in aspire-managed) |
 | `src/Aspire.Cli/Projects/PrebuiltAppHostServer.cs` | Bundle-mode server runner |
 | `src/Aspire.Cli/Projects/GuestAppHostProject.cs` | Main polyglot handler with bundle/SDK mode switching |
 | `src/Aspire.Hosting/Dcp/DcpOptions.cs` | DCP/Dashboard path resolution with env var support |
@@ -1324,7 +1324,7 @@ aspire-managed (self-contained, ~65 MB)
 ├── ASP.NET Core Framework (embedded)
 ├── Aspire.Dashboard (embedded)
 ├── Aspire.Hosting.RemoteHost / aspire-server (embedded)
-├── Aspire.Cli.NuGetHelper (embedded)
+├── NuGet Commands (embedded)
 └── All managed dependencies
 ```
 
@@ -1336,7 +1336,7 @@ aspire-managed (self-contained, ~65 MB)
 
 ### Build Steps
 
-1. **Build aspire-managed** as a self-contained single-file binary (includes .NET runtime, Dashboard, AppHost Server, NuGet Helper)
+1. **Build aspire-managed** as a self-contained single-file binary (includes .NET runtime, Dashboard, AppHost Server, NuGet operations)
 2. **Download and copy DCP** binaries
 3. **Generate layout.json** with component metadata
 4. **Create archive** (tar.gz for Unix, ZIP for Windows) with `COPYFILE_DISABLE=1` to suppress macOS xattr headers
