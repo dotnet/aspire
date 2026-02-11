@@ -231,7 +231,6 @@ public class Program
             if (bundleService.IsBundle)
             {
                 return new BundleCertificateToolRunner(
-                    bundleService,
                     loggerFactory.CreateLogger<BundleCertificateToolRunner>());
             }
 

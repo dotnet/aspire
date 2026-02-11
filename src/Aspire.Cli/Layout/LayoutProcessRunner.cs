@@ -24,29 +24,22 @@ internal static class RuntimeIdentifierHelper
 }
 
 /// <summary>
-/// Utilities for running processes using the layout's .NET runtime.
-/// Supports both native executables and framework-dependent DLLs.
+/// Utilities for running processes using layout tools.
+/// All layout tools are self-contained executables — no muxer needed.
 /// </summary>
 internal static class LayoutProcessRunner
 {
     /// <summary>
-    /// Determines if a path refers to a DLL that needs dotnet to run.
-    /// </summary>
-    private static bool IsDll(string path) => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Runs a tool and captures output. Automatically detects if the tool
-    /// is a DLL (needs muxer) or native executable (runs directly).
+    /// Runs a tool and captures output. The tool is always run directly as a native executable.
     /// </summary>
     public static async Task<(int ExitCode, string Output, string Error)> RunAsync(
-        LayoutConfiguration layout,
         string toolPath,
         IEnumerable<string> arguments,
         string? workingDirectory = null,
         IDictionary<string, string>? environmentVariables = null,
         CancellationToken ct = default)
     {
-        using var process = CreateProcess(layout, toolPath, arguments, workingDirectory, environmentVariables, redirectOutput: true);
+        using var process = CreateProcess(toolPath, arguments, workingDirectory, environmentVariables, redirectOutput: true);
 
         process.Start();
 
@@ -63,62 +56,38 @@ internal static class LayoutProcessRunner
     /// Returns the Process object for the caller to manage.
     /// </summary>
     public static Process Start(
-        LayoutConfiguration layout,
         string toolPath,
         IEnumerable<string> arguments,
         string? workingDirectory = null,
         IDictionary<string, string>? environmentVariables = null,
         bool redirectOutput = false)
     {
-        var process = CreateProcess(layout, toolPath, arguments, workingDirectory, environmentVariables, redirectOutput);
+        var process = CreateProcess(toolPath, arguments, workingDirectory, environmentVariables, redirectOutput);
         process.Start();
         return process;
     }
 
     /// <summary>
     /// Creates a configured Process for running a bundle tool.
-    /// For DLLs, uses the layout's muxer (dotnet). For executables, runs directly.
+    /// Tools are always self-contained executables — run directly.
     /// </summary>
     private static Process CreateProcess(
-        LayoutConfiguration layout,
         string toolPath,
         IEnumerable<string> arguments,
         string? workingDirectory,
         IDictionary<string, string>? environmentVariables,
         bool redirectOutput)
     {
-        var isDll = IsDll(toolPath);
         var process = new Process();
 
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.CreateNoWindow = true;
-
-        if (isDll)
-        {
-            // DLLs need the muxer to run
-            var muxerPath = layout.GetMuxerPath()
-                ?? throw new InvalidOperationException("Layout muxer not found. Cannot run framework-dependent tool.");
-            process.StartInfo.FileName = muxerPath;
-            process.StartInfo.ArgumentList.Add(toolPath);
-        }
-        else
-        {
-            // Native executables run directly
-            process.StartInfo.FileName = toolPath;
-        }
+        process.StartInfo.FileName = toolPath;
 
         if (redirectOutput)
         {
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
-        }
-
-        // Set DOTNET_ROOT to use the layout's runtime
-        var runtimePath = layout.GetComponentPath(LayoutComponent.Runtime);
-        if (runtimePath is not null)
-        {
-            process.StartInfo.Environment["DOTNET_ROOT"] = runtimePath;
-            process.StartInfo.Environment["DOTNET_MULTILEVEL_LOOKUP"] = "0";
         }
 
         // Add custom environment variables

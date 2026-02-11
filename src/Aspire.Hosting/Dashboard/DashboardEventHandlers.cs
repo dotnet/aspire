@@ -288,34 +288,32 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        // Create custom runtime config with AppHost's framework versions
-        var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
-
-        // Determine if this is a single-file executable or DLL-based deployment
-        // Single-file: run the exe directly with custom runtime config
-        // DLL-based: run via dotnet exec
-        var isSingleFileExe = IsSingleFileExecutable(fullyQualifiedDashboardPath);
-        
         ExecutableResource dashboardResource;
-        
-        if (isSingleFileExe)
+
+        if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
+            // aspire-managed: self-contained binary, no DOTNET_ROOT or custom runtime config needed
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+
+            // Prepend "dashboard" subcommand
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Insert(0, "dashboard");
+            }));
+        }
+        else if (IsSingleFileExecutable(fullyQualifiedDashboardPath))
+        {
+            // Create custom runtime config with AppHost's framework versions
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+
             // Single-file executable - run directly
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
-            
-            // Set DOTNET_ROOT so the single-file app can find the shared framework
-            var dotnetRoot = BundleDiscovery.GetDotNetRoot();
-            if (!string.IsNullOrEmpty(dotnetRoot))
-            {
-                dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(env =>
-                {
-                    env["DOTNET_ROOT"] = dotnetRoot;
-                    env["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-                }));
-            }
         }
         else
         {
+            // Create custom runtime config with AppHost's framework versions
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+
             // DLL-based deployment - find the DLL and run via dotnet exec
             string dashboardDll;
             if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
@@ -338,8 +336,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
 
-            var dotnetExecutable = BundleDiscovery.GetDotNetExecutablePath();
-            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, dotnetExecutable, dashboardWorkingDirectory ?? "");
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
 
             dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
