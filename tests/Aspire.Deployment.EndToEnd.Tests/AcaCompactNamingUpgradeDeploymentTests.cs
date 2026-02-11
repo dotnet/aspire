@@ -79,6 +79,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
+            var waitingForUpdateConfirmation = new CellPatternSearcher()
+                .Find("Perform updates?");
+
             var waitingForUpdateSuccessful = new CellPatternSearcher()
                 .Find("Update successful");
 
@@ -208,6 +211,8 @@ builder.Build().Run();
                 output.WriteLine("Step 11b: Updating project packages to dev version...");
                 sequenceBuilder.Type("aspire update --channel local")
                     .Enter()
+                    .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .Enter()
                     .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
             }
@@ -225,6 +230,8 @@ builder.Build().Run();
                     output.WriteLine("Step 11b: Updating project packages to dev version...");
                     sequenceBuilder.Type($"aspire update --channel pr-{prNumber}")
                         .Enter()
+                        .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
@@ -233,6 +240,8 @@ builder.Build().Run();
                     output.WriteLine("Step 11: No PR number available, using current CLI as 'dev'...");
                     // Still run aspire update to pick up whatever local packages are available
                     sequenceBuilder.Type("aspire update")
+                        .Enter()
+                        .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                         .Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
