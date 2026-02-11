@@ -1,15 +1,4 @@
-schedules:
-- cron: "0 0 * * 1" # Run at midnight (UTC) on Monday each week
-  displayName: Weekly Monday build
-  branches:
-    include:
-    - main
-    - release/*
-    exclude:
-    - release/13.0
-  always: true # Run even when there are no code changes
-
-# Excluding normal trigger as we're now using schedules
+# Scheduled builds disabled for this branch
 trigger: none
 
 pr:
