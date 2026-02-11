@@ -82,6 +82,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForUpdateConfirmation = new CellPatternSearcher()
                 .Find("Perform updates?");
 
+            var waitingForNugetConfigPrompt = new CellPatternSearcher()
+                .Find("NuGet.config file?");
+
             var waitingForUpdateSuccessful = new CellPatternSearcher()
                 .Find("Update successful");
 
@@ -213,6 +216,8 @@ builder.Build().Run();
                     .Enter()
                     .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                     .Enter()
+                    .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .Enter()
                     .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
             }
@@ -232,6 +237,8 @@ builder.Build().Run();
                         .Enter()
                         .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                         .Enter()
+                        .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
@@ -242,6 +249,8 @@ builder.Build().Run();
                     sequenceBuilder.Type("aspire update")
                         .Enter()
                         .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                         .Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
