@@ -311,6 +311,10 @@
         "Prerelease",
         "Both"
       ]
+    },
+    "stagingVersionPrefix": {
+      "description": "Filter staging channel packages to a specific Major.Minor version (e.g., \"13.2\"). When set, only packages matching this version prefix are shown, preventing newer daily versions from being selected.",
+      "type": "string"
     }
   },
   "additionalProperties": false

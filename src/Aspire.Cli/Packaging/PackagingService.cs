@@ -4,6 +4,7 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Microsoft.Extensions.Configuration;
+using Semver;
 using System.Reflection;
 
 namespace Aspire.Cli.Packaging;
@@ -91,11 +92,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             return null;
         }
 
+        var versionPrefix = GetStagingVersionPrefix();
+
         var stagingChannel = PackageChannel.CreateExplicitChannel(PackageChannelNames.Staging, stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache, configureGlobalPackagesFolder: !useSharedFeed, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily");
+        }, nuGetPackageCache, configureGlobalPackagesFolder: !useSharedFeed, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily", versionPrefix: versionPrefix);
 
         return stagingChannel;
     }
@@ -161,5 +164,22 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
         // Default to Stable if not specified or invalid
         return PackageChannelQuality.Stable;
+    }
+
+    private SemVersion? GetStagingVersionPrefix()
+    {
+        var versionPrefixValue = configuration["stagingVersionPrefix"];
+        if (string.IsNullOrEmpty(versionPrefixValue))
+        {
+            return null;
+        }
+
+        // Parse "Major.Minor" format (e.g., "13.2") as a SemVersion for comparison
+        if (SemVersion.TryParse($"{versionPrefixValue}.0", SemVersionStyles.Strict, out var semVersion))
+        {
+            return semVersion;
+        }
+
+        return null;
     }
 }
