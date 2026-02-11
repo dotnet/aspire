@@ -109,6 +109,8 @@ jobs:
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+        env:
+          WSL_INTEROP: ""
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
