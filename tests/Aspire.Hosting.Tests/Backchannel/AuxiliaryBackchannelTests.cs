@@ -38,6 +38,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service and verify it started
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
         Assert.True(File.Exists(service.SocketPath));
 
@@ -81,15 +82,16 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect multiple clients concurrently
         var client1Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var client2Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var client3Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        
+
         var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
-        
+
         await client1Socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
         await client2Socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
         await client3Socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
@@ -126,6 +128,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -164,6 +167,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -208,6 +212,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Create multiple clients and invoke RPC methods concurrently
@@ -255,6 +260,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -275,10 +281,10 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         Assert.NotNull(appHostInfo);
         Assert.NotNull(appHostInfo.AppHostPath);
         Assert.NotEmpty(appHostInfo.AppHostPath);
-        
+
         // The path should be an absolute path
         Assert.True(Path.IsPathRooted(appHostInfo.AppHostPath), $"Expected absolute path but got: {appHostInfo.AppHostPath}");
-        
+
         // In test scenarios where assembly metadata is not available, we may get a path without extension
         // (falling back to AppHost:Path). In real scenarios with proper metadata, we should get .csproj or .cs
         // So we just verify the path is non-empty and rooted
@@ -304,12 +310,13 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Verify that the socket path uses "auxi.sock." prefix
         var fileName = Path.GetFileName(service.SocketPath);
         Assert.StartsWith("auxi.sock.", fileName);
-        
+
         // Verify that the socket file can be created (not blocked by Windows reserved names)
         Assert.True(File.Exists(service.SocketPath), $"Socket file should exist at: {service.SocketPath}");
 
@@ -338,6 +345,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -382,6 +390,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -422,6 +431,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -474,6 +484,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -515,6 +526,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
@@ -561,6 +573,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
         Assert.NotNull(service.SocketPath);
 
         // Connect a client
