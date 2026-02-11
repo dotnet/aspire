@@ -79,6 +79,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
+            var waitingForUpdateSuccessful = new CellPatternSearcher()
+                .Find("Update successful");
+
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
 
@@ -199,13 +202,14 @@ builder.Build().Run();
                 // Re-source environment to pick up the dev CLI
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
 
-                // Update the ACA package to the dev version so the dev naming code is used
-                output.WriteLine("Step 11b: Updating package to dev version...");
-                sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
+                // Run aspire update to upgrade the #:package directives in apphost.cs
+                // from the GA version to the dev build version. This ensures the actual
+                // deployment logic (naming, bicep generation) comes from the dev packages.
+                output.WriteLine("Step 11b: Updating project packages to dev version...");
+                sequenceBuilder.Type("aspire update --channel local")
                     .Enter()
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter()
-                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+                    .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
             }
             else
             {
@@ -216,24 +220,42 @@ builder.Build().Run();
                     output.WriteLine($"Step 11: Upgrading to dev CLI from PR #{prNumber}...");
                     sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
                     sequenceBuilder.SourceAspireCliEnvironment(counter);
+
+                    // Update project packages to the PR version
+                    output.WriteLine("Step 11b: Updating project packages to dev version...");
+                    sequenceBuilder.Type($"aspire update --channel pr-{prNumber}")
+                        .Enter()
+                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
                 else
                 {
                     output.WriteLine("Step 11: No PR number available, using current CLI as 'dev'...");
+                    // Still run aspire update to pick up whatever local packages are available
+                    sequenceBuilder.Type("aspire update")
+                        .Enter()
+                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
             }
 
-            // Step 12: Log the dev CLI version
-            output.WriteLine("Step 12: Logging dev CLI version...");
+            // Step 12: Log the dev CLI version and verify packages were updated
+            output.WriteLine("Step 12: Logging dev CLI version and verifying package update...");
             sequenceBuilder.Type("aspire --version")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 13: Redeploy with dev CLI — same apphost, NO compact naming
-            // This proves the default naming didn't change on upgrade
-            output.WriteLine("Step 13: Redeploying with dev CLI (same apphost, no compact naming)...");
+            // Verify the #:package directives in apphost.cs were updated from GA version
+            sequenceBuilder.Type("grep '#:package\\|#:sdk' apphost.cs")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 13: Redeploy with dev packages — same apphost, NO compact naming
+            // The dev packages contain our changes but default naming is unchanged,
+            // so this should reuse the same resources created by the GA deploy.
+            output.WriteLine("Step 13: Redeploying with dev packages (no compact naming)...");
             sequenceBuilder
-                .Type("aspire deploy")
+                .Type("aspire deploy --clear-cache")
                 .Enter()
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
