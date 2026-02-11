@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Api;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
@@ -44,7 +46,7 @@ public class TelemetryApiServiceTests
             });
         }
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         // Act - stream spans
@@ -91,7 +93,7 @@ public class TelemetryApiServiceTests
             });
         }
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         // Act - stream logs
@@ -136,7 +138,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
 
         // Act - get spans with hasError=false
         var result = service.GetSpans(resourceNames: null, traceId: null, hasError: false, limit: null);
@@ -178,7 +180,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
 
         // Act - get spans with hasError=true
         var result = service.GetSpans(resourceNames: null, traceId: null, hasError: true, limit: null);
@@ -237,7 +239,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
 
         // Act - get traces with hasError=false (no error, should exclude the error trace)
         var result = service.GetTraces(resourceNames: null, hasError: false, limit: null);
@@ -297,7 +299,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
 
         // Act - get traces with hasError=true (error only)
         var result = service.GetTraces(resourceNames: null, hasError: true, limit: null);
@@ -338,7 +340,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
         // Act - stream spans for a non-existent resource
@@ -385,7 +387,7 @@ public class TelemetryApiServiceTests
             }
         });
 
-        var service = new TelemetryApiService(repository);
+        var service = CreateService(repository);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
         // Act - stream logs for a non-existent resource
@@ -404,5 +406,17 @@ public class TelemetryApiServiceTests
 
         // Assert - should receive NO items because the resource doesn't exist
         Assert.Empty(receivedItems);
+    }
+
+    /// <summary>
+    /// Creates a TelemetryApiService instance for testing with optional custom dependencies.
+    /// </summary>
+    private static TelemetryApiService CreateService(
+        TelemetryRepository? repository = null,
+        IOutgoingPeerResolver[]? peerResolvers = null)
+    {
+        return new TelemetryApiService(
+            repository ?? CreateRepository(),
+            peerResolvers ?? []);
     }
 }

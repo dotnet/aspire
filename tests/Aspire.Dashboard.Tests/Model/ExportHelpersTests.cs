@@ -42,7 +42,8 @@ public sealed class ExportHelpersTests
             resourceType: "Container",
             state: KnownResourceState.Running,
             environment: [
-                new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)
+                new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: true),
+                new EnvironmentVariableViewModel("RUNTIME_VAR", "runtime-value", fromSpec: false)
             ]);
 
         var resourceByName = new Dictionary<string, ResourceViewModel>(StringComparer.OrdinalIgnoreCase) { [resource.Name] = resource };
@@ -52,6 +53,12 @@ public sealed class ExportHelpersTests
 
         // Assert
         Assert.Equal("Test Resource.env", result.FileName);
-        Assert.Contains("MY_VAR=my-value", result.Content);
+        Assert.Equal(
+            """
+            MY_VAR=my-value
+
+            """,
+            result.Content,
+            ignoreLineEndingDifferences: true);
     }
 }

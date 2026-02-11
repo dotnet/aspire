@@ -58,14 +58,13 @@ internal sealed class RunCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly IConfiguration _configuration;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
-    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
+    private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
@@ -83,6 +82,10 @@ internal sealed class RunCommand : BaseCommand
     {
         Description = RunCommandStrings.IsolatedArgumentDescription
     };
+    private static readonly Option<bool> s_noBuildOption = new("--no-build")
+    {
+        Description = RunCommandStrings.NoBuildArgumentDescription
+    };
     private readonly Option<bool>? _startDebugSessionOption;
 
     public RunCommand(
@@ -93,15 +96,14 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
-        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
+        Diagnostics.FileLoggerProvider fileLoggerProvider,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -112,18 +114,18 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
-        _sdkInstaller = sdkInstaller;
         _features = features;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
         _projectFactory = projectFactory;
         _backchannelMonitor = backchannelMonitor;
+        _fileLoggerProvider = fileLoggerProvider;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         Options.Add(s_projectOption);
         Options.Add(s_detachOption);
         Options.Add(s_formatOption);
         Options.Add(s_isolatedOption);
+        Options.Add(s_noBuildOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -143,6 +145,7 @@ internal sealed class RunCommand : BaseCommand
         var detach = parseResult.GetValue(s_detachOption);
         var format = parseResult.GetValue(s_formatOption);
         var isolated = parseResult.GetValue(s_isolatedOption);
+        var noBuild = parseResult.GetValue(s_noBuildOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = false;
         if (isExtensionHost)
@@ -161,6 +164,15 @@ internal sealed class RunCommand : BaseCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
+        // Validate that --no-build is not used when watch mode would be enabled
+        // Watch mode is enabled when DefaultWatchEnabled feature is true, or when running under extension host (not in debug session)
+        var watchModeEnabled = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession);
+        if (noBuild && watchModeEnabled)
+        {
+            InteractionService.DisplayError(RunCommandStrings.NoBuildNotSupportedWithWatchMode);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
         // Handle detached mode - spawn child process and exit
         if (detach)
         {
@@ -175,12 +187,6 @@ internal sealed class RunCommand : BaseCommand
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
             await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
             return ExitCodeConstants.Success;
-        }
-
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
         }
 
         AppHostProjectContext? context = null;
@@ -229,7 +235,8 @@ internal sealed class RunCommand : BaseCommand
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
                 Debug = parseResult.GetValue(RootCommand.DebugOption),
-                NoBuild = false,
+                NoBuild = noBuild,
+                NoRestore = noBuild, // --no-build implies --no-restore
                 WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
                 Isolated = isolated,
                 StartDebugSession = startDebugSession,
@@ -252,7 +259,7 @@ internal sealed class RunCommand : BaseCommand
                 {
                     InteractionService.DisplayLines(outputCollector.GetLines());
                 }
-                InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ProjectCouldNotBeBuilt, ExecutionContext.LogFilePath));
                 return await pendingRun;
             }
 
@@ -261,12 +268,8 @@ internal sealed class RunCommand : BaseCommand
                 isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost,
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));
 
-            // Set up log capture
-            var logFile = AppHostHelper.GetLogFilePath(
-                Environment.ProcessId,
-                ExecutionContext.HomeDirectory.FullName,
-                _timeProvider);
-            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
+            // Set up log capture - writes to unified CLI log file
+            var pendingLogCapture = CaptureAppHostLogsAsync(_fileLoggerProvider, backchannel, _interactionService, cancellationToken);
 
             // Get dashboard URLs
             var dashboardUrls = await InteractionService.ShowStatusAsync(
@@ -286,7 +289,7 @@ internal sealed class RunCommand : BaseCommand
                 appHostRelativePath,
                 dashboardUrls.BaseUrlWithLoginToken,
                 dashboardUrls.CodespacesUrlWithLoginToken,
-                logFile.FullName,
+                _fileLoggerProvider.LogFilePath,
                 isExtensionHost);
 
             // Handle remote environments (Codespaces, Remote Containers, SSH)
@@ -323,7 +326,7 @@ internal sealed class RunCommand : BaseCommand
 
                             endpointsGrid.AddRow(
                                 firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint.EscapeMarkup()}]{endpoint.EscapeMarkup()}[/]")
                             );
 
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
@@ -361,24 +364,22 @@ internal sealed class RunCommand : BaseCommand
         catch (AppHostIncompatibleException ex)
         {
             Telemetry.RecordError(ex.Message, ex);
-            return InteractionService.DisplayIncompatibleVersionError(ex, ex.RequiredCapability);
+            return InteractionService.DisplayIncompatibleVersionError(ex, ex.AspireHostingVersion ?? ex.RequiredCapability);
         }
         catch (CertificateServiceException ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
-            if (context?.OutputCollector is { } outputCollector)
-            {
-                InteractionService.DisplayLines(outputCollector.GetLines());
-            }
+            // Don't display raw output - it's already in the log file
+            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex) when (ex is ObjectDisposedException || (ex is OperationCanceledException oce && oce.InnerException is ConnectionLostException))
@@ -389,13 +390,11 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup());
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
-            if (context?.OutputCollector is { } outputCollector)
-            {
-                InteractionService.DisplayLines(outputCollector.GetLines());
-            }
+            // Don't display raw output - it's already in the log file
+            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
@@ -522,21 +521,11 @@ internal sealed class RunCommand : BaseCommand
         return longestLabelLength;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(Diagnostics.FileLoggerProvider fileLoggerProvider, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
             await Task.Yield();
-
-            if (!logFile.Directory!.Exists)
-            {
-                logFile.Directory.Create();
-            }
-
-            using var streamWriter = new StreamWriter(logFile.FullName, append: true)
-            {
-                AutoFlush = true
-            };
 
             var logEntries = backchannel.GetAppHostLogEntriesAsync(cancellationToken);
 
@@ -551,7 +540,19 @@ internal sealed class RunCommand : BaseCommand
                     }
                 }
 
-                await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
+                // Write to the unified log file via FileLoggerProvider
+                var timestamp = entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+                var level = entry.LogLevel switch
+                {
+                    LogLevel.Trace => "TRCE",
+                    LogLevel.Debug => "DBUG",
+                    LogLevel.Information => "INFO",
+                    LogLevel.Warning => "WARN",
+                    LogLevel.Error => "FAIL",
+                    LogLevel.Critical => "CRIT",
+                    _ => entry.LogLevel.ToString().ToUpperInvariant()
+                };
+                fileLoggerProvider.WriteLog($"[{timestamp}] [{level}] [AppHost/{entry.CategoryName}] {entry.Message}");
             }
         }
         catch (OperationCanceledException)
@@ -620,7 +621,7 @@ internal sealed class RunCommand : BaseCommand
     /// </remarks>
     private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, bool isExtensionHost, CancellationToken cancellationToken)
     {
-        var format = parseResult.GetValue<OutputFormat?>("--format");
+        var format = parseResult.GetValue(s_formatOption);
 
         // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
@@ -674,18 +675,17 @@ internal sealed class RunCommand : BaseCommand
             effectiveAppHostFile.FullName
         };
 
-        // Pass through global options that were matched at the root level
-        if (parseResult.GetValue(RootCommand.DebugOption))
-        {
-            args.Add("--debug");
-        }
-        if (parseResult.GetValue(RootCommand.WaitForDebuggerOption))
-        {
-            args.Add("--wait-for-debugger");
-        }
+        // Pass through global options that should be forwarded to child CLI
+        args.AddRange(RootCommand.GetChildProcessArgs(parseResult));
+
+        // Pass through run-specific options
         if (parseResult.GetValue(s_isolatedOption))
         {
             args.Add("--isolated");
+        }
+        if (parseResult.GetValue(s_noBuildOption))
+        {
+            args.Add("--no-build");
         }
 
         // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)
@@ -847,12 +847,6 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Compute the expected log file path for error message
-            var expectedLogFile = AppHostHelper.GetLogFilePath(
-                childProcess.Id,
-                ExecutionContext.HomeDirectory.FullName,
-                _timeProvider);
-
             if (childExitedEarly)
             {
                 _interactionService.DisplayError(string.Format(
@@ -882,7 +876,7 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
                 CultureInfo.CurrentCulture,
                 RunCommandStrings.CheckLogsForDetails,
-                expectedLogFile.FullName));
+                _fileLoggerProvider.LogFilePath.EscapeMarkup()));
 
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
@@ -891,12 +885,6 @@ internal sealed class RunCommand : BaseCommand
 
         // Get the dashboard URLs
         var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
-
-        // Get the log file path
-        var logFile = AppHostHelper.GetLogFilePath(
-            appHostInfo?.ProcessId ?? childProcess.Id,
-            ExecutionContext.HomeDirectory.FullName,
-            _timeProvider);
 
         var pid = appHostInfo?.ProcessId ?? childProcess.Id;
 
@@ -908,7 +896,7 @@ internal sealed class RunCommand : BaseCommand
                 pid,
                 childProcess.Id,
                 dashboardUrls?.BaseUrlWithLoginToken,
-                logFile.FullName);
+                _fileLoggerProvider.LogFilePath);
             var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
             _interactionService.DisplayRawText(json);
         }
@@ -921,7 +909,7 @@ internal sealed class RunCommand : BaseCommand
                 appHostRelativePath,
                 dashboardUrls?.BaseUrlWithLoginToken,
                 codespacesUrl: null,
-                logFile.FullName,
+                _fileLoggerProvider.LogFilePath,
                 isExtensionHost,
                 pid);
             _ansiConsole.WriteLine();

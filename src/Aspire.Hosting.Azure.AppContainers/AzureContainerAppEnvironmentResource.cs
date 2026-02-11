@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
@@ -18,9 +19,12 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// </summary>
 #pragma warning disable CS0618 // Type or member is obsolete
 public class AzureContainerAppEnvironmentResource :
-    AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry
+    AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry, IAzureDelegatedSubnetResource
 #pragma warning restore CS0618 // Type or member is obsolete
 {
+    /// <inheritdoc />
+    string IAzureDelegatedSubnetResource.DelegatedSubnetServiceName => "Microsoft.App/environments";
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.
     /// </summary>
@@ -127,6 +131,8 @@ public class AzureContainerAppEnvironmentResource :
         var domainValue = await ContainerAppDomain.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
         var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
+
+        context.Summary.Add("📊 Dashboard", dashboardUrl);
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUrl}]({dashboardUrl})",

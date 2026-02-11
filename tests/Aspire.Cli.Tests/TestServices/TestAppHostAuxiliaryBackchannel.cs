@@ -99,6 +99,20 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
         return Task.FromResult(ExecuteResourceCommandResult);
     }
 
+    /// <summary>
+    /// Gets or sets the result to return from WaitForResourceAsync.
+    /// </summary>
+    public WaitForResourceResponse WaitForResourceResult { get; set; } = new WaitForResourceResponse { Success = true, State = "Running" };
+
+    public Task<WaitForResourceResponse> WaitForResourceAsync(
+        string resourceName,
+        string status,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(WaitForResourceResult);
+    }
+
     public Task<CallToolResult> CallResourceMcpToolAsync(
         string resourceName,
         string toolName,

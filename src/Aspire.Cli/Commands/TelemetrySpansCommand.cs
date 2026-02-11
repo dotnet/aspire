@@ -107,11 +107,10 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         using var client = TelemetryCommandHelpers.CreateApiClient(_httpClientFactory, apiToken);
 
         // Resolve resource name to specific instances (handles replicas)
-        var resolvedResources = await TelemetryCommandHelpers.ResolveResourceNamesAsync(
-            client, baseUrl, resource, cancellationToken);
+        var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
 
-        // If a resource was specified but not found, show error
-        if (!string.IsNullOrEmpty(resource) && resolvedResources?.Count == 0)
+        // If a resource was specified but not found, return error
+        if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
         {
             _interactionService.DisplayError($"Resource '{resource}' not found.");
             return ExitCodeConstants.InvalidCommand;
@@ -265,6 +264,6 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         var durationStr = TelemetryCommandHelpers.FormatDuration(duration);
 
         var escapedName = name.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName,-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
+        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName.EscapeMarkup(),-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
     }
 }

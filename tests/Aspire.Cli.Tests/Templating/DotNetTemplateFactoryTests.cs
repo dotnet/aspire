@@ -13,6 +13,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Aspire.Shared;
 using Spectre.Console;
 
@@ -323,7 +324,7 @@ public class DotNetTemplateFactoryTests
         Assert.Contains("aspire-py-starter", templateNames);
     }
 
-    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
+    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features, bool nonInteractive = false)
     {
         var interactionService = new TestInteractionService();
         var runner = new TestDotNetCliRunner();
@@ -333,8 +334,9 @@ public class DotNetTemplateFactoryTests
         var workingDirectory = new DirectoryInfo("/tmp");
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
-        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
         var configurationService = new FakeConfigurationService();
+        var hostEnvironment = new FakeCliHostEnvironment(nonInteractive);
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -344,7 +346,8 @@ public class DotNetTemplateFactoryTests
             prompter,
             executionContext,
             features,
-            configurationService);
+            configurationService,
+            hostEnvironment);
     }
 
     private sealed class FakeConfigurationService : IConfigurationService
@@ -451,7 +454,7 @@ public class DotNetTemplateFactoryTests
         public Task<int> NewProjectAsync(string templateName, string projectName, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> BuildAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> BuildAsync(FileInfo projectFile, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string version, string? packageSourceUrl, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -475,22 +478,16 @@ public class DotNetTemplateFactoryTests
         public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => throw new NotImplementedException();
-
-        public Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
-
-        public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult<(int, CertificateTrustResult?)>((0, new CertificateTrustResult { HasCertificates = true, TrustLevel = DevCertTrustLevel.Full, Certificates = [] }));
     }
 
     private sealed class TestCertificateService : ICertificateService
     {
-        public Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken)
             => Task.FromResult(new EnsureCertificatesTrustedResult { EnvironmentVariables = new Dictionary<string, string>() });
     }
 
@@ -513,5 +510,12 @@ public class DotNetTemplateFactoryTests
 
         public Task<ITemplate> PromptForTemplateAsync(ITemplate[] templates, CancellationToken cancellationToken)
             => throw new NotImplementedException();
+    }
+
+    private sealed class FakeCliHostEnvironment(bool nonInteractive) : ICliHostEnvironment
+    {
+        public bool SupportsInteractiveInput => !nonInteractive;
+        public bool SupportsInteractiveOutput => !nonInteractive;
+        public bool SupportsAnsi => false;
     }
 }

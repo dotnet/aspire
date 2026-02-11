@@ -3,6 +3,7 @@
 
 using System.Net;
 using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Mcp.Docs;
@@ -374,55 +375,6 @@ public class DocsFetcherTests
             {
                 Content = new StringContent("# Content")
             });
-        }
-    }
-
-    private sealed class MockHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, HttpResponseMessage>? _responseFactory;
-        private readonly HttpResponseMessage? _response;
-        private readonly Exception? _exception;
-        private readonly Action<HttpRequestMessage>? _requestValidator;
-
-        public bool RequestValidated { get; private set; }
-
-        public MockHttpMessageHandler(HttpResponseMessage response, Action<HttpRequestMessage>? requestValidator = null)
-        {
-            _response = response;
-            _requestValidator = requestValidator;
-        }
-
-        public MockHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
-        {
-            _responseFactory = responseFactory;
-        }
-
-        public MockHttpMessageHandler(Exception exception)
-        {
-            _exception = exception;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            if (_exception is not null)
-            {
-                throw _exception;
-            }
-
-            if (_requestValidator is not null)
-            {
-                _requestValidator(request);
-                RequestValidated = true;
-            }
-
-            if (_responseFactory is not null)
-            {
-                return Task.FromResult(_responseFactory(request));
-            }
-
-            return Task.FromResult(_response!);
         }
     }
 

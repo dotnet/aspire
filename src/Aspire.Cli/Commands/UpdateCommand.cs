@@ -3,9 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics;
-using System.Formats.Tar;
 using System.Globalization;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
@@ -344,7 +342,7 @@ internal sealed class UpdateCommand : BaseCommand
         {
             // Extract archive
             InteractionService.DisplayMessage("package", "Extracting new CLI...");
-            await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
+            await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
 
             // Find the aspire executable in the extracted files
             var newExePath = Path.Combine(tempExtractDir, exeName);
@@ -390,6 +388,10 @@ internal sealed class UpdateCommand : BaseCommand
 
                 // If we get here, the update was successful, clean up old backups
                 CleanupOldBackupFiles(targetExePath);
+
+                // The new binary will extract its embedded bundle on first run via EnsureExtractedAsync.
+                // No proactive extraction needed — the payload is inside the new binary's embedded resources,
+                // which are only accessible when that binary is running.
 
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
@@ -441,24 +443,6 @@ internal sealed class UpdateCommand : BaseCommand
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
                     ? StringComparison.OrdinalIgnoreCase 
                     : StringComparison.Ordinal));
-    }
-
-    private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
-    {
-        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            ZipFile.ExtractToDirectory(archivePath, destinationPath, overwriteFiles: true);
-        }
-        else if (archivePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
-        {
-            await using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read);
-            await using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
-            await TarFile.ExtractToDirectoryAsync(gzipStream, destinationPath, overwriteFiles: true, cancellationToken);
-        }
-        else
-        {
-            throw new NotSupportedException($"Unsupported archive format: {archivePath}");
-        }
     }
 
     private void SetExecutablePermission(string filePath)

@@ -120,6 +120,11 @@ internal sealed class PublishContext
     /// Gets whether debug logging is enabled.
     /// </summary>
     public bool Debug { get; init; }
+
+    /// <summary>
+    /// Gets whether to skip building before running.
+    /// </summary>
+    public bool NoBuild { get; init; }
 }
 
 /// <summary>

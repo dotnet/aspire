@@ -152,7 +152,7 @@ internal class ExecCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, Telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, Telemetry, ExecutionContext.WorkingDirectory, ExecutionContext.LogFilePath, cancellationToken);
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
@@ -182,6 +182,7 @@ internal class ExecCommand : BaseCommand
                     projectFile: effectiveAppHostProjectFile,
                     watch: false,
                     noBuild: false,
+                    noRestore: false,
                     args: args,
                     env: env,
                     backchannelCompletionSource: backchannelCompletionSource,
@@ -253,7 +254,7 @@ internal class ExecCommand : BaseCommand
                 if (result != 0)
                 {
                     InteractionService.DisplayLines(runOutputCollector.GetLines());
-                    InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, RunCommandStrings.ProjectCouldNotBeRun, ExecutionContext.LogFilePath));
                     return result;
                 }
                 else
@@ -264,7 +265,7 @@ internal class ExecCommand : BaseCommand
             else
             {
                 InteractionService.DisplayLines(runOutputCollector.GetLines());
-                InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, RunCommandStrings.ProjectCouldNotBeRun, ExecutionContext.LogFilePath));
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
         }

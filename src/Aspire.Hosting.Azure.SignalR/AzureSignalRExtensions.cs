@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.SignalR;
@@ -59,6 +61,11 @@ public static class AzureSignalRExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureSignalRResource)infrastructure.AspireResource;
+
+            // Check if this SignalR service has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure, (identifier, name) =>
             {
                 var resource = SignalRService.FromExisting(identifier);
@@ -66,31 +73,45 @@ public static class AzureSignalRExtensions
                 return resource;
             },
 
-            (infrastructure) => new SignalRService(infrastructure.AspireResource.GetBicepIdentifier())
+            (infrastructure) =>
             {
-                Kind = SignalRServiceKind.SignalR,
-                Sku = new SignalRResourceSku()
+                var svc = new SignalRService(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    Name = "Free_F1",
-                    Capacity = 1
-                },
-                Features =
-                [
-                    new SignalRFeature()
+                    Kind = SignalRServiceKind.SignalR,
+                    Sku = new SignalRResourceSku()
                     {
-                        Flag = SignalRFeatureFlag.ServiceMode,
-                        Value = serviceMode.ToString()
-                    }
-                ],
-                CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } },
-                DisableLocalAuth = true,
+                        Name = "Free_F1",
+                        Capacity = 1
+                    },
+                    Features =
+                    [
+                        new SignalRFeature()
+                        {
+                            Flag = SignalRFeatureFlag.ServiceMode,
+                            Value = serviceMode.ToString()
+                        }
+                    ],
+                    CorsAllowedOrigins = ["*"],
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } },
+                    DisableLocalAuth = true,
+                };
+
+                // When using private endpoints, disable public network access.
+                if (hasPrivateEndpoint)
+                {
+                    svc.PublicNetworkAccess = "Disabled";
+                }
+
+                return svc;
             });
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name.ToBicepExpression() });
+
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = service.Id.ToBicepExpression() });
         };
 
         List<SignalRBuiltInRole> defaultRoles = [SignalRBuiltInRole.SignalRAppServer];

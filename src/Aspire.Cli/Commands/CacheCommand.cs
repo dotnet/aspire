@@ -108,6 +108,45 @@ internal sealed class CacheCommand : BaseCommand
                     }
                 }
 
+                // Also clear the logs directory (skip current process's log file)
+                var logsDirectory = ExecutionContext.LogsDirectory;
+                // Log files are named cli-{timestamp}-{pid}.log, so we need to check the suffix
+                var currentLogFileSuffix = $"-{Environment.ProcessId}.log";
+                if (logsDirectory.Exists)
+                {
+                    foreach (var file in logsDirectory.GetFiles("*", SearchOption.AllDirectories))
+                    {
+                        // Skip the current process's log file to avoid deleting it while in use
+                        if (file.Name.EndsWith(currentLogFileSuffix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            file.Delete();
+                            filesDeleted++;
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other files even if some fail
+                        }
+                    }
+
+                    // Delete subdirectories
+                    foreach (var directory in logsDirectory.GetDirectories())
+                    {
+                        try
+                        {
+                            directory.Delete(recursive: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other directories even if some fail
+                        }
+                    }
+                }
+
                 if (filesDeleted == 0)
                 {
                     InteractionService.DisplayMessage("information", CacheCommandStrings.CacheAlreadyEmpty);

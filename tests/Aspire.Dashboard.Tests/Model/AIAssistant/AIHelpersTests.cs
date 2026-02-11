@@ -187,10 +187,10 @@ public class AIHelpersTests
         Assert.True(options.Frontend.TryParseOptions(out _));
 
         // Act
-        var url = AIHelpers.GetDashboardUrl(options, "/path");
+        var url = AIHelpers.GetDashboardUrl(options);
 
         // Assert
-        Assert.Equal("https://localhost:1234/path", url);
+        Assert.Equal("https://localhost:1234", url);
     }
 
     [Fact]
@@ -202,10 +202,10 @@ public class AIHelpersTests
         Assert.True(options.Frontend.TryParseOptions(out _));
 
         // Act
-        var url = AIHelpers.GetDashboardUrl(options, "/path");
+        var url = AIHelpers.GetDashboardUrl(options);
 
         // Assert
-        Assert.Equal("https://localhost:1234/path", url);
+        Assert.Equal("https://localhost:1234", url);
     }
 
     [Fact]
@@ -217,9 +217,9 @@ public class AIHelpersTests
         Assert.True(options.Frontend.TryParseOptions(out _));
 
         // Act
-        var url = AIHelpers.GetDashboardUrl(options, "/path");
+        var url = AIHelpers.GetDashboardUrl(options);
 
         // Assert
-        Assert.Equal("http://localhost:5000/path", url);
+        Assert.Equal("http://localhost:5000", url);
     }
 }

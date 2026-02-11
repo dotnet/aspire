@@ -108,7 +108,17 @@ jobs:
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
-        run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+        # Allow the task to succeed on partial trust.
+        # Remove this workaround once https://github.com/dotnet/aspnetcore/pull/65392 has shipped
+        run: |
+          EXIT_CODE=0
+          ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 4 ]; then
+            echo "dev-certs https --trust failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+        env:
+          WSL_INTEROP: ""
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
@@ -515,6 +525,25 @@ jobs:
             testresults/**
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
+
+      - name: Copy CLI E2E recordings for upload
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p cli-e2e-recordings
+          find testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
+          if [ -n "$(ls -A cli-e2e-recordings 2>/dev/null)" ]; then
+            echo "Found recordings:"
+            ls -la cli-e2e-recordings/
+          fi
+
+      - name: Upload CLI E2E recordings
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: cli-e2e-recordings-${{ inputs.testShortName }}
+          path: cli-e2e-recordings/*.cast
+          if-no-files-found: ignore
 
       - name: Generate test results summary
         if: always()

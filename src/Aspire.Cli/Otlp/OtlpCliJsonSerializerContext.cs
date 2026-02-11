@@ -47,17 +47,10 @@ internal sealed class ResourceInfoJson
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// The instance ID if this is a replica (e.g., "abc123"), or null if single instance.
+    /// The instance ID (e.g., "abc123").
     /// </summary>
     [JsonPropertyName("instanceId")]
     public string? InstanceId { get; set; }
-
-    /// <summary>
-    /// The full display name including instance ID (e.g., "catalogservice-abc123" or "catalogservice").
-    /// Use this when querying the telemetry API.
-    /// </summary>
-    [JsonPropertyName("displayName")]
-    public string DisplayName { get; set; } = "";
 
     /// <summary>
     /// Whether this resource has structured logs.
@@ -76,6 +69,20 @@ internal sealed class ResourceInfoJson
     /// </summary>
     [JsonPropertyName("hasMetrics")]
     public bool HasMetrics { get; set; }
+
+    /// <summary>
+    /// Gets the full display name by combining Name and InstanceId.
+    /// </summary>
+    /// <returns>The full display name (e.g., "catalogservice-abc123" or "catalogservice").</returns>
+    public string GetCompositeName()
+    {
+        if (InstanceId is null)
+        {
+            return Name;
+        }
+
+        return $"{Name}-{InstanceId}";
+    }
 }
 
 /// <summary>

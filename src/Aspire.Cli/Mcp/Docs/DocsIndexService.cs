@@ -13,6 +13,11 @@ namespace Aspire.Cli.Mcp.Docs;
 internal interface IDocsIndexService
 {
     /// <summary>
+    /// Gets a value indicating whether the documentation has been indexed.
+    /// </summary>
+    bool IsIndexed { get; }
+
+    /// <summary>
     /// Ensures documentation is loaded and indexed.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -120,6 +125,9 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, IDocsCa
     // instruction reordering that could expose a partially-constructed list to other threads.
     private volatile List<IndexedDocument>? _indexedDocuments;
     private readonly SemaphoreSlim _indexLock = new(1, 1);
+
+    /// <inheritdoc />
+    public bool IsIndexed => _indexedDocuments is not null;
 
     public async ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)
     {

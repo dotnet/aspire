@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -11,6 +12,16 @@ namespace Aspire.Dashboard.Otlp.Model;
 /// </summary>
 public static partial class OtlpHelpers
 {
+    /// <summary>
+    /// The attribute name for Aspire's log entry ID.
+    /// </summary>
+    public const string AspireLogIdAttribute = "aspire.log_id";
+
+    /// <summary>
+    /// The attribute name for the resolved destination name of a span.
+    /// </summary>
+    public const string AspireDestinationNameAttribute = "aspire.destination";
+
     /// <summary>
     /// The standard length for shortened trace/span IDs.
     /// </summary>
@@ -87,5 +98,42 @@ public static partial class OtlpHelpers
                 .ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
         }
         return "";
+    }
+
+    public static string GetResourceName(IOtlpResource resource, IReadOnlyList<IOtlpResource> allResources)
+    {
+        var count = 0;
+        foreach (var item in allResources)
+        {
+            if (string.Equals(item.ResourceName, resource.ResourceName, StringComparisons.ResourceName))
+            {
+                count++;
+                if (count >= 2)
+                {
+                    var instanceId = resource.InstanceId;
+
+                    // Convert long GUID into a shorter, more human friendly format.
+                    // Before: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+                    // After:  aaaaaaaa
+                    if (instanceId != null && Guid.TryParse(instanceId, out var guid))
+                    {
+                        Span<char> chars = stackalloc char[32];
+                        var result = guid.TryFormat(chars, charsWritten: out _, format: "N");
+                        Debug.Assert(result, "Guid.TryFormat not successful.");
+
+                        instanceId = chars.Slice(0, 8).ToString();
+                    }
+
+                    if (instanceId == null)
+                    {
+                        return item.ResourceName;
+                    }
+
+                    return $"{item.ResourceName}-{instanceId}";
+                }
+            }
+        }
+
+        return resource.ResourceName;
     }
 }

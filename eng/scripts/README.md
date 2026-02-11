@@ -4,8 +4,25 @@ This directory contains scripts to download and install the Aspire CLI for diffe
 
 ## Scripts
 
+### CLI Only (requires .NET SDK)
+
 - **`get-aspire-cli.sh`** - Bash script for Unix-like systems (Linux, macOS)
 - **`get-aspire-cli.ps1`** - PowerShell script for cross-platform use (Windows, Linux, macOS)
+
+### Self-Contained Bundle (no .NET SDK required)
+
+- **`install-aspire-bundle.sh`** - Bash script for Unix-like systems (Linux, macOS)
+- **`install-aspire-bundle.ps1`** - PowerShell script for Windows
+
+The **bundle** includes everything needed to run Aspire applications without a .NET SDK:
+- Aspire CLI (native AOT)
+- .NET Runtime
+- Aspire Dashboard
+- Developer Control Plane (DCP)
+- Pre-built AppHost Server
+- NuGet Helper Tool
+
+This is ideal for polyglot developers using TypeScript, Python, Go, etc.
 
 ## Current Limitations
 
@@ -194,3 +211,130 @@ export ASPIRE_REPO=myfork/aspire
 $env:ASPIRE_REPO = 'myfork/aspire'
 ./get-aspire-cli-pr.ps1 1234
 ```
+
+## Aspire Bundle Installation
+
+The bundle scripts install a self-contained distribution that doesn't require a .NET SDK.
+
+### Quick Install
+
+**Linux/macOS:**
+```bash
+curl -sSL https://aka.ms/install-aspire-bundle.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iex ((New-Object System.Net.WebClient).DownloadString('https://aka.ms/install-aspire-bundle.ps1'))
+```
+
+### Bundle Script Parameters
+
+#### Bash Script (`install-aspire-bundle.sh`)
+
+| Parameter        | Short | Description                                       | Default               |
+|------------------|-------|---------------------------------------------------|-----------------------|
+| `--install-path` | `-i`  | Directory to install the bundle                   | `$HOME/.aspire`       |
+| `--version`      |       | Specific version to install                       | latest release        |
+| `--os`           |       | Operating system (linux, osx)                     | auto-detect           |
+| `--arch`         |       | Architecture (x64, arm64)                         | auto-detect           |
+| `--skip-path`    |       | Do not add aspire to PATH                         | `false`               |
+| `--force`        |       | Overwrite existing installation                   | `false`               |
+| `--dry-run`      |       | Show what would be done without installing        | `false`               |
+| `--verbose`      | `-v`  | Enable verbose output                             | `false`               |
+| `--help`         | `-h`  | Show help message                                 |                       |
+
+#### PowerShell Script (`install-aspire-bundle.ps1`)
+
+| Parameter       | Description                                       | Default                          |
+|-----------------|---------------------------------------------------|----------------------------------|
+| `-InstallPath`  | Directory to install the bundle                   | `$env:LOCALAPPDATA\Aspire`       |
+| `-Version`      | Specific version to install                       | latest release                   |
+| `-Architecture` | Architecture (x64, arm64)                         | auto-detect                      |
+| `-SkipPath`     | Do not add aspire to PATH                         | `false`                          |
+| `-Force`        | Overwrite existing installation                   | `false`                          |
+| `-DryRun`       | Show what would be done without installing        | `false`                          |
+
+### Bundle Examples
+
+```bash
+# Install latest version
+./install-aspire-bundle.sh
+
+# Install specific version
+./install-aspire-bundle.sh --version "9.2.0"
+
+# Install to custom location
+./install-aspire-bundle.sh --install-path "/opt/aspire"
+
+# Dry run to see what would happen
+./install-aspire-bundle.sh --dry-run --verbose
+```
+
+```powershell
+# Install latest version
+.\install-aspire-bundle.ps1
+
+# Install specific version
+.\install-aspire-bundle.ps1 -Version "9.2.0"
+
+# Install to custom location
+.\install-aspire-bundle.ps1 -InstallPath "C:\Tools\Aspire"
+
+# Force reinstall
+.\install-aspire-bundle.ps1 -Force
+```
+
+### Updating and Uninstalling
+
+**Update an existing bundle installation:**
+```bash
+aspire update --self
+```
+
+**Uninstall:**
+```bash
+# Linux/macOS
+rm -rf ~/.aspire
+
+# Windows (PowerShell)
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Aspire"
+```
+
+### Bundle vs CLI-Only
+
+| Feature | CLI-Only Scripts | Bundle Scripts | Self-Extracting Binary |
+|---------|-----------------|----------------|----------------------|
+| Requires .NET SDK | Yes | No | No |
+| Package size | ~25 MB | ~200 MB compressed | ~210 MB (single file) |
+| Polyglot support | Partial | Full | Full |
+| Components included | CLI only | CLI, Runtime, Dashboard, DCP | CLI, Runtime, Dashboard, DCP |
+| Installation steps | Download + PATH | Download + extract + PATH | Download + `aspire setup` |
+| Use case | .NET developers | TypeScript, Python, Go developers | Simplest install path |
+
+### Self-Extracting Binary
+
+The Aspire CLI can also be distributed as a self-extracting binary that embeds the full bundle
+payload inside the native AOT executable. This is the simplest installation method:
+
+```bash
+# Linux/macOS - download and extract
+mkdir -p ~/.aspire/bin
+curl -fsSL <url>/aspire -o ~/.aspire/bin/aspire
+chmod +x ~/.aspire/bin/aspire
+~/.aspire/bin/aspire setup
+
+# Add to PATH
+export PATH="$HOME/.aspire/bin:$PATH"
+```
+
+```powershell
+# Windows - download and extract
+New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\Aspire\bin"
+Invoke-WebRequest -Uri <url>/aspire.exe -OutFile "$env:LOCALAPPDATA\Aspire\bin\aspire.exe"
+& "$env:LOCALAPPDATA\Aspire\bin\aspire.exe" setup
+```
+
+The `aspire setup` command extracts the embedded payload to the parent directory of the CLI binary.
+Alternatively, extraction happens lazily on the first command that needs the bundle layout
+(e.g., `aspire run` with a polyglot project).

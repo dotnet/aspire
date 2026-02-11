@@ -27,6 +27,11 @@
         <target state="translated">콘솔에 디버그 로깅을 활성화하세요.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
         <target state="translated">Aspire CLI를 사용하여 Aspire 기반 애플리케이션을 만들고, 실행하고, 게시할 수 있습니다.</target>

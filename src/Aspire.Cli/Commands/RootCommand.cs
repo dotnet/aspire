@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Help;
+using Microsoft.Extensions.Logging;
 
 #if DEBUG
 using System.Globalization;
@@ -19,44 +20,86 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public static readonly Option<bool> DebugOption = new("--debug", "-d")
+    public static readonly Option<bool> DebugOption = new(CommonOptionNames.Debug, CommonOptionNames.DebugShort)
     {
         Description = RootCommandStrings.DebugArgumentDescription,
+        Recursive = true,
+        Hidden = true // Hidden for backward compatibility, use --debug-level instead
+    };
+
+    public static readonly Option<LogLevel?> DebugLevelOption = new("--debug-level", "-v")
+    {
+        Description = RootCommandStrings.DebugLevelArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> NonInteractiveOption = new("--non-interactive")
+    public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
         Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
         Recursive = true
     };
 
-    public static readonly Option<bool> NoLogoOption = new("--nologo")
+    public static readonly Option<bool> NoLogoOption = new(CommonOptionNames.NoLogo)
     {
         Description = RootCommandStrings.NoLogoArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> BannerOption = new("--banner")
+    public static readonly Option<bool> BannerOption = new(CommonOptionNames.Banner)
     {
         Description = RootCommandStrings.BannerArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
+    public static readonly Option<bool> WaitForDebuggerOption = new(CommonOptionNames.WaitForDebugger)
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
         Recursive = true,
         DefaultValueFactory = _ => false
     };
 
-    public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    public static readonly Option<bool> CliWaitForDebuggerOption = new(CommonOptionNames.CliWaitForDebugger)
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,
         Hidden = true,
         DefaultValueFactory = _ => false
     };
+
+    /// <summary>
+    /// Global options that should be passed through to child CLI processes when spawning.
+    /// Add new global options here to ensure they are forwarded during detached mode execution.
+    /// </summary>
+    private static readonly (Option Option, Func<ParseResult, string[]?> GetArgs)[] s_childProcessOptions =
+    [
+        (DebugOption, pr => pr.GetValue(DebugOption) ? ["--debug"] : null),
+        (DebugLevelOption, pr =>
+        {
+            var level = pr.GetValue(DebugLevelOption);
+            return level.HasValue ? ["--debug-level", level.Value.ToString()] : null;
+        }),
+        (WaitForDebuggerOption, pr => pr.GetValue(WaitForDebuggerOption) ? ["--wait-for-debugger"] : null),
+    ];
+
+    /// <summary>
+    /// Gets the command-line arguments for global options that should be passed to a child CLI process.
+    /// </summary>
+    /// <param name="parseResult">The parse result from the current command invocation.</param>
+    /// <returns>Arguments to pass to the child process.</returns>
+    public static IEnumerable<string> GetChildProcessArgs(ParseResult parseResult)
+    {
+        foreach (var (_, getArgs) in s_childProcessOptions)
+        {
+            var args = getArgs(parseResult);
+            if (args is not null)
+            {
+                foreach (var arg in args)
+                {
+                    yield return arg;
+                }
+            }
+        }
+    }
 
     private readonly IInteractionService _interactionService;
 
@@ -67,6 +110,7 @@ internal sealed class RootCommand : BaseRootCommand
         StopCommand stopCommand,
         StartCommand startCommand,
         RestartCommand restartCommand,
+        WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
         ResourcesCommand resourcesCommand,
@@ -85,6 +129,7 @@ internal sealed class RootCommand : BaseRootCommand
         TelemetryCommand telemetryCommand,
         DocsCommand docsCommand,
         SdkCommand sdkCommand,
+        SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -116,6 +161,7 @@ internal sealed class RootCommand : BaseRootCommand
 #endif
 
         Options.Add(DebugOption);
+        Options.Add(DebugLevelOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
         Options.Add(BannerOption);
@@ -144,6 +190,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(stopCommand);
         Subcommands.Add(startCommand);
         Subcommands.Add(restartCommand);
+        Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
         Subcommands.Add(resourcesCommand);
@@ -161,6 +208,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
         Subcommands.Add(docsCommand);
+        Subcommands.Add(setupCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

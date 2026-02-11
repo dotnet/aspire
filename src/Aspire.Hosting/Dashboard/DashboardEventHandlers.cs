@@ -17,6 +17,7 @@ using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
+using Aspire.Shared;
 using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -290,60 +291,64 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         // Create custom runtime config with AppHost's framework versions
         var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
 
-        // Find the dashboard DLL path
-        string dashboardDll;
-        if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
+        // Determine if this is a single-file executable or DLL-based deployment
+        // Single-file: run the exe directly with custom runtime config
+        // DLL-based: run via dotnet exec
+        var isSingleFileExe = IsSingleFileExecutable(fullyQualifiedDashboardPath);
+        
+        ExecutableResource dashboardResource;
+        
+        if (isSingleFileExe)
         {
-            // Dashboard path is already a DLL
-            dashboardDll = fullyQualifiedDashboardPath;
+            // Single-file executable - run directly
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+            
+            // Set DOTNET_ROOT so the single-file app can find the shared framework
+            var dotnetRoot = BundleDiscovery.GetDotNetRoot();
+            if (!string.IsNullOrEmpty(dotnetRoot))
+            {
+                dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(env =>
+                {
+                    env["DOTNET_ROOT"] = dotnetRoot;
+                    env["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+                }));
+            }
         }
         else
         {
-            // For executables, the corresponding DLL is named after the base executable name
-            // Handle Windows (.exe), Unix (no extension), and direct DLL cases
-            var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
-            var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
-
-            string baseName;
-            if (fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            // DLL-based deployment - find the DLL and run via dotnet exec
+            string dashboardDll;
+            if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
             {
-                // Windows executable: remove .exe extension
-                baseName = fileName.Substring(0, fileName.Length - 4);
-            }
-            else if (fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            {
-                // Already a DLL: use as-is
                 dashboardDll = fullyQualifiedDashboardPath;
-                if (!File.Exists(dashboardDll))
-                {
-                    distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
-                }
-                return;
             }
             else
             {
-                // Unix executable (no extension) or other: use full filename as base
-                baseName = fileName;
+                // For executables with separate DLLs
+                var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
+                var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
+                var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                    ? fileName.Substring(0, fileName.Length - 4)
+                    : fileName;
+                dashboardDll = Path.Combine(directory, $"{baseName}.dll");
             }
-
-            dashboardDll = Path.Combine(directory, $"{baseName}.dll");
 
             if (!File.Exists(dashboardDll))
             {
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
+
+            var dotnetExecutable = BundleDiscovery.GetDotNetExecutablePath();
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, dotnetExecutable, dashboardWorkingDirectory ?? "");
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Add("exec");
+                args.Add("--runtimeconfig");
+                args.Add(customRuntimeConfigPath);
+                args.Add(dashboardDll);
+            }));
         }
-
-        // Always use dotnet exec with the custom runtime config
-        var dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
-
-        dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
-        {
-            args.Add("exec");
-            args.Add("--runtimeconfig");
-            args.Add(customRuntimeConfigPath);
-            args.Add(dashboardDll);
-        }));
 
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
@@ -920,6 +925,51 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
+    }
+
+    /// <summary>
+    /// Determines if the given path is a single-file executable (no accompanying DLL).
+    /// </summary>
+    private static bool IsSingleFileExecutable(string path)
+    {
+        // Single-file apps are executables without a corresponding DLL.
+        // On Windows the file ends with .exe; on Unix there is no reliable
+        // extension (e.g. "Aspire.Dashboard" has a dot but is still an executable).
+        // The definitive check is: executable exists on disk and there is no
+        // matching .dll next to it.
+
+        if (string.Equals(".dll", Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        // On Unix, verify the file is executable
+        if (!OperatingSystem.IsWindows())
+        {
+            var fileInfo = new FileInfo(path);
+            var mode = fileInfo.UnixFileMode;
+            if ((mode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) == 0)
+            {
+                return false;
+            }
+        }
+
+        // Check if there's a corresponding DLL — strip .exe on Windows,
+        // but on Unix the filename may contain dots (e.g. "Aspire.Dashboard"),
+        // so always derive the DLL name by appending .dll to the full filename.
+        var directory = Path.GetDirectoryName(path)!;
+        var fileName = Path.GetFileName(path);
+        var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? fileName[..^4]
+            : fileName;
+        var dllPath = Path.Combine(directory, $"{baseName}.dll");
+
+        return !File.Exists(dllPath);
     }
 }
 

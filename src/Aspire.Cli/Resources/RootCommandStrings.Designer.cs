@@ -115,6 +115,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical)..
+        /// </summary>
+        public static string DebugLevelArgumentDescription {
+            get {
+                return ResourceManager.GetString("DebugLevelArgumentDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Telemetry
         ///---------
         ///
