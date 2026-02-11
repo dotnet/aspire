@@ -85,7 +85,7 @@ param(
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(0, 3600)]
-    [int]$PauseBetweenIterationsSeconds = 15
+    [int]$PauseBetweenIterationsSeconds = 45
 )
 
 $ErrorActionPreference = 'Stop'
