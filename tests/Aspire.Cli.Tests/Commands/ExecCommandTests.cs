@@ -149,7 +149,7 @@ public class ExecCommandTests
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
             {
-                RunAsyncCallback = (projectFile, watch, noBuild, args, env, backchannelCompletionSource, runnerOptions, cancellationToken) =>
+                RunAsyncCallback = (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, runnerOptions, cancellationToken) =>
                 {
                     var backchannel = new TestAppHostBackchannel();
                     backchannelCompletionSource?.SetResult(backchannel);

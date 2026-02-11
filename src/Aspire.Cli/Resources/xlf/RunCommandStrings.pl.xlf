@@ -132,6 +132,16 @@
         <target state="translated">Dzienniki</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="new">Do not build or restore the project before running.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">Naciśnij klawisze [bold]CTRL+C[/], aby zatrzymać hosta aplikacji i zakończyć.</target>

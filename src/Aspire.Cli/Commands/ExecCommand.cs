@@ -182,6 +182,7 @@ internal class ExecCommand : BaseCommand
                     projectFile: effectiveAppHostProjectFile,
                     watch: false,
                     noBuild: false,
+                    noRestore: false,
                     args: args,
                     env: env,
                     backchannelCompletionSource: backchannelCompletionSource,

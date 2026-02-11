@@ -574,7 +574,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var runner = new TestDotNetCliRunner();
 
         // Simulate successful build
-        runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+        runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0;
 
         // Simulate compatible app host
         runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -583,7 +583,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         };
 
         // Simulate successful app host run with the prompt backchannel
-        runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+        runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
         {
             backchannelCompletionSource?.SetResult(promptBackchannel);
             await promptBackchannel.WaitForCompletion().DefaultTimeout();

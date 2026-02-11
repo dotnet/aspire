@@ -239,7 +239,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            if (!watch)
+            if (!watch && !context.NoBuild)
             {
                 // Build in CLI if either not running under extension host, or the extension reports 'build-dotnet-using-cli' capability.
                 var extensionHasBuildCapability = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
@@ -252,7 +252,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                         StandardErrorCallback = buildOutputCollector.AppendError,
                     };
 
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, context.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, context.NoRestore, buildOptions, context.WorkingDirectory, cancellationToken);
 
                     if (buildExitCode != 0)
                     {
@@ -314,10 +314,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         // Start the apphost - the runner will signal the backchannel when ready
         try
         {
+            // noBuild: true if either watch mode is off (we already built above) or --no-build was passed
+            // noRestore: only relevant when noBuild is false (since --no-build implies --no-restore)
+            var noBuild = !watch || context.NoBuild;
             return await _runner.RunAsync(
                 effectiveAppHostFile,
                 watch,
-                !watch,
+                noBuild,
+                context.NoRestore,
                 context.UnmatchedTokens,
                 env,
                 backchannelCompletionSource,
@@ -386,30 +390,34 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                 throw exception;
             }
 
-            // Build the apphost
-            var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
-            var buildOptions = new DotNetCliRunnerInvocationOptions
+            // Build the apphost (unless --no-build is specified)
+            if (!context.NoBuild)
             {
-                StandardOutputCallback = buildOutputCollector.AppendOutput,
-                StandardErrorCallback = buildOutputCollector.AppendError,
-            };
+                var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
+                var buildOptions = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = buildOutputCollector.AppendOutput,
+                    StandardErrorCallback = buildOutputCollector.AppendError,
+                };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(
-                _runner,
-                _interactionService,
-                effectiveAppHostFile,
-                buildOptions,
-                context.WorkingDirectory,
-                cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(
+                    _runner,
+                    _interactionService,
+                    effectiveAppHostFile,
+                    noRestore: false,
+                    buildOptions,
+                    context.WorkingDirectory,
+                    cancellationToken);
 
-            if (buildExitCode != 0)
-            {
-                // Set OutputCollector so PipelineCommandBase can display errors
-                context.OutputCollector = buildOutputCollector;
-                // Signal the backchannel completion source so the caller doesn't wait forever
-                context.BackchannelCompletionSource?.TrySetException(
-                    new InvalidOperationException("The app host build failed."));
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                if (buildExitCode != 0)
+                {
+                    // Set OutputCollector so PipelineCommandBase can display errors
+                    context.OutputCollector = buildOutputCollector;
+                    // Signal the backchannel completion source so the caller doesn't wait forever
+                    context.BackchannelCompletionSource?.TrySetException(
+                        new InvalidOperationException("The app host build failed."));
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
         }
 
@@ -434,6 +442,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             effectiveAppHostFile,
             watch: false,
             noBuild: true,
+            noRestore: false,
             context.Arguments,
             env,
             context.BackchannelCompletionSource,

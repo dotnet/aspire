@@ -65,13 +65,14 @@ internal static class AppHostHelper
         return appHostInformationResult;
     }
 
-    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+    internal static async Task<int> BuildAppHostAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, bool noRestore, DotNetCliRunnerInvocationOptions options, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         return await interactionService.ShowStatusAsync(
             $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost} {relativePath}",
             () => runner.BuildAsync(
                 projectFile,
+                noRestore,
                 options,
                 cancellationToken));
     }
