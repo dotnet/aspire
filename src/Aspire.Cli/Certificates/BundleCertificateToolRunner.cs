@@ -1,68 +1,56 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Layout;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Certificates;
 
 /// <summary>
-/// Certificate tool runner for bundle mode.
-/// Falls back to the global dotnet SDK's dev-certs command since the bundle
-/// no longer includes a separate muxer/dev-certs DLL.
+/// Certificate tool runner for bundle mode that invokes aspire-managed dev-certs
+/// instead of the global dotnet SDK's dev-certs command.
 /// </summary>
 internal sealed class BundleCertificateToolRunner(
+    ILayoutDiscovery layoutDiscovery,
     ILogger<BundleCertificateToolRunner> logger) : ICertificateToolRunner
 {
     public async Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
+        var managedPath = GetManagedPath();
+
         var outputBuilder = new StringBuilder();
 
-        var startInfo = new ProcessStartInfo("dotnet")
+        var arguments = new[] { "dev-certs", "--check-trust-machine-readable" };
+
+        logger.LogDebug("Running: {ManagedPath} {Args}", managedPath, string.Join(" ", arguments));
+
+        var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
+            managedPath,
+            arguments,
+            ct: cancellationToken);
+
+        // Forward output/error to callers
+        if (!string.IsNullOrEmpty(output))
         {
-            WorkingDirectory = Environment.CurrentDirectory,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-
-        // Use global dotnet dev-certs
-        startInfo.ArgumentList.Add("dev-certs");
-        startInfo.ArgumentList.Add("https");
-        startInfo.ArgumentList.Add("--check-trust-machine-readable");
-
-        using var process = new Process { StartInfo = startInfo };
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
+            outputBuilder.Append(output);
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
-                outputBuilder.AppendLine(e.Data);
-                options.StandardOutputCallback?.Invoke(e.Data);
+                options.StandardOutputCallback?.Invoke(line.TrimEnd('\r'));
             }
-        };
+        }
 
-        process.ErrorDataReceived += (sender, e) =>
+        if (!string.IsNullOrEmpty(error))
         {
-            if (e.Data is not null)
+            foreach (var line in error.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
-                options.StandardErrorCallback?.Invoke(e.Data);
+                options.StandardErrorCallback?.Invoke(line.TrimEnd('\r'));
             }
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(cancellationToken);
-
-        var exitCode = process.ExitCode;
+        }
 
         // Parse the JSON output
         try
@@ -78,7 +66,7 @@ internal sealed class BundleCertificateToolRunner(
                 });
             }
 
-            var certificates = JsonSerializer.Deserialize(jsonOutput, Aspire.Cli.JsonSourceGenerationContext.Default.ListDevCertInfo);
+            var certificates = JsonSerializer.Deserialize(jsonOutput, JsonSourceGenerationContext.Default.ListDevCertInfo);
             if (certificates is null || certificates.Count == 0)
             {
                 return (exitCode, new CertificateTrustResult
@@ -117,44 +105,51 @@ internal sealed class BundleCertificateToolRunner(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
+        var managedPath = GetManagedPath();
+
+        var arguments = new[] { "dev-certs", "--trust" };
+
+        logger.LogDebug("Running: {ManagedPath} {Args}", managedPath, string.Join(" ", arguments));
+
+        var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
+            managedPath,
+            arguments,
+            ct: cancellationToken);
+
+        // Forward output/error to callers
+        if (!string.IsNullOrEmpty(output))
         {
-            WorkingDirectory = Environment.CurrentDirectory,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-
-        // Use global dotnet dev-certs
-        startInfo.ArgumentList.Add("dev-certs");
-        startInfo.ArgumentList.Add("https");
-        startInfo.ArgumentList.Add("--trust");
-
-        using var process = new Process { StartInfo = startInfo };
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
-                options.StandardOutputCallback?.Invoke(e.Data);
+                options.StandardOutputCallback?.Invoke(line.TrimEnd('\r'));
             }
-        };
+        }
 
-        process.ErrorDataReceived += (sender, e) =>
+        if (!string.IsNullOrEmpty(error))
         {
-            if (e.Data is not null)
+            foreach (var line in error.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
-                options.StandardErrorCallback?.Invoke(e.Data);
+                options.StandardErrorCallback?.Invoke(line.TrimEnd('\r'));
             }
-        };
+        }
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        return exitCode;
+    }
 
-        await process.WaitForExitAsync(cancellationToken);
+    private string GetManagedPath()
+    {
+        var layout = layoutDiscovery.DiscoverLayout();
+        if (layout is null)
+        {
+            throw new InvalidOperationException("Bundle layout not found. Cannot run dev-certs in bundle mode.");
+        }
 
-        return process.ExitCode;
+        var managedPath = layout.GetManagedPath();
+        if (managedPath is null || !File.Exists(managedPath))
+        {
+            throw new InvalidOperationException("aspire-managed not found in layout.");
+        }
+
+        return managedPath;
     }
 }

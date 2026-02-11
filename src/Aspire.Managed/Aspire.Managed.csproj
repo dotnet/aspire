@@ -12,8 +12,8 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
 
-    <!-- Suppress warnings from referenced projects -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Suppress warnings from referenced projects and vendored CertificateGeneration code from aspnetcore -->
+    <NoWarn>$(NoWarn);CS1591;SYSLIB0057;IDE1006</NoWarn>
 
     <!-- Don't generate web.config or include IIS hosting -->
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
