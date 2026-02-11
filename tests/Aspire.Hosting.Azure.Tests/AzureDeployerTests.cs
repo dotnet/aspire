@@ -1072,7 +1072,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Act
         using var app = builder.Build();
         await app.StartAsync();
-        await app.StopAsync();
+        await app.WaitForShutdownAsync();
 
         if (step == "diagnostics")
         {
@@ -1159,7 +1159,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Act
         using var app = builder.Build();
         await app.StartAsync();
-        await app.StopAsync();
+        await app.WaitForShutdownAsync();
 
         // In diagnostics mode, verify the deployment graph shows correct dependencies
         var logs = mockActivityReporter.LoggedMessages
