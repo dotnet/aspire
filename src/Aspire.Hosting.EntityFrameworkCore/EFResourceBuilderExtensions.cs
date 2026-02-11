@@ -41,7 +41,7 @@ public static class EFResourceBuilderExtensions
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static EFMigrationResourceBuilder AddEFMigrations<TContext>(
+    public static IResourceBuilder<EFMigrationResource> AddEFMigrations<TContext>(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null) where TContext : class
@@ -62,7 +62,7 @@ public static class EFResourceBuilderExtensions
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static EFMigrationResourceBuilder AddEFMigrations(
+    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         Type contextType,
@@ -94,7 +94,7 @@ public static class EFResourceBuilderExtensions
     /// using runtime-discovered context types.
     /// </para>
     /// </remarks>
-    public static EFMigrationResourceBuilder AddEFMigrations(
+    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         string contextTypeName,
@@ -114,7 +114,7 @@ public static class EFResourceBuilderExtensions
     /// <param name="name">The name of the migration resource.</param>
     /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
-    public static EFMigrationResourceBuilder AddEFMigrations(
+    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null)
@@ -125,7 +125,7 @@ public static class EFResourceBuilderExtensions
         return AddEFMigrationsCore(builder, name, contextTypeName: null, configureToolResource);
     }
 
-    private static EFMigrationResourceBuilder AddEFMigrationsCore(
+    private static IResourceBuilder<EFMigrationResource> AddEFMigrationsCore(
         IResourceBuilder<ProjectResource> builder,
         string name,
         string? contextTypeName,
@@ -179,7 +179,7 @@ public static class EFResourceBuilderExtensions
 
         AddEFMigrationCommands(innerBuilder, migrationResource, contextTypeName);
 
-        return new EFMigrationResourceBuilder(innerBuilder);
+        return innerBuilder;
     }
 
     private static IEnumerable<PipelineStep> CreateMigrationPipelineStep(PipelineStepFactoryContext context)

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.ComponentModel;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,39 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// A resource builder for EF Core migration resources that wraps an underlying builder
-/// and provides additional context type information.
+/// Extension methods for configuring EF Core migration resources.
 /// </summary>
-public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationResource>
+public static class EFMigrationResourceBuilderExtensions
 {
-    private readonly IResourceBuilder<EFMigrationResource> _innerBuilder;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EFMigrationResourceBuilder"/> class.
-    /// </summary>
-    /// <param name="innerBuilder">The underlying resource builder.</param>
-    internal EFMigrationResourceBuilder(IResourceBuilder<EFMigrationResource> innerBuilder)
-    {
-        _innerBuilder = innerBuilder;
-    }
-
-    /// <inheritdoc />
-    public EFMigrationResource Resource => _innerBuilder.Resource;
-
-    /// <inheritdoc />
-    public IDistributedApplicationBuilder ApplicationBuilder => _innerBuilder.ApplicationBuilder;
-
-    /// <inheritdoc />
-    public IResourceBuilder<EFMigrationResource> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append)
-        where TAnnotation : IResourceAnnotation
-    {
-        _innerBuilder.WithAnnotation(annotation, behavior);
-        return this;
-    }
-
     /// <summary>
     /// Configures the EF migration resource to run database update when the AppHost starts.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// <para>
@@ -53,17 +27,16 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// <c>.WaitFor()</c> to wait until migrations complete before starting.
     /// </para>
     /// </remarks>
-    public EFMigrationResourceBuilder RunDatabaseUpdateOnStart()
+    public static IResourceBuilder<EFMigrationResource> RunDatabaseUpdateOnStart(this IResourceBuilder<EFMigrationResource> builder)
     {
-        var migrationResource = Resource;
-        ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
+        var migrationResource = builder.Resource;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
         {
             // Schedule the migration command to run asynchronously after startup completes to avoid deadlocks.
             var _ = ExecuteMigrationsAsync(@event.Services, migrationResource, ct);
             return Task.CompletedTask;
         });
-
-        return this;
+        return builder;
     }
 
     private static async Task ExecuteMigrationsAsync(
@@ -72,7 +45,6 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
         CancellationToken cancellationToken)
     {
         var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
-
         try
         {
             var result = await resourceCommandService.ExecuteCommandAsync(
@@ -89,66 +61,71 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// <summary>
     /// Configures the EF migration resource to generate a migration script during publishing.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="idempotent">If <c>true</c>, generates an idempotent script with IF NOT EXISTS checks.</param>
     /// <param name="noTransactions">If <c>true</c>, omits transaction statements from the script.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public EFMigrationResourceBuilder PublishAsMigrationScript(bool idempotent = false, bool noTransactions = false)
+    public static IResourceBuilder<EFMigrationResource> PublishAsMigrationScript(this IResourceBuilder<EFMigrationResource> builder, bool idempotent = false, bool noTransactions = false)
     {
-        Resource.PublishAsMigrationScript = true;
-        Resource.ScriptIdempotent = idempotent;
-        Resource.ScriptNoTransactions = noTransactions;
-        return this;
+        builder.Resource.PublishAsMigrationScript = true;
+        builder.Resource.ScriptIdempotent = idempotent;
+        builder.Resource.ScriptNoTransactions = noTransactions;
+        return builder;
     }
 
     /// <summary>
     /// Configures the EF migration resource to generate a migration bundle during publishing.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="targetRuntime">The target runtime identifier for the bundle (e.g., "linux-x64", "win-x64"). If null, uses the current runtime.</param>
     /// <param name="selfContained">If <c>true</c>, creates a self-contained bundle that includes the .NET runtime.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public EFMigrationResourceBuilder PublishAsMigrationBundle(string? targetRuntime = null, bool selfContained = false)
+    public static IResourceBuilder<EFMigrationResource> PublishAsMigrationBundle(this IResourceBuilder<EFMigrationResource> builder, string? targetRuntime = null, bool selfContained = false)
     {
-        Resource.PublishAsMigrationBundle = true;
-        Resource.BundleTargetRuntime = targetRuntime;
-        Resource.BundleSelfContained = selfContained;
-        return this;
+        builder.Resource.PublishAsMigrationBundle = true;
+        builder.Resource.BundleTargetRuntime = targetRuntime;
+        builder.Resource.BundleSelfContained = selfContained;
+        return builder;
     }
 
     /// <summary>
     /// Configures the output directory for new migrations created with the Add Migration command.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="outputDirectory">The output directory path relative to the project root.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// If not specified, migrations will be placed in the default 'Migrations' directory.
     /// Example: "Data/Migrations" or "Infrastructure/Migrations".
     /// </remarks>
-    public EFMigrationResourceBuilder WithMigrationOutputDirectory(string outputDirectory)
+    public static IResourceBuilder<EFMigrationResource> WithMigrationOutputDirectory(this IResourceBuilder<EFMigrationResource> builder, string outputDirectory)
     {
         ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
-        Resource.MigrationOutputDirectory = outputDirectory;
-        return this;
+        builder.Resource.MigrationOutputDirectory = outputDirectory;
+        return builder;
     }
 
     /// <summary>
     /// Configures the namespace for new migrations created with the Add Migration command.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="namespace">The namespace for generated migrations.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// If not specified, the namespace will be derived from the project's default namespace.
     /// Example: "MyApp.Data.Migrations" or "MyApp.Infrastructure.Migrations".
     /// </remarks>
-    public EFMigrationResourceBuilder WithMigrationNamespace(string @namespace)
+    public static IResourceBuilder<EFMigrationResource> WithMigrationNamespace(this IResourceBuilder<EFMigrationResource> builder, string @namespace)
     {
         ArgumentException.ThrowIfNullOrEmpty(@namespace);
-        Resource.MigrationNamespace = @namespace;
-        return this;
+        builder.Resource.MigrationNamespace = @namespace;
+        return builder;
     }
 
     /// <summary>
     /// Configures a separate project containing the migrations using a project path.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="projectPath">The path to the project file containing the migrations.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
@@ -158,19 +135,18 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// remains the original project.
     /// </para>
     /// </remarks>
-    public EFMigrationResourceBuilder WithMigrationsProject(string projectPath)
+    public static IResourceBuilder<EFMigrationResource> WithMigrationsProject(this IResourceBuilder<EFMigrationResource> builder, string projectPath)
     {
         ArgumentException.ThrowIfNullOrEmpty(projectPath);
-        
-        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(_innerBuilder.ApplicationBuilder.AppHostDirectory, projectPath));
-
-        Resource.MigrationsProjectMetadata = new ProjectMetadata(projectPath);
-        return this;
+        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, projectPath));
+        builder.Resource.MigrationsProjectMetadata = new ProjectMetadata(projectPath);
+        return builder;
     }
 
     /// <summary>
     /// Configures a separate project containing the migrations using a project metadata type.
     /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <typeparam name="TProject">The project metadata type generated by the Aspire build tooling.</typeparam>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
@@ -186,22 +162,10 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// </code>
     /// </example>
     /// </remarks>
-    public EFMigrationResourceBuilder WithMigrationsProject<TProject>()
+    public static IResourceBuilder<EFMigrationResource> WithMigrationsProject<TProject>(this IResourceBuilder<EFMigrationResource> builder)
         where TProject : IProjectMetadata, new()
     {
-        Resource.MigrationsProjectMetadata = new TProject();
-        return this;
+        builder.Resource.MigrationsProjectMetadata = new TProject();
+        return builder;
     }
-
-    /// <inheritdoc />
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public override string? ToString() => base.ToString();
-
-    /// <inheritdoc />
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public override bool Equals(object? obj) => base.Equals(obj);
-
-    /// <inheritdoc />
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public override int GetHashCode() => base.GetHashCode();
 }

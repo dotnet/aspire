@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
@@ -141,12 +142,12 @@ public class EFMigrationConfigurationTests
         var afterOutputDir = afterBundle.WithMigrationOutputDirectory("Migrations");
         var afterNamespace = afterOutputDir.WithMigrationNamespace("MyApp.Migrations");
 
-        // All methods should return EFMigrationResourceBuilder for proper chaining
-        Assert.IsType<EFMigrationResourceBuilder>(afterUpdate);
-        Assert.IsType<EFMigrationResourceBuilder>(afterScript);
-        Assert.IsType<EFMigrationResourceBuilder>(afterBundle);
-        Assert.IsType<EFMigrationResourceBuilder>(afterOutputDir);
-        Assert.IsType<EFMigrationResourceBuilder>(afterNamespace);
+        // All methods should return IResourceBuilder<EFMigrationResource> for proper chaining
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(afterUpdate);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(afterScript);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(afterBundle);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(afterOutputDir);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(afterNamespace);
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
         Assert.NotNull(migrations);
-        Assert.IsType<EFMigrationResourceBuilder>(migrations);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
@@ -31,7 +31,7 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations("mymigrations");
 
         Assert.NotNull(migrations);
-        Assert.IsType<EFMigrationResourceBuilder>(migrations);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Null(migrations.Resource.ContextTypeName);
@@ -45,7 +45,7 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext));
 
         Assert.NotNull(migrations);
-        Assert.IsType<EFMigrationResourceBuilder>(migrations);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
@@ -60,7 +60,7 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations("mymigrations", contextTypeName);
 
         Assert.NotNull(migrations);
-        Assert.IsType<EFMigrationResourceBuilder>(migrations);
+        Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(contextTypeName, migrations.Resource.ContextTypeName);

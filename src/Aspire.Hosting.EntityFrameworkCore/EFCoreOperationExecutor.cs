@@ -320,7 +320,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     };
                 }
 
-                return new EFOperationResult { Success = true, Output = !string.IsNullOrEmpty(data) ? data : stdout };
+                return new EFOperationResult { Success = true, Output = !string.IsNullOrEmpty(data) ? data : "[]" };
             }
             finally
             {
@@ -479,7 +479,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         if (!string.IsNullOrEmpty(outputDir))
         {
-            args["--output-dir"] = $"\"{outputDir}\"";
+            args["--output-dir"] = outputDir;
         }
 
         if (!string.IsNullOrEmpty(@namespace))
@@ -518,7 +518,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 return new EFOperationResult
                 {
                     Success = true,
-                    Output = "**Database Status:** Database has not been created yet.\n\nRun 'Update Database' to create and apply migrations."
+                    Output = "**Database Status:** Database has not been created yet."
                 };
             }
             return result;
@@ -529,37 +529,29 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         var pendingCount = 0;
         var appliedCount = 0;
 
-        try
+        // The JSON output is an array of migration objects with "id", "name", and "applied" properties
+        using var doc = JsonDocument.Parse(result.Output ?? "[]");
+        if (doc.RootElement.ValueKind == JsonValueKind.Array)
         {
-            // The JSON output is an array of migration objects with "id", "name", and "applied" properties
-            using var doc = JsonDocument.Parse(result.Output ?? "[]");
-            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            foreach (var migration in doc.RootElement.EnumerateArray())
             {
-                foreach (var migration in doc.RootElement.EnumerateArray())
+                var id = migration.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+                var name = migration.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                var applied = migration.TryGetProperty("applied", out var appliedProp) && appliedProp.GetBoolean();
+
+                var displayName = id ?? name ?? "Unknown";
+
+                if (applied)
                 {
-                    var id = migration.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
-                    var name = migration.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-                    var applied = migration.TryGetProperty("applied", out var appliedProp) && appliedProp.GetBoolean();
-
-                    var displayName = id ?? name ?? "Unknown";
-
-                    if (applied)
-                    {
-                        migrationLines.Add($"- ✅ {displayName}");
-                        appliedCount++;
-                    }
-                    else
-                    {
-                        migrationLines.Add($"- ⚠️ {displayName} (Pending)");
-                        pendingCount++;
-                    }
+                    migrationLines.Add($"- ✅ {displayName}");
+                    appliedCount++;
+                }
+                else
+                {
+                    migrationLines.Add($"- ⚠️ {displayName} (Pending)");
+                    pendingCount++;
                 }
             }
-        }
-        catch (JsonException)
-        {
-            // Fallback to parsing text output if JSON parsing fails
-            return ParseTextMigrationOutput(result.Output);
         }
 
         var summary = new StringBuilder();
@@ -584,75 +576,19 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         // Check for pending model changes
         var pendingChangesResult = await ExecuteEfCommandAsync("migrations", "has-pending-model-changes").ConfigureAwait(false);
         summary.AppendLine();
-        summary.AppendLine("**Model Changes:**");
+
         if (!pendingChangesResult.Success)
         {
-            // Command may not be available in older EF Core versions
             summary.AppendLine("ℹ️ Unable to check for pending model changes.");
         }
         else if (pendingChangesResult.Output?.Contains("Changes have been made", StringComparison.OrdinalIgnoreCase) == true ||
                  pendingChangesResult.Output?.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) == true)
         {
-            summary.AppendLine("⚠️ Pending model changes detected. A new migration may be needed.");
+            summary.AppendLine("⚠️ Pending model changes detected. A new migration is needed.");
         }
         else
         {
             summary.AppendLine("✅ No pending model changes.");
-        }
-
-        return new EFOperationResult { Success = true, Output = summary.ToString() };
-    }
-
-    private static EFOperationResult ParseTextMigrationOutput(string? output)
-    {
-        var lines = output?.Split('\n', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
-        var migrationLines = new List<string>();
-        var pendingCount = 0;
-        var appliedCount = 0;
-
-        foreach (var line in lines)
-        {
-            var trimmed = line.Trim();
-            if (string.IsNullOrEmpty(trimmed))
-            {
-                continue;
-            }
-
-            // dotnet ef migrations list output format:
-            // - Applied migrations show without "(Pending)" suffix
-            // - Pending migrations show with "(Pending)" suffix
-            if (trimmed.Contains("(Pending)", StringComparison.OrdinalIgnoreCase))
-            {
-                var name = trimmed.Replace("(Pending)", "", StringComparison.OrdinalIgnoreCase).Trim();
-                migrationLines.Add($"- ⚠️ {name} (Pending)");
-                pendingCount++;
-            }
-            else if (!trimmed.StartsWith("Build", StringComparison.OrdinalIgnoreCase) &&
-                     !trimmed.StartsWith("Done", StringComparison.OrdinalIgnoreCase) &&
-                     !string.IsNullOrWhiteSpace(trimmed))
-            {
-                migrationLines.Add($"- ✅ {trimmed}");
-                appliedCount++;
-            }
-        }
-
-        var summary = new StringBuilder();
-        summary.AppendLine(CultureInfo.InvariantCulture, $"**Applied Migrations:** {appliedCount}");
-        summary.AppendLine(CultureInfo.InvariantCulture, $"**Pending Migrations:** {pendingCount}");
-        summary.AppendLine();
-
-        if (migrationLines.Count > 0)
-        {
-            summary.AppendLine("**Migration History:**");
-            summary.AppendLine();
-            foreach (var line in migrationLines)
-            {
-                summary.AppendLine(line);
-            }
-        }
-        else
-        {
-            summary.AppendLine("No migrations found.");
         }
 
         return new EFOperationResult { Success = true, Output = summary.ToString() };
@@ -683,7 +619,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         if (!string.IsNullOrEmpty(outputPath))
         {
-            args["--output"] = $"\"{outputPath}\"";
+            args["--output"] = outputPath;
         }
 
         return await ExecuteEfCommandAsync("migrations", "script", args).ConfigureAwait(false);
@@ -704,7 +640,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         if (!string.IsNullOrEmpty(outputPath))
         {
-            args["--output"] = $"\"{outputPath}\"";
+            args["--output"] = outputPath;
         }
 
         if (!string.IsNullOrEmpty(targetRuntime))
