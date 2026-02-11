@@ -303,10 +303,38 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Aspire"
 
 ### Bundle vs CLI-Only
 
-| Feature | CLI-Only Scripts | Bundle Scripts |
-|---------|-----------------|----------------|
-| Requires .NET SDK | Yes | No |
-| Package size | ~25 MB | ~200 MB compressed |
-| Polyglot support | Partial | Full |
-| Components included | CLI only | CLI, Runtime, Dashboard, DCP |
-| Use case | .NET developers | TypeScript, Python, Go developers |
+| Feature | CLI-Only Scripts | Bundle Scripts | Self-Extracting Binary |
+|---------|-----------------|----------------|----------------------|
+| Requires .NET SDK | Yes | No | No |
+| Package size | ~25 MB | ~200 MB compressed | ~210 MB (single file) |
+| Polyglot support | Partial | Full | Full |
+| Components included | CLI only | CLI, Runtime, Dashboard, DCP | CLI, Runtime, Dashboard, DCP |
+| Installation steps | Download + PATH | Download + extract + PATH | Download + `aspire setup` |
+| Use case | .NET developers | TypeScript, Python, Go developers | Simplest install path |
+
+### Self-Extracting Binary
+
+The Aspire CLI can also be distributed as a self-extracting binary that embeds the full bundle
+payload inside the native AOT executable. This is the simplest installation method:
+
+```bash
+# Linux/macOS - download and extract
+mkdir -p ~/.aspire/bin
+curl -fsSL <url>/aspire -o ~/.aspire/bin/aspire
+chmod +x ~/.aspire/bin/aspire
+~/.aspire/bin/aspire setup
+
+# Add to PATH
+export PATH="$HOME/.aspire/bin:$PATH"
+```
+
+```powershell
+# Windows - download and extract
+New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\Aspire\bin"
+Invoke-WebRequest -Uri <url>/aspire.exe -OutFile "$env:LOCALAPPDATA\Aspire\bin\aspire.exe"
+& "$env:LOCALAPPDATA\Aspire\bin\aspire.exe" setup
+```
+
+The `aspire setup` command extracts the embedded payload to the parent directory of the CLI binary.
+Alternatively, extraction happens lazily on the first command that needs the bundle layout
+(e.g., `aspire run` with a polyglot project).

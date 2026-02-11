@@ -932,16 +932,17 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     /// </summary>
     private static bool IsSingleFileExecutable(string path)
     {
-        // Single-file apps are executables without a corresponding DLL
-        var extension = Path.GetExtension(path);
-        
-        // Must be an exe (Windows) or no extension (Unix)
-        if (!extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(extension))
+        // Single-file apps are executables without a corresponding DLL.
+        // On Windows the file ends with .exe; on Unix there is no reliable
+        // extension (e.g. "Aspire.Dashboard" has a dot but is still an executable).
+        // The definitive check is: executable exists on disk and there is no
+        // matching .dll next to it.
+
+        if (string.Equals(".dll", Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
-        
-        // The executable itself must exist to be considered a single-file exe
+
         if (!File.Exists(path))
         {
             return false;
@@ -951,23 +952,23 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (!OperatingSystem.IsWindows())
         {
             var fileInfo = new FileInfo(path);
-            // Check if file has any execute permission (owner, group, or other)
             var mode = fileInfo.UnixFileMode;
             if ((mode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) == 0)
             {
                 return false;
             }
         }
-        
-        // Check if there's a corresponding DLL
+
+        // Check if there's a corresponding DLL — strip .exe on Windows,
+        // but on Unix the filename may contain dots (e.g. "Aspire.Dashboard"),
+        // so always derive the DLL name by appending .dll to the full filename.
         var directory = Path.GetDirectoryName(path)!;
         var fileName = Path.GetFileName(path);
         var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? fileName.Substring(0, fileName.Length - 4)
+            ? fileName[..^4]
             : fileName;
         var dllPath = Path.Combine(directory, $"{baseName}.dll");
-        
-        // If no DLL exists alongside the executable, it's a single-file executable
+
         return !File.Exists(dllPath);
     }
 }

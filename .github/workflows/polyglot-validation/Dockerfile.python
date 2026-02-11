@@ -8,7 +8,7 @@
 #     -v /var/run/docker.sock:/var/run/docker.sock \
 #     polyglot-python
 #
-# Note: Expects bundle and NuGet artifacts to be pre-downloaded to /workspace/artifacts/
+# Note: Expects self-extracting binary and NuGet artifacts to be pre-downloaded to /workspace/artifacts/
 #
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
@@ -21,8 +21,6 @@ RUN apt-get update && apt-get install -y \
     docker.io \
     jq \
     && rm -rf /var/lib/apt/lists/*
-
-# Note: .NET SDK is NOT required - the bundle includes the .NET runtime
 
 # Install uv package manager (Python-specific)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -37,26 +35,11 @@ COPY setup-local-cli.sh /scripts/setup-local-cli.sh
 COPY test-python.sh /scripts/test-python.sh
 RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-python.sh
 
-# Entrypoint: Set up Aspire CLI from bundle, enable polyglot, run validation
-# Note: ASPIRE_LAYOUT_PATH must be exported before running any aspire commands
+# Entrypoint: Set up Aspire CLI, enable polyglot, run validation
+# Bundle extraction happens lazily on first command that needs the layout
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
-    echo '=== ENTRYPOINT DEBUG ===' && \
-    echo 'Starting Docker entrypoint...' && \
-    echo 'PWD:' $(pwd) && \
-    echo '' && \
-    echo '=== Running setup-local-cli.sh ===' && \
     /scripts/setup-local-cli.sh && \
-    echo '' && \
-    echo '=== Post-setup: Setting ASPIRE_LAYOUT_PATH ===' && \
-    export ASPIRE_LAYOUT_PATH=/workspace/artifacts/bundle && \
-    echo 'ASPIRE_LAYOUT_PATH=' $ASPIRE_LAYOUT_PATH && \
-    echo '' && \
-    echo '=== Verifying CLI with layout path ===' && \
-    echo 'Running: aspire --version' && \
-    aspire --version && \
-    echo '' && \
-    echo '=== Enabling polyglot support ===' && \
     aspire config set features:polyglotSupportEnabled true --global && \
     aspire config set features:experimentalPolyglot:python true --global && \
     echo '' && \

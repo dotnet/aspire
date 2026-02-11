@@ -273,4 +273,263 @@ public static class AzureVirtualNetworkExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Associates a NAT Gateway with the subnet.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="natGateway">The NAT Gateway to associate with the subnet.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// A NAT Gateway provides outbound internet connectivity for resources in the subnet.
+    /// A subnet can have at most one NAT Gateway.
+    /// </remarks>
+    /// <example>
+    /// This example creates a subnet with an associated NAT Gateway:
+    /// <code>
+    /// var natGateway = builder.AddNatGateway("nat");
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23")
+    ///     .WithNatGateway(natGateway);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureSubnetResource> WithNatGateway(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        IResourceBuilder<AzureNatGatewayResource> natGateway)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(natGateway);
+
+        builder.Resource.NatGateway = natGateway.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Associates a Network Security Group with the subnet.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="nsg">The Network Security Group to associate with the subnet.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <example>
+    /// This example creates a subnet with an associated Network Security Group:
+    /// <code>
+    /// var nsg = builder.AddNetworkSecurityGroup("web-nsg");
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("web-subnet", "10.0.1.0/24")
+    ///     .WithNetworkSecurityGroup(nsg);
+    /// </code>
+    /// </example>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the subnet already has security rules added via shorthand methods
+    /// (<see cref="AllowInbound"/>, <see cref="DenyInbound"/>, <see cref="AllowOutbound"/>, <see cref="DenyOutbound"/>).
+    /// Use either shorthand methods or an explicit NSG, not both.
+    /// </exception>
+    public static IResourceBuilder<AzureSubnetResource> WithNetworkSecurityGroup(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        IResourceBuilder<AzureNetworkSecurityGroupResource> nsg)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(nsg);
+
+        if (builder.Resource.NetworkSecurityGroup is { IsImplicitlyCreated: true })
+        {
+            throw new InvalidOperationException(
+                $"The subnet '{builder.Resource.Name}' already has an NSG created via shorthand methods. " +
+                $"Calling WithNetworkSecurityGroup would replace the existing NSG and discard those rules. " +
+                $"Use either shorthand methods (AllowInbound, DenyInbound, etc.) or an explicit NSG, not both.");
+        }
+
+        builder.Resource.NetworkSecurityGroup = nsg.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an inbound allow rule to the subnet's Network Security Group.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="port">The destination port range (e.g., "443", "80-443"). Defaults to "*" (any).</param>
+    /// <param name="from">The source address prefix (e.g., "AzureLoadBalancer", "Internet", "10.0.0.0/8"). Defaults to "*" (any).</param>
+    /// <param name="to">The destination address prefix. Defaults to "*" (any).</param>
+    /// <param name="protocol">The network protocol. Defaults to <see cref="SecurityRuleProtocol.Asterisk"/> (any).</param>
+    /// <param name="priority">The rule priority (100-4096). If not specified, auto-increments from 100 by 100.</param>
+    /// <param name="name">The rule name. If not specified, auto-generated from parameters.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// If no Network Security Group has been associated with the subnet, one is automatically created.
+    /// </remarks>
+    /// <example>
+    /// This example allows HTTPS traffic from the Azure Load Balancer:
+    /// <code>
+    /// var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+    ///     .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+    ///     .DenyInbound(from: "Internet");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureSubnetResource> AllowInbound(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        string? port = null,
+        string? from = null,
+        string? to = null,
+        SecurityRuleProtocol? protocol = null,
+        int? priority = null,
+        string? name = null)
+    {
+        return AddSecurityRuleShorthand(builder, SecurityRuleAccess.Allow, SecurityRuleDirection.Inbound, port, from, to, protocol, priority, name);
+    }
+
+    /// <summary>
+    /// Adds an inbound deny rule to the subnet's Network Security Group.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="port">The destination port range (e.g., "443", "80-443"). Defaults to "*" (any).</param>
+    /// <param name="from">The source address prefix (e.g., "Internet", "VirtualNetwork", "10.0.0.0/8"). Defaults to "*" (any).</param>
+    /// <param name="to">The destination address prefix. Defaults to "*" (any).</param>
+    /// <param name="protocol">The network protocol. Defaults to <see cref="SecurityRuleProtocol.Asterisk"/> (any).</param>
+    /// <param name="priority">The rule priority (100-4096). If not specified, auto-increments from 100 by 100.</param>
+    /// <param name="name">The rule name. If not specified, auto-generated from parameters.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// If no Network Security Group has been associated with the subnet, one is automatically created.
+    /// </remarks>
+    public static IResourceBuilder<AzureSubnetResource> DenyInbound(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        string? port = null,
+        string? from = null,
+        string? to = null,
+        SecurityRuleProtocol? protocol = null,
+        int? priority = null,
+        string? name = null)
+    {
+        return AddSecurityRuleShorthand(builder, SecurityRuleAccess.Deny, SecurityRuleDirection.Inbound, port, from, to, protocol, priority, name);
+    }
+
+    /// <summary>
+    /// Adds an outbound allow rule to the subnet's Network Security Group.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="port">The destination port range (e.g., "443", "80-443"). Defaults to "*" (any).</param>
+    /// <param name="from">The source address prefix. Defaults to "*" (any).</param>
+    /// <param name="to">The destination address prefix (e.g., "Internet", "VirtualNetwork"). Defaults to "*" (any).</param>
+    /// <param name="protocol">The network protocol. Defaults to <see cref="SecurityRuleProtocol.Asterisk"/> (any).</param>
+    /// <param name="priority">The rule priority (100-4096). If not specified, auto-increments from 100 by 100.</param>
+    /// <param name="name">The rule name. If not specified, auto-generated from parameters.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// If no Network Security Group has been associated with the subnet, one is automatically created.
+    /// </remarks>
+    public static IResourceBuilder<AzureSubnetResource> AllowOutbound(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        string? port = null,
+        string? from = null,
+        string? to = null,
+        SecurityRuleProtocol? protocol = null,
+        int? priority = null,
+        string? name = null)
+    {
+        return AddSecurityRuleShorthand(builder, SecurityRuleAccess.Allow, SecurityRuleDirection.Outbound, port, from, to, protocol, priority, name);
+    }
+
+    /// <summary>
+    /// Adds an outbound deny rule to the subnet's Network Security Group.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="port">The destination port range (e.g., "443", "80-443"). Defaults to "*" (any).</param>
+    /// <param name="from">The source address prefix. Defaults to "*" (any).</param>
+    /// <param name="to">The destination address prefix (e.g., "Internet", "VirtualNetwork"). Defaults to "*" (any).</param>
+    /// <param name="protocol">The network protocol. Defaults to <see cref="SecurityRuleProtocol.Asterisk"/> (any).</param>
+    /// <param name="priority">The rule priority (100-4096). If not specified, auto-increments from 100 by 100.</param>
+    /// <param name="name">The rule name. If not specified, auto-generated from parameters.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// If no Network Security Group has been associated with the subnet, one is automatically created.
+    /// </remarks>
+    public static IResourceBuilder<AzureSubnetResource> DenyOutbound(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        string? port = null,
+        string? from = null,
+        string? to = null,
+        SecurityRuleProtocol? protocol = null,
+        int? priority = null,
+        string? name = null)
+    {
+        return AddSecurityRuleShorthand(builder, SecurityRuleAccess.Deny, SecurityRuleDirection.Outbound, port, from, to, protocol, priority, name);
+    }
+
+    private static IResourceBuilder<AzureSubnetResource> AddSecurityRuleShorthand(
+        IResourceBuilder<AzureSubnetResource> builder,
+        SecurityRuleAccess access,
+        SecurityRuleDirection direction,
+        string? port,
+        string? from,
+        string? to,
+        SecurityRuleProtocol? protocol,
+        int? priority,
+        string? name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var subnet = builder.Resource;
+
+        // Auto-create NSG if one doesn't exist
+        if (subnet.NetworkSecurityGroup is null)
+        {
+            var nsgName = $"{subnet.Name}-nsg";
+            var nsgBuilder = builder.ApplicationBuilder.AddNetworkSecurityGroup(nsgName);
+            nsgBuilder.Resource.IsImplicitlyCreated = true;
+            subnet.NetworkSecurityGroup = nsgBuilder.Resource;
+        }
+
+        var nsgResource = subnet.NetworkSecurityGroup;
+
+        // Auto-increment priority
+        var resolvedPriority = priority ?? (nsgResource.SecurityRules.Count == 0
+            ? 100
+            : nsgResource.SecurityRules.Max(r => r.Priority) + 100);
+
+        // Auto-generate name
+        var accessStr = access == SecurityRuleAccess.Allow ? "allow" : "deny";
+        var directionStr = direction == SecurityRuleDirection.Inbound ? "inbound" : "outbound";
+        var resolvedName = name ?? GenerateRuleName(accessStr, directionStr, port, from);
+
+        var rule = new AzureSecurityRule
+        {
+            Name = resolvedName,
+            Priority = resolvedPriority,
+            Direction = direction,
+            Access = access,
+            Protocol = protocol ?? SecurityRuleProtocol.Asterisk,
+            DestinationPortRange = port ?? "*",
+        };
+
+        if (from is not null)
+        {
+            rule.SourceAddressPrefix = from;
+        }
+
+        if (to is not null)
+        {
+            rule.DestinationAddressPrefix = to;
+        }
+
+        nsgResource.SecurityRules.Add(rule);
+
+        return builder;
+    }
+
+    private static string GenerateRuleName(string access, string direction, string? port, string? from)
+    {
+        var parts = new List<string> { access, direction };
+
+        if (port is not null)
+        {
+            parts.Add(port);
+        }
+
+        if (from is not null)
+        {
+            parts.Add(from);
+        }
+
+        return string.Join("-", parts);
+    }
 }

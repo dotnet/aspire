@@ -124,7 +124,7 @@ internal sealed class SdkDumpCommand : BaseCommand
             // TODO: Support bundle mode by using DLL references instead of project references.
             // In bundle mode, we'd need to add integration DLLs to the probing path rather than
             // using additionalProjectReferences. For now, SDK dump only works with .NET SDK.
-            var appHostServerProjectInterface = _appHostServerProjectFactory.Create(tempDir);
+            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
             if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
             {
                 InteractionService.DisplayError("SDK dump is only available with .NET SDK installed.");

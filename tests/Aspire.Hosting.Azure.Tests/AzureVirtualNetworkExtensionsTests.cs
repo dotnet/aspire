@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Network;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -201,5 +203,189 @@ public class AzureVirtualNetworkExtensionsTests
         var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddSubnet_WithNatGateway_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var natGw = builder.AddNatGateway("mynat");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        vnet.AddSubnet("mysubnet", "10.0.1.0/24")
+            .WithNatGateway(natGw);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void AllowInbound_AutoCreatesNsg()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp);
+
+        Assert.NotNull(subnet.Resource.NetworkSecurityGroup);
+        Assert.Equal("web-nsg", subnet.Resource.NetworkSecurityGroup.Name);
+        Assert.Single(subnet.Resource.NetworkSecurityGroup.SecurityRules);
+    }
+
+    [Fact]
+    public void AllowInbound_UsesExistingNsg()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var nsg = builder.AddNetworkSecurityGroup("my-nsg");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .WithNetworkSecurityGroup(nsg)
+            .AllowInbound(port: "443", from: "AzureLoadBalancer");
+
+        Assert.Same(nsg.Resource, subnet.Resource.NetworkSecurityGroup);
+        Assert.Single(nsg.Resource.SecurityRules);
+    }
+
+    [Fact]
+    public void Shorthand_AutoIncrementsPriority()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer")
+            .DenyInbound(from: "VirtualNetwork")
+            .DenyInbound(from: "Internet");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(3, rules.Count);
+        Assert.Equal(100, rules[0].Priority);
+        Assert.Equal(200, rules[1].Priority);
+        Assert.Equal(300, rules[2].Priority);
+    }
+
+    [Fact]
+    public void Shorthand_ExplicitPriorityOverridesAutoIncrement()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", priority: 500)
+            .DenyInbound(from: "Internet");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(500, rules[0].Priority);
+        Assert.Equal(600, rules[1].Priority); // auto-increments from max (500) + 100
+    }
+
+    [Fact]
+    public void Shorthand_AutoGeneratesRuleNames()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer")
+            .DenyInbound(from: "Internet")
+            .AllowOutbound(port: "443")
+            .DenyOutbound();
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal("allow-inbound-443-AzureLoadBalancer", rules[0].Name);
+        Assert.Equal("deny-inbound-Internet", rules[1].Name);
+        Assert.Equal("allow-outbound-443", rules[2].Name);
+        Assert.Equal("deny-outbound", rules[3].Name);
+    }
+
+    [Fact]
+    public void Shorthand_ExplicitNameOverridesAutoGeneration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", name: "my-custom-rule");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal("my-custom-rule", rules[0].Name);
+    }
+
+    [Fact]
+    public void Shorthand_DefaultsProtocolToAsterisk()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .DenyInbound(from: "Internet");
+
+        var rule = Assert.Single(subnet.Resource.NetworkSecurityGroup!.SecurityRules);
+        Assert.Equal(SecurityRuleProtocol.Asterisk, rule.Protocol);
+    }
+
+    [Fact]
+    public void Shorthand_DefaultsPortsAndAddressesToWildcard()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .DenyInbound();
+
+        var rule = Assert.Single(subnet.Resource.NetworkSecurityGroup!.SecurityRules);
+        Assert.Equal("*", rule.SourcePortRange);
+        Assert.Equal("*", rule.SourceAddressPrefix);
+        Assert.Equal("*", rule.DestinationAddressPrefix);
+        Assert.Equal("*", rule.DestinationPortRange);
+    }
+
+    [Fact]
+    public async Task Shorthand_GeneratesCorrectBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+            .DenyInbound(from: "VirtualNetwork")
+            .DenyInbound(from: "Internet");
+
+        var vnetManifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+        var nsgManifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource.Subnets[0].NetworkSecurityGroup!);
+
+        await Verify(vnetManifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(nsgManifest.BicepText, "bicep", "nsg");
+    }
+
+    [Fact]
+    public void AllFourDirectionAccessCombos_SetCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443")
+            .DenyInbound(from: "Internet")
+            .AllowOutbound(port: "443")
+            .DenyOutbound(to: "Internet");
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(4, rules.Count);
+
+        Assert.Equal(SecurityRuleAccess.Allow, rules[0].Access);
+        Assert.Equal(SecurityRuleDirection.Inbound, rules[0].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Deny, rules[1].Access);
+        Assert.Equal(SecurityRuleDirection.Inbound, rules[1].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Allow, rules[2].Access);
+        Assert.Equal(SecurityRuleDirection.Outbound, rules[2].Direction);
+
+        Assert.Equal(SecurityRuleAccess.Deny, rules[3].Access);
+        Assert.Equal(SecurityRuleDirection.Outbound, rules[3].Direction);
     }
 }

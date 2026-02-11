@@ -1,6 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Azure.Provisioning.Network is experimental
+
+using Azure.Provisioning.Network;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Create a virtual network with two subnets:
@@ -8,8 +12,18 @@ var builder = DistributedApplication.CreateBuilder(args);
 // - One for private endpoints
 var vnet = builder.AddAzureVirtualNetwork("vnet");
 
-var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23");
-var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27");
+var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23")
+    .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: "VirtualNetwork")
+    .DenyInbound(from: "Internet");
+
+// Create a NAT Gateway for deterministic outbound IP on the ACA subnet
+var natGateway = builder.AddNatGateway("nat");
+containerAppsSubnet.WithNatGateway(natGateway);
+
+var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27")
+    .AllowInbound(port: "443", from: "VirtualNetwork", protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: "Internet");
 
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")
