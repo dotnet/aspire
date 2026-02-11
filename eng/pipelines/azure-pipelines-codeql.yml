@@ -36,6 +36,7 @@ schedules:
       - release/*
       exclude:
       - "*preview*"
+      - release/9.5
     always: true
 
 jobs:
