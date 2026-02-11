@@ -108,7 +108,8 @@ jobs:
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
-        # Allow the task to succeed on partial trust
+        # Allow the task to succeed on partial trust.
+        # Remove this workaround once https://github.com/dotnet/aspnetcore/pull/65392 has shipped
         run: |
           EXIT_CODE=0
           ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
