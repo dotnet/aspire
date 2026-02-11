@@ -99,3 +99,26 @@ When you comment on a PR (not an issue), the workflow will automatically push ch
 ### Concurrency
 
 The workflow uses concurrency groups based on the issue/PR number to prevent race conditions when multiple commands are issued on the same issue.
+
+## Backmerge Release Workflow
+
+The `backmerge-release.yml` workflow automatically creates PRs to merge changes from `release/13.2` back into `main`.
+
+### Schedule
+
+Runs daily at 4pm PST (midnight UTC). Can also be triggered manually via `workflow_dispatch`.
+
+### Behavior
+
+1. **Change Detection**: Checks if `release/13.2` has commits not in `main`
+2. **PR Creation**: If changes exist, creates a PR to merge `release/13.2` → `main`
+3. **Auto-merge**: Enables GitHub's auto-merge feature, so the PR merges automatically once approved
+4. **Conflict Handling**: If merge conflicts occur, creates an issue instead of a PR
+
+### Assignees
+
+PRs and conflict issues are automatically assigned to @joperezr and @radical.
+
+### Manual Trigger
+
+To trigger manually, go to Actions → "Backmerge Release to Main" → "Run workflow".
