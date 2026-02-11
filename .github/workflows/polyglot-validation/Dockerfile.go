@@ -37,5 +37,8 @@ ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
     /scripts/setup-local-cli.sh && \
     aspire config set features:polyglotSupportEnabled true --global && \
+    aspire config set features:experimentalPolyglot:go true --global && \
+    echo '' && \
+    echo '=== Running validation ===' && \
     /scripts/test-go.sh \
 "]
