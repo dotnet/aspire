@@ -109,6 +109,7 @@ jobs:
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
+        continue-on-error: true
         env:
           WSL_INTEROP: ""
 
