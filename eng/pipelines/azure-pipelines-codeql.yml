@@ -27,17 +27,6 @@ variables:
 
 trigger: none
 
-schedules:
-  - cron: 0 12 * * 1
-    displayName: Weekly Monday CodeQL run
-    branches:
-      include:
-      - main
-      - release/*
-      exclude:
-      - "*preview*"
-    always: true
-
 jobs:
 - job: codeql
   displayName: CodeQL
