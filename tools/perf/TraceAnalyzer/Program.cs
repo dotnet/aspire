@@ -36,26 +36,19 @@ try
 
     using (var source = new EventPipeEventSource(tracePath))
     {
-        // Use the Dynamic parser which handles EventSource events with metadata
-        source.Dynamic.All += (TraceEvent traceEvent) =>
+        // Register a callback only for the specific provider we care about,
+        // rather than subscribing to All events, to reduce overhead in TraceEvent.
+        source.Dynamic.AddCallbackForProviderEvents(AspireHostingProviderName, null, (TraceEvent traceEvent) =>
         {
-            // Match by provider name (if available) or by event ID
-            var isAspireProvider = string.Equals(traceEvent.ProviderName, AspireHostingProviderName, StringComparison.OrdinalIgnoreCase)
-                                   || traceEvent.ProviderName.Contains("Aspire", StringComparison.OrdinalIgnoreCase);
-
-            if (isAspireProvider)
+            if ((int)traceEvent.ID == DcpModelCreationStartEventId)
             {
-                // Match by event ID (more reliable than event name)
-                if ((int)traceEvent.ID == DcpModelCreationStartEventId)
-                {
-                    startTime = traceEvent.TimeStampRelativeMSec;
-                }
-                else if ((int)traceEvent.ID == DcpModelCreationStopEventId)
-                {
-                    stopTime = traceEvent.TimeStampRelativeMSec;
-                }
+                startTime = traceEvent.TimeStampRelativeMSec;
             }
-        };
+            else if ((int)traceEvent.ID == DcpModelCreationStopEventId)
+            {
+                stopTime = traceEvent.TimeStampRelativeMSec;
+            }
+        });
 
         source.Process();
     }
