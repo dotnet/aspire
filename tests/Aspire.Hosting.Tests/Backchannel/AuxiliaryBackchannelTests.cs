@@ -28,10 +28,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
             return Task.CompletedTask;
         });
 
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
         using var app = builder.Build();
 
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
@@ -71,10 +67,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
             }
             return Task.CompletedTask;
         });
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -118,10 +110,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // When the Dashboard is not part of the app model, null should be returned
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
         using var app = builder.Build();
 
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
@@ -156,10 +144,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     {
         // This test verifies that GetAppHostInformationAsync returns the AppHost path
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -201,10 +185,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // This test verifies that multiple clients can invoke RPC methods concurrently
         // When the Dashboard is not part of the app model, null should be returned
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -249,10 +229,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // This test verifies that GetAppHostInformationAsync returns the full file path with extension
         // For .csproj-based AppHosts, it should include the .csproj extension
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -300,10 +276,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // to avoid Windows reserved device name issues (AUX is reserved on Windows < 11)
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
         using var app = builder.Build();
 
         await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
@@ -334,10 +306,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Add a simple container resource (without MCP)
         builder.AddContainer("mycontainer", "nginx");
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -380,10 +348,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // Add a simple container resource (without MCP)
         builder.AddContainer("mycontainer", "nginx");
 
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
         using var app = builder.Build();
 
         await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
@@ -420,10 +384,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     {
         // This test verifies that StopAppHostAsync initiates AppHost shutdown
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -474,10 +434,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // This test verifies that GetCapabilitiesAsync returns both v1 and v2 capabilities
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
-
         using var app = builder.Build();
 
         await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
@@ -515,10 +471,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     {
         // This test verifies that the v2 GetAppHostInfoAsync returns AppHost info
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
@@ -562,10 +514,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Add a simple parameter resource
         builder.AddParameter("myparam");
-
-        // Register the auxiliary backchannel service
-        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
-        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
 
         using var app = builder.Build();
 
