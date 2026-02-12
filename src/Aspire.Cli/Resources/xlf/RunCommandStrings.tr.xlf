@@ -134,12 +134,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">Çalıştırmadan önce projeyi derlemeyin veya geri yüklemeyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">İzleme modu etkin olduğunda --no-build seçeneği kullanılamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">

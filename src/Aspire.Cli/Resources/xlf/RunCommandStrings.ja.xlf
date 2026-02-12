@@ -134,12 +134,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">実行する前にプロジェクトを構築または復元しないでください。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">ウォッチ モードが有効な場合、--no-build オプションは使用できません。</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
