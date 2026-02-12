@@ -125,6 +125,10 @@ internal static partial class DetachedProcessLauncher
         }
     }
 
+    /// <summary>
+    /// Builds a Windows command line string with correct quoting rules.
+    /// Adapted from dotnet/runtime PasteArguments.AppendArgument.
+    /// </summary>
     private static StringBuilder BuildCommandLine(string fileName, IReadOnlyList<string> arguments)
     {
         var sb = new StringBuilder();
@@ -135,17 +139,74 @@ internal static partial class DetachedProcessLauncher
         foreach (var arg in arguments)
         {
             sb.Append(' ');
-            if (arg.Contains(' ') || arg.Contains('"'))
-            {
-                sb.Append('"').Append(arg.Replace("\"", "\\\"")).Append('"');
-            }
-            else
-            {
-                sb.Append(arg);
-            }
+            AppendArgument(sb, arg);
         }
 
         return sb;
+    }
+
+    /// <summary>
+    /// Appends a correctly-quoted argument to the command line.
+    /// Copied from dotnet/runtime src/libraries/System.Private.CoreLib/src/System/PasteArguments.cs
+    /// </summary>
+    private static void AppendArgument(StringBuilder sb, string argument)
+    {
+        // Windows command-line parsing rules:
+        //   - Backslash is normal except when followed by a quote
+        //   - 2N backslashes + quote → N literal backslashes + unescaped quote
+        //   - 2N+1 backslashes + quote → N literal backslashes + literal quote
+        if (argument.Length != 0 && !argument.AsSpan().ContainsAny(' ', '\t', '"'))
+        {
+            sb.Append(argument);
+            return;
+        }
+
+        sb.Append('"');
+        var idx = 0;
+        while (idx < argument.Length)
+        {
+            var c = argument[idx++];
+            if (c == '\\')
+            {
+                var numBackslash = 1;
+                while (idx < argument.Length && argument[idx] == '\\')
+                {
+                    idx++;
+                    numBackslash++;
+                }
+
+                if (idx == argument.Length)
+                {
+                    // Trailing backslashes before closing quote — must double them
+                    sb.Append('\\', numBackslash * 2);
+                }
+                else if (argument[idx] == '"')
+                {
+                    // Backslashes followed by quote — double them + escape the quote
+                    sb.Append('\\', numBackslash * 2 + 1);
+                    sb.Append('"');
+                    idx++;
+                }
+                else
+                {
+                    // Backslashes not followed by quote — emit as-is
+                    sb.Append('\\', numBackslash);
+                }
+
+                continue;
+            }
+
+            if (c == '"')
+            {
+                sb.Append('\\');
+                sb.Append('"');
+                continue;
+            }
+
+            sb.Append(c);
+        }
+
+        sb.Append('"');
     }
 
     // --- Constants ---
