@@ -10,20 +10,20 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for the Aspire CLI monitor command (TUI).
+/// End-to-end tests for the Aspire CLI atop command (TUI).
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class MonitorCommandTests(ITestOutputHelper output)
+public sealed class AtopCommandTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task MonitorShowsHealthyResources()
+    public async Task AtopShowsHealthyResources()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(MonitorShowsHealthyResources));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(AtopShowsHealthyResources));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -61,7 +61,7 @@ public sealed class MonitorCommandTests(ITestOutputHelper output)
         var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
 
-        // Pattern searcher for the monitor TUI showing a healthy resource
+        // Pattern searcher for the atop TUI showing a healthy resource
         var waitForHealthyInMonitor = new CellPatternSearcher()
             .Find("Healthy");
 
@@ -111,8 +111,8 @@ public sealed class MonitorCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
-        // Launch aspire monitor TUI — this takes over the terminal
-        sequenceBuilder.Type("aspire monitor")
+        // Launch aspire atop TUI — this takes over the terminal
+        sequenceBuilder.Type("aspire atop")
             .Enter()
             .WaitUntil(s => waitForHealthyInMonitor.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             // Healthy text found — test passed. Send Ctrl+C to exit the TUI.

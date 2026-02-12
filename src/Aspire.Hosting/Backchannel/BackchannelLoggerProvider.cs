@@ -10,6 +10,9 @@ namespace Aspire.Hosting.Backchannel;
 internal class BackchannelLoggerProvider : ILoggerProvider
 {
     private readonly Channel<BackchannelLogEntry> _channel = Channel.CreateUnbounded<BackchannelLogEntry>();
+    private readonly List<BackchannelLogEntry> _replayBuffer = new();
+    private readonly object _replayLock = new();
+    private const int MaxReplayEntries = 1000;
     private readonly IServiceProvider _serviceProvider;
     private readonly object _channelRegisteredLock = new();
     private readonly CancellationTokenSource _backgroundChannelRegistrationCts = new();
@@ -19,6 +22,29 @@ internal class BackchannelLoggerProvider : ILoggerProvider
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
         _serviceProvider = serviceProvider;
+    }
+
+    /// <summary>
+    /// Gets a snapshot of buffered log entries for replay to late-connecting clients.
+    /// </summary>
+    internal List<BackchannelLogEntry> GetReplaySnapshot()
+    {
+        lock (_replayLock)
+        {
+            return new List<BackchannelLogEntry>(_replayBuffer);
+        }
+    }
+
+    internal void AddToReplayBuffer(BackchannelLogEntry entry)
+    {
+        lock (_replayLock)
+        {
+            if (_replayBuffer.Count >= MaxReplayEntries)
+            {
+                _replayBuffer.RemoveAt(0);
+            }
+            _replayBuffer.Add(entry);
+        }
     }
 
     private void RegisterLogChannel()
@@ -49,7 +75,7 @@ internal class BackchannelLoggerProvider : ILoggerProvider
             }
         }
 
-        return new BackchannelLogger(categoryName, _channel);
+        return new BackchannelLogger(categoryName, _channel, this);
     }
 
     public void Dispose()
@@ -59,7 +85,7 @@ internal class BackchannelLoggerProvider : ILoggerProvider
     }
 }
 
-internal class BackchannelLogger(string categoryName, Channel<BackchannelLogEntry> channel) : ILogger
+internal class BackchannelLogger(string categoryName, Channel<BackchannelLogEntry> channel, BackchannelLoggerProvider provider) : ILogger
 {
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
@@ -84,6 +110,7 @@ internal class BackchannelLogger(string categoryName, Channel<BackchannelLogEntr
                 Message = formatter(state, exception),
             };
 
+            provider.AddToReplayBuffer(entry);
             channel.Writer.TryWrite(entry);
         }
     }

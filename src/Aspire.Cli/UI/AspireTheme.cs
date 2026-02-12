@@ -27,11 +27,6 @@ internal static class AspireTheme
     private static readonly Hex1bColor s_textPrimary = Hex1bColor.FromRgb(230, 237, 243);  // #E6EDF3
     private static readonly Hex1bColor s_textMuted = Hex1bColor.FromRgb(139, 148, 158);    // #8B949E
 
-    // Highlights
-    private static readonly Hex1bColor s_focusedRow = Hex1bColor.FromRgb(45, 31, 94);    // #2D1F5E
-    private static readonly Hex1bColor s_selectedRow = Hex1bColor.FromRgb(30, 20, 69);   // #1E1445
-    private static readonly Hex1bColor s_headerBg = Hex1bColor.FromRgb(28, 20, 50);      // #1C1432
-
     /// <summary>
     /// Applies the Aspire color theme to the given base theme.
     /// </summary>
@@ -43,24 +38,6 @@ internal static class AspireTheme
             .Set(GlobalTheme.ForegroundColor, s_textPrimary)
 
             // Table
-            .Set(TableTheme.BorderColor, s_border)
-            .Set(TableTheme.FocusedBorderColor, s_purpleLight)
-            .Set(TableTheme.TableFocusedBorderColor, s_purpleLight)
-            .Set(TableTheme.HeaderBackground, s_headerBg)
-            .Set(TableTheme.HeaderForeground, s_purpleLight)
-            .Set(TableTheme.RowBackground, s_bgDark)
-            .Set(TableTheme.RowForeground, s_textPrimary)
-            .Set(TableTheme.AlternateRowBackground, s_bgSurface)
-            .Set(TableTheme.FocusedRowBackground, s_focusedRow)
-            .Set(TableTheme.FocusedRowForeground, s_lavender)
-            .Set(TableTheme.SelectedRowBackground, s_selectedRow)
-            .Set(TableTheme.SelectedRowForeground, s_purpleFaint)
-            .Set(TableTheme.SelectionColumnBorderColor, s_purpleMedium)
-            .Set(TableTheme.EmptyTextForeground, s_textMuted)
-            .Set(TableTheme.LoadingTextForeground, s_textMuted)
-            .Set(TableTheme.ScrollbarThumbColor, s_purpleMedium)
-            .Set(TableTheme.ScrollbarTrackColor, s_border)
-
             // Border
             .Set(BorderTheme.BorderColor, s_border)
             .Set(BorderTheme.TitleColor, s_purpleLight)
@@ -76,7 +53,7 @@ internal static class AspireTheme
             .Set(TabBarTheme.SelectedForegroundColor, s_lavender)
 
             // InfoBar
-            .Set(InfoBarTheme.BackgroundColor, s_purpleLight)
+            .Set(InfoBarTheme.BackgroundColor, s_purpleMedium)
             .Set(InfoBarTheme.ForegroundColor, Hex1bColor.FromRgb(255, 255, 255))
 
             // Button
@@ -98,10 +75,85 @@ internal static class AspireTheme
             // Separator
             .Set(SeparatorTheme.Color, s_border)
 
+            // Splitter
+            .Set(SplitterTheme.DividerColor, s_purple)
+            .Set(SplitterTheme.FocusedDividerColor, s_purple)
+            .Set(SplitterTheme.ThumbColor, s_purple)
+
             // Notification card
             .Set(NotificationCardTheme.BackgroundColor, s_bgElevated)
             .Set(NotificationCardTheme.TitleColor, s_purpleLight)
             .Set(NotificationCardTheme.BodyColor, s_textPrimary)
             .Set(NotificationCardTheme.ProgressBarColor, s_purple);
+    }
+
+    /// <summary>
+    /// Applies the half-block border theme used for both tiles and the content header.
+    /// </summary>
+    private static Hex1bTheme ApplyHalfBlockBorder(Hex1bTheme theme, Hex1bColor fillColor)
+    {
+        return theme
+            .Set(BorderTheme.BorderColor, fillColor)
+            .Set(BorderTheme.TopLine, "▄")
+            .Set(BorderTheme.BottomLine, "▀")
+            .Set(BorderTheme.LeftLine, "█")
+            .Set(BorderTheme.RightLine, "█")
+            .Set(BorderTheme.TopLeftCorner, "▄")
+            .Set(BorderTheme.TopRightCorner, "▄")
+            .Set(BorderTheme.BottomLeftCorner, "▀")
+            .Set(BorderTheme.BottomRightCorner, "▀");
+    }
+
+    /// <summary>
+    /// Applies the theme for the content area header border.
+    /// </summary>
+    public static Hex1bTheme ApplyContentHeaderBorder(Hex1bTheme theme)
+    {
+        return ApplyHalfBlockBorder(theme, s_purple);
+    }
+
+    /// <summary>
+    /// Applies the inner theme for the content area header.
+    /// </summary>
+    public static Hex1bTheme ApplyContentHeaderInner(Hex1bTheme theme)
+    {
+        return theme
+            .Set(GlobalTheme.BackgroundColor, s_purple)
+            .Set(GlobalTheme.ForegroundColor, Hex1bColor.FromRgb(255, 255, 255))
+            .Set(HyperlinkTheme.ForegroundColor, s_lavender)
+            .Set(HyperlinkTheme.FocusedForegroundColor, s_lavender)
+            .Set(HyperlinkTheme.HoveredForegroundColor, Hex1bColor.FromRgb(255, 255, 255));
+    }
+
+    /// <summary>
+    /// Applies the AppHost tile theme for the left-pane tiles.
+    /// </summary>
+    public static Hex1bTheme ApplyAppHostTile(Hex1bTheme theme)
+    {
+        return ApplyHalfBlockBorder(theme, s_purple);
+    }
+
+    /// <summary>
+    /// Applies the focused/hovered AppHost tile theme with a lighter background.
+    /// </summary>
+    public static Hex1bTheme ApplyAppHostTileFocused(Hex1bTheme theme)
+    {
+        return ApplyHalfBlockBorder(theme, s_purpleMedium);
+    }
+
+    /// <summary>
+    /// Applies the inner fill color for tile content.
+    /// </summary>
+    public static Hex1bTheme ApplyAppHostTileInner(Hex1bTheme theme)
+    {
+        return theme.Set(GlobalTheme.BackgroundColor, s_purple);
+    }
+
+    /// <summary>
+    /// Applies the inner fill color for focused tile content.
+    /// </summary>
+    public static Hex1bTheme ApplyAppHostTileInnerFocused(Hex1bTheme theme)
+    {
+        return theme.Set(GlobalTheme.BackgroundColor, s_purpleMedium);
     }
 }

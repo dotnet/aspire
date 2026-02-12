@@ -131,6 +131,7 @@ internal sealed class RootCommand : BaseRootCommand
         SdkCommand sdkCommand,
         SetupCommand setupCommand,
         MonitorCommand monitorCommand,
+        AtopCommand atopCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -223,7 +224,7 @@ internal sealed class RootCommand : BaseRootCommand
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.MonitorCommandEnabled, false))
         {
-            Subcommands.Add(monitorCommand);
+            Subcommands.Add(atopCommand);
         }
 
     }

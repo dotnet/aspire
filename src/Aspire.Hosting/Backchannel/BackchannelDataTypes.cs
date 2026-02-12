@@ -98,6 +98,11 @@ internal sealed class GetAppHostInfoResponse
     /// Gets when the AppHost process started.
     /// </summary>
     public DateTimeOffset? StartedAt { get; init; }
+
+    /// <summary>
+    /// Gets the root directory of the repository containing the AppHost, if discovered.
+    /// </summary>
+    public string? RepositoryRoot { get; init; }
 }
 
 /// <summary>

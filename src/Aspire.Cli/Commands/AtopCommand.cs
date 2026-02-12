@@ -13,20 +13,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class MonitorCommand : BaseCommand
+internal sealed class AtopCommand : BaseCommand
 {
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
-    private readonly ILogger<MonitorCommand> _logger;
+    private readonly ILogger<AtopCommand> _logger;
 
-    public MonitorCommand(
+    public AtopCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
-        ILogger<MonitorCommand> logger)
-        : base("monitor", MonitorCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        ILogger<AtopCommand> logger)
+        : base("atop", MonitorCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;
@@ -36,7 +36,7 @@ internal sealed class MonitorCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
-        var tui = new AspireMonitorTui(_backchannelMonitor, _logger);
+        var tui = new AspireAtopTui(_backchannelMonitor, _logger);
         await tui.RunAsync(cancellationToken).ConfigureAwait(false);
 
         return ExitCodeConstants.Success;

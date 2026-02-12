@@ -12,7 +12,7 @@ namespace Aspire.Cli.UI;
 /// Braille particles whirlwind into position, crossfade to half-blocks,
 /// then dissolve and fall with gravity.
 /// </summary>
-internal sealed class AspireMonitorSplash
+internal sealed class AspireAtopSplash
 {
     // Phase timing (ms from start)
     private const int WhirlwindDurationMs = 2200;
@@ -58,7 +58,7 @@ internal sealed class AspireMonitorSplash
     // Braille dot bit positions: index = col*4 + row
     private static readonly int[] s_brailleBits = [0x01, 0x02, 0x04, 0x40, 0x08, 0x10, 0x20, 0x80];
 
-    public AspireMonitorSplash()
+    public AspireAtopSplash()
     {
         _startTicks = Environment.TickCount64;
 

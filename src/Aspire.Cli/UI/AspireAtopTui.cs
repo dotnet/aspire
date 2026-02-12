@@ -4,12 +4,23 @@
 using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Hex1b;
 using Hex1b.Layout;
+using Hex1b.Logging;
 using Hex1b.Widgets;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.UI;
+
+/// <summary>
+/// Represents a summary of resource counts for an AppHost.
+/// </summary>
+internal sealed class ResourceSummary
+{
+    public int TotalCount { get; set; }
+    public int RunningCount { get; set; }
+}
 
 /// <summary>
 /// Represents an AppHost entry in the drawer list.
@@ -20,12 +31,19 @@ internal sealed class AppHostEntry
     public required string FullPath { get; init; }
     public required IAppHostAuxiliaryBackchannel Connection { get; set; }
     public bool IsOffline { get; set; }
+    public string? Branch { get; set; }
+    public ResourceSummary? Summary { get; set; }
+    public string? DashboardUrl { get; set; }
+    public string? AspireVersion { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public string? Pid { get; set; }
+    public string? RepositoryRoot { get; set; }
 }
 
 /// <summary>
 /// Main TUI for the aspire monitor command.
 /// </summary>
-internal sealed class AspireMonitorTui
+internal sealed class AspireAtopTui
 {
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger _logger;
@@ -37,17 +55,15 @@ internal sealed class AspireMonitorTui
     private bool _isConnecting;
     private string? _errorMessage;
     private bool _showSplash = true;
-    private readonly AspireMonitorSplash _splash = new();
+    private readonly AspireAtopSplash _splash = new();
     private object? _focusedResourceKey;
     private object? _focusedParameterKey;
     private CancellationTokenSource? _watchCts;
     private NotificationStack? _notificationStack;
     private Hex1bApp? _app;
-
-    // Embedded terminal for resource console logs
-    private AspireResourceConsoleLogWorkload? _logWorkload;
-    private TerminalWidgetHandle? _logTerminalHandle;
-    private Hex1bTerminal? _logTerminal;
+    private IHex1bLogStore? _appHostLogStore;
+    private ILoggerFactory? _appHostLoggerFactory;
+    private bool _appHostLogsAvailable;
 
     // Hack reveal transition after splash
     private bool _revealing;
@@ -55,7 +71,7 @@ internal sealed class AspireMonitorTui
     private readonly HackRevealEffect _hackReveal = new();
     private const double RevealDurationSeconds = 4.0;
 
-    public AspireMonitorTui(IAuxiliaryBackchannelMonitor backchannelMonitor, ILogger logger)
+    public AspireAtopTui(IAuxiliaryBackchannelMonitor backchannelMonitor, ILogger logger)
     {
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;
@@ -76,8 +92,12 @@ internal sealed class AspireMonitorTui
             })
             .ToList();
 
+        // Resolve git branches and resource summaries in the background (non-blocking)
+        _ = ResolveBranchesAsync(_appHosts, cancellationToken);
+        _ = FetchResourceSummariesAsync(_appHosts, cancellationToken);
+
         await using var terminal = Hex1bTerminal.CreateBuilder()
-            .WithDiagnostics("aspire-monitor", forceEnable: true)
+            .WithDiagnostics("aspire-atop", forceEnable: true)
             .WithHex1bApp((app, options) =>
             {
                 _app = app;
@@ -176,7 +196,15 @@ internal sealed class AspireMonitorTui
                 tabs.Tab(MonitorCommandStrings.ParametersTab, c => BuildParametersTab(c))
             ]).Fill();
 
-            rightContent = tabPanel;
+            // Logger panel for AppHost logs
+            Hex1bWidget logPanel = _appHostLogsAvailable && _appHostLogStore is not null
+                ? ctx.LoggerPanel(_appHostLogStore).Fill()
+                : ctx.Text("  AppHost log streaming is not available in this version of the Aspire SDK.").Fill();
+
+            rightContent = ctx.VStack(v => [
+                tabPanel,
+                v.DragBarPanel(logPanel).HandleEdge(DragBarEdge.Top).InitialSize(10).MinSize(3)
+            ]).Fill();
         }
 
         // NotificationPanel requires ZStack context — only use in interactive mode
@@ -184,26 +212,103 @@ internal sealed class AspireMonitorTui
             ? ctx.NotificationPanel(rightContent).Fill()
             : rightContent;
 
-        // AppHost list for the left pane
-        var appHostList = ctx.VStack(nav => [
-            nav.Text($" {MonitorCommandStrings.AppHostsDrawerTitle}").FixedHeight(1),
-            nav.Separator(),
-            ..BuildAppHostList(nav)
+        // AppHost panels for the left pane
+        var appHostPanels = ctx.VStack(nav => [
+            ..BuildAppHostPanels(ctx, nav)
         ]).Fill();
 
-        // Main layout: splitter with AppHost list on the left, content on the right
-        var body = ctx.HSplitter(
-            ctx.Border(appHostList, title: "App Hosts"),
-            ctx.Border(mainContent, title: GetSelectedAppHostTitle()).Fill(),
+        // Build the content header with AppHost info
+        var selectedName = GetSelectedAppHostTitle();
+        var dashboardUrl = selectedAppHost?.DashboardUrl;
+        var aspireVersion = selectedAppHost?.AspireVersion;
+        var startedAt = selectedAppHost?.StartedAt;
+        var pid = selectedAppHost?.Pid;
+        var repoRoot = selectedAppHost?.RepositoryRoot;
+
+        var resourceCount = _resources.Values
+            .Count(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase));
+        var runningCount = _resources.Values
+            .Count(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(r.State, "Running", StringComparison.OrdinalIgnoreCase));
+
+        var detailParts = new List<string>();
+        if (pid is not null)
+        {
+            detailParts.Add($"⚙ PID {pid}");
+        }
+        if (aspireVersion is not null && aspireVersion != "unknown")
+        {
+            detailParts.Add($"◆ {aspireVersion}");
+        }
+        if (startedAt is not null)
+        {
+            var uptime = DateTimeOffset.UtcNow - startedAt.Value;
+            detailParts.Add($"⏱ {FormatUptime(uptime)}");
+        }
+        if (resourceCount > 0)
+        {
+            detailParts.Add($"▣ {runningCount}/{resourceCount}");
+        }
+        var detailLine = detailParts.Count > 0 ? string.Join("  ·  ", detailParts) : null;
+
+        var headerRows = new List<Func<WidgetContext<VStackWidget>, Hex1bWidget>>();
+
+        // Row 1: AppHost name + detail stats
+        headerRows.Add(h => h.HStack(row => [
+            row.Text($"▲ {selectedName}"),
+            row.Text("").Fill(),
+            row.Text(detailLine ?? "").FixedWidth(detailLine?.Length ?? 0)
+        ]).FixedHeight(1));
+
+        // Row 2: Dashboard URL + Stop button
+        headerRows.Add(h => h.HStack(row => [
+            row.Text("⊞ "),
+            dashboardUrl is not null
+                ? row.Hyperlink(dashboardUrl, dashboardUrl)
+                : (Hex1bWidget)row.Text("Dashboard: connecting..."),
+            row.Text("").Fill(),
+            row.Button(" ⏹ Stop ").OnClick(e =>
+            {
+                _ = StopSelectedAppHostAsync();
+            })
+        ]).FixedHeight(1));
+
+        // Row 3: VSCode link (if repo root discovered)
+        if (repoRoot is not null)
+        {
+            var vscodeUrl = $"vscode://file/{Uri.EscapeDataString(repoRoot)}";
+            headerRows.Add(h => h.HStack(row => [
+                row.Text("⌨ "),
+                row.Hyperlink(vscodeUrl, repoRoot)
+            ]).FixedHeight(1));
+        }
+
+        var headerContent = ctx.VStack(h =>
+            headerRows.Select(buildRow => buildRow(h)).ToArray()
+        );
+
+        var contentHeader = ctx.ThemePanel(AspireTheme.ApplyContentHeaderBorder,
+            ctx.Border(ctx.ThemePanel(AspireTheme.ApplyContentHeaderInner, headerContent)));
+
+        // Main content area: header + tab content
+        var rightSide = ctx.VStack(r => [
+            contentHeader,
+            mainContent
+        ]).Fill();
+
+        // Main layout: splitter with AppHost panels on the left, content on the right
+        var body = ctx.Padding(1, 1, 0, 0, ctx.HSplitter(
+            appHostPanels,
+            rightSide,
             leftWidth: 30
-        ).Fill();
+        ).Fill()).Fill();
 
         return ctx.VStack(outer => [
             body,
             outer.InfoBar(bar => [
-                bar.Section("q: " + MonitorCommandStrings.QuitShortcut),
+                bar.Section("⎋ q: " + MonitorCommandStrings.QuitShortcut),
                 bar.Separator(" │ "),
-                bar.Section("Tab: " + MonitorCommandStrings.TabShortcut),
+                bar.Section("⇥ Tab: " + MonitorCommandStrings.TabShortcut),
                 bar.Separator(" │ "),
                 bar.Section(GetStatusText()).FillWidth()
             ])
@@ -237,7 +342,7 @@ internal sealed class AspireMonitorTui
         ]).Fill();
     }
 
-    private IEnumerable<Hex1bWidget> BuildAppHostList(WidgetContext<VStackWidget> nav)
+    private IEnumerable<Hex1bWidget> BuildAppHostPanels(RootContext ctx, WidgetContext<VStackWidget> nav)
     {
         if (_appHosts.Count == 0)
         {
@@ -246,22 +351,30 @@ internal sealed class AspireMonitorTui
 
         return _appHosts.Select((appHost, i) =>
         {
-            var prefix = _selectedAppHostIndex == i ? " ▸ " : "   ";
-            var suffix = appHost.IsOffline ? " ⚠" : "";
-            return nav.Button($"{prefix}{appHost.DisplayName}{suffix}")
-                .OnClick(e =>
-                {
-                    _notificationStack ??= e.Context.Notifications;
+            var branchName = appHost.Branch ?? "unknown";
+            var index = i;
 
-                    if (i != _selectedAppHostIndex)
-                    {
-                        _selectedAppHostIndex = i;
-                        if (!appHost.IsOffline)
-                        {
-                            _ = ConnectToAppHostAsync(i, CancellationToken.None);
-                        }
-                    }
-                });
+            var interactable = nav.Interactable(ic =>
+            {
+                var focused = ic.IsFocused || ic.IsHovered;
+                var innerContent = ctx.ThemePanel(
+                    focused ? AspireTheme.ApplyAppHostTileInnerFocused : AspireTheme.ApplyAppHostTileInner,
+                    ic.VStack(v => [
+                        v.Text($"▲ {appHost.DisplayName}").FixedHeight(1),
+                        v.Text($" ⎇ {branchName}").FixedHeight(1)
+                    ]));
+
+                return (Hex1bWidget)ctx.ThemePanel(
+                    focused
+                        ? AspireTheme.ApplyAppHostTileFocused
+                        : AspireTheme.ApplyAppHostTile,
+                    ctx.Border(innerContent));
+            }).OnClick(args =>
+            {
+                _ = ConnectToAppHostAsync(index, CancellationToken.None);
+            });
+
+            return (Hex1bWidget)interactable;
         });
     }
 
@@ -293,10 +406,6 @@ internal sealed class AspireMonitorTui
             .OnFocusChanged(key =>
             {
                 _focusedResourceKey = key;
-                if (key is string resourceName)
-                {
-                    SwitchLogStream(resourceName);
-                }
             })
             .Header(h => [
                 h.Cell("Name").Width(SizeHint.Fill),
@@ -317,7 +426,7 @@ internal sealed class AspireMonitorTui
                     {
                         _ = ExecuteResourceCommandAsync(resource.Name, "resource-start");
                     }),
-                    h.Button("■").OnClick(e =>
+                    h.Button("⏹").OnClick(e =>
                     {
                         _ = ExecuteResourceCommandAsync(resource.Name, "resource-stop");
                     }),
@@ -329,17 +438,6 @@ internal sealed class AspireMonitorTui
             ])
             .Fill()
             .Full();
-
-        // If we have a terminal handle, show table+logs in a vertical split
-        if (_logTerminalHandle is not null)
-        {
-            return [
-                ctx.VStack(v => [
-                    v.DragBarPanel(table).InitialSize(15).MinSize(6),
-                    ctx.Terminal(_logTerminalHandle).Fill()
-                ]).Fill()
-            ];
-        }
 
         return [table];
     }
@@ -457,6 +555,10 @@ internal sealed class AspireMonitorTui
                         _appHosts.Add(entry);
                         knownPaths.Add(path);
 
+                        // Resolve branch and resource summary in the background
+                        _ = ResolveBranchAsync(entry, cancellationToken);
+                        _ = FetchResourceSummaryAsync(entry, cancellationToken);
+
                         // Auto-connect if this is the first AppHost
                         if (wasEmpty)
                         {
@@ -527,6 +629,59 @@ internal sealed class AspireMonitorTui
         }
     }
 
+    private async Task ResolveBranchesAsync(List<AppHostEntry> entries, CancellationToken cancellationToken)
+    {
+        foreach (var entry in entries)
+        {
+            await ResolveBranchAsync(entry, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ResolveBranchAsync(AppHostEntry entry, CancellationToken cancellationToken)
+    {
+        try
+        {
+            entry.Branch = await GitBranchHelper.GetCurrentBranchAsync(entry.FullPath, cancellationToken).ConfigureAwait(false);
+            _app?.Invalidate();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to resolve git branch for {Path}", entry.FullPath);
+        }
+    }
+
+    private async Task FetchResourceSummariesAsync(List<AppHostEntry> entries, CancellationToken cancellationToken)
+    {
+        foreach (var entry in entries)
+        {
+            await FetchResourceSummaryAsync(entry, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task FetchResourceSummaryAsync(AppHostEntry entry, CancellationToken cancellationToken)
+    {
+        if (entry.IsOffline)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshots = await entry.Connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+            var resources = snapshots.Where(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase)).ToList();
+            entry.Summary = new ResourceSummary
+            {
+                TotalCount = resources.Count,
+                RunningCount = resources.Count(r => string.Equals(r.State, "Running", StringComparison.OrdinalIgnoreCase))
+            };
+            _app?.Invalidate();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to fetch resource summary for {Path}", entry.FullPath);
+        }
+    }
+
     private async Task ConnectToAppHostAsync(int index, CancellationToken cancellationToken)
     {
         if (_watchCts is not null)
@@ -541,16 +696,7 @@ internal sealed class AspireMonitorTui
         _resources.Clear();
         _selectedAppHostIndex = index;
 
-        // Tear down previous log terminal
-        _logWorkload?.StopStreaming();
-        if (_logTerminal is not null)
-        {
-            await _logTerminal.DisposeAsync().ConfigureAwait(false);
-        }
-        _logWorkload = null;
-        _logTerminalHandle = null;
-        _logTerminal = null;
-
+        // Tear down previous state
         _app?.Invalidate();
 
         try
@@ -562,21 +708,106 @@ internal sealed class AspireMonitorTui
 
             var connection = _appHosts[index].Connection;
 
-            // Create the embedded log terminal for this connection
-            _logWorkload = new AspireResourceConsoleLogWorkload(connection);
-            _logTerminal = Hex1bTerminal.CreateBuilder()
-                .WithWorkload(_logWorkload)
-                .WithTerminalWidget(out var handle)
-                .Build();
-            _logTerminalHandle = handle;
-            _ = _logTerminal.RunAsync(cancellationToken);
-
             var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
             _isConnecting = false;
             foreach (var snapshot in snapshots)
             {
                 _resources[snapshot.Name] = snapshot;
             }
+
+            // Fetch dashboard URL
+            try
+            {
+                var dashboardInfo = await connection.GetDashboardInfoV2Async(cancellationToken).ConfigureAwait(false);
+                if (dashboardInfo?.DashboardUrls is { Length: > 0 } urls)
+                {
+                    _appHosts[index].DashboardUrl = urls[0];
+                }
+            }
+            catch
+            {
+                // Dashboard info is best-effort
+            }
+
+            // Fetch AppHost info (version, PID, start time)
+            try
+            {
+                var appHostInfo = connection.AppHostInfo;
+                if (appHostInfo is not null)
+                {
+                    _appHosts[index].StartedAt = appHostInfo.StartedAt;
+                    _appHosts[index].Pid = appHostInfo.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                if (connection is AppHostAuxiliaryBackchannel { SupportsV2: true } v2Connection)
+                {
+                    var v2Info = await v2Connection.GetAppHostInfoV2Async(cancellationToken).ConfigureAwait(false);
+                    if (v2Info is not null)
+                    {
+                        _appHosts[index].AspireVersion = v2Info.AspireHostVersion;
+                        _appHosts[index].StartedAt = v2Info.StartedAt;
+                        _appHosts[index].Pid = v2Info.Pid;
+                        _appHosts[index].RepositoryRoot = v2Info.RepositoryRoot;
+                        _logger.LogDebug("V2 info: Pid={Pid}, RepoRoot={RepoRoot}, AppHostPath={Path}",
+                            v2Info.Pid, v2Info.RepositoryRoot ?? "(null)", v2Info.AppHostPath);
+                    }
+                }
+            }
+            catch
+            {
+                // AppHost info is best-effort
+            }
+
+            // Set up AppHost log streaming
+            _appHostLoggerFactory?.Dispose();
+            _appHostLoggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddHex1b(out var logStore);
+                _appHostLogStore = logStore;
+            });
+            _appHostLogsAvailable = false;
+
+            try
+            {
+                var logStream = await connection.GetAppHostLogEntriesAsync(cancellationToken).ConfigureAwait(false);
+                if (logStream is not null)
+                {
+                    _appHostLogsAvailable = true;
+                    var appHostLogger = _appHostLoggerFactory.CreateLogger("AppHost");
+
+                    // Log a startup message to confirm the panel is connected
+                    appHostLogger.LogInformation("Connected to AppHost log stream");
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await foreach (var entry in logStream.WithCancellation(_watchCts.Token).ConfigureAwait(false))
+                            {
+                                appHostLogger.Log(entry.LogLevel, "{Message}", entry.Message);
+                                _app?.Invalidate();
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Expected when switching AppHosts
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Error streaming AppHost logs");
+                        }
+                    }, _watchCts.Token);
+                }
+                else
+                {
+                    _logger.LogDebug("AppHost log streaming returned null - not supported by this AppHost");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "AppHost log streaming is not available");
+            }
+
             _app?.Invalidate();
 
             _ = Task.Run(async () =>
@@ -630,16 +861,6 @@ internal sealed class AspireMonitorTui
         }
     }
 
-    private void SwitchLogStream(string resourceName)
-    {
-        if (_logWorkload is null || _logWorkload.CurrentResourceName == resourceName)
-        {
-            return;
-        }
-
-        _logWorkload.StartStreaming(resourceName, _watchCts?.Token ?? CancellationToken.None);
-    }
-
     private async Task ExecuteResourceCommandAsync(string resourceName, string commandName)
     {
         try
@@ -653,6 +874,28 @@ internal sealed class AspireMonitorTui
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error executing {Command} on {Resource}", commandName, resourceName);
+        }
+    }
+
+    private async Task StopSelectedAppHostAsync()
+    {
+        try
+        {
+            if (_selectedAppHostIndex < _appHosts.Count)
+            {
+                var appHost = _appHosts[_selectedAppHostIndex];
+                var stopped = await appHost.Connection.StopAppHostAsync(CancellationToken.None).ConfigureAwait(false);
+                if (stopped)
+                {
+                    _notificationStack?.Post(
+                        new Notification("AppHost Stopped", $"{appHost.DisplayName} has been stopped.")
+                            .Timeout(TimeSpan.FromSeconds(5)));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error stopping AppHost");
         }
     }
 
@@ -679,6 +922,19 @@ internal sealed class AspireMonitorTui
             .Count(r => !string.Equals(r.ResourceType, "Parameter", StringComparison.OrdinalIgnoreCase));
 
         return $"{resourceCount} resource(s)";
+    }
+
+    private static string FormatUptime(TimeSpan uptime)
+    {
+        if (uptime.TotalDays >= 1)
+        {
+            return $"{(int)uptime.TotalDays}d {uptime.Hours}h";
+        }
+        if (uptime.TotalHours >= 1)
+        {
+            return $"{(int)uptime.TotalHours}h {uptime.Minutes}m";
+        }
+        return $"{(int)uptime.TotalMinutes}m";
     }
 
     private static string FormatHealthStatus(string? healthStatus)

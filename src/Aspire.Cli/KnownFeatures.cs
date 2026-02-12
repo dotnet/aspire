@@ -117,7 +117,7 @@ internal static class KnownFeatures
 
         [MonitorCommandEnabled] = new(
             MonitorCommandEnabled,
-            "Enable or disable the 'aspire monitor' command for launching a TUI to monitor running AppHosts and resources",
+            "Enable or disable the 'aspire atop' command for launching a TUI to monitor running AppHosts and resources",
             DefaultValue: false)
     };
 
