@@ -126,7 +126,9 @@ internal sealed class AzureResourcePreparer(
             //   - if a compute resource has RoleAssignmentAnnotations, use them
             //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations to apply the defaults
             var resourceSnapshot = appModel.GetComputeResources()
-                .Concat(appModel.Resources.OfType<AzureUserAssignedIdentityResource>())
+                .Concat(appModel.Resources
+                    .OfType<AzureUserAssignedIdentityResource>()
+                    .Where(r => !r.IsExcludedFromPublish()))
                 .ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
