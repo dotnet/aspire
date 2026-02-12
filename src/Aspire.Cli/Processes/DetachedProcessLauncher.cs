@@ -45,12 +45,12 @@ namespace Aspire.Cli.Processes;
 // │         │ Windows container runtime (microsoft/hcsshim).                │
 // │         │                                                               │
 // │ Linux / │ Process.Start with RedirectStandard{Output,Error} = true,     │
-// │ macOS   │ then immediately close the pipe streams. On Unix, .NET        │
-// │         │ creates pipes with O_CLOEXEC, so the grandchild never         │
-// │         │ inherits them across execve() — unlike Windows, this is safe. │
-// │         │ This is the same model used by runc (opencontainers/runc),    │
-// │         │ which relies on O_CLOEXEC + close-on-exec to prevent fd leaks │
-// │         │ into container init processes.                                 │
+// │ macOS   │ then immediately close the parent's read-end pipe streams.    │
+// │         │ The original pipe fds have O_CLOEXEC, but dup2 onto fd 0/1/2 │
+// │         │ clears it — so grandchildren inherit the pipe as their stdio. │
+// │         │ With no reader, writes produce harmless EPIPE. The critical   │
+// │         │ difference from Windows is that no caller gets stuck waiting  │
+// │         │ on a pipe handle — closing the read-end is sufficient.        │
 // └─────────┴────────────────────────────────────────────────────────────────┘
 //
 

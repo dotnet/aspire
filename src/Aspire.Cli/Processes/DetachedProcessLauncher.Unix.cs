@@ -9,9 +9,11 @@ internal static partial class DetachedProcessLauncher
 {
     /// <summary>
     /// Unix implementation using Process.Start with stdio redirection.
-    /// On Linux/macOS, .NET creates pipes with O_CLOEXEC so grandchild processes
-    /// never inherit them across execve(). We just close the parent-side pipe
-    /// streams immediately after start to suppress child output.
+    /// On Linux/macOS, the redirect pipes' original fds are created with O_CLOEXEC,
+    /// but dup2 onto fd 0/1/2 clears that flag — so grandchildren DO inherit the pipe
+    /// as their stdio. However, since we close the parent's read-end immediately, the
+    /// pipe has no reader and writes produce EPIPE (harmless). The key difference from
+    /// Windows is that on Unix, only fds 0/1/2 survive exec — no extra handle leakage.
     /// </summary>
     private static Process StartUnix(string fileName, IReadOnlyList<string> arguments, string workingDirectory)
     {
@@ -34,9 +36,10 @@ internal static partial class DetachedProcessLauncher
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Failed to start detached process");
 
-        // Close the parent's read-end of the pipes. The child's write-end has
-        // O_CLOEXEC set by .NET, so when the child calls execve() to launch the
-        // AppHost grandchild, the pipe fds are automatically closed.
+        // Close the parent's read-end of the pipes. This means the pipe has no reader,
+        // so if the grandchild (AppHost) writes to inherited stdout/stderr, it gets EPIPE
+        // which is harmless. The important thing is no caller is blocked waiting on the
+        // pipe — unlike Windows where the handle stays open and blocks execSync callers.
         process.StandardOutput.Close();
         process.StandardError.Close();
 
