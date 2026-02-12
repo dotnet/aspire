@@ -102,13 +102,6 @@ jobs:
             echo "Created PR #$PR_NUMBER"
           fi
 
-      - name: Enable auto-merge
-        if: steps.create-pr.outputs.pull_request_number
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr merge ${{ steps.create-pr.outputs.pull_request_number }} --auto --merge
-
       - name: Create issue for merge conflicts
         if: steps.check.outputs.changes == 'true' && steps.merge.outputs.merge_success == 'false'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
