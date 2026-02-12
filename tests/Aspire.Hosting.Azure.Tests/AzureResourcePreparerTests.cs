@@ -297,6 +297,45 @@ public class AzureResourcePreparerTests
             n => Assert.Equal("api-roles-storage", n));
     }
 
+    [Fact]
+    public async Task ViteAppDoesNotGetManagedIdentity()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithReference(blobs)
+            .WaitFor(blobs);
+
+        var frontend = builder.AddViteApp("frontend", "./frontend")
+            .WithReference(api)
+            .WithReference(blobs)
+            .WaitFor(blobs);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Collection(model.Resources.Select(r => r.Name),
+            n => Assert.StartsWith("azure", n),
+            n => Assert.Equal("env-acr", n),
+            n => Assert.Equal("env", n),
+            n => Assert.Equal("storage", n),
+            n => Assert.Equal("blobs", n),
+            n => Assert.Equal("api", n),
+            n => Assert.Equal("frontend", n),
+            n => Assert.Equal("api-identity", n),
+            n => Assert.Equal("api-roles-storage", n));
+
+        // The ViteApp should NOT get a managed identity since it is a BuildOnlyContainer resource,
+        // even though it references the storage account. Only the API should get a managed identity.
+        Assert.DoesNotContain(model.Resources, r => r.Name == "frontend-identity");
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";

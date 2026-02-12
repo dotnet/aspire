@@ -125,19 +125,11 @@ internal sealed class AzureResourcePreparer(
             // - if in PublishMode
             //   - if a compute resource has RoleAssignmentAnnotations, use them
             //   - if the resource doesn't, copy the DefaultRoleAssignments to RoleAssignmentAnnotations to apply the defaults
-            var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
+            var resourceSnapshot = appModel.GetComputeResources()
+                .Concat(appModel.Resources.OfType<AzureUserAssignedIdentityResource>())
+                .ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
-                if (resource.IsExcludedFromPublish())
-                {
-                    continue;
-                }
-
-                if (!IsResourceValidForRoleAssignments(resource))
-                {
-                    continue;
-                }
-
                 var azureReferences = await GetAzureReferences(resource, cancellationToken).ConfigureAwait(false);
 
                 var azureReferencesWithRoleAssignments =
@@ -230,13 +222,6 @@ internal sealed class AzureResourcePreparer(
         if (globalRoleAssignments.Count > 0)
         {
             CreateGlobalRoleAssignments(appModel, globalRoleAssignments);
-        }
-
-        // We can derive role assignments for compute resources and declared
-        // AzureUserAssignedIdentityResources
-        static bool IsResourceValidForRoleAssignments(IResource resource)
-        {
-            return resource.IsContainer() || resource is ProjectResource || resource is AzureUserAssignedIdentityResource;
         }
     }
 
