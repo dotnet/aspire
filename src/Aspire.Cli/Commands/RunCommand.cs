@@ -889,7 +889,7 @@ internal sealed class RunCommand : BaseCommand
                 pid,
                 childProcess.Id,
                 dashboardUrls?.BaseUrlWithLoginToken,
-                _fileLoggerProvider.LogFilePath);
+                childLogFile);
             var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
             _interactionService.DisplayRawText(json);
         }
@@ -902,7 +902,7 @@ internal sealed class RunCommand : BaseCommand
                 appHostRelativePath,
                 dashboardUrls?.BaseUrlWithLoginToken,
                 codespacesUrl: null,
-                _fileLoggerProvider.LogFilePath,
+                childLogFile,
                 isExtensionHost,
                 pid);
             _ansiConsole.WriteLine();
