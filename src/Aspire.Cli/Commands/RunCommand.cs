@@ -822,12 +822,7 @@ internal sealed class RunCommand : BaseCommand
             if (childExitedEarly)
             {
                 // Show a friendly message based on well-known exit codes from the child
-                var errorMessage = childExitCode switch
-                {
-                    ExitCodeConstants.FailedToBuildArtifacts => RunCommandStrings.AppHostFailedToBuild,
-                    _ => string.Format(CultureInfo.CurrentCulture, RunCommandStrings.AppHostExitedWithCode, childExitCode)
-                };
-                _interactionService.DisplayError(errorMessage);
+                _interactionService.DisplayError(GetDetachedFailureMessage(childExitCode));
             }
             else
             {
@@ -895,11 +890,25 @@ internal sealed class RunCommand : BaseCommand
         return ExitCodeConstants.Success;
     }
 
+    internal static string GetDetachedFailureMessage(int childExitCode)
+    {
+        return childExitCode switch
+        {
+            ExitCodeConstants.FailedToBuildArtifacts => RunCommandStrings.AppHostFailedToBuild,
+            _ => string.Format(CultureInfo.CurrentCulture, RunCommandStrings.AppHostExitedWithCode, childExitCode)
+        };
+    }
+
+    internal static string GenerateChildLogFilePath(string logsDirectory, TimeProvider timeProvider)
+    {
+        var timestamp = timeProvider.GetUtcNow().ToString("yyyyMMddTHHmmssfff", CultureInfo.InvariantCulture);
+        var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        var fileName = $"cli_{timestamp}_detach-child_{uniqueId}.log";
+        return Path.Combine(logsDirectory, fileName);
+    }
+
     private string GenerateChildLogFilePath()
     {
-        return Diagnostics.FileLoggerProvider.GenerateLogFilePath(
-            ExecutionContext.LogsDirectory.FullName,
-            _timeProvider,
-            suffix: "detach-child");
+        return GenerateChildLogFilePath(ExecutionContext.LogsDirectory.FullName, _timeProvider);
     }
 }

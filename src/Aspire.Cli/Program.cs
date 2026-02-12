@@ -96,7 +96,7 @@ public class Program
     /// Parses --log-file from raw args before the host is built.
     /// Used by --detach to tell the child CLI where to write its log.
     /// </summary>
-    private static string? ParseLogFileOption(string[]? args)
+    internal static string? ParseLogFileOption(string[]? args)
     {
         if (args is null)
         {
@@ -105,6 +105,11 @@ public class Program
 
         for (var i = 0; i < args.Length; i++)
         {
+            if (args[i] == "--")
+            {
+                break;
+            }
+
             if (args[i] == "--log-file" && i + 1 < args.Length)
             {
                 return args[i + 1];
@@ -731,4 +736,3 @@ internal class AspirePlaygroundEnricher : IProfileEnricher
         profile.Capabilities.Interactive = true;
     }
 }
-

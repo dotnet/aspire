@@ -103,11 +103,19 @@ internal static partial class DetachedProcessLauncher
                         throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create detached process");
                     }
 
-                    // Close the process and thread handles — we only need the PID
-                    CloseHandle(pi.hProcess);
-                    CloseHandle(pi.hThread);
+                    Process detachedProcess;
+                    try
+                    {
+                        detachedProcess = Process.GetProcessById(pi.dwProcessId);
+                    }
+                    finally
+                    {
+                        // Close the process and thread handles returned by CreateProcess.
+                        CloseHandle(pi.hProcess);
+                        CloseHandle(pi.hThread);
+                    }
 
-                    return Process.GetProcessById(pi.dwProcessId);
+                    return detachedProcess;
                 }
                 finally
                 {
