@@ -2604,10 +2604,15 @@ namespace Aspire.Hosting.ApplicationModel
 
     public partial class NetworkEndpointSnapshotList : System.Collections.Generic.IEnumerable<NetworkEndpointSnapshot>, System.Collections.IEnumerable
     {
+        public void AddOrUpdateAllocatedEndpoint(NetworkIdentifier networkID, AllocatedEndpoint endpoint) { }
+
+        public System.Threading.Tasks.Task<AllocatedEndpoint> GetAllocatedEndpointAsync(NetworkIdentifier networkID, System.Threading.CancellationToken cancellationToken = default) { throw null; }
+
         public System.Collections.Generic.IEnumerator<NetworkEndpointSnapshot> GetEnumerator() { throw null; }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { throw null; }
 
+        [System.Obsolete("This method is for internal use only and will be marked internal in a future Aspire release. Use AddOrUpdateAllocatedEndpoint instead.")]
         public bool TryAdd(NetworkIdentifier networkID, ValueSnapshot<AllocatedEndpoint> snapshot) { throw null; }
     }
 
