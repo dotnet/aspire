@@ -288,7 +288,7 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
     }
 
     /// <summary>
-    /// Adds and AllocatedEndpoint value associated with a specific network to the snapshot list.
+    /// Adds or updates an AllocatedEndpoint value associated with a specific network in the snapshot list.
     /// </summary>
     public void AddOrUpdateAllocatedEndpoint(NetworkIdentifier networkID, AllocatedEndpoint endpoint)
     {
