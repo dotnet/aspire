@@ -718,18 +718,17 @@ internal sealed class RunCommand : BaseCommand
             dotnetPath, isDotnetHost, string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
 
-        // Redirect stdout/stderr so the child doesn't write to the parent's console,
-        // but close the pipe streams immediately after start so no handles are inherited
-        // by the AppHost grandchild. This avoids the problem where callers using
-        // synchronous process APIs (e.g. execSync) can't detect CLI exit because
-        // inherited pipe handles stay open until the AppHost dies.
+        // Don't redirect stdout/stderr — avoids creating pipe handles that get inherited
+        // by the AppHost grandchild, which prevents callers using synchronous process APIs
+        // (e.g. execSync) from detecting that the CLI has exited.
+        // The child suppresses its own console output when --log-file is specified.
         var startInfo = new ProcessStartInfo
         {
             FileName = dotnetPath,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
             RedirectStandardInput = false,
             WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
         };
@@ -762,10 +761,6 @@ internal sealed class RunCommand : BaseCommand
                     return null;
                 }
 
-                // Close redirected streams immediately so pipe handles aren't inherited
-                // by the AppHost grandchild process
-                childProcess.StandardOutput.Close();
-                childProcess.StandardError.Close();
             }
             catch (Exception ex)
             {

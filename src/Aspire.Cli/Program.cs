@@ -553,6 +553,15 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
+        // When launched as a detach child (--log-file is specified), suppress all console
+        // output. The parent uses RedirectStandardOutput=false to avoid creating inheritable
+        // pipe handles, so the child must silence itself to prevent output bleed.
+        if (ParseLogFileOption(args) is not null)
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+        }
+
         // Setup handling of CTRL-C as early as possible so that if
         // we get a CTRL-C anywhere that is not handled by Spectre Console
         // already that we know to trigger cancellation.
