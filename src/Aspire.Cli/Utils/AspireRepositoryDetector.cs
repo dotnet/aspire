@@ -7,10 +7,12 @@ namespace Aspire.Cli.Utils;
 
 internal static class AspireRepositoryDetector
 {
+#if DEBUG
     private const string AspireSolutionFileName = "Aspire.slnx";
 
     private static string? s_cachedRepoRoot;
     private static bool s_cacheInitialized;
+#endif
 
     public static string? DetectRepositoryRoot(string? startPath = null)
     {
@@ -36,6 +38,7 @@ internal static class AspireRepositoryDetector
 #endif
     }
 
+#if DEBUG
     internal static void ResetCache()
     {
         s_cachedRepoRoot = null;
@@ -107,4 +110,5 @@ internal static class AspireRepositoryDetector
         var parentDirectory = Path.GetDirectoryName(fullPath);
         return string.IsNullOrEmpty(parentDirectory) ? fullPath : parentDirectory;
     }
+#endif
 }
