@@ -114,7 +114,7 @@ public class ExpressionResolverTests
                  e.AllocatedEndpoint = new(e, "host with space", 12347);
                  if (sourceIsContainer)
                  {
-                     e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, containerHost, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+                     e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, containerHost, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22347", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
                  }
              });
 
