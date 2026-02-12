@@ -361,6 +361,42 @@ public class EndpointReferenceTests
         }
     }
 
+    [Fact]
+    public async Task WaitingForAllocatedEndpointWorks()
+    {
+        var resource = new TestResource("test");
+        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
+        resource.Annotations.Add(annotation);
+        var endpointRef = new EndpointReference(resource, annotation);
+
+        // Signals that the background task has started waiting for the value.
+        var waitingForValue = new SemaphoreSlim(0, 1);
+        // Signals that the background task received and verified the value.
+        var success = new SemaphoreSlim(0, 1);
+
+        // Launch a task that waits for the endpoint value.
+        _ = Task.Run(async () =>
+        {
+            waitingForValue.Release();
+
+            var url = await endpointRef.GetValueAsync(CancellationToken.None);
+            Assert.Equal("http://localhost:5000", url);
+
+            success.Release();
+        });
+
+        await waitingForValue.WaitAsync();
+
+        // Introduce a deliberate delay so the endpoint is always provided after the waiter is blocked.
+        await Task.Delay(500);
+
+        // Now provide the allocated endpoint.
+        var allocatedEndpoint = new AllocatedEndpoint(annotation, "localhost", 5000);
+        annotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.LocalhostNetwork, allocatedEndpoint);
+
+        Assert.True(await success.WaitAsync(TimeSpan.FromSeconds(10)), "The value-waiting task did not complete in time.");
+    }
+
     public enum ResourceKind
     {
         Host,
