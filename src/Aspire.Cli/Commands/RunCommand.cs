@@ -11,6 +11,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Processes;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -718,32 +719,15 @@ internal sealed class RunCommand : BaseCommand
             dotnetPath, isDotnetHost, string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
 
-        // Don't redirect stdout/stderr — avoids creating pipe handles that get inherited
-        // by the AppHost grandchild, which prevents callers using synchronous process APIs
-        // (e.g. execSync) from detecting that the CLI has exited.
-        // The child suppresses its own console output when --log-file is specified.
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = dotnetPath,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
-            RedirectStandardInput = false,
-            WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
-        };
-
-        // If we're running via `dotnet aspire.dll`, add the DLL as first arg
-        // When running native AOT, don't add the DLL even if it exists in the same folder
+        // Build the full argument list for the child process, including the entry assembly
+        // path when running via `dotnet aspire.dll`
+        var childArgs = new List<string>();
         if (isDotnetHost && !string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
         {
-            startInfo.ArgumentList.Add(entryAssemblyPath);
+            childArgs.Add(entryAssemblyPath);
         }
 
-        foreach (var arg in args)
-        {
-            startInfo.ArgumentList.Add(arg);
-        }
+        childArgs.AddRange(args);
 
         // Start the child process and wait for the backchannel in a single status spinner
         Process? childProcess = null;
@@ -755,12 +739,10 @@ internal sealed class RunCommand : BaseCommand
             // Failure mode 2: Failed to spawn child process
             try
             {
-                childProcess = Process.Start(startInfo);
-                if (childProcess is null)
-                {
-                    return null;
-                }
-
+                childProcess = DetachedProcessLauncher.Start(
+                    dotnetPath,
+                    childArgs,
+                    ExecutionContext.WorkingDirectory.FullName);
             }
             catch (Exception ex)
             {
