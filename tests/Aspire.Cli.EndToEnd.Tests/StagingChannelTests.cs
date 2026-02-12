@@ -79,7 +79,7 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
 
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("cat ~/.aspire/settings.json")
+            .Type("cat ~/.aspire/globalsettings.json")
             .Enter()
             .WaitUntil(s => settingsFilePattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
