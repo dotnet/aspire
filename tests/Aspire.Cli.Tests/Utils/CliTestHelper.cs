@@ -130,7 +130,7 @@ internal static class CliTestHelper
         // Bundle layout services - return null/no-op implementations to trigger SDK mode fallback
         // This ensures backward compatibility: no layout found = use legacy SDK mode
         services.AddSingleton(options.LayoutDiscoveryFactory);
-        services.AddSingleton<IBundleService, NullBundleService>();
+        services.AddSingleton(options.BundleServiceFactory);
         services.AddSingleton<BundleNuGetService>();
 
         // AppHost project handlers - must match Program.cs registration pattern
@@ -501,6 +501,9 @@ internal sealed class CliServiceCollectionTestOptions
     // Layout discovery - returns null by default (no bundle layout), causing SDK mode fallback
     public Func<IServiceProvider, ILayoutDiscovery> LayoutDiscoveryFactory { get; set; } = _ => new NullLayoutDiscovery();
 
+    // Bundle service - returns no-op implementation by default (no embedded bundle)
+    public Func<IServiceProvider, IBundleService> BundleServiceFactory { get; set; } = _ => new NullBundleService();
+
     public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
@@ -548,6 +551,22 @@ internal sealed class NullBundleService : IBundleService
 
     public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
         => Task.FromResult(BundleExtractResult.NoPayload);
+
+    public Task<Layout.LayoutConfiguration?> EnsureExtractedAndGetLayoutAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<Layout.LayoutConfiguration?>(null);
+}
+
+/// <summary>
+/// A configurable bundle service for testing bundle-dependent behavior.
+/// </summary>
+internal sealed class TestBundleService(bool isBundle) : IBundleService
+{
+    public bool IsBundle => isBundle;
+
+    public Task EnsureExtractedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
+        => Task.FromResult(isBundle ? BundleExtractResult.AlreadyUpToDate : BundleExtractResult.NoPayload);
 
     public Task<Layout.LayoutConfiguration?> EnsureExtractedAndGetLayoutAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<Layout.LayoutConfiguration?>(null);
