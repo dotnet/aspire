@@ -79,12 +79,6 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
-            var waitingForUpdateConfirmation = new CellPatternSearcher()
-                .Find("Perform updates?");
-
-            var waitingForNugetConfigPrompt = new CellPatternSearcher()
-                .Find("NuGet.config file?");
-
             var waitingForUpdateSuccessful = new CellPatternSearcher()
                 .Find("Update successful");
 
@@ -211,13 +205,15 @@ builder.Build().Run();
                 // Run aspire update to upgrade the #:package directives in apphost.cs
                 // from the GA version to the dev build version. This ensures the actual
                 // deployment logic (naming, bicep generation) comes from the dev packages.
+                // aspire update shows multiple prompts (confirm updates, NuGet.config dir,
+                // apply NuGet.config changes, CLI self-update) — accept all defaults.
                 output.WriteLine("Step 11b: Updating project packages to dev version...");
                 sequenceBuilder.Type("aspire update --channel local")
                     .Enter()
-                    .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                    .Enter()
-                    .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                    .Enter()
+                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Perform updates? [y/n]"
+                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Which directory for NuGet.config?"
+                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Apply these changes to NuGet.config?"
+                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // CLI self-update prompt (if any)
                     .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
             }
@@ -235,10 +231,10 @@ builder.Build().Run();
                     output.WriteLine("Step 11b: Updating project packages to dev version...");
                     sequenceBuilder.Type($"aspire update --channel pr-{prNumber}")
                         .Enter()
-                        .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                        .Enter()
-                        .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                        .Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
@@ -248,10 +244,10 @@ builder.Build().Run();
                     // Still run aspire update to pick up whatever local packages are available
                     sequenceBuilder.Type("aspire update")
                         .Enter()
-                        .WaitUntil(s => waitingForUpdateConfirmation.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                        .Enter()
-                        .WaitUntil(s => waitingForNugetConfigPrompt.Search(s).Count > 0 || waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                        .Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
+                        .Wait(TimeSpan.FromSeconds(5)).Enter()
                         .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
                         .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
                 }
