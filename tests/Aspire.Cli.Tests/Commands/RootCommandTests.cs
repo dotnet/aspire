@@ -344,4 +344,33 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         Assert.True(sentinel.WasCreated);
     }
 
+    [Fact]
+    public void SetupCommand_NotAvailable_WhenBundleIsNotAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var hasSetupCommand = command.Subcommands.Any(cmd => cmd.Name == "setup");
+
+        Assert.False(hasSetupCommand);
+    }
+
+    [Fact]
+    public void SetupCommand_Available_WhenBundleIsAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.BundleServiceFactory = _ => new TestBundleService(isBundle: true);
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var hasSetupCommand = command.Subcommands.Any(cmd => cmd.Name == "setup");
+
+        Assert.True(hasSetupCommand);
+    }
+
 }
