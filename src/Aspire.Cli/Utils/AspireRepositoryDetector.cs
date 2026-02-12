@@ -9,7 +9,40 @@ internal static class AspireRepositoryDetector
 {
     private const string AspireSolutionFileName = "Aspire.slnx";
 
+    private static string? s_cachedRepoRoot;
+    private static bool s_cacheInitialized;
+
     public static string? DetectRepositoryRoot(string? startPath = null)
+    {
+#if !DEBUG
+        // In release builds, only check the environment variable to avoid
+        // filesystem walking on every call in production scenarios.
+        var envRoot = Environment.GetEnvironmentVariable(BundleDiscovery.RepoRootEnvVar);
+        if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
+        {
+            return Path.GetFullPath(envRoot);
+        }
+
+        return null;
+#else
+        if (s_cacheInitialized)
+        {
+            return s_cachedRepoRoot;
+        }
+
+        s_cachedRepoRoot = DetectRepositoryRootCore(startPath);
+        s_cacheInitialized = true;
+        return s_cachedRepoRoot;
+#endif
+    }
+
+    internal static void ResetCache()
+    {
+        s_cachedRepoRoot = null;
+        s_cacheInitialized = false;
+    }
+
+    private static string? DetectRepositoryRootCore(string? startPath)
     {
         var repoRoot = FindRepositoryRoot(startPath);
         if (!string.IsNullOrEmpty(repoRoot))

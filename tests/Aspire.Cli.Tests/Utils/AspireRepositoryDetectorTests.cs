@@ -11,9 +11,15 @@ public class AspireRepositoryDetectorTests : IDisposable
     private readonly List<string> _directoriesToDelete = [];
     private readonly string? _originalRepoRoot = Environment.GetEnvironmentVariable(RepoRootEnvironmentVariableName);
 
+    public AspireRepositoryDetectorTests()
+    {
+        AspireRepositoryDetector.ResetCache();
+    }
+
     public void Dispose()
     {
         Environment.SetEnvironmentVariable(RepoRootEnvironmentVariableName, _originalRepoRoot);
+        AspireRepositoryDetector.ResetCache();
 
         foreach (var directory in _directoriesToDelete)
         {
