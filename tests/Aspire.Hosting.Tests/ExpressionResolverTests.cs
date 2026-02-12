@@ -96,10 +96,7 @@ public class ExpressionResolverTests
                 if (sourceIsContainer)
                 {
                     // Note: on the container network side the port and target port are always the same for AllocatedEndpoint.
-                    var ae = new AllocatedEndpoint(e, containerHost, 22345, EndpointBindingMode.SingleAddress, targetPortExpression: "22345", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
-                    var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                    snapshot.SetValue(ae);
-                    e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                    e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, containerHost, 22345, EndpointBindingMode.SingleAddress, targetPortExpression: "22345", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
                 }
             })
             .WithEndpoint("endpoint2", e =>
@@ -108,10 +105,7 @@ public class ExpressionResolverTests
                 e.AllocatedEndpoint = new(e, "localhost", 12346, targetPortExpression: "10001");
                 if (sourceIsContainer)
                 {
-                    var ae = new AllocatedEndpoint(e, containerHost, 22346, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
-                    var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                    snapshot.SetValue(ae);
-                    e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                    e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, containerHost, 22346, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
                 }
             })
              .WithEndpoint("endpoint3", e =>
@@ -120,10 +114,7 @@ public class ExpressionResolverTests
                  e.AllocatedEndpoint = new(e, "host with space", 12347);
                  if (sourceIsContainer)
                  {
-                     var ae = new AllocatedEndpoint(e, containerHost, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
-                     var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                     snapshot.SetValue(ae);
-                     e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+                     e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, containerHost, 22347, EndpointBindingMode.SingleAddress, targetPortExpression: "22346", KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
                  }
              });
 

@@ -330,9 +330,7 @@ public class EndpointReferenceTests
             : ("host.docker.internal", port);
 
         var containerEndpoint = new AllocatedEndpoint(annotation, containerHost, containerPort, EndpointBindingMode.SingleAddress, targetPortExpression: targetPort.ToString(), KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
-        var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-        snapshot.SetValue(containerEndpoint);
-        annotation.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+        annotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, containerEndpoint);
 
         var expression = destination.GetEndpoint(annotation.Name).Property(property);
 
