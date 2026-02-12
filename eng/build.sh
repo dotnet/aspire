@@ -150,7 +150,7 @@ while [[ $# > 0 ]]; do
       ;;
 
      -mauirestore)
-      extraargs="$extraargs -restoreMaui"
+      export restore_maui=true
       shift 1
       ;;
 
