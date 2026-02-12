@@ -82,6 +82,11 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             var waitingForUpdateSuccessful = new CellPatternSearcher()
                 .Find("Update successful");
 
+            // aspire update prompts (used in Phase 2)
+            var waitingForPerformUpdates = new CellPatternSearcher().Find("Perform updates?");
+            var waitingForNugetConfigDir = new CellPatternSearcher().Find("NuGet.config file?");
+            var waitingForApplyNugetConfig = new CellPatternSearcher().Find("Apply these changes");
+
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
 
@@ -205,17 +210,18 @@ builder.Build().Run();
                 // Run aspire update to upgrade the #:package directives in apphost.cs
                 // from the GA version to the dev build version. This ensures the actual
                 // deployment logic (naming, bicep generation) comes from the dev packages.
-                // aspire update shows multiple prompts (confirm updates, NuGet.config dir,
-                // apply NuGet.config changes, CLI self-update) — accept all defaults.
+                // aspire update shows 3 interactive prompts — handle each explicitly.
                 output.WriteLine("Step 11b: Updating project packages to dev version...");
                 sequenceBuilder.Type("aspire update --channel local")
                     .Enter()
-                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Perform updates? [y/n]"
-                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Which directory for NuGet.config?"
-                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // "Apply these changes to NuGet.config?"
-                    .Wait(TimeSpan.FromSeconds(5)).Enter()   // CLI self-update prompt (if any)
-                    .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+                    .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .Enter()
+                    .WaitUntil(s => waitingForNugetConfigDir.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .Enter()
+                    .WaitUntil(s => waitingForApplyNugetConfig.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .Enter()
+                    .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
             }
             else
             {
@@ -231,12 +237,14 @@ builder.Build().Run();
                     output.WriteLine("Step 11b: Updating project packages to dev version...");
                     sequenceBuilder.Type($"aspire update --channel pr-{prNumber}")
                         .Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+                        .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForNugetConfigDir.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForApplyNugetConfig.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
                 }
                 else
                 {
@@ -244,12 +252,14 @@ builder.Build().Run();
                     // Still run aspire update to pick up whatever local packages are available
                     sequenceBuilder.Type("aspire update")
                         .Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .Wait(TimeSpan.FromSeconds(5)).Enter()
-                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+                        .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForNugetConfigDir.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForApplyNugetConfig.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .Enter()
+                        .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                        .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
                 }
             }
 
