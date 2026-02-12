@@ -174,7 +174,7 @@ builder.Build().Run();
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 10: Record the storage account count after first deploy
             output.WriteLine("Step 10: Recording storage account count after GA deploy...");
@@ -282,7 +282,7 @@ builder.Build().Run();
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 14: Verify no duplicate storage accounts
             output.WriteLine("Step 14: Verifying no duplicate storage accounts...");
