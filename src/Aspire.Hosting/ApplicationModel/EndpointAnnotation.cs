@@ -101,7 +101,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
         _networkID = networkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
+#pragma warning disable CS0618 // Type or member is obsolete
         AllAllocatedEndpoints.TryAdd(_networkID, AllocatedEndpointSnapshot);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
@@ -271,6 +273,7 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
     /// <summary>
     /// Adds an AllocatedEndpoint snapshot for a specific network if one does not already exist.
     /// </summary>
+    [Obsolete("This method is for internal use only and will be marked internal in a future Aspire release. Use AddOrUpdateAllocatedEndpoint instead.")]
     public bool TryAdd(NetworkIdentifier networkID, ValueSnapshot<AllocatedEndpoint> snapshot)
     {
         lock (_snapshots)
@@ -283,4 +286,37 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
             return true;
         }
     }
+
+    /// <summary>
+    /// Adds and AllocatedEndpoint value associated with a specific network to the snapshot list.
+    /// </summary>
+    public void AddOrUpdateAllocatedEndpoint(NetworkIdentifier networkID, AllocatedEndpoint endpoint)
+    {
+        var nes = GetSnapshotFor(networkID);
+        nes.Snapshot.SetValue(endpoint);
+    }
+
+    /// <summary>
+    /// Gets an AllocatedEndpoint for a given network ID, waiting for it to appear if it is not already present.
+    /// </summary>
+    public Task<AllocatedEndpoint> GetAllocatedEndpointAsync(NetworkIdentifier networkID, CancellationToken cancellationToken = default)
+    {
+        var nes = GetSnapshotFor(networkID);
+        return nes.Snapshot.GetValueAsync(cancellationToken);
+    }
+
+    private NetworkEndpointSnapshot GetSnapshotFor(NetworkIdentifier networkID)
+    {
+        lock (_snapshots)
+        {
+            var nes = _snapshots.FirstOrDefault(s => s.NetworkID.Equals(networkID));
+            if (nes is null)
+            {
+                nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), networkID);
+                _snapshots.Add(nes);
+            }
+            return nes;
+        }
+    }
+
 }
