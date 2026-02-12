@@ -289,7 +289,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             eventing ?? new Hosting.Eventing.DistributedApplicationEventing(),
-            rewriter
+            rewriter,
+            new FileSystemService(configuration)
             );
     }
 

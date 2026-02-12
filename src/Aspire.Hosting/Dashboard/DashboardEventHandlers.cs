@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -38,13 +39,19 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
-                                             CodespacesUrlRewriter codespaceUrlRewriter
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             IFileSystemService directoryService
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
     internal const string OtlpHttpEndpointName = "otlp-http";
     internal const string McpEndpointName = "mcp";
+
+    // Fallback defaults for framework versions and TFM
+    private const string FallbackTargetFrameworkMoniker = "net8.0";
+    private const string FallbackNetCoreVersion = "8.0.0";
+    private const string FallbackAspNetCoreVersion = "8.0.0";
 
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -53,6 +60,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
+    private string? _customRuntimeConfigPath;
 
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
@@ -81,6 +89,178 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         return Task.CompletedTask;
     }
 
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetAppHostFrameworkVersions()
+    {
+        try
+        {
+            // Get the entry assembly location (the AppHost)
+            var entryAssembly = Assembly.GetEntryAssembly();
+            if (entryAssembly?.Location is null or { Length: 0 })
+            {
+                // Fallback to process main module if entry assembly location is not available
+                var mainModule = Process.GetCurrentProcess().MainModule;
+                if (mainModule?.FileName is null)
+                {
+                    return GetFallbackFrameworkVersions();
+                }
+                return GetFrameworkVersionsFromRuntimeConfig(mainModule.FileName);
+            }
+
+            return GetFrameworkVersionsFromRuntimeConfig(entryAssembly.Location);
+        }
+        catch (Exception)
+        {
+            return GetFallbackFrameworkVersions();
+        }
+    }
+
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetFrameworkVersionsFromRuntimeConfig(string assemblyPath)
+    {
+        string runtimeConfigPath;
+        if (string.Equals(".dll", Path.GetExtension(assemblyPath), StringComparison.OrdinalIgnoreCase))
+        {
+            runtimeConfigPath = Path.ChangeExtension(assemblyPath, ".runtimeconfig.json");
+        }
+        else
+        {
+            var directory = Path.GetDirectoryName(assemblyPath)!;
+            var fileName = Path.GetFileName(assemblyPath);
+            var baseName = Path.GetExtension(fileName) switch
+            {
+                ".exe" => Path.GetFileNameWithoutExtension(fileName),
+                _ => fileName
+            };
+            runtimeConfigPath = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
+        }
+
+        if (!File.Exists(runtimeConfigPath))
+        {
+            return GetFallbackFrameworkVersions();
+        }
+
+        var configText = File.ReadAllText(runtimeConfigPath);
+        var configJson = JsonNode.Parse(configText)?.AsObject();
+
+        if (configJson is null)
+        {
+            throw new DistributedApplicationException($"Failed to parse AppHost runtime config: {runtimeConfigPath}");
+        }
+
+        string netCoreVersion = FallbackNetCoreVersion;
+        string aspNetCoreVersion = FallbackAspNetCoreVersion;
+
+        if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
+            runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
+        {
+            foreach (var framework in frameworks)
+            {
+                if (framework?.AsObject() is { } frameworkObj &&
+                    frameworkObj["name"]?.GetValue<string>() is { } name &&
+                    frameworkObj["version"]?.GetValue<string>() is { } version)
+                {
+                    switch (name)
+                    {
+                        case "Microsoft.NETCore.App":
+                            netCoreVersion = version;
+                            break;
+                        case "Microsoft.AspNetCore.App":
+                            aspNetCoreVersion = version;
+                            break;
+                    }
+                }
+            }
+        }
+
+        return (netCoreVersion, aspNetCoreVersion);
+    }
+
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetFallbackFrameworkVersions()
+    {
+        return (FallbackNetCoreVersion, FallbackAspNetCoreVersion);
+    }
+
+    private string CreateCustomRuntimeConfig(string dashboardPath)
+    {
+        string originalRuntimeConfig;
+
+        if (string.Equals(".dll", Path.GetExtension(dashboardPath), StringComparison.OrdinalIgnoreCase))
+        {
+            originalRuntimeConfig = Path.ChangeExtension(dashboardPath, ".runtimeconfig.json");
+        }
+        else
+        {
+            var directory = Path.GetDirectoryName(dashboardPath)!;
+            var fileName = Path.GetFileName(dashboardPath);
+            var baseName = Path.GetExtension(fileName) switch
+            {
+                ".exe" => Path.GetFileNameWithoutExtension(fileName),
+                _ => fileName
+            };
+            originalRuntimeConfig = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
+        }
+
+        if (!File.Exists(originalRuntimeConfig))
+        {
+            var (appHostNetCoreVersion, appHostAspNetCoreVersion) = GetAppHostFrameworkVersions();
+
+            var defaultConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = FallbackTargetFrameworkMoniker,
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = appHostNetCoreVersion },
+                        new { name = "Microsoft.AspNetCore.App", version = appHostAspNetCoreVersion }
+                    }
+                }
+            };
+
+            var customConfigPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
+            File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            _customRuntimeConfigPath = customConfigPath;
+            return customConfigPath;
+        }
+
+        var originalConfigText = File.ReadAllText(originalRuntimeConfig);
+        var configJson = JsonNode.Parse(originalConfigText)?.AsObject();
+
+        if (configJson is null)
+        {
+            throw new DistributedApplicationException($"Failed to parse dashboard runtime config: {originalRuntimeConfig}");
+        }
+
+        var (netCoreVersion, aspNetCoreVersion) = GetAppHostFrameworkVersions();
+
+        if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
+            runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
+        {
+            foreach (var framework in frameworks)
+            {
+                if (framework?.AsObject() is { } frameworkObj &&
+                    frameworkObj["name"]?.GetValue<string>() is { } name)
+                {
+                    switch (name)
+                    {
+                        case "Microsoft.NETCore.App":
+                            frameworkObj["version"] = netCoreVersion;
+                            break;
+                        case "Microsoft.AspNetCore.App":
+                            frameworkObj["version"] = aspNetCoreVersion;
+                            break;
+                    }
+                }
+            }
+        }
+
+        var tempPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
+        File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+        _customRuntimeConfigPath = tempPath;
+        return tempPath;
+    }
+
     private void AddDashboardResource(DistributedApplicationModel model)
     {
         if (dashboardOptions.Value.DashboardPath is not { } dashboardPath)
@@ -91,14 +271,51 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        var dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+        ExecutableResource dashboardResource;
 
         if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
-            // Prepend "dashboard" subcommand for aspire-managed
+            // aspire-managed is self-contained, run directly with "dashboard" subcommand
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+
             dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
                 args.Insert(0, "dashboard");
+            }));
+        }
+        else
+        {
+            // Non-bundle: run via dotnet exec with custom runtime config
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+
+            string dashboardDll;
+            if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
+            {
+                dashboardDll = fullyQualifiedDashboardPath;
+            }
+            else
+            {
+                var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
+                var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
+                var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                    ? fileName.Substring(0, fileName.Length - 4)
+                    : fileName;
+                dashboardDll = Path.Combine(directory, $"{baseName}.dll");
+            }
+
+            if (!File.Exists(dashboardDll))
+            {
+                distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
+            }
+
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Add("exec");
+                args.Add("--runtimeconfig");
+                args.Add(customRuntimeConfigPath);
+                args.Add(dashboardDll);
             }));
         }
 
@@ -662,6 +879,19 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             catch (Exception ex)
             {
                 distributedApplicationLogger.LogError(ex, "Unexpected error while watching dashboard logs.");
+            }
+        }
+
+        // Clean up the temporary runtime config file
+        if (_customRuntimeConfigPath is not null)
+        {
+            try
+            {
+                File.Delete(_customRuntimeConfigPath);
+            }
+            catch (Exception ex)
+            {
+                distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
     }

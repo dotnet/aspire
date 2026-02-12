@@ -47,9 +47,12 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
         var initialSnapshot = Assert.Single(dashboard.Annotations.OfType<ResourceSnapshotAnnotation>());
 
+        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
-        Assert.Equal(dashboardPath, dashboard.Command);
+        Assert.Equal("dotnet", dashboard.Command);
+        Assert.Equal(args[3], $"{dashboardPath}.dll");
         Assert.True(initialSnapshot.InitialSnapshot.IsHidden);
     }
 
@@ -226,6 +229,39 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal($"http://localhost:{expectedPort}", config.Single(e => e.Key == DashboardConfigNames.DashboardMcpPublicUrlName.EnvVarName).Value);
         Assert.Equal($"http://localhost:{expectedPort}", config.Single(e => e.Key == DashboardConfigNames.DashboardMcpUrlName.EnvVarName).Value);
+    }
+
+    [Fact]
+    public async Task DashboardWithDllPathLaunchesDotnet()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        var dashboardPath = Path.GetFullPath("dashboard.dll");
+
+        builder.Services.Configure<DcpOptions>(o =>
+        {
+            o.DashboardPath = dashboardPath;
+        });
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
+
+        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
+        Assert.NotNull(dashboard);
+        Assert.Equal("aspire-dashboard", dashboard.Name);
+        Assert.Equal("dotnet", dashboard.Command);
+        Assert.Equal("exec", args[0]);
+        Assert.Equal("--runtimeconfig", args[1]);
+        Assert.EndsWith(".json", args[2]);
+        Assert.Equal(dashboardPath, args[3]);
     }
 
     [Theory]
