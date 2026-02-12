@@ -53,17 +53,18 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
         var tasks = new List<Task<IEnumerable<NuGetPackage>>>();
+        var useExactMatch = VersionPrefix is not null;
 
         using var tempNuGetConfig = Type is PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(Mappings!) : null;
 
         if (Quality is PackageChannelQuality.Stable || Quality is PackageChannelQuality.Both)
         {
-            tasks.Add(nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, false, tempNuGetConfig?.ConfigFile, cancellationToken));
+            tasks.Add(nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, false, tempNuGetConfig?.ConfigFile, cancellationToken, useExactMatch));
         }
 
         if (Quality is PackageChannelQuality.Prerelease || Quality is PackageChannelQuality.Both)
         {
-            tasks.Add(nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, true, tempNuGetConfig?.ConfigFile, cancellationToken));
+            tasks.Add(nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, true, tempNuGetConfig?.ConfigFile, cancellationToken, useExactMatch));
         }
 
         var packageResults = await Task.WhenAll(tasks);

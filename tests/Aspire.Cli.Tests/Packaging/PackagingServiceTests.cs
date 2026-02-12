@@ -16,10 +16,10 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
 
     private sealed class FakeNuGetPackageCache : INuGetPackageCache
     {
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken, bool exactMatch = false) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken, bool exactMatch = false) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
     }
 
     private sealed class TestFeatures : IFeatures
@@ -728,5 +728,138 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
         Assert.Null(stagingChannel.VersionPrefix);
+    }
+
+    /// <summary>
+    /// Simulates the dotnet9 shared feed which contains packages from multiple version lines.
+    /// Verifies that version prefix filtering correctly selects only the requested major.minor.
+    /// </summary>
+    [Fact]
+    public async Task StagingChannel_WithVersionPrefix_FiltersTemplatePackagesToMatchingMajorMinor()
+    {
+        // Arrange - simulate a shared feed that has packages from both 13.2 and 13.3 version lines
+        var fakeCache = new FakeNuGetPackageCacheWithPackages(
+        [
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.3.0-preview.1.26201.1", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.3.0-preview.1.26200.5", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.2.0-preview.1.26111.6", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.2.0-preview.1.26110.3", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.1.0", Source = "dotnet9" },
+        ]);
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
+        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
+        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
+        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingQuality"] = "Prerelease",
+                ["stagingVersionPrefix"] = "13.2"
+            })
+            .Build();
+
+        var packagingService = new PackagingService(executionContext, fakeCache, features, configuration);
+
+        // Act
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
+        var stagingChannel = channels.First(c => c.Name == "staging");
+        var templatePackages = await stagingChannel.GetTemplatePackagesAsync(tempDir, CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        var packageList = templatePackages.ToList();
+        outputHelper.WriteLine($"Template packages returned: {packageList.Count}");
+        foreach (var p in packageList)
+        {
+            outputHelper.WriteLine($"  {p.Id} {p.Version}");
+        }
+
+        Assert.NotEmpty(packageList);
+        Assert.All(packageList, p =>
+        {
+            var semVer = Semver.SemVersion.Parse(p.Version);
+            Assert.Equal(13, semVer.Major);
+            Assert.Equal(2, semVer.Minor);
+        });
+        // Should have exactly the two 13.2 prerelease packages
+        Assert.Equal(2, packageList.Count);
+    }
+
+    /// <summary>
+    /// Verifies that without a version prefix, all prerelease packages from the feed are returned.
+    /// </summary>
+    [Fact]
+    public async Task StagingChannel_WithoutVersionPrefix_ReturnsAllPrereleasePackages()
+    {
+        // Arrange
+        var fakeCache = new FakeNuGetPackageCacheWithPackages(
+        [
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.3.0-preview.1.26201.1", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.2.0-preview.1.26111.6", Source = "dotnet9" },
+            new() { Id = "Aspire.ProjectTemplates", Version = "13.1.0", Source = "dotnet9" },
+        ]);
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
+        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
+        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
+        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingQuality"] = "Prerelease"
+                // No stagingVersionPrefix — should return all prerelease
+            })
+            .Build();
+
+        var packagingService = new PackagingService(executionContext, fakeCache, features, configuration);
+
+        // Act
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
+        var stagingChannel = channels.First(c => c.Name == "staging");
+        var templatePackages = await stagingChannel.GetTemplatePackagesAsync(tempDir, CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        var packageList = templatePackages.ToList();
+        outputHelper.WriteLine($"Template packages returned: {packageList.Count}");
+        foreach (var p in packageList)
+        {
+            outputHelper.WriteLine($"  {p.Id} {p.Version}");
+        }
+
+        // Should return only the prerelease ones (quality filter), but both 13.3 and 13.2
+        Assert.Equal(2, packageList.Count);
+        Assert.Contains(packageList, p => p.Version.StartsWith("13.3"));
+        Assert.Contains(packageList, p => p.Version.StartsWith("13.2"));
+    }
+
+    private sealed class FakeNuGetPackageCacheWithPackages(List<Aspire.Shared.NuGetPackageCli> packages) : INuGetPackageCache
+    {
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken, bool exactMatch = false)
+        {
+            // Simulate what the real cache does: filter by prerelease flag
+            var filtered = prerelease
+                ? packages.Where(p => Semver.SemVersion.Parse(p.Version).IsPrerelease)
+                : packages.Where(p => !Semver.SemVersion.Parse(p.Version).IsPrerelease);
+            return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(filtered.ToList());
+        }
+
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+            => GetTemplatePackagesAsync(workingDirectory, prerelease, nugetConfigFile, cancellationToken);
+
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+            => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken, bool exactMatch = false)
+            => GetTemplatePackagesAsync(workingDirectory, prerelease, nugetConfigFile, cancellationToken);
     }
 }

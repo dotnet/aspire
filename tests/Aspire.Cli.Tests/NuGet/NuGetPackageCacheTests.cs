@@ -21,7 +21,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns packages that do not match Aspire.Cli
                     return (0, [
@@ -54,7 +54,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -92,7 +92,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -127,7 +127,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -171,7 +171,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
                 {
                     // Test different casing of deprecated package name
                     return (0, [

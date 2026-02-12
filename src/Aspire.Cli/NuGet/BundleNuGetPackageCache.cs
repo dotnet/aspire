@@ -41,7 +41,8 @@ internal sealed class BundleNuGetPackageCache : INuGetPackageCache
         DirectoryInfo workingDirectory,
         bool prerelease,
         FileInfo? nugetConfigFile,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool exactMatch = false)
     {
         var packages = await SearchPackagesInternalAsync(
             workingDirectory,
@@ -92,7 +93,8 @@ internal sealed class BundleNuGetPackageCache : INuGetPackageCache
         bool prerelease,
         FileInfo? nugetConfigFile,
         bool useCache,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool exactMatch = false)
     {
         var packages = await SearchPackagesInternalAsync(
             workingDirectory,
