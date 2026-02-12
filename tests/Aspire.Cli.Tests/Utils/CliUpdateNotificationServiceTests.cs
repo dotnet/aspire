@@ -293,7 +293,7 @@ internal sealed class TestNuGetPackageCache : INuGetPackageCache
         _cliPackages = packages;
     }
 
-    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken, bool exactMatch = false)
+    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<NuGetPackage>());
     }
@@ -308,7 +308,7 @@ internal sealed class TestNuGetPackageCache : INuGetPackageCache
         return Task.FromResult(_cliPackages);
     }
 
-    public Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken, bool exactMatch = false)
+    public Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<NuGetPackage>());
     }

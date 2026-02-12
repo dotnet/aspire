@@ -16,10 +16,10 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
 
     private sealed class FakeNuGetPackageCache : INuGetPackageCache
     {
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken, bool exactMatch = false) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken, bool exactMatch = false) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
     }
 
     private sealed class TestFeatures : IFeatures
@@ -637,9 +637,73 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task GetChannelsAsync_WhenStagingVersionPrefixSet_ChannelHasVersionPrefix()
+    public async Task GetChannelsAsync_WhenStagingPinToCliVersionSet_ChannelHasPinnedVersion()
     {
         // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
+        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
+        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
+        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+        
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingQuality"] = "Prerelease",
+                ["stagingPinToCliVersion"] = "true"
+            })
+            .Build();
+
+        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
+
+        // Act
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
+
+        // Assert
+        var stagingChannel = channels.First(c => c.Name == "staging");
+        Assert.NotNull(stagingChannel.PinnedVersion);
+        // Should not contain build metadata (+hash)
+        Assert.DoesNotContain("+", stagingChannel.PinnedVersion);
+    }
+
+    [Fact]
+    public async Task GetChannelsAsync_WhenStagingPinToCliVersionNotSet_ChannelHasNoPinnedVersion()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
+        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
+        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
+        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+        
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingQuality"] = "Prerelease"
+                // No stagingPinToCliVersion
+            })
+            .Build();
+
+        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
+
+        // Act
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
+
+        // Assert
+        var stagingChannel = channels.First(c => c.Name == "staging");
+        Assert.Null(stagingChannel.PinnedVersion);
+    }
+
+    [Fact]
+    public async Task GetChannelsAsync_WhenStagingPinToCliVersionSetButNotSharedFeed_ChannelHasNoPinnedVersion()
+    {
+        // Arrange - pin is set but explicit feed override means not using shared feed
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var tempDir = workspace.WorkspaceRoot;
         var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
@@ -653,7 +717,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["overrideStagingFeed"] = "https://example.com/nuget/v3/index.json",
-                ["stagingVersionPrefix"] = "13.2"
+                ["stagingPinToCliVersion"] = "true"
             })
             .Build();
 
@@ -664,78 +728,16 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
-        Assert.NotNull(stagingChannel.VersionPrefix);
-        Assert.Equal(13, stagingChannel.VersionPrefix!.Major);
-        Assert.Equal(2, stagingChannel.VersionPrefix.Minor);
-    }
-
-    [Fact]
-    public async Task GetChannelsAsync_WhenStagingVersionPrefixNotSet_ChannelHasNoVersionPrefix()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var tempDir = workspace.WorkspaceRoot;
-        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
-        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
-        
-        var features = new TestFeatures();
-        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
-        
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["overrideStagingFeed"] = "https://example.com/nuget/v3/index.json"
-            })
-            .Build();
-
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
-
-        // Act
-        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
-
-        // Assert
-        var stagingChannel = channels.First(c => c.Name == "staging");
-        Assert.Null(stagingChannel.VersionPrefix);
-    }
-
-    [Fact]
-    public async Task GetChannelsAsync_WhenStagingVersionPrefixInvalid_ChannelHasNoVersionPrefix()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var tempDir = workspace.WorkspaceRoot;
-        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
-        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
-        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
-        
-        var features = new TestFeatures();
-        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
-        
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["overrideStagingFeed"] = "https://example.com/nuget/v3/index.json",
-                ["stagingVersionPrefix"] = "not-a-version"
-            })
-            .Build();
-
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
-
-        // Act
-        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
-
-        // Assert
-        var stagingChannel = channels.First(c => c.Name == "staging");
-        Assert.Null(stagingChannel.VersionPrefix);
+        // With explicit feed override, useSharedFeed is false, so pinning is not activated
+        Assert.Null(stagingChannel.PinnedVersion);
     }
 
     /// <summary>
-    /// Simulates the dotnet9 shared feed which contains packages from multiple version lines.
-    /// Verifies that version prefix filtering correctly selects only the requested major.minor.
+    /// Verifies that when pinned to CLI version, GetTemplatePackagesAsync returns a synthetic result
+    /// with the pinned version, bypassing actual NuGet search.
     /// </summary>
     [Fact]
-    public async Task StagingChannel_WithVersionPrefix_FiltersTemplatePackagesToMatchingMajorMinor()
+    public async Task StagingChannel_WithPinnedVersion_ReturnsSyntheticTemplatePackage()
     {
         // Arrange - simulate a shared feed that has packages from both 13.2 and 13.3 version lines
         var fakeCache = new FakeNuGetPackageCacheWithPackages(
@@ -760,7 +762,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["overrideStagingQuality"] = "Prerelease",
-                ["stagingVersionPrefix"] = "13.2"
+                ["stagingPinToCliVersion"] = "true"
             })
             .Build();
 
@@ -771,7 +773,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var stagingChannel = channels.First(c => c.Name == "staging");
         var templatePackages = await stagingChannel.GetTemplatePackagesAsync(tempDir, CancellationToken.None).DefaultTimeout();
 
-        // Assert
+        // Assert - should return exactly one synthetic package with the CLI's pinned version
         var packageList = templatePackages.ToList();
         outputHelper.WriteLine($"Template packages returned: {packageList.Count}");
         foreach (var p in packageList)
@@ -779,22 +781,70 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             outputHelper.WriteLine($"  {p.Id} {p.Version}");
         }
 
-        Assert.NotEmpty(packageList);
-        Assert.All(packageList, p =>
-        {
-            var semVer = Semver.SemVersion.Parse(p.Version);
-            Assert.Equal(13, semVer.Major);
-            Assert.Equal(2, semVer.Minor);
-        });
-        // Should have exactly the two 13.2 prerelease packages
-        Assert.Equal(2, packageList.Count);
+        Assert.Single(packageList);
+        Assert.Equal("Aspire.ProjectTemplates", packageList[0].Id);
+        Assert.Equal(stagingChannel.PinnedVersion, packageList[0].Version);
+        // Pinned version should not contain build metadata
+        Assert.DoesNotContain("+", packageList[0].Version!);
     }
 
     /// <summary>
-    /// Verifies that without a version prefix, all prerelease packages from the feed are returned.
+    /// Verifies that when pinned to CLI version, GetIntegrationPackagesAsync discovers packages
+    /// from the feed but overrides their version to the pinned version.
     /// </summary>
     [Fact]
-    public async Task StagingChannel_WithoutVersionPrefix_ReturnsAllPrereleasePackages()
+    public async Task StagingChannel_WithPinnedVersion_OverridesIntegrationPackageVersions()
+    {
+        // Arrange - integration packages with various versions
+        var fakeCache = new FakeNuGetPackageCacheWithPackages(
+        [
+            new() { Id = "Aspire.Hosting.Redis", Version = "13.3.0-preview.1.26201.1", Source = "dotnet9" },
+            new() { Id = "Aspire.Hosting.PostgreSQL", Version = "13.3.0-preview.1.26201.1", Source = "dotnet9" },
+        ]);
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
+        var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
+        var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
+        var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingQuality"] = "Prerelease",
+                ["stagingPinToCliVersion"] = "true"
+            })
+            .Build();
+
+        var packagingService = new PackagingService(executionContext, fakeCache, features, configuration);
+
+        // Act
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
+        var stagingChannel = channels.First(c => c.Name == "staging");
+        var integrationPackages = await stagingChannel.GetIntegrationPackagesAsync(tempDir, CancellationToken.None).DefaultTimeout();
+
+        // Assert - should discover both packages but with pinned version
+        var packageList = integrationPackages.ToList();
+        outputHelper.WriteLine($"Integration packages returned: {packageList.Count}");
+        foreach (var p in packageList)
+        {
+            outputHelper.WriteLine($"  {p.Id} {p.Version}");
+        }
+
+        Assert.Equal(2, packageList.Count);
+        Assert.All(packageList, p => Assert.Equal(stagingChannel.PinnedVersion, p.Version));
+        Assert.Contains(packageList, p => p.Id == "Aspire.Hosting.Redis");
+        Assert.Contains(packageList, p => p.Id == "Aspire.Hosting.PostgreSQL");
+    }
+
+    /// <summary>
+    /// Verifies that without pinning, all prerelease packages from the feed are returned as-is.
+    /// </summary>
+    [Fact]
+    public async Task StagingChannel_WithoutPinnedVersion_ReturnsAllPrereleasePackages()
     {
         // Arrange
         var fakeCache = new FakeNuGetPackageCacheWithPackages(
@@ -817,7 +867,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["overrideStagingQuality"] = "Prerelease"
-                // No stagingVersionPrefix — should return all prerelease
+                // No stagingPinToCliVersion — should return all prerelease
             })
             .Build();
 
@@ -838,13 +888,13 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
 
         // Should return only the prerelease ones (quality filter), but both 13.3 and 13.2
         Assert.Equal(2, packageList.Count);
-        Assert.Contains(packageList, p => p.Version.StartsWith("13.3"));
-        Assert.Contains(packageList, p => p.Version.StartsWith("13.2"));
+        Assert.Contains(packageList, p => p.Version!.StartsWith("13.3"));
+        Assert.Contains(packageList, p => p.Version!.StartsWith("13.2"));
     }
 
     private sealed class FakeNuGetPackageCacheWithPackages(List<Aspire.Shared.NuGetPackageCli> packages) : INuGetPackageCache
     {
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken, bool exactMatch = false)
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
         {
             // Simulate what the real cache does: filter by prerelease flag
             var filtered = prerelease
@@ -859,7 +909,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
             => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
 
-        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken, bool exactMatch = false)
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken)
             => GetTemplatePackagesAsync(workingDirectory, prerelease, nugetConfigFile, cancellationToken);
     }
 }

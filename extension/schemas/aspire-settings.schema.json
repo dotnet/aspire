@@ -312,9 +312,13 @@
         "Both"
       ]
     },
-    "stagingVersionPrefix": {
-      "description": "Filter staging channel packages to a specific Major.Minor version (e.g., \"13.2\"). When set, only packages matching this version prefix are shown, preventing newer daily versions from being selected.",
-      "type": "string"
+    "stagingPinToCliVersion": {
+      "description": "When set to \"true\" and using the staging channel with Prerelease quality on the shared feed, all template and integration packages are pinned to the exact version of the installed CLI. This bypasses NuGet search entirely, ensuring version consistency.",
+      "type": "string",
+      "enum": [
+        "true",
+        "false"
+      ]
     }
   },
   "additionalProperties": false

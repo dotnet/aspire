@@ -34,7 +34,7 @@ internal interface IDotNetCliRunner
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken, bool exactMatch = false);
+    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -874,7 +874,7 @@ internal sealed class DotNetCliRunner(
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken, bool exactMatch = false)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
@@ -899,7 +899,7 @@ internal sealed class DotNetCliRunner(
 
                 // Build a cache key using the main discriminators, including CLI version.
                 var cliVersion = VersionHelper.GetDefaultTemplateVersion();
-                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|exactMatch={exactMatch}|nugetConfigHash={nugetConfigHash}|cliVersion={cliVersion}";
+                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}|cliVersion={cliVersion}";
                 var cached = await _diskCache.GetAsync(rawKey, cancellationToken).ConfigureAwait(false);
                 if (cached is not null)
                 {
@@ -943,11 +943,6 @@ internal sealed class DotNetCliRunner(
         if (prerelease)
         {
             cliArgs.Add("--prerelease");
-        }
-
-        if (exactMatch)
-        {
-            cliArgs.Add("--exact-match");
         }
 
         int result = 0;
