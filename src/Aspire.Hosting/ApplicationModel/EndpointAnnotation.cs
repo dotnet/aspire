@@ -300,6 +300,10 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
     /// </summary>
     public void AddOrUpdateAllocatedEndpoint(NetworkIdentifier networkID, AllocatedEndpoint endpoint)
     {
+        if (endpoint.NetworkID != networkID)
+        {
+            throw new ArgumentException($"AllocatedEndpoint must use the same network as the {nameof(networkID)} parameter", nameof(endpoint));
+        }
         var nes = GetSnapshotFor(networkID);
         nes.Snapshot.SetValue(endpoint);
     }
