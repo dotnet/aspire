@@ -126,6 +126,45 @@ Arguments passed to the application that is being run.
 **Description:**
 Runs the Aspire app host and executes a command against a specified resource. Use either `--resource` for an existing resource or `--start-resource` to start a resource and then execute the command.
 
+### wait
+
+Wait for a resource to reach a target status.
+
+```cli
+aspire wait <resource> [options]
+```
+
+**Arguments:**
+- `<resource>` - The name of the resource to wait for
+
+**Options:**
+- `--status` - The target status to wait for: `healthy`, `up`, `down` (default: `healthy`)
+- `--timeout` - Maximum time to wait in seconds (default: 120)
+- `--project` - The path to the Aspire AppHost project file
+
+**Description:**
+Blocks until the specified resource reaches the desired status or the timeout is exceeded. Useful in CI/CD pipelines and scripts after starting an AppHost with `aspire run --detach`.
+
+**Status values:**
+- `healthy` (default) - Resource is running and all health checks pass (or no health checks registered)
+- `up` - Resource is running, regardless of health check status
+- `down` - Resource has exited, finished, or failed to start
+
+**Exit codes:**
+- `0` - Resource reached the desired status
+- `17` - Timeout exceeded
+- `18` - Resource entered a terminal failure state while waiting for healthy/up
+- `7` - Failed to find or connect to AppHost
+
+**Example:**
+```cli
+# Start an AppHost in the background, then wait for a resource
+aspire run --detach
+aspire wait webapi
+aspire wait redis --status up --timeout 60
+aspire wait worker --status down
+```
+
 ### update
 
 Update integrations in the Aspire project. (Preview)

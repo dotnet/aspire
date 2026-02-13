@@ -5,6 +5,7 @@ using System.Text.Json;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -20,7 +21,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Help should return success
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -122,7 +123,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse($"logs --tail {tailValue}");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Should fail validation
         Assert.NotEqual(ExitCodeConstants.Success, exitCode);
@@ -143,7 +144,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         // Use --help to avoid needing a running AppHost
         var result = command.Parse($"logs --tail {tailValue} --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Help should succeed (validation passed)
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -160,7 +161,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         // Without --follow and no running AppHost, should succeed (like Unix ps with no processes)
         var result = command.Parse("logs myresource");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Should succeed - no running AppHost is not an error
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -180,7 +181,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         // Use --help to verify the option is parsed correctly
         var result = command.Parse($"logs --format {format} --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
@@ -198,7 +199,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse($"logs --format {format} --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
@@ -213,7 +214,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs --format invalid");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Invalid format should cause parsing error
         Assert.NotEqual(ExitCodeConstants.Success, exitCode);
@@ -229,7 +230,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs --follow --tail 50 --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
@@ -244,7 +245,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs myresource --follow --tail 100 --format json --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
@@ -260,7 +261,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         // -f is short for --follow, -n is short for --tail
         var result = command.Parse("logs -f -n 10 --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }

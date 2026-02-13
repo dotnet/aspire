@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -150,6 +152,15 @@ public static class AzureContainerAppExtensions
                 },
                 Tags = tags
             };
+
+            // Configure VNet integration if a subnet is specified
+            if (appEnvResource.TryGetLastAnnotation<DelegatedSubnetAnnotation>(out var subnetAnnotation))
+            {
+                containerAppEnvironment.VnetConfiguration = new ContainerAppVnetConfiguration
+                {
+                    InfrastructureSubnetId = subnetAnnotation.SubnetId.AsProvisioningParameter(infra)
+                };
+            }
 
             infra.Add(containerAppEnvironment);
 
@@ -368,6 +379,24 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithDashboard(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableDashboard = enable;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether HTTP endpoints should be upgraded to HTTPS in Azure Container Apps.
+    /// By default, HTTP endpoints are upgraded to HTTPS for security and WebSocket compatibility.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="upgrade">Whether to upgrade HTTP endpoints to HTTPS. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <remarks>
+    /// When disabled (<c>false</c>), HTTP endpoints will use HTTP scheme and port 80 in Azure Container Apps.
+    /// Note that explicit ports specified for development (e.g., port 8080) are still normalized
+    /// to standard ports (80/443) as required by Azure Container Apps.
+    /// </remarks>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithHttpsUpgrade(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool upgrade = true)
+    {
+        builder.Resource.PreserveHttpEndpoints = !upgrade;
         return builder;
     }
 

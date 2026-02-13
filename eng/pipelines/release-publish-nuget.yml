@@ -182,6 +182,12 @@ extends:
                   downloadPath: '$(Pipeline.Workspace)/packages'
                   checkDownloadedFiles: true
 
+              - task: UseDotNet@2
+                displayName: 'Install .NET 10 SDK'
+                inputs:
+                  packageType: 'sdk'
+                  version: '10.0.x'
+
               - powershell: |
                   $packagesPath = "$(Pipeline.Workspace)/packages"
                   Write-Host "=== Package Inventory ==="
@@ -212,9 +218,14 @@ extends:
                   foreach ($package in $packages) {
                     Write-Host "Verifying: $($package.Name)"
 
-                    $result = & dotnet nuget verify $package.FullName 2>&1
+                    # Use $ErrorActionPreference to prevent PowerShell from treating stderr as terminating error
+                    $originalErrorActionPreference = $ErrorActionPreference
+                    $ErrorActionPreference = 'Continue'
+                    $result = dotnet nuget verify $package.FullName 2>&1
+                    $verifyExitCode = $LASTEXITCODE
+                    $ErrorActionPreference = $originalErrorActionPreference
 
-                    if ($LASTEXITCODE -ne 0) {
+                    if ($verifyExitCode -ne 0) {
                       Write-Host "  ❌ Signature verification FAILED"
                       Write-Host $result
                       $failedVerification += $package.Name
@@ -274,13 +285,18 @@ extends:
 
                     do {
                       try {
-                        $result = & dotnet nuget push $package.FullName `
+                        # Use $ErrorActionPreference to prevent PowerShell from treating stderr as terminating error
+                        $originalErrorActionPreference = $ErrorActionPreference
+                        $ErrorActionPreference = 'Continue'
+                        $result = dotnet nuget push $package.FullName `
                           --api-key $apiKey `
                           --source $source `
                           --skip-duplicate `
                           --timeout 300
+                        $pushExitCode = $LASTEXITCODE
+                        $ErrorActionPreference = $originalErrorActionPreference
 
-                        if ($LASTEXITCODE -eq 0) {
+                        if ($pushExitCode -eq 0) {
                           # Check if it was skipped (already exists)
                           if ($result -match "already exists|skipping") {
                             Write-Host "  ⏭️ Skipped (already exists)"
@@ -359,9 +375,10 @@ extends:
                 fetchDepth: 1
 
               - task: UseDotNet@2
-                displayName: 'Install .NET SDK'
+                displayName: 'Install .NET 10 SDK'
                 inputs:
-                  useGlobalJson: true
+                  packageType: 'sdk'
+                  version: '10.0.x'
 
               - powershell: |
                   Write-Host "Installing darc CLI..."

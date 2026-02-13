@@ -111,7 +111,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
             {
                 var runner = new TestDotNetCliRunner
                 {
-                    BuildAsyncCallback = (projectFile, options, cancellationToken) =>
+                    BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) =>
                     {
                         return 1; // Simulate a build failure
                     }
@@ -146,7 +146,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner
                 {
                     // Simulate a successful build
-                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+                    BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0,
 
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -155,7 +155,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     },
 
                     // Simulate apphost running successfully and establishing a backchannel
-                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                     {
                         Assert.True(options.NoLaunchProfile);
 
@@ -172,7 +172,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             RequestStopAsyncCalled = deployModeCompleted
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };
@@ -214,7 +214,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner
                 {
                     // Simulate a successful build
-                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+                    BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0,
 
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -223,7 +223,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     },
 
                     // Simulate apphost running successfully and establishing a backchannel
-                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                     {
                         Assert.True(options.NoLaunchProfile);
 
@@ -241,7 +241,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             RequestStopAsyncCalled = deployModeCompleted
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };
@@ -287,7 +287,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner
                 {
                     // Simulate a successful build
-                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+                    BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0,
 
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -296,7 +296,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                         },
 
                     // Simulate apphost running and verify --step deploy flag is passed
-                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                         {
                             Assert.Contains("--operation", args);
                             Assert.Contains("publish", args);
@@ -313,7 +313,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                                 RequestStopAsyncCalled = deployModeCompleted
                             };
                             backchannelCompletionSource?.SetResult(backchannel);
-                            await deployModeCompleted.Task;
+                            await deployModeCompleted.Task.DefaultTimeout();
                             return 0;
                         }
                 };
@@ -355,7 +355,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner
                 {
                     // Simulate a successful build
-                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+                    BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0,
 
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -364,7 +364,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     },
 
                     // Simulate apphost running but deployment fails
-                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                     {
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -373,7 +373,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             GetPublishingActivitiesAsyncCallback = GetFailedDeploymentActivities
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // AppHost exits with 0 even though deployment failed
                     }
                 };

@@ -9,6 +9,26 @@ namespace Aspire.Dashboard.Model;
 
 internal static class ResourceViewModelExtensions
 {
+    /// <summary>
+    /// Converts the resource properties to a dictionary of string values.
+    /// This is used to provide a consistent interface for code that works with both
+    /// ResourceViewModel (Dashboard) and ResourceSnapshot (CLI).
+    /// </summary>
+    public static IReadOnlyDictionary<string, string?> GetPropertiesAsDictionary(this ResourceViewModel resource)
+    {
+        var result = new Dictionary<string, string?>(StringComparer.Ordinal);
+
+        foreach (var (key, property) in resource.Properties)
+        {
+            if (property.Value.TryConvertToString(out var stringValue))
+            {
+                result[key] = stringValue;
+            }
+        }
+
+        return result;
+    }
+
     public static bool IsContainer(this ResourceViewModel resource)
     {
         return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);

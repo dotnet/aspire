@@ -79,25 +79,26 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     {
         _ = request;
 
-        var mcpInfo = await GetDashboardMcpConnectionInfoAsync(cancellationToken).ConfigureAwait(false);
-        var urlsState = await GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+        var info = await DashboardUrlsHelper.GetDashboardConnectionInfoAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
 
-        var urls = new List<string>();
-        if (!string.IsNullOrEmpty(urlsState.BaseUrlWithLoginToken))
+        var urls = new List<string>(2);
+        if (!string.IsNullOrEmpty(info.BaseUrlWithLoginToken))
         {
-            urls.Add(urlsState.BaseUrlWithLoginToken);
+            urls.Add(info.BaseUrlWithLoginToken);
         }
-        if (!string.IsNullOrEmpty(urlsState.CodespacesUrlWithLoginToken))
+        if (!string.IsNullOrEmpty(info.CodespacesUrlWithLoginToken))
         {
-            urls.Add(urlsState.CodespacesUrlWithLoginToken);
+            urls.Add(info.CodespacesUrlWithLoginToken);
         }
 
         return new GetDashboardInfoResponse
         {
-            McpBaseUrl = mcpInfo?.EndpointUrl,
-            McpApiToken = mcpInfo?.ApiToken,
+            McpBaseUrl = info.McpBaseUrl,
+            McpApiToken = info.McpApiToken,
+            ApiBaseUrl = info.ApiBaseUrl,
+            ApiToken = info.ApiToken,
             DashboardUrls = urls.ToArray(),
-            IsHealthy = urlsState.DashboardHealthy
+            IsHealthy = info.IsHealthy
         };
     }
 
@@ -202,6 +203,116 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         _ = request; // Exit code not yet used, but available for future expansion
         await StopAppHostAsync(cancellationToken).ConfigureAwait(false);
         return new StopAppHostResponse();
+    }
+
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    /// <param name="request">The request containing resource name and command name.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The response indicating success or failure.</returns>
+    public async Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(ExecuteResourceCommandRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
+        var result = await resourceCommandService.ExecuteCommandAsync(request.ResourceName, request.CommandName, cancellationToken).ConfigureAwait(false);
+
+        return new ExecuteResourceCommandResponse
+        {
+            Success = result.Success,
+            Canceled = result.Canceled,
+            ErrorMessage = result.ErrorMessage
+        };
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach a target status.
+    /// </summary>
+    public async Task<WaitForResourceResponse> WaitForResourceAsync(WaitForResourceRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is not null && !appModel.Resources.Any(r => StringComparers.ResourceName.Equals(r.Name, request.ResourceName)))
+        {
+            return new WaitForResourceResponse
+            {
+                Success = false,
+                ResourceNotFound = true,
+                ErrorMessage = $"Resource '{request.ResourceName}' was not found."
+            };
+        }
+
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(request.TimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            return request.Status switch
+            {
+                "healthy" => await WaitForHealthyAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "up" => await WaitForRunningAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "down" => await WaitForTerminalAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                _ => new WaitForResourceResponse { Success = false, ErrorMessage = $"Unknown status: {request.Status}" }
+            };
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return new WaitForResourceResponse { Success = false, TimedOut = true, ErrorMessage = $"Timed out waiting for resource '{request.ResourceName}'." };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            return new WaitForResourceResponse { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForHealthyAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceHealthyAsync(resourceName, WaitBehavior.StopOnResourceUnavailable, cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForRunningAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => re.Snapshot.State?.Text == KnownResourceStates.Running || KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        var state = resourceEvent.Snapshot.State?.Text;
+        var isRunning = state == KnownResourceStates.Running;
+
+        return new WaitForResourceResponse
+        {
+            Success = isRunning,
+            State = state,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString(),
+            ErrorMessage = isRunning ? null : $"Resource '{resourceName}' failed to reach 'Running' state. Current state: {state ?? "Unknown"}."
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForTerminalAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
     }
 
     #endregion
@@ -339,7 +450,17 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 continue;
             }
 
-            if (notificationService.TryGetCurrentState(resource.Name, out var resourceEvent))
+            foreach (var instanceName in resource.GetResolvedResourceNames())
+            {
+                await AddResult(instanceName).ConfigureAwait(false);
+            }
+        }
+
+        return results;
+
+        async Task AddResult(string resourceName)
+        {
+            if (notificationService.TryGetCurrentState(resourceName, out var resourceEvent))
             {
                 var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
                 if (snapshot is not null)
@@ -348,8 +469,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 }
             }
         }
-
-        return results;
     }
 
     /// <summary>
@@ -406,14 +525,19 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
-        // Build endpoints from URLs
-        var endpoints = snapshot.Urls
+        // Build URLs
+        var urls = snapshot.Urls
             .Where(u => !u.IsInactive && !string.IsNullOrEmpty(u.Url))
-            .Select(u => new ResourceSnapshotEndpoint
+            .Select(u => new ResourceSnapshotUrl
             {
                 Name = u.Name ?? "default",
                 Url = u.Url,
-                IsInternal = u.IsInternal
+                IsInternal = u.IsInternal,
+                DisplayProperties = new ResourceSnapshotUrlDisplayProperties
+                {
+                    DisplayName = string.IsNullOrEmpty(u.DisplayProperties.DisplayName) ? null : u.DisplayProperties.DisplayName,
+                    SortOrder = u.DisplayProperties.SortOrder
+                }
             })
             .ToArray();
 
@@ -448,6 +572,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             })
             .ToArray();
 
+        // Build environment variables
+        var environmentVariables = snapshot.EnvironmentVariables
+            .Select(e => new ResourceSnapshotEnvironmentVariable
+            {
+                Name = e.Name,
+                Value = e.Value,
+                IsFromSpec = e.IsFromSpec
+            })
+            .ToArray();
+
         // Build properties dictionary from ResourcePropertySnapshot
         // Redact sensitive property values to avoid leaking secrets
         var properties = new Dictionary<string, string?>();
@@ -472,10 +606,22 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             properties[prop.Name] = stringValue;
         }
 
+        // Build commands
+        var commands = snapshot.Commands
+            .Select(c => new ResourceSnapshotCommand
+            {
+                Name = c.Name,
+                DisplayName = c.DisplayName,
+                Description = c.DisplayDescription,
+                State = c.State.ToString()
+            })
+            .ToArray();
+
         return new ResourceSnapshot
         {
-            Name = resource.Name,
-            Type = snapshot.ResourceType,
+            Name = resourceEvent.ResourceId,
+            DisplayName = resource.Name,
+            ResourceType = snapshot.ResourceType,
             State = snapshot.State?.Text,
             StateStyle = snapshot.State?.Style,
             HealthStatus = snapshot.HealthStatus?.ToString(),
@@ -483,12 +629,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             CreatedAt = snapshot.CreationTimeStamp,
             StartedAt = snapshot.StartTimeStamp,
             StoppedAt = snapshot.StopTimeStamp,
-            Endpoints = endpoints,
+            Urls = urls,
             Relationships = relationships,
             HealthReports = healthReports,
             Volumes = volumes,
+            EnvironmentVariables = environmentVariables,
             Properties = properties,
-            McpServer = mcpServer
+            McpServer = mcpServer,
+            Commands = commands
         };
     }
 

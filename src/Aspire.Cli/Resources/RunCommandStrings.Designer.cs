@@ -296,5 +296,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("IsolatedModeRunningInstanceWarning", resourceCulture);
             }
         }
+
+        public static string NoBuildArgumentDescription {
+            get {
+                return ResourceManager.GetString("NoBuildArgumentDescription", resourceCulture);
+            }
+        }
+
+        public static string NoBuildNotSupportedWithWatchMode {
+            get {
+                return ResourceManager.GetString("NoBuildNotSupportedWithWatchMode", resourceCulture);
+            }
+        }
     }
 }

@@ -87,16 +87,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IScaffoldingService scaffoldingService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(templateProvider);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(languageDiscovery);
-        ArgumentNullException.ThrowIfNull(scaffoldingService);
-
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
@@ -130,7 +120,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             _languageOption = new Option<string?>("--language", "-l")
             {
-                Description = "The programming language for the AppHost (csharp, typescript, python)"
+                Description = "The programming language for the AppHost (csharp, typescript)"
             };
             Options.Add(_languageOption);
         }

@@ -28,12 +28,10 @@ internal interface IDotNetCliRunner
 {
     Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -176,8 +174,9 @@ internal sealed class DotNetCliRunner(
             }
             catch (SocketException ex) when (execution is not null && execution.HasExited && execution.ExitCode != 0)
             {
-                logger.LogError(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
-                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost process has exited unexpectedly. Use --debug to see more details.", ex);
+                // Log at Debug level - this is expected when AppHost crashes, the real error is in AppHost output
+                logger.LogDebug(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
+                var backchannelException = new FailedToConnectBackchannelConnection("AppHost process has exited unexpectedly.", ex);
                 backchannelCompletionSource.SetException(backchannelException);
                 return;
             }
@@ -383,7 +382,7 @@ internal sealed class DotNetCliRunner(
         }
     }
 
-    public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
@@ -397,6 +396,7 @@ internal sealed class DotNetCliRunner(
         var isSingleFile = projectFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
+        var noRestoreSwitch = noRestore && !noBuild ? "--no-restore" : string.Empty; // --no-build implies --no-restore
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
         // Add --non-interactive flag when using watch to prevent interactive prompts during automation
         var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
@@ -405,7 +405,7 @@ internal sealed class DotNetCliRunner(
 
         string[] cliArgs = isSingleFile switch
         {
-            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noRestoreSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", noProfileSwitch, "--file", projectFile.FullName, "--", .. args]
         };
 
@@ -649,7 +649,7 @@ internal sealed class DotNetCliRunner(
         }
     }
 
-    private static bool TryParsePackageVersionFromStdout(string stdout, [NotNullWhen(true)] out string? version)
+    internal static bool TryParsePackageVersionFromStdout(string stdout, [NotNullWhen(true)] out string? version)
     {
         var lines = stdout.Split(Environment.NewLine);
         var successLine = lines.SingleOrDefault(x => x.StartsWith("Success: Aspire.ProjectTemplates"));
@@ -661,9 +661,12 @@ internal sealed class DotNetCliRunner(
         }
 
         var templateVersion = successLine.Split(" ") switch { // Break up the success line.
-            { Length: > 2 } chunks => chunks[1].Split("::") switch { // Break up the template+version string
+            { Length: > 2 } chunks => chunks[1].Split("@") switch { // Break up the template+version string (@ separator for .NET 10.0+)
                 { Length: 2 } versionChunks => versionChunks[1], // The version in the second chunk
-                _ => null
+                _ => chunks[1].Split("::") switch { // Fallback to :: separator for older SDK versions
+                    { Length: 2 } versionChunks => versionChunks[1],
+                    _ => null
+                }
             },
             _ => null
         };
@@ -695,11 +698,13 @@ internal sealed class DotNetCliRunner(
             cancellationToken: cancellationToken);
     }
 
-    public async Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
-        string[] cliArgs = ["build", projectFilePath.FullName];
+        var noRestoreSwitch = noRestore ? "--no-restore" : string.Empty;
+        string[] cliArgs = ["build", noRestoreSwitch, projectFilePath.FullName];
+        cliArgs = [.. cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg))];
 
         // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
         var env = new Dictionary<string, string>

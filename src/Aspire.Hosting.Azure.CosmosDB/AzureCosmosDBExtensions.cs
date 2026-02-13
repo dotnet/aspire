@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting;
@@ -454,6 +456,9 @@ public static class AzureCosmosExtensions
         var azureResource = (AzureCosmosDBResource)infrastructure.AspireResource;
         bool disableLocalAuth = !azureResource.UseAccessKeyAuthentication;
 
+        // Check if this CosmosDB has a private endpoint (via annotation)
+        var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
         var cosmosAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
             {
@@ -461,28 +466,39 @@ public static class AzureCosmosExtensions
                 resource.Name = name;
                 return resource;
             },
-            (infrastructure) => new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
+            (infrastructure) =>
             {
-                Kind = CosmosDBAccountKind.GlobalDocumentDB,
-                Capabilities = azureResource.UseDefaultAzureSku ? [] : new BicepList<CosmosDBAccountCapability>
+                var account = new CosmosDBAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    new CosmosDBAccountCapability { Name = CosmosConstants.EnableServerlessCapability }
-                },
-                ConsistencyPolicy = new ConsistencyPolicy()
-                {
-                    DefaultConsistencyLevel = DefaultConsistencyLevel.Session
-                },
-                DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
-                Locations =
-                {
-                    new CosmosDBAccountLocation
+                    Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                    Capabilities = azureResource.UseDefaultAzureSku ? [] : new BicepList<CosmosDBAccountCapability>
                     {
-                        LocationName = new IdentifierExpression("location"),
-                        FailoverPriority = 0
-                    }
-                },
-                DisableLocalAuth = disableLocalAuth,
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                        new CosmosDBAccountCapability { Name = CosmosConstants.EnableServerlessCapability }
+                    },
+                    ConsistencyPolicy = new ConsistencyPolicy()
+                    {
+                        DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                    },
+                    DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
+                    Locations =
+                    {
+                        new CosmosDBAccountLocation
+                        {
+                            LocationName = new IdentifierExpression("location"),
+                            FailoverPriority = 0
+                        }
+                    },
+                    DisableLocalAuth = disableLocalAuth,
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                };
+
+                // When using private endpoints, disable public network access.
+                if (hasPrivateEndpoint)
+                {
+                    account.PublicNetworkAccess = CosmosDBPublicNetworkAccess.Disabled;
+                }
+
+                return account;
             });
 
         foreach (var database in azureResource.Databases)
@@ -595,7 +611,8 @@ public static class AzureCosmosExtensions
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name.ToBicepExpression() });
 
-        infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = cosmosAccount.Id });
+        // Output the resource id for private endpoint support.
+        infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = cosmosAccount.Id.ToBicepExpression() });
     }
 
     internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId)

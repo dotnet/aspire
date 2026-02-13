@@ -85,19 +85,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IScaffoldingService scaffoldingService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(templateFactory);
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(solutionLocator);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(languageService);
-        ArgumentNullException.ThrowIfNull(languageDiscovery);
-        ArgumentNullException.ThrowIfNull(scaffoldingService);
-
         _runner = runner;
         _certificateService = certificateService;
         _prompter = prompter;
@@ -133,7 +120,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             _languageOption = new Option<string?>("--language", "-l")
             {
-                Description = "The programming language for the AppHost (csharp, typescript, python)"
+                Description = "The programming language for the AppHost (csharp, typescript)"
             };
             Options.Add(_languageOption);
         }
@@ -545,7 +532,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -609,7 +596,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (result.ExitCode == 0)
         {
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
         }
 

@@ -47,15 +47,6 @@ internal sealed class AddCommand : BaseCommand
     public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-
         _packagingService = packagingService;
         _projectLocator = projectLocator;
         _prompter = prompter;
@@ -222,7 +213,7 @@ internal sealed class AddCommand : BaseCommand
                 {
                     InteractionService.DisplayLines(outputCollector.GetLines());
                 }
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage, ExecutionContext.LogFilePath));
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -344,6 +335,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 ))
                 .ToArray();
 
+            // Auto-select when there's only one version in the channel
+            if (choices.Length == 1)
+            {
+                return choices[0].Result;
+            }
+
             var selection = await interactionService.PromptForSelectionAsync(
                 string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
                 choices,
@@ -403,6 +400,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         if (rootChoices.Count == 0)
         {
             return firstPackage;
+        }
+
+        // Auto-select when there's only one option (e.g., single explicit channel)
+        if (rootChoices.Count == 1)
+        {
+            return await rootChoices[0].Action(cancellationToken);
         }
 
         var topSelection = await interactionService.PromptForSelectionAsync(

@@ -8,6 +8,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -103,7 +104,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
-        var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(1, exitCode); // Should return the error exit code
@@ -185,7 +186,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
-        var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(1, exitCode); // Should return the error exit code
@@ -281,7 +282,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         // Act - Invoke init command
         var parseResult = initCommand.Parse("init");
-        var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -414,7 +415,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<InitCommand>();
         var result = command.Parse("init --channel stable");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         
         // Assert
         Assert.Equal(0, exitCode);
@@ -439,7 +440,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<InitCommand>();
         var result = command.Parse("init --channel invalid-channel");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         
         // Assert - should fail with non-zero exit code for invalid channel
         Assert.NotEqual(0, exitCode);

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- This repo version -->
     <MajorVersion>13</MajorVersion>
-    <MinorVersion>2</MinorVersion>
+    <MinorVersion>3</MinorVersion>
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
@@ -15,6 +15,8 @@
     <DotNetSdkPreviousVersionForTesting>8.0.415</DotNetSdkPreviousVersionForTesting>
     <!-- dotnet 9.0 versions for running tests - used for templates tests -->
     <DotNetSdkCurrentVersionForTesting>9.0.306</DotNetSdkCurrentVersionForTesting>
+    <!-- .NET SDK version to include in the bundle for running managed components -->
+    <BundleRuntimeVersion>10.0.102</BundleRuntimeVersion>
     <XunitV3Version>3.1.0</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
@@ -28,17 +30,17 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.22.1</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.22.1</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.22.1</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.22.1</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.22.1</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.22.1</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.22.1</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.22.4</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.22.4</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.22.4</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.22.4</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.22.4</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.22.4</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.22.4</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorVersion>11.0.0-beta.25610.3</MicrosoftDotNetRemoteExecutorVersion>
-    <MicrosoftDotNetXUnitV3ExtensionsVersion>11.0.0-beta.25610.3</MicrosoftDotNetXUnitV3ExtensionsVersion>
-    <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25610.3</MicrosoftDotNetBuildTasksArchivesVersion>
+    <MicrosoftDotNetRemoteExecutorVersion>10.0.0-beta.26110.1</MicrosoftDotNetRemoteExecutorVersion>
+    <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.26110.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
+    <MicrosoftDotNetBuildTasksArchivesVersion>10.0.0-beta.26110.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <MicrosoftExtensionsFileSystemGlobbingVersion>10.0.2</MicrosoftExtensionsFileSystemGlobbingVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>10.2.0</MicrosoftExtensionsAIVersion>
@@ -59,6 +61,8 @@
     <AzureMonitorOpenTelemetryExporterVersion>1.5.0</AzureMonitorOpenTelemetryExporterVersion>
     <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
     <StreamJsonRpcPackageVersionForCli>2.23.32-alpha</StreamJsonRpcPackageVersionForCli>
+    <!-- MicroBuild.Core version for VS Code extension signing -->
+    <MicrosoftVisualStudioEngMicroBuildCoreVersion>1.0.0</MicrosoftVisualStudioEngMicroBuildCoreVersion>
   </PropertyGroup>
   <!-- .NET 10.0 Package Versions -->
   <PropertyGroup Label="Preview">

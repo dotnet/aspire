@@ -88,7 +88,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
             Metadata =
             {
                 { "ApiType", "Azure" },
-                { "ResourceId", db.IdOutputReference.AsProvisioningParameter(infra) }
+                { "ResourceId", db.Id.AsProvisioningParameter(infra) }
             }
         });
     }

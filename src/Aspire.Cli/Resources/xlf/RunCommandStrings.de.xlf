@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="CopyingUserSecrets">
         <source>Copying user secrets for isolated mode...</source>
-        <target state="new">Copying user secrets for isolated mode...</target>
+        <target state="translated">Benutzergeheimnisse für den isolierten Modus werden kopiert…</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
-        <target state="new">The --format option can only be used together with --detach.</target>
+        <target state="translated">Die Option „--format“ kann nur zusammen mit „--detach“ verwendet werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -114,22 +114,32 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output result as JSON (only valid with --detach).</source>
-        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <target state="translated">Ausgabeergebnis als JSON (nur gültig mit --detach).</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">Im isolierten Modus mit zufälligen Ports und getrennten Benutzergeheimnissen ausführen, sodass mehrere Instanzen gleichzeitig laufen können.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">Eine laufende Instanz dieses AppHosts wurde gefunden und wird beendet. Um mehrere isolierte Instanzen gleichzeitig auszuführen, starten Sie sie aus verschiedenen Verzeichnissen, zum Beispiel aus Git-Worktree-Verzeichnissen.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Protokolle</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="new">Do not build or restore the project before running.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -148,8 +158,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">Das Projekt konnte nicht ausgeführt werden. Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="new">The project could not be run. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

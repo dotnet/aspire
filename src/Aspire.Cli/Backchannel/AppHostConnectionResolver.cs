@@ -13,7 +13,7 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AppHostConnectionResult
 {
-    public AppHostAuxiliaryBackchannel? Connection { get; init; }
+    public IAppHostAuxiliaryBackchannel? Connection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Connection))]
     public bool Success => Connection is not null;
@@ -22,8 +22,10 @@ internal sealed class AppHostConnectionResult
 }
 
 /// <summary>
-/// Helper for resolving connections to running AppHosts.
-/// Used by commands that need to connect to a running AppHost (stop, resources, logs, etc.).
+/// Discovers and resolves connections to running AppHosts when the socket path is not known.
+/// Scans for running AppHosts and prompts the user to select one if multiple are found.
+/// Used by CLI commands (stop, resources, logs, telemetry) that need to find a running AppHost.
+/// For managing a specific instance when the socket path is known, use <see cref="Projects.RunningInstanceManager"/> instead.
 /// </summary>
 internal sealed class AppHostConnectionResolver(
     IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -99,7 +101,7 @@ internal sealed class AppHostConnectionResolver(
         var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
         var outOfScopeConnections = connections.Where(c => !c.IsInScope).ToList();
 
-        AppHostAuxiliaryBackchannel? selectedConnection = null;
+        IAppHostAuxiliaryBackchannel? selectedConnection = null;
 
         if (inScopeConnections.Count == 1)
         {

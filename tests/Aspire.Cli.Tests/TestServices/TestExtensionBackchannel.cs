@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -229,7 +230,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         }
 
         // Default behavior: check if capability is in the capabilities returned by GetCapabilitiesAsync
-        var capabilities = await GetCapabilitiesAsync(cancellationToken);
+        var capabilities = await GetCapabilitiesAsync(cancellationToken).DefaultTimeout();
         return capabilities.Contains(capability);
     }
 

@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
@@ -31,7 +31,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -48,7 +48,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -65,7 +65,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -82,7 +82,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run --project /tmp/doesnotexist.csproj");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
@@ -128,13 +128,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
     }
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
-        public Task<Aspire.Cli.Certificates.EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<Aspire.Cli.Certificates.EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
@@ -204,13 +204,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatable app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostCliBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Make a backchannel and return it, but don't return from the run call until the backchannel
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
@@ -245,7 +245,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         // Simulate CTRL-C.
         cts.Cancel();
 
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await pendingRun.DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
@@ -266,10 +266,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
@@ -300,7 +300,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         // Simulate CTRL-C.
         cts.Cancel();
 
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.LongTimeout);
+        var exitCode = await pendingRun.DefaultTimeout(TestConstants.LongTimeoutDuration);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
@@ -329,13 +329,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             // Configure the runner to establish a backchannel but simulate dashboard failure
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Set up the backchannel
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
@@ -370,7 +370,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("run");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert that the command returns the expected failure exit code
         Assert.Equal(ExitCodeConstants.DashboardFailure, exitCode);
@@ -389,7 +389,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         };
 
         var testRunner = new TestDotNetCliRunner();
-        testRunner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+        testRunner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var appHostDirectoryPath = Path.Combine(workspace.WorkspaceRoot.FullName, "src", "MyApp.AppHost");
@@ -399,10 +399,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         File.WriteAllText(appHostProjectFile.FullName, "<Project></Project>");
 
         var options = new DotNetCliRunnerInvocationOptions();
-        await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, options, workspace.WorkspaceRoot, CancellationToken.None);
+        await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, noRestore: false, options, workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/14321")]
     public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
     {
         var buildCalled = false;
@@ -426,13 +427,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) =>
             {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
@@ -466,7 +467,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
         cts.Cancel();
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await pendingRun.DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
         Assert.False(buildCalled, "Build should be skipped when extension DevKit capability is available.");
@@ -496,13 +497,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) =>
             {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
@@ -536,7 +537,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
         cts.Cancel();
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await pendingRun.DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
         Assert.False(buildCalled, "Build should be skipped when running in extension.");
@@ -566,13 +567,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var runnerFactory = (IServiceProvider sp) => {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => {
                 buildCalled = true;
                 buildCalledTcs.TrySetResult();
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) => {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
@@ -607,10 +608,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
 
         // Wait for the build to be called before cancelling
-        await buildCalledTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+        await buildCalledTcs.Task.DefaultTimeout();
         cts.Cancel();
 
-        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await pendingRun.DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
         Assert.True(buildCalled, "Build should be called when extension has build-dotnet-using-cli capability.");
@@ -625,12 +626,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
@@ -668,7 +669,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
-        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token).DefaultTimeout();
 
         Assert.False(watchModeUsed, "Expected watch mode to be disabled for single file apps even when DefaultWatchEnabled feature flag is true");
     }
@@ -682,12 +683,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
@@ -727,7 +728,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
-        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token).DefaultTimeout();
 
         Assert.True(watchModeUsed, "Expected watch mode to be enabled when defaultWatchEnabled feature flag is true");
     }
@@ -741,12 +742,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
@@ -786,7 +787,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
-        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token).DefaultTimeout();
 
         Assert.False(watchModeUsed, "Expected watch mode to be disabled when defaultWatchEnabled feature flag is false");
     }
@@ -800,12 +801,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             var runner = new TestDotNetCliRunner();
             // Fake the build command to always succeed.
-            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
@@ -845,7 +846,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
-        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token).DefaultTimeout();
 
         Assert.False(watchModeUsed, "Expected watch mode to be disabled by default when defaultWatchEnabled feature flag is not set");
     }
@@ -864,7 +865,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -889,6 +890,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: true, // This should add --non-interactive
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -913,7 +915,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -934,6 +936,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: false, // This should NOT add --non-interactive
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -958,7 +961,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = true };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -983,6 +986,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: true, // This should add --verbose when debug is true
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -1007,7 +1011,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = false };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -1027,6 +1031,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: true, // This should NOT add --verbose when debug is false
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -1051,7 +1056,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = true };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -1072,6 +1077,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: false, // This should NOT add --verbose because it's not in watch mode
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -1096,7 +1102,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -1117,6 +1123,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: true, // This should set DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -1141,7 +1148,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), logFilePath: "test.log"
         );
 
         var runner = DotNetCliRunnerTestHelper.Create(
@@ -1163,6 +1170,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             projectFile: projectFile,
             watch: false, // This should NOT set DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER
             noBuild: false,
+            noRestore: false,
             args: ["--operation", "inspect"],
             env: new Dictionary<string, string>(),
             null,
@@ -1203,6 +1211,67 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunCommand_WithNoBuildOption_SkipsBuildAndPassesNoBuildAndNoRestoreToRunner()
+    {
+        var buildCalled = false;
+        var noBuildPassedToRunner = false;
+        var noRestorePassedToRunner = false;
+
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
+            var backchannel = new TestAppHostBackchannel();
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+            return backchannel;
+        };
+
+        var runnerFactory = (IServiceProvider sp) =>
+        {
+            var runner = new TestDotNetCliRunner();
+            runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) =>
+            {
+                buildCalled = true;
+                return 0;
+            };
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                noBuildPassedToRunner = noBuild;
+                noRestorePassedToRunner = noRestore;
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                await Task.Delay(100, ct);
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --no-build");
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token).DefaultTimeout();
+
+        Assert.False(buildCalled, "Build should be skipped when --no-build is specified");
+        Assert.True(noBuildPassedToRunner, "noBuild=true should be passed to the runner when --no-build is specified");
+        Assert.True(noRestorePassedToRunner, "noRestore=true should be passed to the runner when --no-build is specified (--no-build implies --no-restore)");
+    }
+
+    [Fact]
     public async Task RunCommand_WithIsolatedOption_SetsRandomizePortsAndIsolatesUserSecrets()
     {
         var tcs = new TaskCompletionSource<Dictionary<string, string>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1226,7 +1295,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             var runnerFactory = (IServiceProvider sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+                runner.BuildAsyncCallback = (projectFile, noRestore, options, ct) => 0;
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
                 // Return UserSecretsId when GetProjectItemsAndPropertiesAsync is called
@@ -1237,7 +1306,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                     return (0, doc);
                 };
 
-                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, ct) =>
                 {
                     // Capture environment variables
                     tcs.SetResult(env?.ToDictionary() ?? []);
@@ -1298,6 +1367,52 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             {
                 Directory.Delete(originalSecretsDir);
             }
+        }
+    }
+
+    [Fact]
+    public async Task RunCommand_WithNoBuildAndWatchModeEnabled_ReturnsInvalidCommandError()
+    {
+        // This test verifies that when --no-build is specified and watch mode is enabled
+        // (via feature flag), the CLI returns an error because this combination is not supported
+        // (dotnet watch doesn't support --no-build)
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        // Create a features factory that enables DefaultWatchEnabled
+        var featuresFactory = (IServiceProvider sp) => new TestFeatures()
+            .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.FeatureFlagsFactory = featuresFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --no-build");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Should return InvalidCommand error because --no-build is not supported with watch mode enabled
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    private sealed class TestFeatures : IFeatures
+    {
+        private readonly Dictionary<string, bool> _features = new();
+
+        public TestFeatures SetFeature(string featureName, bool value)
+        {
+            _features[featureName] = value;
+            return this;
+        }
+
+        public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
+        {
+            return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
         }
     }
 }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -35,6 +37,7 @@ public static class AzureStorageExtensions
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureStorageResource}, StorageBuiltInRole[])"/>.
     /// </remarks>
+    [AspireExport("addAzureStorage", Description = "Adds an Azure Storage resource")]
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -53,26 +56,42 @@ public static class AzureStorageExtensions
                     resource.Name = name;
                     return resource;
                 },
-                (infrastructure) => new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                (infrastructure) =>
                 {
-                    Kind = StorageKind.StorageV2,
-                    AccessTier = StorageAccountAccessTier.Hot,
-                    Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-                    IsHnsEnabled = azureResource.IsHnsEnabled,
-                    NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                    // Check if this storage has a private endpoint (via annotation)
+                    var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
+                    var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
                     {
-                        // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-                        // the AzureServices firewall policy works. This means that we need this Azure Storage
-                        // account to have its default action set to Allow.
-                        DefaultAction = StorageNetworkDefaultAction.Allow
-                    },
-                    // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-                    // with the pending deprecation of TLS 1.0 and 1.1.
-                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-                    // Disable shared key access to the storage account as managed identity is configured
-                    // to access the storage account by default.
-                    AllowSharedKeyAccess = false,
-                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                        Kind = StorageKind.StorageV2,
+                        AccessTier = StorageAccountAccessTier.Hot,
+                        Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                        IsHnsEnabled = azureResource.IsHnsEnabled,
+                        NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                        {
+                            // When using private endpoints, deny public access.
+                            // Otherwise, we need to allow it since Azure Storage does not list ACA 
+                            // as one of the resource types in which the AzureServices firewall policy works.
+                            DefaultAction = hasPrivateEndpoint
+                                ? StorageNetworkDefaultAction.Deny
+                                : StorageNetworkDefaultAction.Allow
+                        },
+                        // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+                        // with the pending deprecation of TLS 1.0 and 1.1.
+                        MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
+                        // Disable shared key access to the storage account as managed identity is configured
+                        // to access the storage account by default.
+                        AllowSharedKeyAccess = false,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+
+                    // When using private endpoints, completely disable public network access.
+                    if (hasPrivateEndpoint)
+                    {
+                        storageAccount.PublicNetworkAccess = StoragePublicNetworkAccess.Disabled;
+                    }
+
+                    return storageAccount;
                 });
 
             if (azureResource.BlobContainers.Count > 0 || azureResource.DataLakeFileSystems.Count > 0)
@@ -156,6 +175,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Storage resource to be emulated using Azurite")]
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -249,6 +269,7 @@ public static class AzureStorageExtensions
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.azurite/{builder.Resource.Name}'</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    [AspireExport("withDataBindMount", Description = "Adds a bind mount for the data folder to an Azure Storage emulator resource")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -263,6 +284,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    [AspireExport("withDataVolume", Description = "Adds a named volume for the data folder to an Azure Storage emulator resource")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithDataVolume(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -276,6 +298,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns></returns>
+    [AspireExport("withBlobPort", Description = "Sets the host port for blob requests on the storage emulator")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -292,6 +315,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns></returns>
+    [AspireExport("withQueuePort", Description = "Sets the host port for queue requests on the storage emulator")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -308,6 +332,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    [AspireExport("withTablePort", Description = "Sets the host port for table requests on the storage emulator")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -324,6 +349,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="enable">Whether to enable API version check or not. Default is <lang>true</lang>.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    [AspireExport("withApiVersionCheck", Description = "Configures whether the emulator checks API version validity")]
     public static IResourceBuilder<AzureStorageEmulatorResource> WithApiVersionCheck(this IResourceBuilder<AzureStorageEmulatorResource> builder, bool enable = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -348,6 +374,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
+    [AspireExport("addBlobs", Description = "Adds an Azure Blob Storage resource")]
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -369,6 +396,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureDataLakeStorageResource"/>.</returns>
+    [AspireExport("addDataLake", Description = "Adds an Azure Data Lake Storage resource")]
     public static IResourceBuilder<AzureDataLakeStorageResource> AddDataLake(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -433,6 +461,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="blobContainerName">The name of the blob container.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageContainerResource"/>.</returns>
+    [AspireExport("addBlobContainer", Description = "Adds an Azure Blob Storage container resource")]
     public static IResourceBuilder<AzureBlobStorageContainerResource> AddBlobContainer(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? blobContainerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -469,6 +498,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="dataLakeFileSystemName">The name of the data lake file system.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureDataLakeStorageFileSystemResource"/>.</returns>
+    [AspireExport("addDataLakeFileSystem", Description = "Adds an Azure Data Lake Storage file system resource")]
     public static IResourceBuilder<AzureDataLakeStorageFileSystemResource> AddDataLakeFileSystem(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? dataLakeFileSystemName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -527,6 +557,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
+    [AspireExport("addTables", Description = "Adds an Azure Table Storage resource")]
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -541,6 +572,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
+    [AspireExport("addQueues", Description = "Adds an Azure Queue Storage resource")]
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -577,6 +609,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="queueName">The name of the queue.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageQueueResource"/>.</returns>
+    [AspireExport("addQueue", Description = "Adds an Azure Storage queue resource")]
     public static IResourceBuilder<AzureQueueStorageQueueResource> AddQueue(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? queueName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -20,14 +20,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
+using Aspire.Shared.ConsoleLogs;
 using Json.Patch;
 using k8s;
 using k8s.Autorest;
@@ -152,7 +151,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // This is why we create objects in very specific order here.
         //
         // In future we should be able to make the model more flexible and streamline the DCP object creation logic by:
-        // 1. Asynchronously publish AllocatdEndpoints as the Services associated with them transition to Ready state.
+        // 1. Asynchronously publish AllocatedEndpoints as the Services associated with them transition to Ready state.
         // 2. Asynchronously create Executables and Containers as soon as all their dependencies are ready.
 
         try
@@ -977,6 +976,29 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         bindingMode,
                         targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
                         KnownNetworkIdentifiers.LocalhostNetwork);
+
+                    if (appResource.DcpResource is Container ctr && ctr.Spec.Networks is not null)
+                    {
+                        // Once container networks are fully supported, this should allocate endpoints on those networks
+                        var containerNetwork = ctr.Spec.Networks.FirstOrDefault(n => n.Name == KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+
+                        if (containerNetwork is not null)
+                        {
+                            var port = sp.EndpointAnnotation.TargetPort!;
+
+                            var allocatedEndpoint = new AllocatedEndpoint(
+                                sp.EndpointAnnotation,
+                                $"{sp.ModelResource.Name}.dev.internal",
+                                (int)port,
+                                EndpointBindingMode.SingleAddress,
+                                targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                                KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                            );
+                            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                            snapshot.SetValue(allocatedEndpoint);
+                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(allocatedEndpoint.NetworkID, snapshot);
+                        }
+                    }
                 }
             }
 
@@ -1040,6 +1062,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
         }
+
     }
 
     private void PrepareContainerNetworks()
@@ -1867,12 +1890,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
     {
-        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
+        if (!resource.TryGetInstances(out var instances))
         {
             throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
         }
 
-        foreach (var instance in replicaAnnotation.Instances)
+        foreach (var instance in instances)
         {
             if (instance.Index == instanceIndex)
             {

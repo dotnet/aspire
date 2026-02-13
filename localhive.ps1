@@ -2,11 +2,12 @@
 
 <#!
 .SYNOPSIS
-  Build local NuGet packages and create/update an Aspire CLI hive that points at them (Windows/PowerShell).
+  Build local NuGet packages and Aspire CLI, then create/update a hive and install the CLI (Windows/PowerShell).
 
 .DESCRIPTION
-  Mirrors localhive.sh behavior on Windows. Packs the repo, then either creates a symlink from
-  $HOME/.aspire/hives/<HiveName> to artifacts/packages/<Config>/Shipping or copies .nupkg files.
+  Mirrors localhive.sh behavior on Windows. Packs the repo, creates a symlink from
+  $HOME/.aspire/hives/<HiveName> to artifacts/packages/<Config>/Shipping (or copies .nupkg files),
+  and installs the locally-built Aspire CLI to $HOME/.aspire/bin.
 
 .PARAMETER Configuration
   Build configuration: Release or Debug (positional parameter 0). If omitted, the script tries Release then falls back to Debug.
@@ -20,6 +21,9 @@
 .PARAMETER Copy
   Copy .nupkg files instead of linking the hive directory.
 
+.PARAMETER SkipCli
+  Skip installing the locally-built CLI to $HOME/.aspire/bin.
+
 .PARAMETER Help
   Show help and exit.
 
@@ -29,8 +33,12 @@
 .EXAMPLE
   .\localhive.ps1 Debug my-feature
 
+.EXAMPLE
+  .\localhive.ps1 -SkipCli
+
 .NOTES
   The hive is created at $HOME/.aspire/hives/<HiveName> so the Aspire CLI can discover a channel.
+  The CLI is installed to $HOME/.aspire/bin so it can be used directly.
 #>
 
 [CmdletBinding(PositionalBinding=$true)]
@@ -47,6 +55,8 @@ param(
   [string] $VersionSuffix,
 
   [switch] $Copy,
+
+  [switch] $SkipCli,
 
   [Alias('h')]
   [switch] $Help
@@ -69,6 +79,7 @@ Options:
   -Name (-n)            Hive name (default: local)
   -VersionSuffix (-v)   Prerelease version suffix (default: auto-generates local.YYYYMMDD.tHHmmss)
   -Copy                 Copy .nupkg files instead of creating a symlink
+  -SkipCli              Skip installing the locally-built CLI to $HOME\.aspire\bin
   -Help (-h)            Show this help and exit
 
 Examples:
@@ -81,6 +92,7 @@ Examples:
 
 This will pack NuGet packages into artifacts\packages\<Config>\Shipping and create/update
 a hive at $HOME\.aspire\hives\<HiveName> so the Aspire CLI can use it as a channel.
+It also installs the locally-built CLI to $HOME\.aspire\bin (unless -SkipCli is specified).
 '@ | Write-Host
 }
 
@@ -141,9 +153,11 @@ function Get-PackagesPath {
   Join-Path (Join-Path (Join-Path (Join-Path $RepoRoot 'artifacts') 'packages') $Config) 'Shipping'
 }
 
+$effectiveConfig = if ($Configuration) { $Configuration } else { 'Release' }
+
 if ($Configuration) {
   Write-Log "Building and packing NuGet packages [-c $Configuration] with versionsuffix '$VersionSuffix'"
-  & $buildScript -r -b -pack -c $Configuration "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
+  & $buildScript -restore -build -pack -c $Configuration "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration $Configuration."
     exit 1
@@ -156,7 +170,7 @@ if ($Configuration) {
 }
 else {
   Write-Log "Building and packing NuGet packages [-c Release] with versionsuffix '$VersionSuffix'"
-  & $buildScript -r -b -pack -c Release "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
+  & $buildScript -restore -build -pack -c Release "/p:VersionSuffix=$VersionSuffix" "/p:SkipTestProjects=true" "/p:SkipPlaygroundProjects=true"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration Release."
     exit 1
@@ -177,10 +191,17 @@ if (-not $packages -or $packages.Count -eq 0) {
 Write-Log ("Found {0} packages in {1}" -f $packages.Count, $pkgDir)
 
 $hivesRoot = Join-Path (Join-Path $HOME '.aspire') 'hives'
-$hivePath  = Join-Path $hivesRoot $Name
+$hiveRoot  = Join-Path $hivesRoot $Name
+$hivePath  = Join-Path $hiveRoot 'packages'
 
 Write-Log "Preparing hive directory: $hivesRoot"
 New-Item -ItemType Directory -Path $hivesRoot -Force | Out-Null
+
+# Remove previous hive content (handles both old layout junctions and stale data)
+if (Test-Path -LiteralPath $hiveRoot) {
+  Write-Log "Removing previous hive '$Name'"
+  Remove-Item -LiteralPath $hiveRoot -Force -Recurse -ErrorAction SilentlyContinue
+}
 
 function Copy-PackagesToHive {
   param([string]$Source,[string]$Destination)
@@ -194,31 +215,62 @@ if ($Copy) {
   Write-Log "Created/updated hive '$Name' at $hivePath (copied packages)."
 }
 else {
-  Write-Log "Linking hive '$Name' to $pkgDir"
+  Write-Log "Linking hive '$Name/packages' to $pkgDir"
+  New-Item -ItemType Directory -Path $hiveRoot -Force | Out-Null
   try {
-    if (Test-Path -LiteralPath $hivePath) {
-      $item = Get-Item -LiteralPath $hivePath -ErrorAction SilentlyContinue
-      if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        # Remove existing link (symlink/junction)
-        Remove-Item -LiteralPath $hivePath -Force
-      }
-    }
     # Try symlink first (requires Developer Mode or elevated privilege)
     New-Item -Path $hivePath -ItemType SymbolicLink -Target $pkgDir -Force | Out-Null
-    Write-Log "Created/updated hive '$Name' -> $pkgDir (symlink)"
+    Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (symlink)"
   }
   catch {
     Write-Warn "Symlink not supported; attempting junction, else copying .nupkg files"
     try {
-      if (Test-Path -LiteralPath $hivePath) { Remove-Item -LiteralPath $hivePath -Force -Recurse -ErrorAction SilentlyContinue }
       New-Item -Path $hivePath -ItemType Junction -Target $pkgDir -Force | Out-Null
-      Write-Log "Created/updated hive '$Name' -> $pkgDir (junction)"
+      Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (junction)"
     }
     catch {
       Write-Warn "Link creation failed; copying .nupkg files instead"
       Copy-PackagesToHive -Source $pkgDir -Destination $hivePath
       Write-Log "Created/updated hive '$Name' at $hivePath (copied packages)."
     }
+  }
+}
+
+# Install the locally-built CLI to $HOME/.aspire/bin
+if (-not $SkipCli) {
+  $cliBinDir = Join-Path (Join-Path $HOME '.aspire') 'bin'
+  # The CLI is built as part of the pack target in artifacts/bin/Aspire.Cli.Tool/<Config>/net10.0/publish
+  $cliPublishDir = Join-Path $RepoRoot "artifacts" "bin" "Aspire.Cli.Tool" $effectiveConfig "net10.0" "publish"
+
+  if (-not (Test-Path -LiteralPath $cliPublishDir)) {
+    # Fallback: try the non-publish directory
+    $cliPublishDir = Join-Path $RepoRoot "artifacts" "bin" "Aspire.Cli.Tool" $effectiveConfig "net10.0"
+  }
+
+  $cliExeName = if ($IsWindows) { 'aspire.exe' } else { 'aspire' }
+  $cliSourcePath = Join-Path $cliPublishDir $cliExeName
+
+  if (Test-Path -LiteralPath $cliSourcePath) {
+    Write-Log "Installing Aspire CLI to $cliBinDir"
+    New-Item -ItemType Directory -Path $cliBinDir -Force | Out-Null
+
+    # Copy all files from the publish directory (CLI and its dependencies)
+    Get-ChildItem -LiteralPath $cliPublishDir -File | Copy-Item -Destination $cliBinDir -Force
+
+    $installedCliPath = Join-Path $cliBinDir $cliExeName
+    Write-Log "Aspire CLI installed to: $installedCliPath"
+
+    # Check if the bin directory is in PATH
+    $pathSeparator = [System.IO.Path]::PathSeparator
+    $currentPathArray = $env:PATH.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+    if ($currentPathArray -notcontains $cliBinDir) {
+      Write-Warn "The CLI bin directory is not in your PATH."
+      Write-Log "Add it to your PATH with: `$env:PATH = '$cliBinDir' + '$pathSeparator' + `$env:PATH"
+    }
+  }
+  else {
+    Write-Warn "Could not find CLI at $cliSourcePath. Skipping CLI installation."
+    Write-Warn "You may need to build the CLI separately or use 'dotnet tool install' for the Aspire.Cli package."
   }
 }
 
@@ -230,4 +282,8 @@ Write-Log "  $hivePath"
 Write-Host
 Write-Log "Channel behavior: Aspire* comes from the hive; others from nuget.org."
 Write-Host
+if (-not $SkipCli) {
+  Write-Log "The locally-built CLI was installed to: $(Join-Path (Join-Path $HOME '.aspire') 'bin')"
+  Write-Host
+}
 Write-Log 'The Aspire CLI discovers channels automatically from the hives directory; no extra flags are required.'

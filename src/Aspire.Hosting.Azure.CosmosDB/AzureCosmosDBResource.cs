@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
@@ -18,7 +20,8 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString,
     IResourceWithEndpoints,
-    IResourceWithAzureFunctionsConfig
+    IResourceWithAzureFunctionsConfig,
+    IAzurePrivateEndpointTarget
 {
     internal List<AzureCosmosDBDatabaseResource> Databases { get; } = [];
 
@@ -69,7 +72,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the "id" output reference for the resource.
     /// </summary>
-    public BicepOutputReference IdOutputReference => new("id", this);
+    public BicepOutputReference Id => new("id", this);
 
     /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
@@ -256,4 +259,10 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             yield return new("ConnectionString", ConnectionStringExpression);
         }
     }
+
+    BicepOutputReference IAzurePrivateEndpointTarget.Id => Id;
+
+    IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["Sql"];
+
+    string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() => "privatelink.documents.azure.com";
 }

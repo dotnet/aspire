@@ -1,0 +1,70 @@
+name: Build Bundle (Reusable)
+
+# This workflow creates the Aspire CLI bundle by:
+# 1. Building/publishing managed components (Dashboard, NuGetHelper, AppHostServer)
+# 2. Creating the tar.gz archive from the layout
+# 3. AOT-compiling the CLI with the archive as an embedded resource
+
+on:
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+
+jobs:
+  build_bundle:
+    name: Build bundle (${{ matrix.targets.rid }})
+    runs-on: ${{ matrix.targets.runner }}
+    strategy:
+      matrix:
+        targets:
+          - rid: linux-x64
+            runner: 8-core-ubuntu-latest  # Larger runner for bundle disk space
+            cli_exe: aspire
+          - rid: win-x64
+            runner: windows-latest
+            cli_exe: aspire.exe
+          - rid: osx-arm64
+            runner: macos-latest
+            cli_exe: aspire
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      # Download RID-specific NuGet packages (for DCP)
+      - name: Download RID-specific NuGets
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806  # v4.1.9
+        with:
+          name: built-nugets-for-${{ matrix.targets.rid }}
+          path: artifacts/packages/Release/Shipping
+
+      # Build bundle: managed projects → tar.gz → AOT compile CLI with embedded payload
+      - name: Build bundle
+        shell: pwsh
+        run: |
+          $dotnetCmd = if ($IsWindows) { "./dotnet.cmd" } else { "./dotnet.sh" }
+          & $dotnetCmd msbuild eng/Bundle.proj `
+            /restore `
+            /p:Configuration=Release `
+            /p:TargetRid=${{ matrix.targets.rid }} `
+            /p:ContinuousIntegrationBuild=true `
+            /bl:${{ github.workspace }}/artifacts/log/Release/Bundle.binlog `
+            ${{ inputs.versionOverrideArg }}
+
+      - name: Upload bundle
+        if: success()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: aspire-bundle-${{ matrix.targets.rid }}
+          path: artifacts/bin/Aspire.Cli/Release/net10.0/${{ matrix.targets.rid }}/native/${{ matrix.targets.cli_exe }}
+          retention-days: 15
+          if-no-files-found: error
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: bundle-logs-${{ matrix.targets.rid }}
+          path: artifacts/log/**
