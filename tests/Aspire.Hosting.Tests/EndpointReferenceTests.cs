@@ -369,26 +369,18 @@ public class EndpointReferenceTests
         resource.Annotations.Add(annotation);
         var endpointRef = new EndpointReference(resource, annotation);
 
-        // Signals that the background task has started waiting for the value.
-        var waitingForValue = new SemaphoreSlim(0, 1);
-        // Signals that the background task received and verified the value.
         var success = new SemaphoreSlim(0, 1);
 
-        // Launch a task that waits for the endpoint value.
-        _ = Task.Run(async () =>
+#pragma warning disable CA2012 // Use ValueTasks correctly
+        var awaiter = endpointRef.GetValueAsync(CancellationToken.None).GetAwaiter();
+#pragma warning restore CA2012 // Use ValueTasks correctly
+
+        awaiter.OnCompleted(() =>
         {
-            waitingForValue.Release();
-
-            var url = await endpointRef.GetValueAsync(CancellationToken.None);
+            var url = awaiter.GetResult();
             Assert.Equal("http://localhost:5000", url);
-
             success.Release();
         });
-
-        await waitingForValue.WaitAsync();
-
-        // Introduce a deliberate delay so the endpoint is always provided after the waiter is blocked.
-        await Task.Delay(500);
 
         // Now provide the allocated endpoint.
         var allocatedEndpoint = new AllocatedEndpoint(annotation, "localhost", 5000);
