@@ -98,7 +98,10 @@ internal static class BuiltInDistributedApplicationEventSubscriptionHandlers
         {
             if (resource.GetContainerLifetimeType() == ContainerLifetime.Persistent)
             {
-                logger.LogWarning(MessageStrings.PersistentContainerWithoutUserSecrets, resource.Name);
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(MessageStrings.PersistentContainerWithoutUserSecrets, resource.Name);
+                }
             }
         }
 
