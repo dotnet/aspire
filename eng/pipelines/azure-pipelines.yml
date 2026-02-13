@@ -120,7 +120,7 @@ extends:
         justificationForDisabling: 'see https://portal.microsofticm.com/imp/v3/incidents/incident/482258316/summary'
       sourceAnalysisPool:
         name: NetCore1ESPool-Internal
-        image: windows.vs2022preview.amd64
+        image: 1es-windows-2022
         os: windows
       tsa:
         enabled: true
@@ -214,7 +214,7 @@ extends:
 
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
 
             variables:

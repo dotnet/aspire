@@ -63,7 +63,7 @@ extends:
     sdl:
       sourceAnalysisPool:
         name: NetCore1ESPool-Internal
-        image: windows.vs2022preview.amd64
+        image: 1es-windows-2022
         os: windows
 
     stages:
@@ -74,7 +74,7 @@ extends:
             displayName: 'Validate Release Inputs'
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
             steps:
               - checkout: none
@@ -109,7 +109,7 @@ extends:
             displayName: 'Extract BAR Build ID from Build Tags'
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
             steps:
               - checkout: none
@@ -164,7 +164,7 @@ extends:
             timeoutInMinutes: 60
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
             steps:
               - checkout: self
@@ -368,7 +368,7 @@ extends:
             displayName: 'Promote Build to GA Channel'
             pool:
               name: NetCore1ESPool-Publishing-Internal
-              image: windows.vs2019.amd64
+              image: 1es-windows-2022
               os: windows
             steps:
               - checkout: self
@@ -439,7 +439,7 @@ extends:
             displayName: 'Print Release Summary'
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
             steps:
               - checkout: none

@@ -45,7 +45,7 @@ extends:
     sdl:
       sourceAnalysisPool:
         name: NetCore1ESPool-Internal
-        image: windows.vs2022preview.amd64
+        image: 1es-windows-2022
         os: windows
     containers:
       linux_x64:
@@ -135,7 +135,7 @@ extends:
 
             pool:
               name: NetCore1ESPool-Internal
-              image: windows.vs2022preview.amd64
+              image: 1es-windows-2022
               os: windows
 
             variables:
