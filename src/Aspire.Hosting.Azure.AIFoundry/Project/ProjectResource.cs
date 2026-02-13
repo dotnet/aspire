@@ -151,7 +151,7 @@ public class AzureCognitiveServicesProjectResource :
     /// <summary>
     /// The capability host resources associated with this project, if any
     /// </summary>
-    public CapabilityHostConfiguration? capabilityHostConfiguration { get; set; }
+    public CapabilityHostConfiguration? CapabilityHostConfiguration { get; set; }
 
     /// <summary>
     /// The container registry associated with this project, if any.

@@ -2,27 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
-// using Aspire.Hosting.Azure.AIFoundry;
 
 namespace Aspire.Hosting.Azure.AIFoundry.Tests;
 
 public class AddAzureAIFoundryTests
 {
     [Fact]
-    public void ShouldHaveDefaultConnectionStringEnvVar()
+    public void AddAzureAIFoundry_ShouldAddResourceToBuilder()
     {
-        // Arrange
-        const string name = "my-project";
+        const string name = "account";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        // Act
-        var resourceBuilder = builder.AddAzureAIFoundry("account");
-        var app = resourceBuilder.ApplicationBuilder.Build();
+        var resourceBuilder = builder.AddAzureAIFoundry(name);
 
-        // Assert
         Assert.NotNull(resourceBuilder);
         Assert.NotNull(resourceBuilder.Resource);
         Assert.Equal(name, resourceBuilder.Resource.Name);
-        Assert.IsType<AzureCognitiveServicesProjectResource>(resourceBuilder.Resource);
+        Assert.IsType<AzureAIFoundryResource>(resourceBuilder.Resource);
     }
 }
