@@ -120,12 +120,26 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
             var changed = _resourceToolMap.Count != refreshedMap.Count;
             if (!changed)
             {
+                // Check for deleted tools (in old but not in new).
                 foreach (var key in _resourceToolMap.Keys)
                 {
                     if (!refreshedMap.ContainsKey(key))
                     {
                         changed = true;
                         break;
+                    }
+                }
+
+                // Check for new tools (in new but not in old).
+                if (!changed)
+                {
+                    foreach (var key in refreshedMap.Keys)
+                    {
+                        if (!_resourceToolMap.ContainsKey(key))
+                        {
+                            changed = true;
+                            break;
+                        }
                     }
                 }
             }
