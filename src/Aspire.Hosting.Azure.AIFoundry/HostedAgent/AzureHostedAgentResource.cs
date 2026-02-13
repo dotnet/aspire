@@ -115,7 +115,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public async Task PublishAsync(ManifestPublishingContext ctx)
     {
-        Console.WriteLine($"Writing agent manifest for path {ctx.ManifestPath}");
+        // Write agent manifest
         ctx.Writer.WriteString("type", "azure.ai.agent.v0");
         ctx.Writer.WriteStartObject("definition");
         ctx.Writer.WriteString("kind", "hosted");

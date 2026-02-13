@@ -269,7 +269,7 @@ public static class HostedAgentResourceBuilderExtensions
 
         ValidateHostedAgentRegion(builder.ApplicationBuilder.Configuration);
 
-        AzureCognitiveServicesProjectResource? projResource;;
+        AzureCognitiveServicesProjectResource? projResource;
         if (project is not null)
         {
             projResource = project.Resource;

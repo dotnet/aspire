@@ -106,6 +106,54 @@ Note: The property named `ModelName` refers to the deployment name when targetin
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
+### Azure AI Foundry project
+
+The project resource exposes the following connection properties:
+
+| Property Name        | Description |
+|----------------------|-------------|
+| `Uri`                | The project endpoint URI (e.g., `https://<account>.services.ai.azure.com/api/projects/<project>`) |
+| `ConnectionString`   | The connection string in the format `Endpoint=<uri>` |
+
+## Foundry project usage
+
+You can create an Azure AI Foundry project resource to organize agents and model deployments:
+
+```csharp
+var foundry = builder.AddAzureAIFoundry("foundry");
+var project = foundry.AddProject("my-project");
+
+var chat = project.AddModelDeployment("chat", "gpt-4", "1.0", "OpenAI");
+
+var myService = builder.AddPythonApp("agent", "./app", "main:app")
+                       .WithReference(project);
+```
+
+The project can also be configured with additional Azure resources:
+
+```csharp
+var appInsights = builder.AddAzureApplicationInsights("ai");
+var keyVault = builder.AddAzureKeyVault("kv");
+
+var project = foundry.AddProject("my-project")
+                     .WithAppInsights(appInsights)
+                     .WithKeyVault(keyVault);
+```
+
+## Hosted agent usage
+
+To deploy a containerized application as a hosted agent in Azure AI Foundry:
+
+```csharp
+var foundry = builder.AddAzureAIFoundry("foundry");
+var project = foundry.AddProject("my-project");
+
+builder.AddPythonApp("agent", "./app", "main:app")
+       .PublishAsHostedAgent(project);
+```
+
+In run mode, the agent runs locally with health check endpoints and OpenTelemetry instrumentation. In publish mode, the agent is deployed as a hosted agent in Azure AI Foundry.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry

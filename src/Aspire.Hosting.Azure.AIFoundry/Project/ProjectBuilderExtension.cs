@@ -127,10 +127,12 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Adds an Application Insights connection to the Azure Cognitive Services project
-    /// that overrides the default (which is to create a new Application Insights resource).
+    /// Adds a Key Vault connection to the Azure Cognitive Services project.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder for the Azure Cognitive Services project.</param>
+    /// <param name="keyVault">The Key Vault resource to associate with the project.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the project already has a Key Vault connection configured.</exception>
     public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithKeyVault(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureKeyVaultResource> keyVault)
@@ -149,10 +151,12 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Adds an Application Insights connection to the Azure Cognitive Services project
-    /// that overrides the default (which is to create a new Application Insights resource).
+    /// Adds an Application Insights resource to the Azure Cognitive Services project,
+    /// overriding the default (which is to create a new Application Insights resource).
     /// </summary>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder for the Azure Cognitive Services project.</param>
+    /// <param name="appInsights">The Application Insights resource to associate with the project.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithAppInsights(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureApplicationInsightsResource> appInsights)
@@ -164,14 +168,14 @@ public static class AzureCognitiveServicesProjectExtensions
     /// <summary>
     /// Configures capability host settings for the Azure Cognitive Services project.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="config"></param>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder for the Azure Cognitive Services project.</param>
+    /// <param name="config">The capability host configuration specifying CosmosDB, Storage, and Search resources.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithCapabilityHost(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         CapabilityHostConfiguration config)
     {
-        builder.Resource.capabilityHostConfiguration = config;
+        builder.Resource.CapabilityHostConfiguration = config;
         return builder;
     }
 
@@ -180,8 +184,8 @@ public static class AzureCognitiveServicesProjectExtensions
     /// </summary>
     /// <param name="builder">Aspire resource builder for a project</param>
     /// <param name="name">Name to give the model deployment</param>
-    /// <param name="model">The <see cref="AIFoundryModel"/> to deploy</param>
-    /// <returns></returns>
+    /// <param name="model">The <see cref="AIFoundryModel"/> to deploy.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the deployment resource.</returns>
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddModelDeployment(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         [ResourceName] string name,
@@ -397,7 +401,7 @@ public static class AzureCognitiveServicesProjectExtensions
          * TODO: private network
          */
 
-        if (aspireResource.capabilityHostConfiguration is null)
+        if (aspireResource.CapabilityHostConfiguration is null)
         {
             return;
         }
@@ -411,14 +415,14 @@ public static class AzureCognitiveServicesProjectExtensions
         * Storage
         */
 
-        var storage = (StorageAccount)aspireResource.capabilityHostConfiguration.Storage.AddAsExistingResource(infra);
+        var storage = (StorageAccount)aspireResource.CapabilityHostConfiguration.Storage.AddAsExistingResource(infra);
         var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
         {
             Parent = project,
             Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
             Properties = new AzureStorageAccountConnectionProperties()
             {
-                Target = aspireResource.capabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
+                Target = aspireResource.CapabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
                 Metadata =
                 {
                     { "ApiType", "Azure" },
@@ -443,7 +447,7 @@ public static class AzureCognitiveServicesProjectExtensions
         * CosmosDB
         */
 
-        var cosmosDb = (CosmosDBAccount)aspireResource.capabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
+        var cosmosDb = (CosmosDBAccount)aspireResource.CapabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
         var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
         {
             Parent = project,
@@ -452,7 +456,7 @@ public static class AzureCognitiveServicesProjectExtensions
             {
                 Category = CognitiveServicesConnectionCategory.CosmosDB,
                 // This is the document endpoint
-                Target = aspireResource.capabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                Target = aspireResource.CapabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
                 Metadata =
                 {
                     { "ApiType", "Azure" },
@@ -482,7 +486,7 @@ public static class AzureCognitiveServicesProjectExtensions
         * Azure Search
         */
 
-        var searchService = (SearchService)aspireResource.capabilityHostConfiguration.Search.AddAsExistingResource(infra);
+        var searchService = (SearchService)aspireResource.CapabilityHostConfiguration.Search.AddAsExistingResource(infra);
         var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
         {
             Parent = project,
@@ -520,9 +524,9 @@ public static class AzureCognitiveServicesProjectExtensions
         */
 
         CognitiveServicesProjectConnection? aoaiConn = null;
-        if (aspireResource.capabilityHostConfiguration.AzureOpenAI is not null)
+        if (aspireResource.CapabilityHostConfiguration.AzureOpenAI is not null)
         {
-            var aoaiAccount = aspireResource.capabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
+            var aoaiAccount = aspireResource.CapabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
             aoaiConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_aoai_conn")
             {
                 Parent = project,
