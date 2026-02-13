@@ -546,6 +546,31 @@ public class ResourceDependencyTests
     }
 
     [Fact]
+    public async Task DirectOnlyDoesNotIncludeWaitForDependenciesFromReferencedResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Chain: A -> (ref) B -> (waitfor) C
+        // A has WithReference(B) and WaitFor(B)
+        // B has WaitFor(C) but A does NOT reference C directly
+        var c = builder.AddRedis("c");
+        var b = builder.AddContainer("b", "alpine")
+            .WithHttpEndpoint(5000, 5000, "http")
+            .WaitFor(c);
+        var a = builder.AddContainer("a", "alpine")
+            .WithReference(b.GetEndpoint("http"))
+            .WaitFor(b);
+
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var dependencies = await a.Resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.DirectOnly);
+
+        // A depends on B (via WithReference and WaitFor)
+        Assert.Contains(b.Resource, dependencies);
+        // A should NOT depend on C because C is only a WaitFor dependency of B, not of A
+        Assert.DoesNotContain(c.Resource, dependencies);
+    }
+
+    [Fact]
     public async Task DefaultOverloadUsesTransitiveClosure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
