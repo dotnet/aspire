@@ -22,8 +22,7 @@ namespace Aspire.Hosting.Azure;
 public class AzureCognitiveServicesProjectResource :
     AzureProvisionableAspireResourceWithParent<CognitiveServicesProject, AzureAIFoundryResource>,
     IResourceWithConnectionString,
-    IAzureComputeEnvironmentResource,
-    IContainerRegistry
+    IAzureComputeEnvironmentResource
 {
     /// <summary>
     /// Creates a new Azure Cognitive Services project resource.
@@ -128,9 +127,41 @@ public class AzureCognitiveServicesProjectResource :
     // Mnaged identity used for client access to container registry
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
-    ReferenceExpression IContainerRegistry.Name => ContainerRegistry?.Name ?? ReferenceExpression.Create($"{ContainerRegistryName}");
+    IAzureContainerRegistryResource? IAzureComputeEnvironmentResource.ContainerRegistry => ContainerRegistry;
 
-    ReferenceExpression IContainerRegistry.Endpoint => ContainerRegistry?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    /// <summary>
+    /// Gets the Azure Container Registry resource used by this project.
+    /// </summary>
+    public AzureContainerRegistryResource? ContainerRegistry
+    {
+        get
+        {
+            var registry = GetContainerRegistry();
+
+            if (registry is null)
+            {
+                return null;
+            }
+
+            if (registry is not AzureContainerRegistryResource azureRegistry)
+            {
+                throw new InvalidOperationException(
+                    $"The container registry configured for the Azure Cognitive Services project '{Name}' is not an Azure Container Registry. " +
+                    $"Only Azure Container Registry resources are supported. Use '.WithContainerRegistry()' to configure an Azure Container Registry.");
+            }
+
+            return azureRegistry;
+        }
+    }
+
+    private IContainerRegistry? GetContainerRegistry()
+    {
+        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            return annotation.Registry;
+        }
+        return DefaultContainerRegistry;
+    }
 
     /// <summary>
     /// The Application Insights resource associated with this project, if any.
@@ -152,21 +183,6 @@ public class AzureCognitiveServicesProjectResource :
     /// The capability host resources associated with this project, if any
     /// </summary>
     public CapabilityHostConfiguration? CapabilityHostConfiguration { get; set; }
-
-    /// <summary>
-    /// The container registry associated with this project, if any.
-    /// </summary>
-    public IContainerRegistry? ContainerRegistry
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
-            {
-                return annotation.Registry;
-            }
-            return DefaultContainerRegistry;
-        }
-    }
 
     internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 

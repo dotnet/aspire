@@ -27,10 +27,8 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure.ApplicationInsights\Aspire.Hosting.Azure.ApplicationInsights.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Python\Aspire.Hosting.Python.csproj" />
     <PackageReference Include="Azure.AI.Projects" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
