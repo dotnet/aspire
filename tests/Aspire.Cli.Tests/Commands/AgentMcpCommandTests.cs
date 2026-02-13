@@ -408,8 +408,6 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         Assert.NotNull(dbMcpTool);
 
         // Assert - no tools/list_changed notification should have been sent.
-        // Use a bounded wait via TryRead to catch any late-arriving notification
-        // without relying on an arbitrary Task.Delay.
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
         var notificationChannel = Channel.CreateUnbounded<JsonRpcNotification>();
         await using var channelHandler = _mcpClient.RegisterNotificationHandler(
