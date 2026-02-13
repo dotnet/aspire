@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting.Tests;
 
@@ -369,24 +370,32 @@ public class EndpointReferenceTests
         resource.Annotations.Add(annotation);
         var endpointRef = new EndpointReference(resource, annotation);
 
-        var success = new SemaphoreSlim(0, 1);
+        var waitStarted = new SemaphoreSlim(0, 1);
+
+        async ValueTask<string?> GetAndCheckEndpointRefValue()
+        {
+            var url = await endpointRef.GetValueAsync(CancellationToken.None);
+            return url;
+        }
 
 #pragma warning disable CA2012 // Use ValueTasks correctly
-        var awaiter = endpointRef.GetValueAsync(CancellationToken.None).GetAwaiter();
+        var consumer = new WithWaitStartedNotification<string?>(waitStarted, GetAndCheckEndpointRefValue().GetAwaiter());
 #pragma warning restore CA2012 // Use ValueTasks correctly
 
-        awaiter.OnCompleted(() =>
-        {
-            var url = awaiter.GetResult();
-            Assert.Equal("http://localhost:5000", url);
-            success.Release();
-        });
-
-        // Now provide the allocated endpoint.
-        var allocatedEndpoint = new AllocatedEndpoint(annotation, "localhost", 5000);
-        annotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.LocalhostNetwork, allocatedEndpoint);
-
-        Assert.True(await success.WaitAsync(TimeSpan.FromSeconds(10)), "The value-waiting task did not complete in time.");
+        await Task.WhenAll
+        (
+            Task.Run(async() =>
+            {
+                await waitStarted.WaitAsync();
+                var allocatedEndpoint = new AllocatedEndpoint(annotation, "localhost", 5000);
+                annotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.LocalhostNetwork, allocatedEndpoint);
+            }),
+            Task.Run(async () =>
+            {
+                var url = await consumer;
+                Assert.Equal("http://localhost:5000", url);
+            })
+        ).WaitAsync(TimeSpan.FromSeconds(10));
     }
 
     public enum ResourceKind
@@ -397,5 +406,38 @@ public class EndpointReferenceTests
 
     private sealed class TestResource(string name) : Resource(name), IResourceWithEndpoints
     {
+    }
+
+    private struct WithWaitStartedNotification<T>
+    {
+        private readonly WaitStartedNotificationAwaiter<T> _awaiter;
+
+        public WithWaitStartedNotification(SemaphoreSlim waitStarted, ValueTaskAwaiter<T> inner)
+        {
+            _awaiter = new WaitStartedNotificationAwaiter<T>(waitStarted, inner);
+        }
+        public WaitStartedNotificationAwaiter<T> GetAwaiter() => _awaiter;
+    }
+
+    private struct WaitStartedNotificationAwaiter<T>: INotifyCompletion
+    {
+        private readonly ValueTaskAwaiter<T> _inner;
+        private readonly SemaphoreSlim _waitStarted;
+
+        public WaitStartedNotificationAwaiter(SemaphoreSlim waitStarted, ValueTaskAwaiter<T> inner)
+        {
+            _waitStarted = waitStarted;
+            _inner = inner;
+        }
+
+        public bool IsCompleted => false; // Force continuation
+
+        public void OnCompleted(Action continuation)
+        {
+            _waitStarted.Release();
+            _inner.OnCompleted(continuation);
+        }
+
+        public T GetResult() => _inner.GetResult();
     }
 }
