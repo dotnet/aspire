@@ -8,7 +8,7 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null)
+internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null, SemVersion? versionPrefix = null)
 {
     public string Name { get; } = name;
     public PackageChannelQuality Quality { get; } = quality;
@@ -16,8 +16,19 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
     public bool ConfigureGlobalPackagesFolder { get; } = configureGlobalPackagesFolder;
     public string? CliDownloadBaseUrl { get; } = cliDownloadBaseUrl;
+    public SemVersion? VersionPrefix { get; } = versionPrefix;
     
     public string SourceDetails { get; } = ComputeSourceDetails(mappings);
+    
+    private bool MatchesVersionPrefix(SemVersion semVer)
+    {
+        if (VersionPrefix is null)
+        {
+            return true;
+        }
+
+        return semVer.Major == VersionPrefix.Major && semVer.Minor == VersionPrefix.Minor;
+    }
     
     private static string ComputeSourceDetails(PackageMapping[]? mappings)
     {
@@ -69,7 +80,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
             { Quality: PackageChannelQuality.Stable, SemVer: { IsPrerelease: false } } => true,
             { Quality: PackageChannelQuality.Prerelease, SemVer: { IsPrerelease: true } } => true,
             _ => false
-        });
+        }).Where(p => MatchesVersionPrefix(SemVersion.Parse(p.Version)));
 
         return filteredPackages;
     }
@@ -104,7 +115,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
             { Quality: PackageChannelQuality.Stable, SemVer: { IsPrerelease: false } } => true,
             { Quality: PackageChannelQuality.Prerelease, SemVer: { IsPrerelease: true } } => true,
             _ => false
-        });
+        }).Where(p => MatchesVersionPrefix(SemVersion.Parse(p.Version)));
 
         return filteredPackages;
     }
@@ -159,7 +170,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
                 useCache: true, // Enable caching for package channel resolution
                 cancellationToken: cancellationToken);
 
-            return packages;
+            return packages.Where(p => MatchesVersionPrefix(SemVersion.Parse(p.Version)));
         }
 
         // When doing a `dotnet package search` the the results may include stable packages even when searching for
@@ -170,14 +181,14 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
             { Quality: PackageChannelQuality.Stable, SemVer: { IsPrerelease: false } } => true,
             { Quality: PackageChannelQuality.Prerelease, SemVer: { IsPrerelease: true } } => true,
             _ => false
-        });
+        }).Where(p => MatchesVersionPrefix(SemVersion.Parse(p.Version)));
 
         return filteredPackages;
     }
 
-    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null)
+    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null, SemVersion? versionPrefix = null)
     {
-        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder, cliDownloadBaseUrl);
+        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder, cliDownloadBaseUrl, versionPrefix);
     }
 
     public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)
