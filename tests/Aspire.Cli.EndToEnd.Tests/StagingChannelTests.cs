@@ -90,7 +90,7 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
 
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("aspire config get channel -g")
+            .Type("aspire config get channel")
             .Enter()
             .WaitUntil(s => stagingChannelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -114,7 +114,7 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
 
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("aspire config get channel -g")
+            .Type("aspire config get channel")
             .Enter()
             .WaitUntil(s => stableChannelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -128,7 +128,7 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
         // Step 8: Verify channel is staging again and staging settings are still present
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("aspire config get channel -g")
+            .Type("aspire config get channel")
             .Enter()
             .WaitUntil(s => stagingChannelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -139,7 +139,7 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
 
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("aspire config get overrideStagingQuality -g")
+            .Type("aspire config get overrideStagingQuality")
             .Enter()
             .WaitUntil(s => prereleasePattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
