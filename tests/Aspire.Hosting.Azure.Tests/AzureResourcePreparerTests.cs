@@ -183,6 +183,28 @@ public class AzureResourcePreparerTests
     }
 
     [Fact]
+    public async Task PublishDeploymentTargetIncludesComputedPrerequisitesInReferences()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(blobs);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var roleAssignmentResource = Assert.Single(model.Resources.OfType<AzureBicepResource>(), r => r.Name == "api-roles-storage");
+        var deploymentTarget = Assert.IsAssignableFrom<AzureBicepResource>(api.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
+
+        Assert.Contains(roleAssignmentResource, deploymentTarget.References);
+    }
+
+    [Fact]
     public async Task NullEnvironmentVariableIsIgnored()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
