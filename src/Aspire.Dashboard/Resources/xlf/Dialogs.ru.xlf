@@ -637,6 +637,26 @@
         <target state="translated">Тема</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogTimeFormat">
+        <source>Time Format</source>
+        <target state="new">Time Format</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTimeFormatSystem">
+        <source>System</source>
+        <target state="new">System</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTimeFormatTwelveHour">
+        <source>12-Hour</source>
+        <target state="new">12-Hour</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTimeFormatTwentyFourHour">
+        <source>24-Hour</source>
+        <target state="new">24-Hour</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogVersion">
         <source>Version: {0}</source>
         <target state="translated">Версия: {0}</target>

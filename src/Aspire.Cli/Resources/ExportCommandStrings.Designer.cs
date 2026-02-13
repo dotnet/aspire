@@ -61,20 +61,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Export telemetry and resource data to a zip file.
-        /// </summary>
-        internal static string Description {
-            get {
-                return ResourceManager.GetString("Description", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Dashboard is not available. Telemetry data (structured logs, traces) will not be included in the export..
         /// </summary>
         internal static string DashboardNotAvailable {
             get {
                 return ResourceManager.GetString("DashboardNotAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export telemetry and resource data to a zip file.
+        /// </summary>
+        internal static string Description {
+            get {
+                return ResourceManager.GetString("Description", resourceCulture);
             }
         }
         
