@@ -372,14 +372,8 @@ public class EndpointReferenceTests
 
         var waitStarted = new SemaphoreSlim(0, 1);
 
-        async ValueTask<string?> GetAndCheckEndpointRefValue()
-        {
-            var url = await endpointRef.GetValueAsync(CancellationToken.None);
-            return url;
-        }
-
 #pragma warning disable CA2012 // Use ValueTasks correctly
-        var consumer = new WithWaitStartedNotification<string?>(waitStarted, GetAndCheckEndpointRefValue().GetAwaiter());
+        var consumer = new WithWaitStartedNotification<string?>(waitStarted, endpointRef.GetValueAsync(CancellationToken.None).GetAwaiter());
 #pragma warning restore CA2012 // Use ValueTasks correctly
 
         await Task.WhenAll
