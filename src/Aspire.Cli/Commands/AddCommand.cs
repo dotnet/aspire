@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -325,7 +326,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         // Helper to keep labels consistently formatted: "Version (source)"
         static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+            return $"{item.Package.Version.EscapeMarkup()} ({item.Channel.SourceDetails.EscapeMarkup()})";
         }
 
         async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -395,7 +396,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             var item = channelGroup.HighestVersion;
 
             rootChoices.Add((
-                Label: channel.Name,
+                Label: channel.Name.EscapeMarkup(),
                 // For explicit channels, we still show submenu but with only the highest version
                 Action: ct => PromptForChannelPackagesAsync(channel, new[] { item }, ct)
             ));
@@ -442,11 +443,11 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
     {
         if (packageWithFriendlyName.FriendlyName is { } friendlyName)
         {
-            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+            return $"[bold]{friendlyName.EscapeMarkup()}[/] ({packageWithFriendlyName.Package.Id.EscapeMarkup()})";
         }
         else
         {
-            return packageWithFriendlyName.Package.Id;
+            return packageWithFriendlyName.Package.Id.EscapeMarkup();
         }
     }
 }
