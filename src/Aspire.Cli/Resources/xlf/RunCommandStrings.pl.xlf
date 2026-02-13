@@ -37,6 +37,11 @@
         <target state="translated">Proces hosta aplikacji zakończył się z kodem {0}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">Host aplikacji został pomyślnie uruchomiony.</target>

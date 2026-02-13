@@ -10,6 +10,7 @@ using System.Globalization;
 using System.Diagnostics;
 #endif
 
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -110,6 +111,7 @@ internal sealed class RootCommand : BaseRootCommand
         StopCommand stopCommand,
         StartCommand startCommand,
         RestartCommand restartCommand,
+        WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
         ResourcesCommand resourcesCommand,
@@ -130,6 +132,7 @@ internal sealed class RootCommand : BaseRootCommand
         SdkCommand sdkCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
+        IBundleService bundleService,
         IFeatures featureFlags,
         IInteractionService interactionService)
         : base(RootCommandStrings.Description)
@@ -189,6 +192,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(stopCommand);
         Subcommands.Add(startCommand);
         Subcommands.Add(restartCommand);
+        Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
         Subcommands.Add(resourcesCommand);
@@ -206,7 +210,11 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
         Subcommands.Add(docsCommand);
-        Subcommands.Add(setupCommand);
+
+        if (bundleService.IsBundle)
+        {
+            Subcommands.Add(setupCommand);
+        }
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
