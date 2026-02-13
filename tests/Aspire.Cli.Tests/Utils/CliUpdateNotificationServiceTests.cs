@@ -28,7 +28,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
             {
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
-                    // Should be ignored because its lower that current prerelease version.
+                    // Should be ignored because it's lower than current prerelease version.
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.3.1", Source = "nuget.org" },
 
                     // Should be selected because it is higher than 9.4.0-dev (dev and preview sort using alphabetical sort).
