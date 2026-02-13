@@ -553,7 +553,7 @@ public class ConsoleInteractionServiceTests
     {
         // Arrange - verifies that PromptForSelectionAsync does NOT escape the formatter output,
         // allowing callers to include intentional Spectre markup (e.g., [bold]...[/]).
-        // This is a regression test for https://github.com/dotnet/aspire/issues/XXXXX where
+        // This is a regression test for https://github.com/dotnet/aspire/pull/14422 where
         // blanket EscapeMarkup() in the converter broke [bold] rendering in 'aspire add'.
         var output = new StringBuilder();
         var console = AnsiConsole.Create(new AnsiConsoleSettings
