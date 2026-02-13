@@ -105,7 +105,7 @@ public static class AzureApplicationInsightsExtensions
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = appInsights.Name.ToBicepExpression() });
 
             // Add id output for the resource for AI Foundry connections
-            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = appInsights.Id });
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = appInsights.Id.ToBicepExpression() });
         };
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);
