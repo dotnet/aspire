@@ -117,8 +117,18 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
 
         lock (_lock)
         {
-            var changed = _resourceToolMap.Count != refreshedMap.Count
-                || !_resourceToolMap.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(refreshedMap.Keys);
+            var changed = _resourceToolMap.Count != refreshedMap.Count;
+            if (!changed)
+            {
+                foreach (var key in _resourceToolMap.Keys)
+                {
+                    if (!refreshedMap.ContainsKey(key))
+                    {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
 
             _resourceToolMap = refreshedMap;
             _selectedAppHostPath = selectedAppHostPath;

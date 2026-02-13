@@ -402,15 +402,36 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         // but should NOT send a tools/list_changed notification (that would cause an infinite loop)
         var tools = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
 
-        // Give a small window for any spurious notification to arrive
-        await Task.Delay(200, _cts.Token);
-
         // Assert - tools should include the resource tool
         Assert.NotNull(tools);
         var dbMcpTool = tools.FirstOrDefault(t => t.Name == "db_mcp_query_database");
         Assert.NotNull(dbMcpTool);
 
-        // Assert - no tools/list_changed notification should have been sent
+        // Assert - no tools/list_changed notification should have been sent.
+        // Use a bounded wait via TryRead to catch any late-arriving notification
+        // without relying on an arbitrary Task.Delay.
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        var notificationChannel = Channel.CreateUnbounded<JsonRpcNotification>();
+        await using var channelHandler = _mcpClient.RegisterNotificationHandler(
+            NotificationMethods.ToolListChangedNotification,
+            (notification, _) =>
+            {
+                notificationChannel.Writer.TryWrite(notification);
+                return default;
+            });
+
+        var received = false;
+        try
+        {
+            await notificationChannel.Reader.ReadAsync(timeoutCts.Token);
+            received = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — no notification arrived within the timeout
+        }
+
+        Assert.False(received, "tools/list_changed notification should not be sent during tools/list handling");
         Assert.Equal(0, notificationCount);
     }
 
