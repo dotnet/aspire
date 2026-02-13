@@ -286,6 +286,21 @@ public class EndpointReferenceTests
         Assert.Null(targetPort);
     }
 
+    [Fact]
+    public void AllocatedEndpoint_ThrowsWhenNetworkIdDoesNotMatch()
+    {
+        var annotation = new EndpointAnnotation(ProtocolType.Tcp, KnownNetworkIdentifiers.LocalhostNetwork, uriScheme: "http", name: "http");
+
+        // Create an AllocatedEndpoint with a different network ID.
+        var mismatchedEndpoint = new AllocatedEndpoint(
+            annotation, "localhost", 8080,
+            EndpointBindingMode.SingleAddress,
+            targetPortExpression: null,
+            networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => annotation.AllocatedEndpoint = mismatchedEndpoint);
+    }
+
     [Theory]
     [InlineData(EndpointProperty.Url, ResourceKind.Host, ResourceKind.Host, "blah://localhost:1234")]
     [InlineData(EndpointProperty.Url, ResourceKind.Host, ResourceKind.Container, "blah://localhost:1234")]

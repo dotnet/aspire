@@ -204,8 +204,10 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint
     {
+#pragma warning disable CS0618 // Type or member is obsolete (AllocatedEndpointSnapshot)
         get
         {
+
             if (!AllocatedEndpointSnapshot.IsValueSet)
             {
                 return null;
@@ -225,14 +227,20 @@ public sealed class EndpointAnnotation : IResourceAnnotation
             }
             else
             {
+                if (_networkID != value.NetworkID)
+                {
+                    throw new InvalidOperationException($"The default AllocatedEndpoint's network ID must match the EndpointAnnotation network ID ('{_networkID}'). The attempted AllocatedEndpoint belongs to '{value.NetworkID}'.");
+                }
                 AllocatedEndpointSnapshot.SetValue(value);
             }
         }
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
     /// Gets the <see cref="AllocatedEndpointSnapshot"/> for the default <see cref="AllocatedEndpoint"/>.
     /// </summary>
+    [Obsolete("This property will be marked as internal in future Aspire release. Use AllocatedEndpoint and AllAllocatedEndpoints properties to access and change allocated endpoints associated with an EndpointAnnotation.")]
     public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get; } = new();
 
     /// <summary>

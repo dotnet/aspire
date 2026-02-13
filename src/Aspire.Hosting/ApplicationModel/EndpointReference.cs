@@ -141,8 +141,10 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
 
+#pragma warning disable CS0618 // Type or member is obsolete
     internal ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot =>
         EndpointAnnotation.AllocatedEndpointSnapshot;
+#pragma warning restore CS0618 // Type or member is obsolete
 
     internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
