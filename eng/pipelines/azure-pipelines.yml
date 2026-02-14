@@ -8,6 +8,10 @@ parameters:
     displayName: 'Publish as Pre-Release'
     type: boolean
     default: false
+  - name: publishReleaseToWinGet
+    displayName: 'Publish release branch builds to WinGet'
+    type: boolean
+    default: false
 
 trigger:
   batch: true
@@ -54,8 +58,9 @@ variables:
   # True on main, release/*, internal/release/* — used to gate secret-group loading and WinGet publishing.
   - name: _IsPublishBranch
     value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}
+  # Publish to WinGet on main (always, non-PR) or release branches (only when publishReleaseToWinGet is true)
   - name: _PublishToWinGet
-    value: ${{ variables._IsPublishBranch }}
+    value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), and(or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')), eq(parameters.publishReleaseToWinGet, true))) }}
 
   # Use the release package id on release/* and internal/release/* branches, prerelease everywhere else
   - ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}:
@@ -351,7 +356,7 @@ extends:
               fetchDepth: 1
             - template: /eng/pipelines/templates/winget.yml@self
               parameters:
-                publishToWinGet: ${{ variables._IsPublishBranch }}
+                publishToWinGet: ${{ variables._PublishToWinGet }}
                 wingetToken: $(aspire-winget-bot-pat)
                 buildConfig: $(_BuildConfig)
                 version: $(aspireVersion)
