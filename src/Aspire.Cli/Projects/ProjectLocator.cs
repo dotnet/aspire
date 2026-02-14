@@ -314,7 +314,7 @@ internal sealed class ProjectLocator(
         if (language is not null && !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
             await configurationService.SetConfigurationAsync("language", language.LanguageId.Value, isGlobal: false, cancellationToken);
-            
+
             // Inherit SDK version from parent/global config if available
             var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
             if (!string.IsNullOrEmpty(inheritedSdkVersion))

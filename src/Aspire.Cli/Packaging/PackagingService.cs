@@ -4,7 +4,6 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Microsoft.Extensions.Configuration;
-using Semver;
 using System.Reflection;
 
 namespace Aspire.Cli.Packaging;
@@ -92,13 +91,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             return null;
         }
 
-        var versionPrefix = GetStagingVersionPrefix();
+        var pinnedVersion = GetStagingPinnedVersion(useSharedFeed);
 
         var stagingChannel = PackageChannel.CreateExplicitChannel(PackageChannelNames.Staging, stagingQuality, new[]
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache, configureGlobalPackagesFolder: !useSharedFeed, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily", versionPrefix: versionPrefix);
+        }, nuGetPackageCache, configureGlobalPackagesFolder: !useSharedFeed, cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/rc/daily", pinnedVersion: pinnedVersion);
 
         return stagingChannel;
     }
@@ -166,20 +165,18 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         return PackageChannelQuality.Stable;
     }
 
-    private SemVersion? GetStagingVersionPrefix()
+    private string? GetStagingPinnedVersion(bool useSharedFeed)
     {
-        var versionPrefixValue = configuration["stagingVersionPrefix"];
-        if (string.IsNullOrEmpty(versionPrefixValue))
+        // Only pin versions when using the shared feed and the config flag is set
+        var pinToCliVersion = configuration["stagingPinToCliVersion"];
+        if (!useSharedFeed || !string.Equals(pinToCliVersion, "true", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
 
-        // Parse "Major.Minor" format (e.g., "13.2") as a SemVersion for comparison
-        if (SemVersion.TryParse($"{versionPrefixValue}.0", SemVersionStyles.Strict, out var semVersion))
-        {
-            return semVersion;
-        }
-
-        return null;
+        // Get the CLI's own version and strip build metadata (+hash)
+        var cliVersion = Utils.VersionHelper.GetDefaultTemplateVersion();
+        var plusIndex = cliVersion.IndexOf('+');
+        return plusIndex >= 0 ? cliVersion[..plusIndex] : cliVersion;
     }
 }
