@@ -37,6 +37,11 @@
         <target state="translated">AppHost 프로세스가 {0} 코드로 종료되었습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost를 시작했습니다.</target>

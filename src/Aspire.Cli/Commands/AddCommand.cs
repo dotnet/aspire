@@ -100,8 +100,13 @@ internal sealed class AddCommand : BaseCommand
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
-                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
-                configuredChannel = settings?.Channel;
+                var appHostDirectory = effectiveAppHostProjectFile.Directory!.FullName;
+                var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
+                if (!isProjectReferenceMode)
+                {
+                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
+                    configuredChannel = settings?.Channel;
+                }
             }
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(

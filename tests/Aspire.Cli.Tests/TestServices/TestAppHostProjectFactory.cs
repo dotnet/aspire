@@ -117,6 +117,11 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         public string DisplayName => "C# (.NET)";
         public string? AppHostFileName => "AppHost.csproj";
 
+        public bool IsUsingProjectReferences(FileInfo appHostFile)
+        {
+            return false;
+        }
+
         public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken)
             => Task.FromResult(s_detectionPatterns);
 

@@ -8,6 +8,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -58,7 +59,7 @@ internal sealed class AppHostServerProjectFactory(
         }
 
         // Priority 1: Check for dev mode (ASPIRE_REPO_ROOT or running from Aspire source repo)
-        var repoRoot = DetectAspireRepoRoot();
+        var repoRoot = AspireRepositoryDetector.DetectRepositoryRoot(appPath);
         if (repoRoot is not null)
         {
             return new DotNetBasedAppHostServerProject(
@@ -90,41 +91,5 @@ internal sealed class AppHostServerProjectFactory(
         throw new InvalidOperationException(
             "No Aspire AppHost server is available. Ensure the Aspire CLI is installed " +
             "with a valid bundle layout, or reinstall using 'aspire setup --force'.");
-    }
-
-    /// <summary>
-    /// Detects the Aspire repository root for dev mode.
-    /// Checks ASPIRE_REPO_ROOT env var first, then walks up from the CLI executable
-    /// looking for a git repo containing Aspire.slnx.
-    /// </summary>
-    private static string? DetectAspireRepoRoot()
-    {
-        // Check explicit environment variable
-        var envRoot = Environment.GetEnvironmentVariable("ASPIRE_REPO_ROOT");
-        if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
-        {
-            return envRoot;
-        }
-
-        // Auto-detect: walk up from the CLI executable looking for .git + Aspire.slnx
-        var cliPath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(cliPath))
-        {
-            return null;
-        }
-
-        var dir = Path.GetDirectoryName(cliPath);
-        while (dir is not null)
-        {
-            if (Directory.Exists(Path.Combine(dir, ".git")) &&
-                File.Exists(Path.Combine(dir, "Aspire.slnx")))
-            {
-                return dir;
-            }
-
-            dir = Path.GetDirectoryName(dir);
-        }
-
-        return null;
     }
 }
