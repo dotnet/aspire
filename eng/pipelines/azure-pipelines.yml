@@ -50,9 +50,32 @@ pr:
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
+
+  # True on main, release/*, internal/release/* — used to gate secret-group loading and WinGet publishing.
+  - name: _IsPublishBranch
+    value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}
+  - name: _PublishToWinGet
+    value: ${{ variables._IsPublishBranch }}
+
+  # Use the release package id on release/* and internal/release/* branches, prerelease everywhere else
+  - ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}:
+    - name: _WinGetTemplateDir
+      value: microsoft.aspire
+    - name: _WinGetPackageIdentifier
+      value: Microsoft.Aspire
+  - ${{ else }}:
+    - name: _WinGetTemplateDir
+      value: microsoft.aspire.prerelease
+    - name: _WinGetPackageIdentifier
+      value: Microsoft.Aspire.Prerelease
+
   # Variable group containing VscePublishToken for VS Code Marketplace publishing
   - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
     - group: Aspire-Release-Secrets
+
+  # Load secret variable groups for WinGet publishing
+  - ${{ if eq(variables._IsPublishBranch, 'True') }}:
+    - group: Aspire-Secrets
 
   - name: _BuildConfig
     value: Release
@@ -297,3 +320,40 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
+
+    # ----------------------------------------------------------------
+    # Publish WinGet manifests (Windows)
+    # ----------------------------------------------------------------
+    - stage: publish_winget
+      displayName: Publish to WinGet
+      dependsOn:
+        - build
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables._IsPublishBranch, 'True'))
+      jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuild: false
+          enablePublishUsingPipelines: false
+          enablePublishBuildAssets: false
+          enablePublishBuildArtifacts: true
+          enableTelemetry: true
+          workspace:
+            clean: all
+          jobs:
+          - job: WinGet_Publish
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-windows-2022
+              os: windows
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - template: /eng/pipelines/templates/winget.yml@self
+              parameters:
+                publishToWinGet: ${{ variables._IsPublishBranch }}
+                wingetToken: $(aspire-winget-bot-pat)
+                buildConfig: $(_BuildConfig)
+                version: $(aspireVersion)
+                templateDir: ${{ variables._WinGetTemplateDir }}
+                packageIdentifier: ${{ variables._WinGetPackageIdentifier }}
