@@ -37,6 +37,11 @@
         <target state="translated">AppHost işlemi {0} koduyla sonlandırıldı.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost başarıyla başlatıldı.</target>
