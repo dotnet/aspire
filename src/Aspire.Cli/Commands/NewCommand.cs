@@ -282,7 +282,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
         {
             // Keep it concise: "Version (source)"
-            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+            return $"{item.Package.Version.EscapeMarkup()} ({item.Channel.SourceDetails.EscapeMarkup()})";
         }
 
         async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -330,7 +330,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             var items = channelGroup.ToArray();
 
             rootChoices.Add((
-                Label: channel.Name,
+                Label: channel.Name.EscapeMarkup(),
                 Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
             ));
         }
@@ -380,7 +380,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
-            t => t.Description,
+            t => t.Description.EscapeMarkup(),
             cancellationToken
         );
     }

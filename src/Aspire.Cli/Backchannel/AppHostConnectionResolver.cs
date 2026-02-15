@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -125,7 +126,7 @@ internal sealed class AppHostConnectionResolver(
             var selectedDisplay = await interactionService.PromptForSelectionAsync(
                 selectPrompt,
                 choices.Select(c => c.Display).ToArray(),
-                c => c,
+                c => c.EscapeMarkup(),
                 cancellationToken);
 
             selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
@@ -148,7 +149,7 @@ internal sealed class AppHostConnectionResolver(
             var selectedDisplay = await interactionService.PromptForSelectionAsync(
                 selectPrompt,
                 choices.Select(c => c.Display).ToArray(),
-                c => c,
+                c => c.EscapeMarkup(),
                 cancellationToken);
 
             selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
