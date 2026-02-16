@@ -15,9 +15,9 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcaCustomRegistryDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 40 minutes to allow for Azure provisioning.
-    // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
+    // Timeout set to 45 minutes to allow for Azure provisioning.
+    // Full deployments with custom ACR can take up to 35 minutes if Azure infrastructure is backed up.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(45);
 
     [Fact]
     public async Task DeployStarterTemplateWithCustomRegistry()
@@ -98,9 +98,12 @@ public sealed class AcaCustomRegistryDeploymentTests(ITestOutputHelper output)
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
-            // Pattern searcher for deployment success
+            // Pattern searchers for deployment completion
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
+
+            var waitingForPipelineFailed = new CellPatternSearcher()
+                .Find("PIPELINE FAILED");
 
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -212,10 +215,26 @@ builder.Build().Run();
 
             // Step 10: Deploy to Azure Container Apps using aspire deploy
             output.WriteLine("Step 10: Starting Azure Container Apps deployment...");
+            var pipelineSucceeded = false;
             sequenceBuilder
                 .Type("aspire deploy --clear-cache")
                 .Enter()
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
+                .WaitUntil(s =>
+                {
+                    if (waitingForPipelineSucceeded.Search(s).Count > 0)
+                    {
+                        pipelineSucceeded = true;
+                        return true;
+                    }
+                    return waitingForPipelineFailed.Search(s).Count > 0;
+                }, TimeSpan.FromMinutes(35))
+                .ExecuteCallback(() =>
+                {
+                    if (!pipelineSucceeded)
+                    {
+                        throw new InvalidOperationException("Deployment pipeline failed. Check the terminal output for details.");
+                    }
+                })
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 11: Extract deployment URLs and verify endpoints with retry

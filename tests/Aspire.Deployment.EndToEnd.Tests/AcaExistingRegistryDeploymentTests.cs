@@ -15,8 +15,8 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcaExistingRegistryDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 40 minutes to allow for ACR pre-creation and Azure provisioning.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
+    // Timeout set to 45 minutes to allow for ACR pre-creation and Azure provisioning.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(45);
 
     [Fact]
     public async Task DeployStarterTemplateWithExistingRegistry()
@@ -108,9 +108,12 @@ public sealed class AcaExistingRegistryDeploymentTests(ITestOutputHelper output)
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
-            // Pattern searcher for deployment success
+            // Pattern searchers for deployment completion
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
+
+            var waitingForPipelineFailed = new CellPatternSearcher()
+                .Find("PIPELINE FAILED");
 
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -209,10 +212,9 @@ public sealed class AcaExistingRegistryDeploymentTests(ITestOutputHelper output)
 
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
-// Reference existing Azure Container Registry via parameters
+// Reference existing Azure Container Registry via parameter
 var acrName = builder.AddParameter("acrName");
-var acrResourceGroup = builder.AddParameter("acrResourceGroup");
-var acr = builder.AddAzureContainerRegistry("existingacr").AsExisting(acrName, acrResourceGroup);
+var acr = builder.AddAzureContainerRegistry("existingacr").AsExisting(acrName, null);
 builder.AddAzureContainerAppEnvironment("infra").WithAzureContainerRegistry(acr);
 
 builder.Build().Run();
@@ -231,22 +233,37 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 10: Set environment variables for deployment including ACR parameters
+            // Step 10: Set environment variables for deployment including ACR parameter
             sequenceBuilder.Type(
                     $"unset ASPIRE_PLAYGROUND && " +
                     $"export AZURE__LOCATION=westus3 && " +
                     $"export AZURE__RESOURCEGROUP={resourceGroupName} && " +
-                    $"export Parameters__acrName={acrName} && " +
-                    $"export Parameters__acrResourceGroup={resourceGroupName}")
+                    $"export Parameters__acrName={acrName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
             // Step 11: Deploy to Azure Container Apps using aspire deploy
             output.WriteLine("Step 11: Starting Azure Container Apps deployment...");
+            var pipelineSucceeded = false;
             sequenceBuilder
                 .Type("aspire deploy --clear-cache")
                 .Enter()
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
+                .WaitUntil(s =>
+                {
+                    if (waitingForPipelineSucceeded.Search(s).Count > 0)
+                    {
+                        pipelineSucceeded = true;
+                        return true;
+                    }
+                    return waitingForPipelineFailed.Search(s).Count > 0;
+                }, TimeSpan.FromMinutes(35))
+                .ExecuteCallback(() =>
+                {
+                    if (!pipelineSucceeded)
+                    {
+                        throw new InvalidOperationException("Deployment pipeline failed. Check the terminal output for details.");
+                    }
+                })
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 12: Extract deployment URLs and verify endpoints with retry
