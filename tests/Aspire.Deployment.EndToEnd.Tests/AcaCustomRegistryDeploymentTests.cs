@@ -261,12 +261,23 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 12: Verify custom ACR was created
-            output.WriteLine("Step 12: Verifying custom ACR was created...");
+            // Step 12: Verify custom ACR contains container images
+            output.WriteLine("Step 12: Verifying container images in custom ACR...");
             sequenceBuilder
-                .Type($"az acr list -g \"{resourceGroupName}\" --query \"[].name\" -o tsv")
+                .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
+                      "echo \"ACR: $ACR_NAME\" && " +
+                      "if [ -z \"$ACR_NAME\" ]; then echo \"❌ No ACR found in resource group\"; exit 1; fi && " +
+                      "REPOS=$(az acr repository list --name \"$ACR_NAME\" -o tsv) && " +
+                      "echo \"Repositories: $REPOS\" && " +
+                      "if [ -z \"$REPOS\" ]; then echo \"❌ No container images found in ACR\"; exit 1; fi && " +
+                      "for repo in $REPOS; do " +
+                      "TAGS=$(az acr repository show-tags --name \"$ACR_NAME\" --repository \"$repo\" -o tsv); " +
+                      "echo \"  $repo: $TAGS\"; " +
+                      "if [ -z \"$TAGS\" ]; then echo \"  ❌ No tags for $repo\"; exit 1; fi; " +
+                      "done && " +
+                      "echo \"✅ All container images verified in ACR\"")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 13: Exit terminal
             sequenceBuilder

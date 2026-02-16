@@ -289,12 +289,21 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 13: Verify the pre-existing ACR is still present
-            output.WriteLine("Step 13: Verifying pre-existing ACR...");
+            // Step 13: Verify the pre-existing ACR contains container images
+            output.WriteLine("Step 13: Verifying container images in pre-existing ACR...");
             sequenceBuilder
-                .Type($"az acr show --name {acrName} --resource-group {resourceGroupName} --query name -o tsv")
+                .Type($"echo \"ACR: {acrName}\" && " +
+                      $"REPOS=$(az acr repository list --name \"{acrName}\" -o tsv) && " +
+                      "echo \"Repositories: $REPOS\" && " +
+                      "if [ -z \"$REPOS\" ]; then echo \"❌ No container images found in ACR\"; exit 1; fi && " +
+                      "for repo in $REPOS; do " +
+                      $"TAGS=$(az acr repository show-tags --name \"{acrName}\" --repository \"$repo\" -o tsv); " +
+                      "echo \"  $repo: $TAGS\"; " +
+                      "if [ -z \"$TAGS\" ]; then echo \"  ❌ No tags for $repo\"; exit 1; fi; " +
+                      "done && " +
+                      "echo \"✅ All container images verified in ACR\"")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 14: Exit terminal
             sequenceBuilder
