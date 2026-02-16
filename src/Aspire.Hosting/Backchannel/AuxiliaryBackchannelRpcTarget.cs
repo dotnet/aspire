@@ -989,6 +989,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     #endregion
 
     /// <summary>
+    /// Streams AppHost log entries from the hosting process.
+    /// Delegates to <see cref="AppHostRpcTarget.GetAppHostLogEntriesAsync"/>.
+    /// </summary>
+    public IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken = default)
+    {
+        var rpcTarget = serviceProvider.GetRequiredService<AppHostRpcTarget>();
+        return rpcTarget.GetAppHostLogEntriesAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Converts a JsonElement to its underlying CLR type for proper serialization.
     /// </summary>
     private static object? ConvertJsonElementToObject(JsonElement element)
