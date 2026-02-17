@@ -86,7 +86,7 @@ stages:
 
           pool:
             name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals 1es-windows-2022-open
+            demands: ImageOverride -equals windows.vs2026preview.scout.amd64.open
 
           variables:
             - name: _buildScript
