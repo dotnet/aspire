@@ -21,7 +21,7 @@ internal class OtlpEndpointReferenceGatherer : IExecutionConfigurationGatherer
 {
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        if (!resource.IsContainer() || !resource.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _))
+        if (!resource.IsContainer() || !resource.TryGetLastAnnotation<OtlpExporterAnnotation>(out var oea))
         {
             // This gatherer is only relevant for container resources that emit OTEL telemetry.
             return;
@@ -33,11 +33,17 @@ internal class OtlpEndpointReferenceGatherer : IExecutionConfigurationGatherer
             return;
         }
 
-        var model = executionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+        var model = executionContext.ServiceProvider.GetService<DistributedApplicationModel>();
+        if (model is null)
+        {
+            // Tests may not have a full model
+            return;
+        }
+
         var dashboardResource = model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) as IResourceWithEndpoints;
         if (dashboardResource == null)
         {
-            Debug.Fail("We should have a dashboard resource in the model");
+            // Most test runs do not include the dashboard, and that's ok. If the dashboard is not present, do not try to set the OTLP endpoint.
             return;
         }
 
@@ -51,13 +57,15 @@ internal class OtlpEndpointReferenceGatherer : IExecutionConfigurationGatherer
         var httpEndpoint = dashboardEndpoints.FirstOrDefault(e => e.Name == KnownEndpointNames.OtlpHttpEndpointName);
         var resourceNetwork = resource.GetDefaultResourceNetwork();
 
-        var endpointReference = (grpcEndpoint, httpEndpoint) switch
+        var endpointReference = (oea.RequiredProtocol, grpcEndpoint, httpEndpoint) switch
         {
-            (not null, _) => new EndpointReference(dashboardResource, grpcEndpoint, resourceNetwork),
-            (_, not null) => new EndpointReference(dashboardResource, httpEndpoint, resourceNetwork),
+            (OtlpProtocol.Grpc, not null, _) => new EndpointReference(dashboardResource, grpcEndpoint, resourceNetwork),
+            (OtlpProtocol.HttpProtobuf or OtlpProtocol.HttpJson, _, not null) => new EndpointReference(dashboardResource, httpEndpoint, resourceNetwork),
+            (_, not null, _) => new EndpointReference(dashboardResource, grpcEndpoint, resourceNetwork),
+            (_, _, not null) => new EndpointReference(dashboardResource, httpEndpoint, resourceNetwork),
             _ => null
         };
-        Debug.Assert(endpointReference != null, "Dashboard should have at least one OTLP endpoint");
+        Debug.Assert(endpointReference != null, "Dashboard should have at least one matching OTLP endpoint");
 
         if (endpointReference is not null)
         {

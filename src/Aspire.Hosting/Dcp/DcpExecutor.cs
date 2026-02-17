@@ -248,7 +248,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     return; // No tunnel-dependent containers, nothing to do.
                 }
 
-                await createExecutableEndpoints.ConfigureAwait(false);
+                await Task.WhenAll([getProxyAddresses, createContainerNetworks, createExecutableEndpoints]).ConfigureAwait(false);
+
+                // There is no need to wait with creating tunnel-dependent containers till container tunnel is created.
+                // The containers will not be started until the tunnel endpoints they use are ready, but this is handled internally by DCP.
 
                 AddAllocatedEndpointInfo(tunnelDependent, AllocatedEndpointsMode.Workload);
                 await PublishEndpointAllocatedEventAsync(endpointsAdvertised, tunnelDependent, ct).ConfigureAwait(false);
@@ -1057,6 +1060,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                             );
                             sp.EndpointAnnotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(allocatedEndpoint.NetworkID, allocatedEndpoint);
                         }
+                    }
+
+                    // If we are not using the tunnel, we can project Executable endpoints into container networks via ContainerHostName.
+                    // This really only works for Docker Desktop, but it is useful for testing too.
+                    if (appResource.DcpResource is Executable && !_options.Value.EnableAspireContainerTunnel)
+                    {
+                        var port = sp.EndpointAnnotation.TargetPort!;
+                        var allocatedEndpoint = new AllocatedEndpoint(
+                            sp.EndpointAnnotation,
+                            ContainerHostName,
+                            (int)svc.AllocatedPort!,
+                            EndpointBindingMode.SingleAddress,
+                            targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                            KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                        );
+                        sp.EndpointAnnotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, allocatedEndpoint);
                     }
                 }
             }
