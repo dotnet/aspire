@@ -90,21 +90,23 @@ steps:
 
       Write-Host "Manifest files generated:"
       Get-ChildItem -Path $outputPath -Recurse | Format-Table FullName
-    displayName: 🟣Generate WinGet manifests
 
-  - pwsh: |
-      $ErrorActionPreference = 'Stop'
-      $manifestPath = '$(Build.StagingDirectory)/winget-manifests'
-      $version = '$(CliVersion)'
-
-      # Find the versioned manifest folder
-      $versionedManifestPath = Get-ChildItem -Path $manifestPath -Directory -Recurse |
+      # Find the versioned manifest folder and expose as a pipeline variable
+      $versionedManifestPath = Get-ChildItem -Path $outputPath -Directory -Recurse |
         Where-Object { $_.Name -eq $version } |
         Select-Object -First 1 -ExpandProperty FullName
 
       if (-not $versionedManifestPath) {
-        $versionedManifestPath = $manifestPath
+        $versionedManifestPath = $outputPath
       }
+
+      Write-Host "Versioned manifest path: $versionedManifestPath"
+      Write-Host "##vso[task.setvariable variable=VersionedManifestPath]$versionedManifestPath"
+    displayName: 🟣Generate WinGet manifests
+
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      $versionedManifestPath = '$(VersionedManifestPath)'
 
       Write-Host "Testing WinGet manifests at: $versionedManifestPath"
       Write-Host ""
@@ -130,17 +132,7 @@ steps:
 
   - pwsh: |
       $ErrorActionPreference = 'Stop'
-      $manifestPath = '$(Build.StagingDirectory)/winget-manifests'
-      $version = '$(CliVersion)'
-
-      # Find the versioned manifest folder
-      $versionedManifestPath = Get-ChildItem -Path $manifestPath -Directory -Recurse |
-        Where-Object { $_.Name -eq $version } |
-        Select-Object -First 1 -ExpandProperty FullName
-
-      if (-not $versionedManifestPath) {
-        $versionedManifestPath = $manifestPath
-      }
+      $versionedManifestPath = '$(VersionedManifestPath)'
 
       Write-Host "Testing manifest install/uninstall at: $versionedManifestPath"
       Write-Host ""
