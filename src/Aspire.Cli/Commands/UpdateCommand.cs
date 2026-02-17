@@ -178,7 +178,7 @@ internal sealed class UpdateCommand : BaseCommand
                     channel = await InteractionService.PromptForSelectionAsync(
                         UpdateCommandStrings.SelectChannelPrompt,
                         allChannels,
-                        (c) => $"{c.Name} ({c.SourceDetails})",
+                        (c) => $"{c.Name.EscapeMarkup()} ({c.SourceDetails.EscapeMarkup()})",
                         cancellationToken);
                 }
                 else

@@ -804,7 +804,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         var (value, displayText) = await InteractionService.PromptForSelectionAsync(
             promptText,
             options,
-            choice => choice.Value,
+            choice => choice.Value.EscapeMarkup(),
             cancellationToken);
 
         if (value == CustomChoiceValue)
