@@ -55,6 +55,11 @@ internal abstract class PipelineCommandBase : BaseCommand
         Description = "The environment to use for the operation. The default is 'Production'."
     };
 
+    protected static readonly Option<bool> s_noBuildOption = new("--no-build")
+    {
+        Description = PublishCommandStrings.NoBuildArgumentDescription
+    };
+
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
 
@@ -88,6 +93,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         Options.Add(s_logLevelOption);
         Options.Add(s_environmentOption);
         Options.Add(s_includeExceptionDetailsOption);
+        Options.Add(s_noBuildOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -103,6 +109,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     {
         var debugMode = parseResult.GetValue(RootCommand.DebugOption);
         var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
+        var noBuild = parseResult.GetValue(s_noBuildOption);
 
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;
@@ -156,7 +163,8 @@ internal abstract class PipelineCommandBase : BaseCommand
                 Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
                 BackchannelCompletionSource = backchannelCompletionSource,
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
-                Debug = debugMode
+                Debug = debugMode,
+                NoBuild = noBuild
             };
 
             pendingRun = project.PublishAsync(publishContext, cancellationToken);

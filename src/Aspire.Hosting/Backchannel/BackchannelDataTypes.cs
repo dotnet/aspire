@@ -299,6 +299,67 @@ internal sealed class ExecuteResourceCommandResponse
 
 #endregion
 
+#region Wait For Resource
+
+/// <summary>
+/// Request to wait for a resource to reach a target status.
+/// </summary>
+internal sealed class WaitForResourceRequest
+{
+    /// <summary>
+    /// Gets the name of the resource to wait for.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the target status to wait for (e.g., "up", "healthy", "down").
+    /// </summary>
+    public required string Status { get; init; }
+
+    /// <summary>
+    /// Gets the timeout in seconds.
+    /// </summary>
+    public int TimeoutSeconds { get; init; } = 120;
+}
+
+/// <summary>
+/// Response from waiting for a resource.
+/// </summary>
+internal sealed class WaitForResourceResponse
+{
+    /// <summary>
+    /// Gets whether the resource reached the target status.
+    /// </summary>
+    public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets the current state of the resource.
+    /// </summary>
+    public string? State { get; init; }
+
+    /// <summary>
+    /// Gets the current health status of the resource.
+    /// </summary>
+    public string? HealthStatus { get; init; }
+
+    /// <summary>
+    /// Gets whether the resource was not found.
+    /// </summary>
+    public bool ResourceNotFound { get; init; }
+
+    /// <summary>
+    /// Gets whether the wait timed out.
+    /// </summary>
+    public bool TimedOut { get; init; }
+
+    /// <summary>
+    /// Gets the error message if the wait failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+}
+
+#endregion
+
 /// <summary>
 /// Represents the state of a resource reported via RPC.
 /// </summary>

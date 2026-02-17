@@ -226,6 +226,95 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         };
     }
 
+    /// <summary>
+    /// Waits for a resource to reach a target status.
+    /// </summary>
+    public async Task<WaitForResourceResponse> WaitForResourceAsync(WaitForResourceRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is not null && !appModel.Resources.Any(r => StringComparers.ResourceName.Equals(r.Name, request.ResourceName)))
+        {
+            return new WaitForResourceResponse
+            {
+                Success = false,
+                ResourceNotFound = true,
+                ErrorMessage = $"Resource '{request.ResourceName}' was not found."
+            };
+        }
+
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(request.TimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            return request.Status switch
+            {
+                "healthy" => await WaitForHealthyAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "up" => await WaitForRunningAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "down" => await WaitForTerminalAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                _ => new WaitForResourceResponse { Success = false, ErrorMessage = $"Unknown status: {request.Status}" }
+            };
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return new WaitForResourceResponse { Success = false, TimedOut = true, ErrorMessage = $"Timed out waiting for resource '{request.ResourceName}'." };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            return new WaitForResourceResponse { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForHealthyAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceHealthyAsync(resourceName, WaitBehavior.StopOnResourceUnavailable, cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForRunningAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => re.Snapshot.State?.Text == KnownResourceStates.Running || KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        var state = resourceEvent.Snapshot.State?.Text;
+        var isRunning = state == KnownResourceStates.Running;
+
+        return new WaitForResourceResponse
+        {
+            Success = isRunning,
+            State = state,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString(),
+            ErrorMessage = isRunning ? null : $"Resource '{resourceName}' failed to reach 'Running' state. Current state: {state ?? "Unknown"}."
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForTerminalAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
+    }
+
     #endregion
 
     #region V1 API Methods (Legacy - Keep for backward compatibility)

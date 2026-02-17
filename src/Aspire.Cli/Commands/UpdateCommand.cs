@@ -3,14 +3,11 @@
 
 using System.CommandLine;
 using System.Diagnostics;
-using System.Formats.Tar;
 using System.Globalization;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Layout;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -28,8 +25,6 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
-    private readonly IBundleDownloader? _bundleDownloader;
-    private readonly ILayoutDiscovery _layoutDiscovery;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
@@ -51,8 +46,6 @@ internal sealed class UpdateCommand : BaseCommand
         IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
-        IBundleDownloader? bundleDownloader,
-        ILayoutDiscovery layoutDiscovery,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -66,8 +59,6 @@ internal sealed class UpdateCommand : BaseCommand
         _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
-        _bundleDownloader = bundleDownloader;
-        _layoutDiscovery = layoutDiscovery;
         _updateNotifier = updateNotifier;
         _features = features;
         _configurationService = configurationService;
@@ -128,22 +119,6 @@ internal sealed class UpdateCommand : BaseCommand
                 return 0;
             }
 
-            // Check if we're running from a bundle layout
-            var layout = _layoutDiscovery.DiscoverLayout();
-            if (layout is not null && _bundleDownloader is not null)
-            {
-                try
-                {
-                    return await ExecuteBundleSelfUpdateAsync(layout, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    InteractionService.DisplayCancellationMessage();
-                    return ExitCodeConstants.InvalidCommand;
-                }
-            }
-
-            // Fall back to CLI-only update
             if (_cliDownloader is null)
             {
                 InteractionService.DisplayError("CLI self-update is not available in this environment.");
@@ -171,17 +146,25 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var project = _projectFactory.GetProject(projectFile);
+            var isProjectReferenceMode = project.IsUsingProjectReferences(projectFile);
 
             // Check if channel or quality option was provided (channel takes precedence)
             var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
             PackageChannel channel;
+
+            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
 
             if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
                 channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
                     ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            else if (isProjectReferenceMode)
+            {
+                channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
+                    ?? allChannels.First();
             }
             else
             {
@@ -206,8 +189,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
 
-            // Get the appropriate project handler and update packages
-            var project = _projectFactory.GetProject(projectFile);
+            // Update packages using the appropriate project handler
             var updateContext = new UpdatePackagesContext
             {
                 AppHostFile = projectFile,
@@ -344,77 +326,6 @@ internal sealed class UpdateCommand : BaseCommand
         }
     }
 
-    private async Task<int> ExecuteBundleSelfUpdateAsync(LayoutConfiguration layout, CancellationToken cancellationToken)
-    {
-        if (_bundleDownloader is null)
-        {
-            InteractionService.DisplayError("Bundle update is not available in this environment.");
-            return ExitCodeConstants.InvalidCommand;
-        }
-
-        var currentVersion = layout.Version ?? "unknown";
-        var installPath = layout.LayoutPath;
-
-        if (string.IsNullOrEmpty(installPath))
-        {
-            InteractionService.DisplayError("Unable to determine bundle installation path.");
-            return ExitCodeConstants.InvalidCommand;
-        }
-
-        InteractionService.DisplayMessage("package", $"Current bundle version: {currentVersion}");
-        InteractionService.DisplayMessage("package", $"Bundle location: {installPath}");
-
-        // Check for updates
-        var latestVersion = await _bundleDownloader.GetLatestVersionAsync(cancellationToken);
-        if (string.IsNullOrEmpty(latestVersion))
-        {
-            InteractionService.DisplayError("Unable to determine latest bundle version.");
-            return ExitCodeConstants.InvalidCommand;
-        }
-
-        var isUpdateAvailable = await _bundleDownloader.IsUpdateAvailableAsync(currentVersion, cancellationToken);
-        if (!isUpdateAvailable)
-        {
-            InteractionService.DisplaySuccess($"You are already on the latest version ({currentVersion}).");
-            return 0;
-        }
-
-        InteractionService.DisplayMessage("up_arrow", $"Updating to version: {latestVersion}");
-
-        try
-        {
-            // Download the bundle
-            var archivePath = await _bundleDownloader.DownloadLatestBundleAsync(cancellationToken);
-
-            // Apply the update
-            var result = await _bundleDownloader.ApplyUpdateAsync(archivePath, installPath, cancellationToken);
-
-            if (result.Success)
-            {
-                if (result.RestartRequired)
-                {
-                    InteractionService.DisplayMessage("warning", "Update staged. Please restart to complete the update.");
-                    if (!string.IsNullOrEmpty(result.PendingUpdateScript))
-                    {
-                        InteractionService.DisplayMessage("information", $"Or run: {result.PendingUpdateScript}");
-                    }
-                }
-                return 0;
-            }
-            else
-            {
-                InteractionService.DisplayError($"Update failed: {result.ErrorMessage}");
-                return ExitCodeConstants.InvalidCommand;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update bundle");
-            InteractionService.DisplayError($"Failed to update bundle: {ex.Message}");
-            return ExitCodeConstants.InvalidCommand;
-        }
-    }
-
     private async Task ExtractAndUpdateAsync(string archivePath, CancellationToken cancellationToken)
     {
         // Install to the same directory as the current CLI executable
@@ -438,7 +349,7 @@ internal sealed class UpdateCommand : BaseCommand
         {
             // Extract archive
             InteractionService.DisplayMessage("package", "Extracting new CLI...");
-            await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
+            await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
 
             // Find the aspire executable in the extracted files
             var newExePath = Path.Combine(tempExtractDir, exeName);
@@ -484,6 +395,10 @@ internal sealed class UpdateCommand : BaseCommand
 
                 // If we get here, the update was successful, clean up old backups
                 CleanupOldBackupFiles(targetExePath);
+
+                // The new binary will extract its embedded bundle on first run via EnsureExtractedAsync.
+                // No proactive extraction needed — the payload is inside the new binary's embedded resources,
+                // which are only accessible when that binary is running.
 
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
@@ -535,24 +450,6 @@ internal sealed class UpdateCommand : BaseCommand
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
                     ? StringComparison.OrdinalIgnoreCase 
                     : StringComparison.Ordinal));
-    }
-
-    private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
-    {
-        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            ZipFile.ExtractToDirectory(archivePath, destinationPath, overwriteFiles: true);
-        }
-        else if (archivePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
-        {
-            await using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read);
-            await using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
-            await TarFile.ExtractToDirectoryAsync(gzipStream, destinationPath, overwriteFiles: true, cancellationToken);
-        }
-        else
-        {
-            throw new NotSupportedException($"Unsupported archive format: {archivePath}");
-        }
     }
 
     private void SetExecutablePermission(string filePath)

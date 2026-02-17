@@ -12,6 +12,7 @@ using Aspire.Cli.Agents.CopilotCli;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -91,6 +92,33 @@ public class Program
         return (logLevel, debugMode);
     }
 
+    /// <summary>
+    /// Parses --log-file from raw args before the host is built.
+    /// Used by --detach to tell the child CLI where to write its log.
+    /// </summary>
+    internal static string? ParseLogFileOption(string[]? args)
+    {
+        if (args is null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--")
+            {
+                break;
+            }
+
+            if (args[i] == "--log-file" && i + 1 < args.Length)
+            {
+                return args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
     private static string GetGlobalSettingsPath()
     {
         var usersAspirePath = GetUsersAspirePath();
@@ -158,7 +186,10 @@ public class Program
         // Always register FileLoggerProvider to capture logs to disk
         // This captures complete CLI session details for diagnostics
         var logsDirectory = Path.Combine(GetUsersAspirePath(), "logs");
-        var fileLoggerProvider = new FileLoggerProvider(logsDirectory, TimeProvider.System);
+        var logFilePath = ParseLogFileOption(args);
+        var fileLoggerProvider = logFilePath is not null
+            ? new FileLoggerProvider(logFilePath)
+            : new FileLoggerProvider(logsDirectory, TimeProvider.System);
         builder.Services.AddSingleton(fileLoggerProvider); // Register for direct access to LogFilePath
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(fileLoggerProvider));
 
@@ -221,17 +252,17 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner implementations - factory chooses based on layout availability
+        // Register certificate tool runner implementations - factory chooses based on embedded bundle
         builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
         {
-            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
-            var layout = layoutDiscovery.DiscoverLayout();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var bundleService = sp.GetRequiredService<IBundleService>();
 
-            // Use bundle runner if layout exists and has dev-certs tool
-            if (layout is not null && layout.GetDevCertsPath() is string devCertsPath && File.Exists(devCertsPath))
+            if (bundleService.IsBundle)
             {
-                return new BundleCertificateToolRunner(layout, loggerFactory.CreateLogger<BundleCertificateToolRunner>());
+                return new BundleCertificateToolRunner(
+                    bundleService,
+                    loggerFactory.CreateLogger<BundleCertificateToolRunner>());
             }
 
             // Fall back to SDK-based runner
@@ -243,16 +274,12 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
 
-        // Register both NuGetPackageCache implementations - factory chooses based on layout availability
+        // Register both NuGetPackageCache implementations - factory chooses based on embedded bundle
         builder.Services.AddSingleton<NuGetPackageCache>();
         builder.Services.AddSingleton<BundleNuGetPackageCache>();
         builder.Services.AddSingleton<INuGetPackageCache>(sp =>
         {
-            var layoutDiscovery = sp.GetRequiredService<ILayoutDiscovery>();
-            var layout = layoutDiscovery.DiscoverLayout();
-
-            // Use bundle cache if layout exists and has NuGetHelper
-            if (layout is not null && layout.GetNuGetHelperPath() is string helperPath && File.Exists(helperPath))
+            if (sp.GetRequiredService<IBundleService>().IsBundle)
             {
                 return sp.GetRequiredService<BundleNuGetPackageCache>();
             }
@@ -268,10 +295,10 @@ public class Program
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
+        builder.Services.AddSingleton<IBundleService, BundleService>();
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
-        builder.Services.AddSingleton<IBundleDownloader, BundleDownloader>();
         builder.Services.AddSingleton<IBannerService, BannerService>();
         builder.Services.AddMemoryCache();
 
@@ -345,6 +372,7 @@ public class Program
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
         builder.Services.AddTransient<RestartCommand>();
+        builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
         builder.Services.AddTransient<ResourcesCommand>();
@@ -375,6 +403,7 @@ public class Program
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
+        builder.Services.AddTransient<SetupCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
@@ -707,4 +736,3 @@ internal class AspirePlaygroundEnricher : IProfileEnricher
         profile.Capabilities.Interactive = true;
     }
 }
-

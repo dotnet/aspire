@@ -123,7 +123,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
             // TODO: Support bundle mode by using DLL references instead of project references.
             // In bundle mode, we'd need to add integration DLLs to the probing path rather than
             // using additionalProjectReferences. For now, SDK generation only works with .NET SDK.
-            var appHostServerProjectInterface = _appHostServerProjectFactory.Create(tempDir);
+            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
             if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
             {
                 InteractionService.DisplayError("SDK generation is only available with .NET SDK installed.");

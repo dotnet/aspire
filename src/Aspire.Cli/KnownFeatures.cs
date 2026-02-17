@@ -25,6 +25,10 @@ internal static class KnownFeatures
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
     public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
+    public static string ExperimentalPolyglotRust => "experimentalPolyglot:rust";
+    public static string ExperimentalPolyglotJava => "experimentalPolyglot:java";
+    public static string ExperimentalPolyglotGo => "experimentalPolyglot:go";
+    public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
 
@@ -78,6 +82,26 @@ internal static class KnownFeatures
         [PolyglotSupportEnabled] = new(
             PolyglotSupportEnabled,
             "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
+            DefaultValue: false),
+        
+        [ExperimentalPolyglotRust] = new(
+            ExperimentalPolyglotRust,
+            "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            DefaultValue: false),
+        
+        [ExperimentalPolyglotJava] = new(
+            ExperimentalPolyglotJava,
+            "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            DefaultValue: false),
+        
+        [ExperimentalPolyglotGo] = new(
+            ExperimentalPolyglotGo,
+            "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            DefaultValue: false),
+        
+        [ExperimentalPolyglotPython] = new(
+            ExperimentalPolyglotPython,
+            "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
             DefaultValue: false),
         
         [DotNetSdkInstallationEnabled] = new(
