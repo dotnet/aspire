@@ -76,6 +76,41 @@ public class ConsoleActivityLoggerTests
     }
 
     [Fact]
+    public void WriteSummary_WithMarkdownLinkInPipelineSummary_ColorWithoutInteractive_RendersPlainUrl()
+    {
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.Yes,
+            ColorSystem = ColorSystemSupport.TrueColor,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        // Non-interactive host but color enabled (e.g., CI environments with ANSI support)
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: true);
+
+        var portalUrl = "https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview";
+        var summary = new List<KeyValuePair<string, string>>
+        {
+            new("📦 Resource Group", $"VNetTest5 [link]({portalUrl})"),
+        };
+
+        logger.SetFinalResult(true, summary);
+        logger.WriteSummary();
+
+        var result = output.ToString();
+
+        // When color is enabled but interactive output is not supported,
+        // HighlightMessage converts Spectre link markup to plain URLs
+        Assert.Contains("VNetTest5", result);
+        Assert.Contains(portalUrl, result);
+
+        // Should NOT contain the OSC 8 hyperlink escape sequence since we're non-interactive
+        Assert.DoesNotContain("\u001b]8;", result);
+    }
+
+    [Fact]
     public void WriteSummary_WithPlainTextPipelineSummary_RendersCorrectly()
     {
         var output = new StringBuilder();
