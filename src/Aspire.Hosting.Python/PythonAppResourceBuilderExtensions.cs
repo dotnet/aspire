@@ -1061,6 +1061,21 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Enables debugging support for the Python application.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// This method is obsolete. Use <see cref="WithVSCodeDebugging{T}"/> instead.
+    /// </remarks>
+    [Obsolete("Use WithVSCodeDebugging instead.")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
+        where T : PythonAppResource
+        => builder.WithVSCodeDebugging();
+
+    /// <summary>
     /// Configures the entrypoint for the Python application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
