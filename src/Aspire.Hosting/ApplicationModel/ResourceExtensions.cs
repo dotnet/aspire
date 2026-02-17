@@ -1416,7 +1416,6 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resource);
             }
-            CollectAnnotationDependencies(resource, dependencies, newDependencies);
         }
 
         // Resource builder wrapping a resource
@@ -1426,7 +1425,6 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resourceBuilder.Resource);
             }
-            CollectAnnotationDependencies(resourceBuilder.Resource, dependencies, newDependencies);
             value = resourceBuilder.Resource;
         }
 

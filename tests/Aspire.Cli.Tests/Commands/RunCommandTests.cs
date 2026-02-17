@@ -87,6 +87,38 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
+    [Fact]
+    public void GetDetachedFailureMessage_ReturnsBuildSpecificMessage_ForBuildFailureExitCode()
+    {
+        var message = RunCommand.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
+
+        Assert.Equal(RunCommandStrings.AppHostFailedToBuild, message);
+    }
+
+    [Fact]
+    public void GetDetachedFailureMessage_ReturnsExitCodeMessage_ForUnknownExitCode()
+    {
+        var message = RunCommand.GetDetachedFailureMessage(123);
+
+        Assert.Contains("123", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenerateChildLogFilePath_UsesDetachChildNamingWithoutProcessId()
+    {
+        var logsDirectory = Path.Combine(Path.GetTempPath(), "aspire-cli-tests");
+        var now = new DateTimeOffset(2026, 02, 12, 18, 00, 00, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(now);
+
+        var path = RunCommand.GenerateChildLogFilePath(logsDirectory, timeProvider);
+        var fileName = Path.GetFileName(path);
+
+        Assert.StartsWith(logsDirectory, path, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("cli_20260212T180000000_detach-child_", fileName, StringComparison.Ordinal);
+        Assert.EndsWith(".log", fileName, StringComparison.Ordinal);
+        Assert.DoesNotContain($"_{Environment.ProcessId}", fileName, StringComparison.Ordinal);
+    }
+
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
@@ -164,6 +196,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)

@@ -255,6 +255,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string AppHostFailedToBuild {
+            get {
+                return ResourceManager.GetString("AppHostFailedToBuild", resourceCulture);
+            }
+        }
+        
         public static string TimeoutWaitingForAppHost {
             get {
                 return ResourceManager.GetString("TimeoutWaitingForAppHost", resourceCulture);

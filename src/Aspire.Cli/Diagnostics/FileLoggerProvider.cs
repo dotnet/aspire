@@ -30,6 +30,22 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     public string LogFilePath => _logFilePath;
 
     /// <summary>
+    /// Generates a unique, chronologically-sortable log file name.
+    /// </summary>
+    /// <param name="logsDirectory">The directory where log files will be written.</param>
+    /// <param name="timeProvider">The time provider for timestamp generation.</param>
+    /// <param name="suffix">An optional suffix appended before the extension (e.g. "detach-child").</param>
+    internal static string GenerateLogFilePath(string logsDirectory, TimeProvider timeProvider, string? suffix = null)
+    {
+        var timestamp = timeProvider.GetUtcNow().ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var name = suffix is null
+            ? $"cli_{timestamp}_{id}.log"
+            : $"cli_{timestamp}_{id}_{suffix}.log";
+        return Path.Combine(logsDirectory, name);
+    }
+
+    /// <summary>
     /// Creates a new FileLoggerProvider that writes to the specified directory.
     /// </summary>
     /// <param name="logsDirectory">The directory where log files will be written.</param>
@@ -37,10 +53,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     /// <param name="errorConsole">Optional console for error messages. Defaults to stderr.</param>
     public FileLoggerProvider(string logsDirectory, TimeProvider timeProvider, IAnsiConsole? errorConsole = null)
     {
-        var pid = Environment.ProcessId;
-        var timestamp = timeProvider.GetUtcNow().ToString("yyyy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture);
-        // Timestamp first so files sort chronologically by name
-        _logFilePath = Path.Combine(logsDirectory, $"cli-{timestamp}-{pid}.log");
+        _logFilePath = GenerateLogFilePath(logsDirectory, timeProvider);
 
         try
         {

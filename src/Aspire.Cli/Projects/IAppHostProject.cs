@@ -167,6 +167,13 @@ internal interface IAppHostProject
     string? AppHostFileName { get; }
 
     /// <summary>
+    /// Determines whether this AppHost should use project references instead of package references.
+    /// </summary>
+    /// <param name="appHostFile">The AppHost file being operated on.</param>
+    /// <returns><see langword="true"/> when project-reference mode should be used; otherwise <see langword="false"/>.</returns>
+    bool IsUsingProjectReferences(FileInfo appHostFile);
+
+    /// <summary>
     /// Runs the AppHost project.
     /// </summary>
     /// <param name="context">The context containing all information needed to run the AppHost.</param>

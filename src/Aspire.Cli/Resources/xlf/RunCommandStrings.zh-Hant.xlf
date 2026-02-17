@@ -37,6 +37,11 @@
         <target state="translated">AppHost 程序以返回碼 {0} 結束。</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">已成功啟動 AppHost。</target>

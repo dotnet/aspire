@@ -998,9 +998,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                                 targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
                                 KnownNetworkIdentifiers.DefaultAspireContainerNetwork
                             );
-                            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                            snapshot.SetValue(allocatedEndpoint);
-                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(allocatedEndpoint.NetworkID, snapshot);
+                            sp.EndpointAnnotation.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(allocatedEndpoint.NetworkID, allocatedEndpoint);
                         }
                     }
                 }
@@ -1060,9 +1058,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         targetPortExpression: $$$"""{{- portForServing "{{{ts.Service.Name}}}" -}}""",
                         networkID
                     );
-                    var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                    snapshot.SetValue(tunnelAllocatedEndpoint);
-                    endpoint.AllAllocatedEndpoints.TryAdd(networkID, snapshot);
+                    endpoint.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(networkID, tunnelAllocatedEndpoint);
                 }
             }
         }
