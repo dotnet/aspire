@@ -3311,15 +3311,66 @@ public static class ResourceBuilderExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebuggerProperties<T, TDebuggerProperties>(
+    public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
         where T : IResource
-        where TDebuggerProperties : VSCodeDebuggerProperties
+        where TDebuggerProperties : DebugAdapterProperties
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
 
         builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureDebuggerProperties));
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures VS Code-specific debug options for a resource, validating that the current IDE is VS Code.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <typeparam name="TDebuggerProperties">The type of the debugger properties.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureVSCodeOptions">A callback action to configure VS Code-specific debug options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the current IDE is not VS Code (i.e., the <see cref="AspireIde.EnvironmentVariableName"/>
+    /// environment variable is not set to <see cref="AspireIde.VSCode"/>).
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// This method allows configuration of VS Code-specific debug options such as <see cref="VSCodeDebuggerPropertiesBase.PreLaunchTask"/>,
+    /// <see cref="VSCodeDebuggerPropertiesBase.Presentation"/>, and <see cref="VSCodeDebuggerPropertiesBase.ServerReadyAction"/>.
+    /// </para>
+    /// <para>
+    /// The configuration callback receives the VS Code debugger properties directly, allowing you to set any
+    /// VS Code-specific options on the debugger configuration.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure VS Code-specific options for a project:
+    /// <code lang="csharp">
+    /// builder.AddProject&lt;Projects.MyApi&gt;("api")
+    ///     .WithVSCodeDebugOptions&lt;ProjectResource, VSCodeCSharpDebuggerProperties&gt;(props =&gt;
+    ///     {
+    ///         props.PreLaunchTask = "${defaultBuildTask}";
+    ///         props.ServerReadyAction = new ServerReadyAction
+    ///         {
+    ///             Action = "openExternally",
+    ///             Pattern = "Now listening on: (https?://\\S+)"
+    ///         };
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithVSCodeDebugOptions<T, TDebuggerProperties>(
+        this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureVSCodeOptions)
+        where T : IResource
+        where TDebuggerProperties : VSCodeDebuggerPropertiesBase
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureVSCodeOptions);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureVSCodeOptions, AspireIde.VSCode));
+
         return builder;
     }
 }

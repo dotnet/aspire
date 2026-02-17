@@ -61,6 +61,70 @@
           "description": "Enable or disable the 'aspire exec' command for executing commands inside running resources",
           "default": false
         },
+        "experimentalPolyglot:go": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "default": false
+        },
+        "experimentalPolyglot:java": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "default": false
+        },
+        "experimentalPolyglot:python": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "default": false
+        },
+        "experimentalPolyglot:rust": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "default": false
+        },
         "minimumSdkCheckEnabled": {
           "anyOf": [
             {
@@ -124,77 +188,6 @@
           ],
           "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
           "default": false
-        },
-        "experimentalPolyglot": {
-          "description": "Per-language feature flags for experimental polyglot languages (requires polyglotSupportEnabled).",
-          "type": "object",
-          "properties": {
-            "go": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "true",
-                    "false"
-                  ]
-                }
-              ],
-              "description": "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
-              "default": false
-            },
-            "java": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "true",
-                    "false"
-                  ]
-                }
-              ],
-              "description": "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
-              "default": false
-            },
-            "python": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "true",
-                    "false"
-                  ]
-                }
-              ],
-              "description": "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
-              "default": false
-            },
-            "rust": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "true",
-                    "false"
-                  ]
-                }
-              ],
-              "description": "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
-              "default": false
-            }
-          },
-          "additionalProperties": false
         },
         "runningInstanceDetectionEnabled": {
           "anyOf": [

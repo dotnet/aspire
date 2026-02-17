@@ -1383,8 +1383,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exe);
 
-                var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
-
                 var projectArgs = new List<string>();
 
                 var isProcessExecution = true;
@@ -1441,13 +1439,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     var projectLaunchConfiguration = new ProjectLaunchConfiguration
                     {
-                        DebuggerProperties = ProjectResourceBuilderExtensions.GetCSharpDebuggerProperties(
-                        projectMetadata.ProjectPath,
-                        mode,
-                        _configuration)
+                        ProjectPath = projectMetadata.ProjectPath
                     };
 
-                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
                     exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 

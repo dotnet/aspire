@@ -424,7 +424,7 @@ public class AddNodeAppTests
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only
 
     [Fact]
-    public void NodeApp_WithDebugging_AddsSupportsDebuggingAnnotation()
+    public void NodeApp_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -437,7 +437,7 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public void NodeApp_WithDebugging_DoesNotAddAnnotationInPublishMode()
+    public void NodeApp_WithVSCodeDebugging_DoesNotAddAnnotationInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var tempDir = new TestTempDirectory();
@@ -449,24 +449,24 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public void NodeApp_WithNodeVSCodeDebuggerProperties_AddsAnnotation()
+    public void NodeApp_WithVSCodeNodeDebuggerProperties_AddsAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
         var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js")
-            .WithNodeVSCodeDebuggerProperties(props =>
+            .WithVSCodeNodeDebuggerProperties(props =>
             {
                 props.StopOnEntry = true;
                 props.SmartStep = true;
             });
 
-        var annotation = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<NodeDebuggerProperties>>().SingleOrDefault();
+        var annotation = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().SingleOrDefault();
         Assert.NotNull(annotation);
     }
 
     [Fact]
-    public void ViteApp_WithDebugging_AddsSupportsDebuggingAnnotation()
+    public void ViteApp_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -490,7 +490,7 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().SingleOrDefault();
         Assert.NotNull(browserDebuggerResource);
         Assert.Equal("viteapp-browser", browserDebuggerResource.Name);
 
@@ -517,7 +517,7 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().Single();
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
         Assert.Equal("msedge", browserDebuggerResource.DebuggerProperties.Type);
     }
 
@@ -533,7 +533,7 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().Single();
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
         Assert.Equal("chrome", browserDebuggerResource.DebuggerProperties.Type);
     }
 
@@ -553,7 +553,7 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().Single();
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
         Assert.True(browserDebuggerResource.DebuggerProperties.SmartStep);
         Assert.Equal(30000, browserDebuggerResource.DebuggerProperties.Timeout);
         Assert.Equal(tempDir.Path, browserDebuggerResource.DebuggerProperties.WebRoot);

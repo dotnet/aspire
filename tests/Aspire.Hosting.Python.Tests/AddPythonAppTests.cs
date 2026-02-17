@@ -2429,7 +2429,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void PythonApp_WithPythonVSCodeDebuggerProperties_AddsAnnotation()
+    public void PythonApp_WithVSCodePythonDebuggerProperties_AddsAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -2439,13 +2439,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
             .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
-            .WithPythonVSCodeDebuggerProperties(props =>
+            .WithVSCodePythonDebuggerProperties(props =>
             {
                 props.Jinja = false;
                 props.StopOnEntry = true;
             });
 
-        var annotation = pythonApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<PythonDebuggerProperties>>().SingleOrDefault();
+        var annotation = pythonApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodePythonDebuggerProperties>>().SingleOrDefault();
         Assert.NotNull(annotation);
     }
 
@@ -2464,16 +2464,16 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void PythonExecutable_InRunMode_WithDebugging_AddsSupportsDebuggingAnnotation()
+    public void PythonExecutable_InRunMode_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
         // Unlike scripts and modules, Python executables do not have debugging support by default
-        // Users must explicitly call WithDebugging()
+        // Users must explicitly call WithVSCodeDebugging()
         var pythonApp = builder.AddPythonExecutable("pythonapp", tempDir.Path, "myexe")
             .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
-            .WithDebugging();
+            .WithVSCodeDebugging();
 
         var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);

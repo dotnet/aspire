@@ -14,15 +14,17 @@ export interface ErrorDetails {
 type LaunchConfigurationMode = "Debug" | "NoDebug";
 
 /**
- * Base debugger properties that match VSCodeDebuggerProperties from the C# side.
- * These are the required properties for any VS Code debug configuration.
+ * Debugger properties passed from the apphost.
+ * Contains DAP-standard properties (type, name, request, cwd) plus any
+ * IDE-specific and debug adapter-specific properties.
+ * @see https://microsoft.github.io/debug-adapter-protocol/specification
  */
 export interface DebuggerProperties {
     type: string;
     name: string;
     request: string;
     cwd: string;
-    [key: string]: any; // Allow additional debugger-specific properties
+    [key: string]: any; // Allow additional IDE-specific and adapter-specific properties
 }
 
 export interface ExecutableLaunchConfiguration {

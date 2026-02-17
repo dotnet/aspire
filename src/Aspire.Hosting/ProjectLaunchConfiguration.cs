@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// Models a runnable debug configuration for a .NET project application.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public class ProjectLaunchConfiguration() : ExecutableLaunchConfigurationWithVSCodeDebuggerProperties<CSharpDebuggerProperties>("project")
+public class ProjectLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("project")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
@@ -33,10 +33,10 @@ public class ProjectLaunchConfiguration() : ExecutableLaunchConfigurationWithVSC
 }
 
 /// <summary>
-/// Models debugger properties for a C# project made available by the coreclr debug adapter.
+/// Models VS Code-specific debugger properties for a C# project made available by the coreclr debug adapter.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class CSharpDebuggerProperties : VSCodeDebuggerProperties
+public class VSCodeCSharpDebuggerProperties : VSCodeDebuggerPropertiesBase
 {
     /// <summary>
     /// Identifies the type of debugger to use.

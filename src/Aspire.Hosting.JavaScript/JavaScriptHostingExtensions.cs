@@ -278,7 +278,7 @@ public static class JavaScriptHostingExtensions
             });
         }
 
-        return resourceBuilder.WithDebugging(scriptPath);
+        return resourceBuilder.WithVSCodeDebugging(scriptPath);
     }
 
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>
@@ -464,7 +464,7 @@ public static class JavaScriptHostingExtensions
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" })
             .WithBuildScript("build")
             .WithRunScript(runScriptName)
-            .WithDebugging();
+            .WithVSCodeDebugging();
 
         // ensure the package manager command is set before starting the resource
         if (builder.ExecutionContext.IsRunMode)
@@ -977,7 +977,7 @@ public static class JavaScriptHostingExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
+    public static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
         where T : NodeAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -996,29 +996,19 @@ public static class JavaScriptHostingExtensions
                 var hasRunScript = builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScriptAnnotation);
                 var hasPackageManager = builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
 
-                NodeDebuggerProperties debuggerProperties;
+                VSCodeNodeDebuggerProperties debuggerProperties;
                 string runtimeExecutable;
 
                 if (hasRunScript && hasPackageManager)
                 {
-                    // Use package manager mode (e.g., npm run dev)
                     runtimeExecutable = pmAnnotation!.ExecutableName;
-                    var runtimeArgs = new List<string>();
 
-                    if (!string.IsNullOrEmpty(pmAnnotation.ScriptCommand))
-                    {
-                        runtimeArgs.Add(pmAnnotation.ScriptCommand);
-                    }
-
-                    runtimeArgs.Add(runScriptAnnotation!.ScriptName);
-                    runtimeArgs.AddRange(runScriptAnnotation.Args);
-
-                    debuggerProperties = new NodeDebuggerProperties
+                    debuggerProperties = new VSCodeNodeDebuggerProperties
                     {
                         Name = $"{modeText} {runtimeExecutable}: {displayPath}",
                         WorkingDirectory = builder.Resource.WorkingDirectory,
                         RuntimeExecutable = runtimeExecutable,
-                        RuntimeArgs = runtimeArgs.ToArray(),
+                        RuntimeArgs = [],
                         SkipFiles = ["<node_internals>/**"],
                         SourceMaps = true,
                         AutoAttachChildProcesses = true,
@@ -1029,7 +1019,7 @@ public static class JavaScriptHostingExtensions
                 {
                     // Direct node execution mode
                     runtimeExecutable = "node";
-                    debuggerProperties = new NodeDebuggerProperties
+                    debuggerProperties = new VSCodeNodeDebuggerProperties
                     {
                         Name = $"{modeText} Node.js: {displayPath}",
                         WorkingDirectory = builder.Resource.WorkingDirectory,
@@ -1042,9 +1032,16 @@ public static class JavaScriptHostingExtensions
                     };
                 }
 
-                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<NodeDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var annotations))
                 {
-                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                    foreach (var annotation in annotations)
+                    {
+                        // Filter by IDE type if specified, and by debugger properties type
+                        if (annotation.IdeType is null || AspireIde.IsCurrentIde(annotation.IdeType))
+                        {
+                            annotation.ConfigureDebuggerProperties(debuggerProperties);
+                        }
+                    }
                 }
 
                 return new NodeLaunchConfiguration
@@ -1075,7 +1072,7 @@ public static class JavaScriptHostingExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1097,9 +1094,7 @@ public static class JavaScriptHostingExtensions
                     packageManager = pmAnnotation.ExecutableName;
                 }
 
-                // RuntimeArgs should be empty because the resource's .WithArgs callback
-                // already handles adding the script command and name
-                var debuggerProperties = new NodeDebuggerProperties
+                var debuggerProperties = new VSCodeNodeDebuggerProperties
                 {
                     Name = $"{modeText} {packageManager}: {displayPath}",
                     WorkingDirectory = builder.Resource.WorkingDirectory,
@@ -1111,9 +1106,16 @@ public static class JavaScriptHostingExtensions
                     ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
                 };
 
-                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<NodeDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var annotations))
                 {
-                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                    foreach (var annotation in annotations)
+                    {
+                        // Filter by IDE type if specified, and by debugger properties type
+                        if (annotation.IdeType is null || AspireIde.IsCurrentIde(annotation.IdeType))
+                        {
+                            annotation.ConfigureDebuggerProperties(debuggerProperties);
+                        }
+                    }
                 }
 
                 return new NodeLaunchConfiguration
@@ -1128,7 +1130,7 @@ public static class JavaScriptHostingExtensions
     }
 
     /// <summary>
-    /// Configures custom debugger properties for a Node.js/TypeScript resource.
+    /// Configures VS Code-specific debugger properties for a Node.js/TypeScript resource.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -1136,8 +1138,8 @@ public static class JavaScriptHostingExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method allows customization of the debugger configuration that will be used when debugging the resource
-    /// in VS Code. The callback receives a <see cref="NodeDebuggerProperties"/> object that is pre-populated
+    /// This method allows customization of the VS Code debugger configuration that will be used when debugging the resource.
+    /// The callback receives a <see cref="VSCodeNodeDebuggerProperties"/> object that is pre-populated
     /// with default values based on the resource's configuration. You can modify any properties
     /// to customize the debugging experience.
     /// </para>
@@ -1150,7 +1152,7 @@ public static class JavaScriptHostingExtensions
     /// Configure Node.js debugger to stop on entry:
     /// <code lang="csharp">
     /// var api = builder.AddNodeApp("api", "../api", "server.js")
-    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
     ///     {
     ///         props.StopOnEntry = true;
     ///     });
@@ -1160,7 +1162,7 @@ public static class JavaScriptHostingExtensions
     /// Enable automatic child process debugging:
     /// <code lang="csharp">
     /// var worker = builder.AddNodeApp("worker", "../worker", "index.js")
-    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
     ///     {
     ///         props.AutoAttachChildProcesses = true;
     ///     });
@@ -1170,19 +1172,23 @@ public static class JavaScriptHostingExtensions
     /// Configure source map locations for TypeScript projects:
     /// <code lang="csharp">
     /// var app = builder.AddNodeApp("app", "../app", "dist/index.js")
-    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
     ///     {
     ///         props.OutFiles = ["${workspaceFolder}/dist/**/*.js"];
     ///     });
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithNodeVSCodeDebuggerProperties<T>(
+    public static IResourceBuilder<T> WithVSCodeNodeDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
-        Action<NodeDebuggerProperties> configureDebuggerProperties)
+        Action<VSCodeNodeDebuggerProperties> configureDebuggerProperties)
         where T : JavaScriptAppResource
     {
-        return builder.WithVSCodeDebuggerProperties(configureDebuggerProperties);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>(configureDebuggerProperties, AspireIde.VSCode));
+        return builder;
     }
 
     /// <summary>
@@ -1195,7 +1201,7 @@ public static class JavaScriptHostingExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method creates a child <see cref="BrowserDebuggerResource"/> that launches a controlled browser instance
+    /// This method creates a child <see cref="VSCodeBrowserDebuggerResource"/> that launches a controlled browser instance
     /// for debugging JavaScript code running in the browser. The browser is managed by VS Code's js-debug extension.
     /// </para>
     /// <para>
@@ -1235,7 +1241,7 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<T> WithBrowserDebugger<T>(
         this IResourceBuilder<T> builder,
         string browser = "msedge",
-        Action<BrowserDebuggerProperties>? configureDebuggerProperties = null)
+        Action<VSCodeBrowserDebuggerProperties>? configureDebuggerProperties = null)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1247,7 +1253,7 @@ public static class JavaScriptHostingExtensions
         var debuggerResourceName = $"{parentResource.Name}-browser";
 
         // Create a placeholder debugger resource - the URL will be resolved when the callback is invoked
-        var debuggerResource = new BrowserDebuggerResource(
+        var debuggerResource = new VSCodeBrowserDebuggerResource(
             debuggerResourceName,
             browser,
             parentResource.WorkingDirectory,

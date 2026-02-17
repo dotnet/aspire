@@ -244,7 +244,7 @@ public static class ProjectResourceBuilderExtensions
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(projectMetadata)
-                      .WithDebugging(projectMetadata.ProjectPath)
+                      .WithVSCodeDebugging(projectMetadata.ProjectPath)
                       .WithProjectDefaults(options);
     }
 
@@ -289,7 +289,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithDebugging(projectPath)
+                      .WithVSCodeDebugging(projectPath)
                       .WithProjectDefaults(options);
     }
 
@@ -370,7 +370,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithDebugging(projectMetadata.ProjectPath)
+                              .WithVSCodeDebugging(projectMetadata.ProjectPath)
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>
@@ -870,7 +870,7 @@ public static class ProjectResourceBuilderExtensions
     /// It sets up the necessary launch configuration based on the provided project path. This method is only necessary for inheritors of ProjectResource.
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TProjectResource> WithDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
+    public static IResourceBuilder<TProjectResource> WithVSCodeDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
         where TProjectResource : ProjectResource
     {
         return builder.WithDebugSupport(options =>
@@ -879,21 +879,29 @@ public static class ProjectResourceBuilderExtensions
             {
                 ProjectPath = projectPath,
                 Mode = options.Mode,
-                DebuggerProperties = GetCSharpDebuggerProperties(projectPath, options.Mode, builder.ApplicationBuilder.Configuration),
+                DebuggerProperties = GetVSCodeCSharpDebuggerProperties(projectPath, options.Mode, builder.ApplicationBuilder.Configuration),
             };
 
             options.AdditionalConfiguration?.Invoke(configuration);
 
-            if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<CSharpDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+            // Apply any custom debugger property annotations
+            if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var annotations))
             {
-                debuggerPropertiesAnnotation.ConfigureDebuggerProperties(configuration.DebuggerProperties);
+                foreach (var annotation in annotations)
+                {
+                    // Filter by IDE type if specified, and by debugger properties type
+                    if (annotation.IdeType is null || AspireIde.IsCurrentIde(annotation.IdeType))
+                    {
+                        annotation.ConfigureDebuggerProperties(configuration.DebuggerProperties);
+                    }
+                }
             }
 
             return configuration;
         }, "project");
     }
 
-    internal static CSharpDebuggerProperties GetCSharpDebuggerProperties(string projectPath, string mode, IConfiguration configuration)
+    internal static VSCodeCSharpDebuggerProperties GetVSCodeCSharpDebuggerProperties(string projectPath, string mode, IConfiguration configuration)
     {
         var workspaceRoot = configuration[KnownConfigNames.ExtensionWorkspaceRoot];
         var displayProgramPath = workspaceRoot is not null
@@ -901,7 +909,7 @@ public static class ProjectResourceBuilderExtensions
             : projectPath;
         var modeText = mode == "Debug" ? "Debug" : "Run";
 
-        return new CSharpDebuggerProperties
+        return new VSCodeCSharpDebuggerProperties
         {
             WorkingDirectory = Path.GetDirectoryName(projectPath)!,
             Name = $"{modeText} C#: {displayProgramPath}",
@@ -910,7 +918,7 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures C# debugger properties for the project resource.
+    /// Configures VS Code-specific C# debugger properties for the project resource.
     /// </summary>
     /// <typeparam name="T">The type of the project resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -918,29 +926,32 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This method allows customization of the debugger configuration that will be used when debugging the resource
-    /// in VS Code or Visual Studio. The callback receives an object
-    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
-    /// to customize the debugging experience.
+    /// This method allows customization of the VS Code debugger configuration that will be used when debugging the resource.
+    /// The callback receives an object that is pre-populated with default values based on the resource's configuration.
+    /// You can modify any properties to customize the debugging experience.
     /// </para>
     /// </remarks>
     /// <example>
     /// Configure C# debugger to stop on entry:
     /// <code lang="csharp">
-    /// var api = builder.AddCSharpApp("api", "../Api/Api.csproj")
-    ///     .WithCSharpVSCodeDebuggerProperties(props =>
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithVSCodeCSharpDebuggerProperties(props =&gt;
     ///     {
-    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
+    ///         props.StopAtEntry = true;  // Stop execution at entrypoint
     ///     })
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithCSharpVSCodeDebuggerProperties<T>(
+    public static IResourceBuilder<T> WithVSCodeCSharpDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
-        Action<CSharpDebuggerProperties> configureDebuggerProperties)
+        Action<VSCodeCSharpDebuggerProperties> configureDebuggerProperties)
         where T : ProjectResource
     {
-        return builder.WithVSCodeDebuggerProperties(configureDebuggerProperties);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<VSCodeCSharpDebuggerProperties>(configureDebuggerProperties, AspireIde.VSCode));
+        return builder;
     }
 
     private static IConfiguration GetConfiguration(ProjectResource projectResource)

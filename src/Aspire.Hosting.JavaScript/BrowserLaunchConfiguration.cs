@@ -8,17 +8,51 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.JavaScript;
 
 /// <summary>
-/// A resource that represents a browser debugger configuration for JavaScript applications.
+/// A generic resource that represents a browser debugger configuration for JavaScript applications.
+/// </summary>
+/// <typeparam name="T">The type of debugger properties used by this browser debugger resource.</typeparam>
+/// <remarks>
+/// This resource is created as a child of a JavaScript application resource when browser debugging is enabled.
+/// It launches a controlled browser instance that can be debugged using the IDE's browser debugging extension.
+/// </remarks>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public class BrowserDebuggerResource<T> : ExecutableResource
+    where T : DebugAdapterProperties
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BrowserDebuggerResource{T}"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="browser">The type of browser to debug (e.g., "msedge", "chrome").</param>
+    /// <param name="workingDirectory">The working directory for the debugger.</param>
+    /// <param name="debuggerProperties">The debugger properties for the browser.</param>
+    public BrowserDebuggerResource(
+        string name,
+        string browser,
+        string workingDirectory,
+        T debuggerProperties) : base(name, browser, workingDirectory)
+    {
+        DebuggerProperties = debuggerProperties;
+    }
+
+    /// <summary>
+    /// Gets the debugger properties for the browser.
+    /// </summary>
+    public T DebuggerProperties { get; init; }
+}
+
+/// <summary>
+/// A VS Code-specific resource that represents a browser debugger configuration for JavaScript applications.
 /// </summary>
 /// <remarks>
 /// This resource is created as a child of a JavaScript application resource when browser debugging is enabled.
 /// It launches a controlled browser instance that can be debugged using VS Code's js-debug extension.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class BrowserDebuggerResource : ExecutableResource
+public class VSCodeBrowserDebuggerResource : BrowserDebuggerResource<VSCodeBrowserDebuggerProperties>
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="BrowserDebuggerResource"/> class.
+    /// Initializes a new instance of the <see cref="VSCodeBrowserDebuggerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="browser">The type of browser to debug (e.g., "msedge", "chrome").</param>
@@ -26,15 +60,25 @@ public class BrowserDebuggerResource : ExecutableResource
     /// <param name="workingDirectory">The working directory for the debugger.</param>
     /// <param name="url">The URL to launch in the browser.</param>
     /// <param name="configure">An optional action to configure additional debugger properties.</param>
-    public BrowserDebuggerResource(
+    public VSCodeBrowserDebuggerResource(
         string name,
         string browser,
         string webRoot,
         string workingDirectory,
         string url,
-        Action<BrowserDebuggerProperties>? configure) : base(name, browser, workingDirectory)
+        Action<VSCodeBrowserDebuggerProperties>? configure) : base(name, browser, workingDirectory, CreateDebuggerProperties(name, browser, webRoot, workingDirectory, url, configure))
     {
-        DebuggerProperties = new BrowserDebuggerProperties
+    }
+
+    private static VSCodeBrowserDebuggerProperties CreateDebuggerProperties(
+        string name,
+        string browser,
+        string webRoot,
+        string workingDirectory,
+        string url,
+        Action<VSCodeBrowserDebuggerProperties>? configure)
+    {
+        var props = new VSCodeBrowserDebuggerProperties
         {
             Type = browser,
             Name = $"{name} Debugger",
@@ -42,38 +86,38 @@ public class BrowserDebuggerResource : ExecutableResource
             Url = url,
             WorkingDirectory = workingDirectory,
             SourceMaps = true,
+            // Use a temporary unique user data directory for each browser instance so that
+            // multiple browser debuggers can run concurrently without conflicting.
+            // The boolean true is a js-debug convention that creates an auto-managed temp directory.
+            UserDataDir = true,
             // Allow source maps from anywhere, including webpack dev server
             // js-debug has built-in smart resolution for common bundler patterns
             ResolveSourceMapLocations = ["**", "!**/node_modules/**"],
         };
 
-        configure?.Invoke(DebuggerProperties);
+        configure?.Invoke(props);
+        return props;
     }
-
-    /// <summary>
-    /// Gets the debugger properties for the browser.
-    /// </summary>
-    public BrowserDebuggerProperties DebuggerProperties { get; init; }
 }
 
 /// <summary>
 /// Models a runnable debug configuration for browser-based JavaScript debugging.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public sealed class BrowserLaunchConfiguration() : ExecutableLaunchConfigurationWithVSCodeDebuggerProperties<BrowserDebuggerProperties>("browser")
+public sealed class BrowserLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("browser")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
 }
 
 /// <summary>
-/// Models debugger properties for browser-based JavaScript debugging using the js-debug adapter.
+/// Models VS Code-specific debugger properties for browser-based JavaScript debugging using the js-debug adapter.
 /// </summary>
 /// <remarks>
 /// These properties map to the VS Code browser debugger configuration options.
 /// See https://code.visualstudio.com/docs/nodejs/browser-debugging for more information.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class BrowserDebuggerProperties : VSCodeDebuggerProperties
+public class VSCodeBrowserDebuggerProperties : VSCodeDebuggerPropertiesBase
 {
     /// <summary>
     /// Identifies the type of debugger to use. Defaults to "msedge" for Edge browser debugging.
@@ -169,9 +213,11 @@ public class BrowserDebuggerProperties : VSCodeDebuggerProperties
 
     /// <summary>
     /// The user data directory to use for the browser instance.
+    /// Set to <see langword="true"/> (boolean) to auto-create a temporary unique directory,
+    /// or a string path to specify a custom directory.
     /// </summary>
     [JsonPropertyName("userDataDir")]
-    public string? UserDataDir { get; set; }
+    public object? UserDataDir { get; set; }
 
     /// <summary>
     /// Path to a file containing environment variables for the browser.

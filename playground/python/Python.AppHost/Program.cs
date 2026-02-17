@@ -8,7 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddPythonApp("script-only", "../script_only", "main.py");
 builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py")
-    .WithPythonVSCodeDebuggerProperties(props =>
+    .WithVSCodePythonDebuggerProperties(props =>
     {
         props.StopOnEntry = true;
     });
@@ -20,7 +20,7 @@ builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
 
 // Run the same app on another port using uvicorn directly
 builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
-    .WithDebugging()
+    .WithVSCodeDebugging()
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
     .WithHttpEndpoint(targetPort: 8001);
 
@@ -35,7 +35,7 @@ builder.AddPythonModule("flask-app", "../flask_app", "flask")
     })
     .WithHttpEndpoint(targetPort: 8002)
     .WithUv()
-    .WithPythonVSCodeDebuggerProperties(props =>
+    .WithVSCodePythonDebuggerProperties(props =>
     {
         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
     });

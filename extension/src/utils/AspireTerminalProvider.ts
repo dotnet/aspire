@@ -128,6 +128,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
         const env: any = {
             ...process.env,
 
+            // IDE identification for Aspire debug features
+            ASPIRE_IDE: 'vscode',
+
             // Extension connection information
             ASPIRE_EXTENSION_ENDPOINT: this.rpcServerConnectionInfo.address,
             ASPIRE_EXTENSION_TOKEN: this.rpcServerConnectionInfo.token,
