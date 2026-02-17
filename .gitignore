@@ -189,3 +189,6 @@ extension/package.nls.*.json
 
 # Playwright CLI artifacts
 .playwright-cli/
+
+# GitHub Agentic Workflows local logs
+.github/aw/logs/
