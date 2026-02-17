@@ -26,7 +26,7 @@ public class ConsoleActivityLoggerTests
         var summary = new List<KeyValuePair<string, string>>
         {
             new("☁️ Target", "Azure"),
-            new("📦 Resource Group", "VNetTest5 ([link](https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview))"),
+            new("📦 Resource Group", "VNetTest5 [link](https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview)"),
             new("🔑 Subscription", "sub-id"),
             new("🌐 Location", "eastus"),
         };
@@ -63,7 +63,7 @@ public class ConsoleActivityLoggerTests
         var portalUrl = "https://portal.azure.com/";
         var summary = new List<KeyValuePair<string, string>>
         {
-            new("📦 Resource Group", $"VNetTest5 ([link]({portalUrl}))"),
+            new("📦 Resource Group", $"VNetTest5 [link]({portalUrl})"),
         };
 
         logger.SetFinalResult(true, summary);
@@ -72,9 +72,7 @@ public class ConsoleActivityLoggerTests
         var result = output.ToString();
 
         // When color is disabled, markdown links should be converted to plain text: text (url)
-        Assert.Contains("VNetTest5", result);
-        Assert.Contains("link", result);
-        Assert.Contains(portalUrl, result);
+        Assert.Contains($"VNetTest5 link ({portalUrl})", result);
     }
 
     [Fact]
