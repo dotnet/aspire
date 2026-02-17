@@ -15,7 +15,7 @@ namespace Aspire.Cli.Utils;
 /// rewriting the entire existing publishing pipeline. Integrates by mapping publish
 /// step/task events to Start/Progress/Success/Warning/Failure calls.
 /// </summary>
-internal sealed partial class ConsoleActivityLogger
+internal sealed class ConsoleActivityLogger
 {
     private readonly IAnsiConsole _console;
     private readonly bool _enableColor;
@@ -317,13 +317,10 @@ internal sealed partial class ConsoleActivityLogger
         }
         else
         {
-            var plainValue = MarkdownLinkToPlainTextRegex().Replace(value, "$1 ($2)");
+            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value);
             return $"  {key}: {plainValue}";
         }
     }
-
-    [GeneratedRegex(@"\[([^\]]+)\]\(([^)]+)\)")]
-    private static partial Regex MarkdownLinkToPlainTextRegex();
 
     /// <summary>
     /// Sets the final pipeline result lines to be displayed in the summary (e.g., PIPELINE FAILED ...).
