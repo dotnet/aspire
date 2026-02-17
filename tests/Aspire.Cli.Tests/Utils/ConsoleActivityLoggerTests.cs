@@ -38,8 +38,12 @@ public class ConsoleActivityLoggerTests
 
         // Verify the markdown link was converted to a Spectre link
         Assert.Contains("VNetTest5", result);
-        Assert.Contains("link", result);
-        Assert.Contains("portal.azure.com", result);
+
+        const string expectedUrl =
+            @"https://portal\.azure\.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview";
+        string hyperlinkPattern =
+            $@"\u001b\]8;[^;]*;{expectedUrl}\u001b\\.*link.*\u001b\]8;;\u001b\\";
+        Assert.Matches(hyperlinkPattern, result);
     }
 
     [Fact]
@@ -56,7 +60,7 @@ public class ConsoleActivityLoggerTests
         var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
         var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: false);
 
-        var portalUrl = "https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview";
+        var portalUrl = "https://portal.azure.com/";
         var summary = new List<KeyValuePair<string, string>>
         {
             new("📦 Resource Group", $"VNetTest5 ([link]({portalUrl}))"),
@@ -69,6 +73,7 @@ public class ConsoleActivityLoggerTests
 
         // When color is disabled, markdown links should be converted to plain text: text (url)
         Assert.Contains("VNetTest5", result);
+        Assert.Contains("link", result);
         Assert.Contains(portalUrl, result);
     }
 
