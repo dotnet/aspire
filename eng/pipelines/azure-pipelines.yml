@@ -60,7 +60,7 @@ variables:
     value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}
   # Publish to WinGet on main (always, non-PR) or release branches (only when publishReleaseToWinGet is true)
   - name: _PublishToWinGet
-    value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), and(or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')), eq(parameters.publishReleaseToWinGet, true))) }}
+    value: ${{ and(eq(variables._IsPublishBranch, 'True'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(parameters.publishReleaseToWinGet, true))) }}
 
   # Use the release package id on release/* and internal/release/* branches, prerelease everywhere else
   - ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}:
