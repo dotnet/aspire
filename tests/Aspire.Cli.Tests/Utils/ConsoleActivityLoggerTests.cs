@@ -90,7 +90,7 @@ public class ConsoleActivityLoggerTests
         var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
         var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: true);
 
-        var portalUrl = "https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview";
+        var portalUrl = "https://portal.azure.com/";
         var summary = new List<KeyValuePair<string, string>>
         {
             new("📦 Resource Group", $"VNetTest5 [link]({portalUrl})"),
