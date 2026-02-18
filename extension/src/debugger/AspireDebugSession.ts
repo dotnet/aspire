@@ -93,14 +93,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
 
-        this.spawnRunCommand(args, appHostPath, noDebug);
+        void this.spawnRunCommand(args, appHostPath, noDebug);
       }
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
 
         const workspaceFolder = path.dirname(appHostPath);
         args.push('--project', appHostPath);
-        this.spawnRunCommand(args, workspaceFolder, noDebug);
+        void this.spawnRunCommand(args, workspaceFolder, noDebug);
       }
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
@@ -133,7 +133,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  spawnRunCommand(args: string[], workingDirectory: string | undefined, noDebug: boolean) {
+  async spawnRunCommand(args: string[], workingDirectory: string | undefined, noDebug: boolean) {
     const disposable = this._rpcServer.onNewConnection((client: ICliRpcClient) => {
       if (client.debugSessionId === this.debugSessionId) {
         this._rpcClient = client;
@@ -143,7 +143,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     spawnCliProcess(
       this._terminalProvider,
-      this._terminalProvider.getAspireCliExecutablePath(),
+      await this._terminalProvider.getAspireCliExecutablePath(),
       args,
       {
         stdoutCallback: (data) => {
