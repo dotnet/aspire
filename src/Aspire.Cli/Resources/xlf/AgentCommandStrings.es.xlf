@@ -32,6 +32,11 @@
         <target state="translated">Inicialice la configuración del entorno del agente para los agentes detectados.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MalformedConfigFileError">
+        <source>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</source>
+        <target state="new">The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">Inicie el servidor MCP (protocolo de contexto de modelo).</target>

@@ -141,7 +141,14 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         // Apply all selected applicators
         foreach (var applicator in selectedApplicators)
         {
-            await applicator.ApplyAsync(cancellationToken);
+            try
+            {
+                await applicator.ApplyAsync(cancellationToken);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _interactionService.DisplayError(ex.Message);
+            }
         }
 
         _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
