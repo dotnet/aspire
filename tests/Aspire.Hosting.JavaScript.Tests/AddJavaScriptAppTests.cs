@@ -166,4 +166,96 @@ public class AddJavaScriptAppTests
         // Assert the build succeeded
         Assert.True(process.ExitCode == 0, $"Docker build failed with exit code {process.ExitCode}.\nStdout: {stdout}\nStderr: {stderr}");
     }
+
+    [Fact]
+    public async Task VerifyNpmDockerfileWithNpmrc()
+    {
+        using var tempDir = new TestTempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+
+        File.WriteAllText(Path.Combine(appDir, "package-lock.json"), "{}");
+        File.WriteAllText(Path.Combine(appDir, ".npmrc"), "registry=https://my-private-registry.example.com");
+
+        var npmApp = builder.AddJavaScriptApp("js", appDir)
+            .WithNpm();
+
+        await ManifestUtils.GetManifest(npmApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
+
+        Assert.Contains("COPY package*.json .npmrc ./", dockerfileContents);
+    }
+
+    [Fact]
+    public async Task VerifyPnpmDockerfileWithNpmrc()
+    {
+        using var tempDir = new TestTempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+
+        File.WriteAllText(Path.Combine(appDir, "pnpm-lock.yaml"), string.Empty);
+        File.WriteAllText(Path.Combine(appDir, ".npmrc"), "registry=https://my-private-registry.example.com");
+
+        var pnpmApp = builder.AddJavaScriptApp("js", appDir)
+            .WithPnpm();
+
+        await ManifestUtils.GetManifest(pnpmApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
+
+        Assert.Contains("COPY package.json pnpm-lock.yaml .npmrc ./", dockerfileContents);
+    }
+
+    [Fact]
+    public async Task VerifyYarnDockerfileWithNpmrc()
+    {
+        using var tempDir = new TestTempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+
+        File.WriteAllText(Path.Combine(appDir, ".npmrc"), "registry=https://my-private-registry.example.com");
+        File.WriteAllText(Path.Combine(appDir, ".yarnrc"), "registry \"https://my-private-registry.example.com\"");
+
+        var yarnApp = builder.AddJavaScriptApp("js", appDir)
+            .WithYarn();
+
+        await ManifestUtils.GetManifest(yarnApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
+
+        Assert.Contains("COPY package.json .npmrc .yarnrc ./", dockerfileContents);
+    }
+
+    [Fact]
+    public async Task VerifyBunDockerfileWithConfigFiles()
+    {
+        using var tempDir = new TestTempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+
+        var appDir = Path.Combine(tempDir.Path, "js");
+        Directory.CreateDirectory(appDir);
+
+        File.WriteAllText(Path.Combine(appDir, ".npmrc"), "registry=https://my-private-registry.example.com");
+        File.WriteAllText(Path.Combine(appDir, "bunfig.toml"), "[install]\nregistry = \"https://my-private-registry.example.com\"");
+
+        var bunApp = builder.AddJavaScriptApp("js", appDir)
+            .WithBun();
+
+        await ManifestUtils.GetManifest(bunApp.Resource, tempDir.Path);
+
+        var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
+
+        Assert.Contains("COPY package.json .npmrc bunfig.toml ./", dockerfileContents);
+    }
 }
