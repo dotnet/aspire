@@ -205,34 +205,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private static bool HasAspireServerConfigured(DirectoryInfo vsCodeFolder)
     {
         var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-
-        if (!File.Exists(mcpConfigPath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(mcpConfigPath);
-            var config = JsonNode.Parse(content)?.AsObject();
-
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("servers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey(AspireServerName);
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume aspire is not configured
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(mcpConfigPath, "servers", AspireServerName);
     }
 
     /// <summary>
@@ -241,33 +214,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private static bool HasPlaywrightServerConfigured(DirectoryInfo vsCodeFolder)
     {
         var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-        
-        if (!File.Exists(mcpConfigPath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(mcpConfigPath);
-            var config = JsonNode.Parse(content)?.AsObject();
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("servers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey("playwright");
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume playwright is not configured
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(mcpConfigPath, "servers", "playwright");
     }
 
     /// <summary>
@@ -294,25 +241,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         }
 
         var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(mcpConfigPath))
-        {
-            var existingContent = await File.ReadAllTextAsync(mcpConfigPath, cancellationToken);
-            try
-            {
-                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-            }
-            catch (JsonException ex)
-            {
-                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, mcpConfigPath), ex);
-            }
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(mcpConfigPath, cancellationToken);
 
         // Ensure "servers" object exists
         if (!config.ContainsKey("servers") || config["servers"] is not JsonObject)
@@ -349,25 +278,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         }
 
         var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(mcpConfigPath))
-        {
-            var existingContent = await File.ReadAllTextAsync(mcpConfigPath, cancellationToken);
-            try
-            {
-                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-            }
-            catch (JsonException ex)
-            {
-                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, mcpConfigPath), ex);
-            }
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(mcpConfigPath, cancellationToken);
 
         // Ensure "servers" object exists
         if (!config.ContainsKey("servers") || config["servers"] is not JsonObject)

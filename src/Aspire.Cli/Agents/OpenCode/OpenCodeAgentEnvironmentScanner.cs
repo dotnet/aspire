@@ -121,32 +121,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <returns>True if the aspire server is already configured, false otherwise.</returns>
     private static bool HasAspireServerConfigured(string configFilePath)
     {
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-
-            // Remove single-line comments for parsing (JSONC support)
-            content = RemoveJsonComments(content);
-
-            var config = JsonNode.Parse(content)?.AsObject();
-
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcp", out var mcpNode) && mcpNode is JsonObject mcp)
-            {
-                return mcp.ContainsKey(AspireServerName);
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume aspire is not configured
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcp", AspireServerName, RemoveJsonComments);
     }
 
     /// <summary>
@@ -203,31 +178,10 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        JsonObject config;
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken, RemoveJsonComments);
 
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-
-            // Remove comments for parsing
-            var jsonContent = RemoveJsonComments(existingContent);
-            try
-            {
-                config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
-            }
-            catch (JsonException ex)
-            {
-                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
-            }
-        }
-        else
-        {
-            config = new JsonObject
-            {
-                ["$schema"] = "https://opencode.ai/config.json"
-            };
-        }
+        // Ensure schema is set for new files
+        config.TryAdd("$schema", "https://opencode.ai/config.json");
 
         // Ensure "mcp" object exists
         if (!config.ContainsKey("mcp") || config["mcp"] is not JsonObject)
@@ -258,31 +212,10 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        JsonObject config;
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken, RemoveJsonComments);
 
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-
-            // Remove comments for parsing
-            var jsonContent = RemoveJsonComments(existingContent);
-            try
-            {
-                config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
-            }
-            catch (JsonException ex)
-            {
-                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
-            }
-        }
-        else
-        {
-            config = new JsonObject
-            {
-                ["$schema"] = "https://opencode.ai/config.json"
-            };
-        }
+        // Ensure schema is set for new files
+        config.TryAdd("$schema", "https://opencode.ai/config.json");
 
         // Ensure "mcp" object exists
         if (!config.ContainsKey("mcp") || config["mcp"] is not JsonObject)
@@ -310,32 +243,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private static bool HasPlaywrightServerConfigured(string configFilePath)
     {
-        if (!File.Exists(configFilePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-            var jsonContent = RemoveJsonComments(content);
-            var config = JsonNode.Parse(jsonContent)?.AsObject();
-            
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcp", out var mcpNode) && mcpNode is JsonObject mcp)
-            {
-                return mcp.ContainsKey("playwright");
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcp", "playwright", RemoveJsonComments);
     }
 }
