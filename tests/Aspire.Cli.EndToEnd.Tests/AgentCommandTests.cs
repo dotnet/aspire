@@ -360,7 +360,10 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var skippingMessage = new CellPatternSearcher().Find("Skipping");
 
         // Pattern for the agent environment selection prompt
-        var agentSelectPrompt = new CellPatternSearcher().Find("VS Code");
+        var agentSelectPrompt = new CellPatternSearcher().Find("agent environments");
+
+        // Pattern for the additional options prompt that appears after agent environment selection
+        var additionalOptionsPrompt = new CellPatternSearcher().Find("additional options");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -390,10 +393,16 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .Wait(500)
             .Enter() // Accept default workspace path
-            .WaitUntil(s => agentSelectPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Type(" ") // Select VS Code option
+            .WaitUntil(s => agentSelectPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Type(" ") // Select first option (VS Code)
             .Enter()
-            // After selection, wait for the error about malformed JSON and non-zero exit
+            // Handle the additional options prompt - must select at least one item
+            // (Spectre.Console MultiSelectionPrompt requires at least one selection)
+            // Select the first skill file option which is harmless (doesn't touch mcp.json)
+            .WaitUntil(s => additionalOptionsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Type(" ") // Select first additional option (skill file)
+            .Enter()
+            // After all prompts, wait for the error about malformed JSON and non-zero exit
             .WaitUntil(s =>
             {
                 var hasError = malformedError.Search(s).Count > 0;
