@@ -165,8 +165,9 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
-        // Create a unique temporary Dockerfile path for this resource using the directory service
-        // using a file name, so the file is created in a new, empty directory.
+        // Create a unique temporary Dockerfile path for this resource using the directory service.
+        // Passing a file name causes CreateTempFile to create the file in a new, empty subdirectory,
+        // which avoids Docker/buildx scanning the entire temporary directory.
         var directoryService = ctx.Services.GetRequiredService<IFileSystemService>();
         var tempDockerfilePath = directoryService.TempDirectory.CreateTempFile("Dockerfile").Path;
 
