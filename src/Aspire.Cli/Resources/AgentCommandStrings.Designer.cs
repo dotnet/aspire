@@ -131,5 +131,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("MalformedConfigFileError", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skipping update of '{0}'..
+        /// </summary>
+        internal static string SkippedMalformedConfigFile {
+            get {
+                return ResourceManager.GetString("SkippedMalformedConfigFile", resourceCulture);
+            }
+        }
     }
 }

@@ -42,6 +42,11 @@
         <target state="translated">MCP (モデル コンテキスト プロトコル) サーバーを起動します。</target>
         <note />
       </trans-unit>
+      <trans-unit id="SkippedMalformedConfigFile">
+        <source>Skipping update of '{0}'.</source>
+        <target state="new">Skipping update of '{0}'.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
