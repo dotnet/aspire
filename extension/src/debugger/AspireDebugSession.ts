@@ -295,7 +295,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     if (this._disposed) {
       return;
     }
-    
     this._disposed = true;
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
     vscode.debug.stopDebugging(this._session);
