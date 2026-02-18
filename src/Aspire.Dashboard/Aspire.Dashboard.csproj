@@ -51,9 +51,7 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
-    <!-- Humanizer.Core 3.x ships analyzers requiring System.Collections.Immutable 9.0.0 which is unavailable
-         on older SDKs (net8). Exclude analyzers from flowing transitively to consuming projects. -->
-    <PackageReference Include="Humanizer.Core" PrivateAssets="analyzers" />
+    <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="OpenAI" />
