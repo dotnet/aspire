@@ -62,17 +62,11 @@ variables:
   - name: _PublishToWinGet
     value: ${{ and(eq(variables._IsPublishBranch, 'True'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(parameters.publishReleaseToWinGet, true))) }}
 
-  # Use the release package id on release/* and internal/release/* branches, prerelease everywhere else
-  - ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}:
-    - name: _WinGetTemplateDir
-      value: microsoft.aspire
-    - name: _WinGetPackageIdentifier
-      value: Microsoft.Aspire
-  - ${{ else }}:
-    - name: _WinGetTemplateDir
-      value: microsoft.aspire.prerelease
-    - name: _WinGetPackageIdentifier
-      value: Microsoft.Aspire.Prerelease
+  # Always publish to prerelease from CI pipeline; release winget publishing is done via release-publish-nuget.yml
+  - name: _WinGetTemplateDir
+    value: microsoft.aspire.prerelease
+  - name: _WinGetPackageIdentifier
+    value: Microsoft.Aspire.Prerelease
 
   # Variable group containing VscePublishToken for VS Code Marketplace publishing
   - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
