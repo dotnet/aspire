@@ -441,7 +441,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData("deploy")]
     [InlineData("diagnostics")]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13287")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
