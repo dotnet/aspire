@@ -361,8 +361,8 @@ public static class AzureVirtualNetworkExtensions
     /// This example allows HTTPS traffic from the Azure Load Balancer:
     /// <code>
     /// var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
-    ///     .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
-    ///     .DenyInbound(from: "Internet");
+    ///     .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer, protocol: SecurityRuleProtocol.Tcp)
+    ///     .DenyInbound(from: AzureServiceTags.Internet);
     /// </code>
     /// </example>
     public static IResourceBuilder<AzureSubnetResource> AllowInbound(
