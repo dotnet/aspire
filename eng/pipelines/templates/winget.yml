@@ -51,6 +51,21 @@ steps:
         exit 0
       }
 
+      # Diagnose available repositories
+      Write-Host "Available PowerShell repositories:"
+      Get-PSRepository | Format-Table -AutoSize
+
+      # Register PSGallery if it's missing (restricted environments may not have it)
+      if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+        Write-Host "PSGallery not found. Registering it..."
+        Register-PSRepository -Default -ErrorAction SilentlyContinue
+        # If Register-PSRepository -Default doesn't work, register manually
+        if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+          Write-Host "Registering PSGallery manually..."
+          Register-PSRepository -Name PSGallery -SourceLocation https://www.powershellgallery.com/api/v2 -InstallationPolicy Trusted
+        }
+      }
+
       Write-Host "Installing Microsoft.WinGet.Client module..."
       Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Force -Scope AllUsers
 
