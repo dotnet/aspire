@@ -143,7 +143,7 @@
     "sqlserver": {
       "type": "container.v0",
       "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "image": "mcr.microsoft.com/mssql/server:2025-latest",
       "env": {
         "ACCEPT_EULA": "Y",
         "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"

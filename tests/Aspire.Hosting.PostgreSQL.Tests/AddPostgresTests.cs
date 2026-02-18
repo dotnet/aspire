@@ -744,9 +744,8 @@ public class AddPostgresTests
     public void WithDataVolumeUsesLegacyPathForPostgres17(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var postgres = builder.AddPostgres("myPostgres");
-
-        // Default image is v17.x, so should use legacy path
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "17.8");
         if (isReadOnly.HasValue)
         {
             postgres.WithDataVolume(isReadOnly: isReadOnly.Value);
@@ -825,9 +824,8 @@ public class AddPostgresTests
     public void WithDataBindMountUsesLegacyPathForPostgres17(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var postgres = builder.AddPostgres("myPostgres");
-
-        // Default image is v17.x, so should use legacy path
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "17.8");
         if (isReadOnly.HasValue)
         {
             postgres.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
