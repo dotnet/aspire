@@ -165,8 +165,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             [
                 new ResourceSnapshot
                 {
-                    Name = "test-resource",
-                    DisplayName = "Test Resource",
+                    Name = "test-resource-abcd1234",
+                    DisplayName = "test-resource",
                     ResourceType = "Container",
                     State = "Running",
                     McpServer = new ResourceSnapshotMcpServer
@@ -202,8 +202,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         // Assert - Verify resource tools are included
         Assert.NotNull(tools);
 
-        // The resource tools should be exposed with a prefixed name: {resource_name}_{tool_name}
-        // Resource name "test-resource" becomes "test_resource" (dashes replaced with underscores)
+        // The resource tools should be exposed with a prefixed name using the DisplayName (app-model name):
+        // DisplayName "test-resource" becomes "test_resource" (dashes replaced with underscores)
         var resourceToolOne = tools.FirstOrDefault(t => t.Name == "test_resource_resource_tool_one");
         var resourceToolTwo = tools.FirstOrDefault(t => t.Name == "test_resource_resource_tool_two");
 
@@ -235,8 +235,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             [
                 new ResourceSnapshot
                 {
-                    Name = "my-resource",
-                    DisplayName = "My Resource",
+                    Name = "my-resource-abcd1234",
+                    DisplayName = "my-resource",
                     ResourceType = "Container",
                     State = "Running",
                     McpServer = new ResourceSnapshotMcpServer
@@ -289,6 +289,69 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         // Verify the handler was called with the correct resource and tool names
         Assert.Equal("my-resource", callResourceName);
         Assert.Equal("do_something", callToolName);
+    }
+
+    [Fact]
+    public async Task McpServer_CallTool_ResourceMcpTool_UsesDisplayNameForRouting()
+    {
+        // Arrange - Simulate resource snapshots that use a unique resource id and a logical display name.
+        var expectedToolResult = "List schemas completed";
+        string? callResourceName = null;
+        string? callToolName = null;
+
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            ResourceSnapshots =
+            [
+                new ResourceSnapshot
+                {
+                    Name = "db1-mcp-ypnvhwvw",
+                    DisplayName = "db1-mcp",
+                    ResourceType = "Container",
+                    State = "Running",
+                    McpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = "http://localhost:8080/mcp",
+                        Tools =
+                        [
+                            new Tool
+                            {
+                                Name = "list_schemas",
+                                Description = "Lists database schemas"
+                            }
+                        ]
+                    }
+                }
+            ],
+            CallResourceMcpToolHandler = (resourceName, toolName, arguments, ct) =>
+            {
+                callResourceName = resourceName;
+                callToolName = toolName;
+                return Task.FromResult(new CallToolResult
+                {
+                    Content = [new TextContentBlock { Text = expectedToolResult }]
+                });
+            }
+        };
+
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+        await _mcpClient.CallToolAsync(KnownMcpTools.RefreshTools, cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Act
+        var result = await _mcpClient.CallToolAsync("db1_mcp_list_schemas", cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
+        Assert.Equal("db1-mcp", callResourceName);
+        Assert.Equal("list_schemas", callToolName);
     }
 
     [Fact]
@@ -365,8 +428,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             [
                 new ResourceSnapshot
                 {
-                    Name = "db-mcp",
-                    DisplayName = "DB MCP",
+                    Name = "db-mcp-abcd1234",
+                    DisplayName = "db-mcp",
                     ResourceType = "Container",
                     State = "Running",
                     McpServer = new ResourceSnapshotMcpServer

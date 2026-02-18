@@ -95,10 +95,15 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
                 {
                     Debug.Assert(resource.McpServer is not null);
 
+                    // Use DisplayName (the app-model name, e.g. "db1-mcp") rather than Name
+                    // (the DCP runtime ID, e.g. "db1-mcp-ypnvhwvw") because the AppHost resolves
+                    // resources by their app-model name in CallResourceMcpToolAsync.
+                    var routedResourceName = resource.DisplayName ?? resource.Name;
+
                     foreach (var tool in resource.McpServer.Tools)
                     {
-                        var exposedName = $"{resource.Name.Replace("-", "_")}_{tool.Name}";
-                        refreshedMap[exposedName] = new ResourceToolEntry(resource.Name, tool);
+                        var exposedName = $"{routedResourceName.Replace("-", "_")}_{tool.Name}";
+                        refreshedMap[exposedName] = new ResourceToolEntry(routedResourceName, tool);
 
                         _logger.LogDebug("{Tool}: {Description}", exposedName, tool.Description);
                     }
@@ -150,4 +155,5 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
             return (_resourceToolMap, changed);
         }
     }
+
 }
