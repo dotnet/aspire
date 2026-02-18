@@ -34,7 +34,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="StreamJsonRpc" />
+    <!-- StreamJsonRpc 2.24.x ships analyzers targeting Roslyn 4.14.0 which is newer than the compiler in
+         older SDKs (net8). Exclude analyzers from flowing transitively to consuming projects. -->
+    <PackageReference Include="StreamJsonRpc" PrivateAssets="analyzers" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
