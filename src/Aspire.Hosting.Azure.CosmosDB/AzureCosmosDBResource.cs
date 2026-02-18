@@ -88,7 +88,8 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     internal bool IsPreviewEmulator =>
         this.TryGetContainerImageName(out var imageName) &&
-        imageName == $"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNextPreview}";
+        (imageName == $"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNextPreview}" ||
+        imageName.StartsWith($"{CosmosDBEmulatorContainerImageTags.Registry}/{CosmosDBEmulatorContainerImageTags.Image}:{CosmosDBEmulatorContainerImageTags.TagVNext}"));
 
     /// <summary>
     /// Gets the account endpoint URI expression for the Cosmos DB account.

@@ -6,6 +6,8 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
+using System.Diagnostics.CodeAnalysis;
+
 public class AzureCosmosDBConnectionPropertiesTests
 {
     [Fact]
@@ -31,7 +33,7 @@ public class AzureCosmosDBConnectionPropertiesTests
 
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
-        
+
         Assert.Collection(
             properties,
             property =>
@@ -76,6 +78,45 @@ public class AzureCosmosDBConnectionPropertiesTests
             {
                 Assert.Equal("ConnectionString", property.Key);
                 Assert.Equal("AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=https://{cosmos.bindings.emulator.host}:{cosmos.bindings.emulator.port};DisableServerCertificateValidation=True;", property.Value.ValueExpression);
+            });
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("vnext-EN20260130")]
+    [InlineData("vnext-preview")]
+    [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public void AzureCosmosDbResourcePreviewEmulatorGetConnectionPropertiesReturnsExpectedValues(string? imageTag)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .RunAsPreviewEmulator(emulator =>
+            {
+                if (imageTag is not null)
+                {
+                    emulator.WithImageTag(imageTag);
+                }
+            });
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
+
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{cosmos.bindings.emulator.url}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint={cosmos.bindings.emulator.url}", property.Value.ValueExpression);
             });
     }
 }
