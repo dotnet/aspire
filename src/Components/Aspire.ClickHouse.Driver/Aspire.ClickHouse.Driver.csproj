@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentDatabasePackageTags) clickhouse</PackageTags>
+    <Description>A ClickHouse client integration for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)ClickHouse_logo.592x592.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+    <Compile Include="..\Common\ConnectionStringValidation.cs" Link="ConnectionStringValidation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClickHouse.Driver" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,69 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "ClickHouse.Driver": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "ClickHouse.Driver.BulkCopy": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "ClickHouse.Driver.Client": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "ClickHouse.Driver.Command": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "ClickHouse.Driver.Connection": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "ClickHouse.Driver.Transport": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "ClickHouse": {
+          "type": "object",
+          "properties": {
+            "Driver": {
+              "type": "object",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "The connection string of the ClickHouse database to connect to."
+                },
+                "DisableHealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
+                  "default": false
+                },
+                "DisableMetrics": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not. The ClickHouse client currently does not produce metrics.",
+                  "default": true
+                },
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
+                },
+                "HealthCheckTimeout": {
+                  "type": "string",
+                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
+                  "description": "Gets or sets the timeout for the health check."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a ClickHouse database using ClickHouse.Driver."
+            }
+          }
+        }
+      }
+    }
+  }
+}

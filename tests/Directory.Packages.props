@@ -11,6 +11,7 @@
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitV3Extensions" Version="$(MicrosoftDotNetXUnitV3ExtensionsVersion)" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.55.0" />
+    <PackageVersion Include="Testcontainers.ClickHouse" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />

@@ -91,6 +91,7 @@
     <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
     <PackageVersion Include="NuGet.Resolver" Version="6.14.0" />
     <!-- external dependencies -->
+    <PackageVersion Include="ClickHouse.Driver" Version="1.0.0" />
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
