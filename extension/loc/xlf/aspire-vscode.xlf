@@ -289,5 +289,11 @@
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDirectoryTitle">
+      <source xml:lang="en">Select directory</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectFileTitle">
+      <source xml:lang="en">Select file</source>
+    </trans-unit>
   </body></file>
 </xliff>
