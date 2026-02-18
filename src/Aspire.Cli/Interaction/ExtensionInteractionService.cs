@@ -7,6 +7,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Interaction;
 
@@ -54,9 +55,22 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
                     await taskFunction.Invoke();
                 }
+                catch (Exception ex) when (IsExtensionConnectionLostException(ex))
+                {
+                    // Connection was lost - only log to console, don't try to send over the closed connection
+                    _consoleInteractionService.DisplaySubtleMessage(ex.Message);
+                }
                 catch (Exception ex)
                 {
-                    await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
+                    // Try to display error to extension, but if that fails due to connection issues, just log to console
+                    try
+                    {
+                        await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
+                    }
+                    catch (Exception innerEx) when (IsExtensionConnectionLostException(innerEx))
+                    {
+                        // Swallow connection lost exceptions when trying to report the error
+                    }
                     _consoleInteractionService.DisplayError(ex.Message);
                 }
             }
@@ -364,5 +378,16 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.WriteDebugSessionMessageAsync(message.RemoveSpectreFormatting(), stdout, textStyle, _cancellationToken));
         Debug.Assert(result);
+    }
+
+    /// <summary>
+    /// Determines if the exception is related to the extension connection being lost.
+    /// This is used to gracefully handle cases where the debug session is being stopped/restarted.
+    /// </summary>
+    private static bool IsExtensionConnectionLostException(Exception ex)
+    {
+        return ex is ConnectionLostException
+            || ex is ObjectDisposedException
+            || (ex is OperationCanceledException && ex.InnerException is ConnectionLostException);
     }
 }

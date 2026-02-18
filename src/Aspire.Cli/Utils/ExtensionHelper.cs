@@ -34,4 +34,5 @@ internal static class KnownCapabilities
     public const string BuildDotnetUsingCli = "build-dotnet-using-cli";
     public const string Baseline = "baseline.v1";
     public const string SecretPrompts = "secret-prompts.v1";
+    public const string Browser = "browser";
 }
