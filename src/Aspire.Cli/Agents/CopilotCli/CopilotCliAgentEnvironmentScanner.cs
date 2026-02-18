@@ -229,7 +229,14 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         if (File.Exists(configFilePath))
         {
             var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
+            }
         }
         else
         {
@@ -284,7 +291,14 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         if (File.Exists(configFilePath))
         {
             var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
+            }
         }
         else
         {

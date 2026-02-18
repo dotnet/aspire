@@ -300,7 +300,14 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         if (File.Exists(mcpConfigPath))
         {
             var existingContent = await File.ReadAllTextAsync(mcpConfigPath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, mcpConfigPath), ex);
+            }
         }
         else
         {
@@ -348,7 +355,14 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         if (File.Exists(mcpConfigPath))
         {
             var existingContent = await File.ReadAllTextAsync(mcpConfigPath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, mcpConfigPath), ex);
+            }
         }
         else
         {

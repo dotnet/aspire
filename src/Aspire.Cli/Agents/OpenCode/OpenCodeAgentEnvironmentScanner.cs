@@ -212,7 +212,14 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
             // Remove comments for parsing
             var jsonContent = RemoveJsonComments(existingContent);
-            config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
+            }
         }
         else
         {
@@ -260,7 +267,14 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
             // Remove comments for parsing
             var jsonContent = RemoveJsonComments(existingContent);
-            config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
+            try
+            {
+                config = JsonNode.Parse(jsonContent)?.AsObject() ?? new JsonObject();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, AgentCommandStrings.MalformedConfigFileError, configFilePath), ex);
+            }
         }
         else
         {
