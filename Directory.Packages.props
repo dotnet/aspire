@@ -118,7 +118,7 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.7.2" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="10.0.1" />
-    <PackageVersion Include="OpenAI" Version="2.8.0" />
+    <PackageVersion Include="OpenAI" Version="2.7.0" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.26.100" />
     <PackageVersion Include="Polly.Core" Version="8.6.5" />
     <PackageVersion Include="Polly.Extensions" Version="8.6.5" />

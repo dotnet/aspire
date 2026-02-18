@@ -11,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MySqlConnector.Logging;
 using OpenTelemetry.Trace;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
@@ -30,10 +29,9 @@ public class EnrichMySqlTests : ConformanceTests
     {
         builder.Services.AddDbContextPool<TestDbContext>((serviceProvider, options) =>
         {
-            // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
             if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
             {
-                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+                options.UseLoggerFactory(loggerFactory);
             }
 
             options.UseMySql(ConnectionString, DefaultVersion);

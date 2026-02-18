@@ -10,7 +10,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
-using MySqlConnector.Logging;
 using Polly;
 using Polly.Registry;
 using Polly.Retry;
@@ -93,10 +92,9 @@ public static partial class AspireEFMySqlExtensions
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
             if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
             {
-                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+                dbContextOptionsBuilder.UseLoggerFactory(loggerFactory);
             }
 
             var connectionString = settings.ConnectionString ?? string.Empty;

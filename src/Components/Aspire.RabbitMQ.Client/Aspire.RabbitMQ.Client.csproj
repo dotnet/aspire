@@ -5,7 +5,11 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp messaging eventing</PackageTags>
     <Description>A RabbitMQ client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
-    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- SYSLIB0026/0027/0028: RabbitMQ.Client 7.2.0's SslOption type exposes X509Certificate2 properties that
+         use obsolete APIs. We don't reference these directly, but the Microsoft.Extensions.Configuration.Binder
+         source generator emits binding code for ConnectionFactory → SslOption → X509Certificate2 that triggers
+         these warnings. Suppress until RabbitMQ.Client updates their API surface. -->
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101;SYSLIB0026;SYSLIB0027;SYSLIB0028</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
