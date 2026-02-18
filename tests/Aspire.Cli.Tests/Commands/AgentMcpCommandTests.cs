@@ -497,6 +497,66 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task McpServer_ListTools_CachesResourceToolMap_WhenConnectionUnchanged()
+    {
+        // Arrange - Create a mock backchannel and track how many times GetResourceSnapshotsAsync is called
+        var getResourceSnapshotsCallCount = 0;
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            GetResourceSnapshotsHandler = (ct) =>
+            {
+                Interlocked.Increment(ref getResourceSnapshotsCallCount);
+                return Task.FromResult(new List<ResourceSnapshot>
+                {
+                    new ResourceSnapshot
+                    {
+                        Name = "db-mcp-xyz",
+                        DisplayName = "db-mcp",
+                        ResourceType = "Container",
+                        State = "Running",
+                        McpServer = new ResourceSnapshotMcpServer
+                        {
+                            EndpointUrl = "http://localhost:8080/mcp",
+                            Tools =
+                            [
+                                new Tool
+                                {
+                                    Name = "query_db",
+                                    Description = "Query the database"
+                                }
+                            ]
+                        }
+                    }
+                });
+            }
+        };
+
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+
+        // Act - Call ListTools twice
+        var tools1 = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+        var tools2 = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert - Both calls return the resource tool
+        Assert.Contains(tools1, t => t.Name == "db_mcp_query_db");
+        Assert.Contains(tools2, t => t.Name == "db_mcp_query_db");
+
+        // The resource tool map should be cached after the first call,
+        // so GetResourceSnapshotsAsync should only be called once (during the first refresh).
+        // Before the fix, TryGetResourceToolMap always returned false due to
+        // SelectedAppHostPath vs SelectedConnection path mismatch, causing every
+        // ListTools call to trigger a full refresh.
+        Assert.Equal(1, getResourceSnapshotsCallCount);
+    }
+
+    [Fact]
     public async Task McpServer_CallTool_UnknownTool_ReturnsError()
     {
         // Act & Assert - The MCP client throws McpProtocolException when the server returns an error
