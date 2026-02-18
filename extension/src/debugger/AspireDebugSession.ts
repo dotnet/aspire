@@ -228,7 +228,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           const config = this.configuration;
           // Always dispose the current Aspire debug session when the AppHost stops.
           this.dispose();
-          disposable.dispose();
 
           if (shouldRestart) {
             extensionLogOutputChannel.info('AppHost terminated unexpectedly, restarting Aspire debug session');
