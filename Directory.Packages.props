@@ -33,8 +33,8 @@
     <PackageVersion Include="Microsoft.Azure.Kusto.Ingest" Version="14.0.3" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.32.0" />
-    <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
-    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.13.0" />
+    <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.13.1" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.4.0" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="1.4.0" />
@@ -103,7 +103,7 @@
     <PackageVersion Include="Hex1b.Tool" Version="0.90.0" />
     <PackageVersion Include="Humanizer.Core" Version="3.0.1" />
     <PackageVersion Include="KubernetesClient" Version="18.0.13" />
-    <PackageVersion Include="JsonPatch.Net" Version="5.0.0" />
+    <PackageVersion Include="JsonPatch.Net" Version="3.3.0" />
     <PackageVersion Include="Markdig" Version="0.45.0" />
     <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="0.3.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.4" />

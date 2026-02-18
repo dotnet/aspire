@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
+using MySqlConnector.Logging;
 using Polly;
 using Polly.Registry;
 using Polly.Retry;
@@ -92,9 +93,15 @@ public static partial class AspireEFMySqlExtensions
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
+            // MySqlConnectorLogManager.Provider is the only way to wire MySqlConnector's internal logging
+            // categories (e.g. MySqlConnector.ConnectionPool) into ILoggerFactory when using Pomelo,
+            // because Pomelo doesn't use MySqlDataSource. The API is marked obsolete but there is no
+            // non-obsolete alternative for this scenario.
             if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
             {
-                dbContextOptionsBuilder.UseLoggerFactory(loggerFactory);
+#pragma warning disable CS0618 // Type or member is obsolete
+                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+#pragma warning restore CS0618
             }
 
             var connectionString = settings.ConnectionString ?? string.Empty;
