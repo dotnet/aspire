@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.StackExchange.Redis;
+using Microsoft.Azure.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,9 +45,11 @@ public class AspireMicrosoftAzureStackExchangeRedisExtensionsTests
 
         // ensure the options was configured correctly
         Assert.NotNull(configurationOptions);
+        Assert.Equal(FakeTokenCredential.Token, configurationOptions.Password);
 
         var defaults = configurationOptions.Defaults;
-        Assert.IsType<AzureManagedRedisOptionsProvider>(defaults, exactMatch: false);
+        Assert.IsType<IAzureCacheTokenEvents>(defaults, exactMatch: false);
+        Assert.IsType<AzureOptionsProvider>(defaults, exactMatch: false);
     }
 
     [Fact]
@@ -69,6 +72,8 @@ public class AspireMicrosoftAzureStackExchangeRedisExtensionsTests
         Assert.Equal("p@ssw0rd1", configurationOptions.Password);
 
         var defaults = configurationOptions.Defaults;
+        Assert.IsNotType<IAzureCacheTokenEvents>(defaults, exactMatch: false);
+        Assert.IsNotType<AzureOptionsProvider>(defaults, exactMatch: false);
         Assert.IsNotType<AzureManagedRedisOptionsProvider>(defaults, exactMatch: false);
     }
 }
