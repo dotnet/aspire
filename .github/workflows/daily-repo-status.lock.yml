@@ -26,7 +26,7 @@
 # release/13.2 branch, pending PR reviews, and discussions. Generates
 # a 7-day burndown chart using cached daily snapshots.
 #
-# frontmatter-hash: 26fb1169d7f601cfffd4a6a0e90956fa1cfd128c6956ff6cfefa7522430c7cbc
+# frontmatter-hash: bc5800cbca6e1d7d6e9a7ab0351a8d4a78ee5e8428508b9fec96293f387c920f
 
 name: "13.2 Release Burndown Report"
 "on":
@@ -41,6 +41,9 @@ concurrency:
   group: "gh-aw-${{ github.workflow }}"
 
 run-name: "13.2 Release Burndown Report"
+
+env:
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   activation:

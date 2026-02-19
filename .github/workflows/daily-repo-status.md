@@ -17,6 +17,9 @@ permissions:
 
 network: defaults
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 tools:
   github:
     toolsets: [repos, issues, pull_requests, discussions, search]
