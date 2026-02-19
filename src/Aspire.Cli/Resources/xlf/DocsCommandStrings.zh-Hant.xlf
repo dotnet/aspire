@@ -4,77 +4,77 @@
     <body>
       <trans-unit id="Description">
         <source>Browse and search Aspire documentation from aspire.dev.</source>
-        <target state="translated">瀏覽並搜尋 aspire.dev 上的 Aspire 文件。</target>
+        <target state="new">Browse and search Aspire documentation from aspire.dev.</target>
         <note />
       </trans-unit>
       <trans-unit id="DocumentNotFound">
         <source>Documentation page '{0}' not found. Use 'aspire docs list' to see available pages.</source>
-        <target state="translated">找不到文件頁面 '{0}'。請使用 'aspire docs list' 查看可用頁面。</target>
+        <target state="new">Documentation page '{0}' not found. Use 'aspire docs list' to see available pages.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="translated">輸出格式 (資料表或 Json)。</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="FoundDocumentationPages">
         <source>Found {0} documentation pages.</source>
-        <target state="translated">找到 {0} 文件頁面。</target>
+        <target state="new">Found {0} documentation pages.</target>
         <note />
       </trans-unit>
       <trans-unit id="FoundSearchResults">
         <source>Found {0} results for '{1}'.</source>
-        <target state="translated">找到 {0} 個 '{1}' 個結果。</target>
+        <target state="new">Found {0} results for '{1}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="GetDescription">
         <source>Get the full content of a documentation page by its slug.</source>
-        <target state="translated">依據識別字串取得文件頁面的完整內容。</target>
+        <target state="new">Get the full content of a documentation page by its slug.</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of search results to return (default: 5, max: 10).</source>
-        <target state="translated">最多回傳的搜尋結果數量 (預設: 5，最大值: 10)。</target>
+        <target state="new">Maximum number of search results to return (default: 5, max: 10).</target>
         <note />
       </trans-unit>
       <trans-unit id="ListDescription">
         <source>List all available Aspire documentation pages.</source>
-        <target state="translated">列出所有可用的 Aspire 文件頁面。</target>
+        <target state="new">List all available Aspire documentation pages.</target>
         <note />
       </trans-unit>
       <trans-unit id="LoadingDocumentation">
         <source>Loading documentation...</source>
-        <target state="translated">正在載入檔案...</target>
+        <target state="new">Loading documentation...</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDocumentationAvailable">
         <source>No documentation available. The aspire.dev docs may not have loaded correctly.</source>
-        <target state="translated">沒有可用的文件。aspire.dev 文件可能未正確載入。</target>
+        <target state="new">No documentation available. The aspire.dev docs may not have loaded correctly.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResultsFound">
         <source>No results found for '{0}'. Try different search terms.</source>
-        <target state="translated">找不到 '{0}' 的結果。請嘗試不同的搜尋字詞。</target>
+        <target state="new">No results found for '{0}'. Try different search terms.</target>
         <note />
       </trans-unit>
       <trans-unit id="QueryArgumentDescription">
         <source>The search query.</source>
-        <target state="translated">搜尋查詢。</target>
+        <target state="new">The search query.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchDescription">
         <source>Search Aspire documentation by keywords.</source>
-        <target state="translated">依關鍵字搜尋 Aspire 文件。</target>
+        <target state="new">Search Aspire documentation by keywords.</target>
         <note />
       </trans-unit>
       <trans-unit id="SectionOptionDescription">
         <source>Return only the specified section of the page.</source>
-        <target state="translated">僅回傳頁面指定的區段。</target>
+        <target state="new">Return only the specified section of the page.</target>
         <note />
       </trans-unit>
       <trans-unit id="SlugArgumentDescription">
         <source>The slug of the documentation page (e.g., 'redis-integration').</source>
-        <target state="translated">文件頁面的識別字串 (例如 'redis-integration')。</target>
+        <target state="new">The slug of the documentation page (e.g., 'redis-integration').</target>
         <note />
       </trans-unit>
     </body>
