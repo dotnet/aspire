@@ -24,3 +24,10 @@ internal sealed class FailedToApplyEnvironmentException : DistributedApplication
     public FailedToApplyEnvironmentException(string message, Exception inner) : base(message, inner) { }
 }
 
+internal sealed class ProvisioningFailedException : DistributedApplicationException
+{
+    public ProvisioningFailedException() { }
+    public ProvisioningFailedException(string message) : base(message) { }
+    public ProvisioningFailedException(string message, Exception inner) : base(message, inner) { }
+}
+

@@ -359,7 +359,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                     $"Failed to provision **{resource.Name}**: {errorMessage}",
                     CompletionState.CompletedWithError,
                     context.CancellationToken).ConfigureAwait(false);
-                throw;
+                throw new ProvisioningFailedException(errorMessage, ex);
             }
         }
     }
