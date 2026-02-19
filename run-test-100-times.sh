@@ -2,8 +2,10 @@
 
 # Script to run flaky test 100 times to verify the fix
 # This helps ensure the fix for issue #9673 is stable
+# BREAKS ON FIRST FAILURE for immediate investigation
 
 set -u  # Exit on undefined variables
+set -E  # Inherit ERR trap
 
 # Configuration
 TEST_PROJECT="tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"
@@ -27,13 +29,22 @@ NC='\033[0m' # No Color
 # Create results directory
 mkdir -p "$RESULTS_DIR"
 
+# Save command line for reproducibility
+echo "Command line: $0 $@" > "$RESULTS_DIR/command.txt"
+echo "Working directory: $(pwd)" >> "$RESULTS_DIR/command.txt"
+echo "Git commit: $(git rev-parse HEAD 2>/dev/null || echo 'N/A')" >> "$RESULTS_DIR/command.txt"
+echo "Started: $(date)" >> "$RESULTS_DIR/command.txt"
+
 echo "========================================" | tee -a "$LOG_FILE"
 echo "Test Verification Run - 100 Iterations" | tee -a "$LOG_FILE"
+echo "BREAK ON FIRST FAILURE MODE" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
 echo "Test: $TEST_METHOD" | tee -a "$LOG_FILE"
 echo "Project: $TEST_PROJECT" | tee -a "$LOG_FILE"
 echo "Results: $RESULTS_DIR" | tee -a "$LOG_FILE"
 echo "Started: $(date)" | tee -a "$LOG_FILE"
+echo "Command: $0 $@" | tee -a "$LOG_FILE"
+echo "Git commit: $(git rev-parse HEAD 2>/dev/null || echo 'N/A')" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
 
@@ -102,14 +113,33 @@ run_test() {
 
 # Main test loop
 echo "Starting test iterations..." | tee -a "$LOG_FILE"
+echo "Mode: BREAK ON FIRST FAILURE" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
+
+FIRST_FAILURE_ITERATION=0
 
 for i in $(seq 1 $ITERATIONS); do
     # Clean before each run
     clean_resources $i
     
     # Run the test
-    run_test $i
+    if ! run_test $i; then
+        # Test failed - break immediately
+        FIRST_FAILURE_ITERATION=$i
+        echo "" | tee -a "$LOG_FILE"
+        echo -e "${RED}========================================${NC}" | tee -a "$LOG_FILE"
+        echo -e "${RED}FAILURE DETECTED - Breaking on iteration $i${NC}" | tee -a "$LOG_FILE"
+        echo -e "${RED}========================================${NC}" | tee -a "$LOG_FILE"
+        echo "" | tee -a "$LOG_FILE"
+        
+        # Save failure details
+        echo "First failure at iteration: $i" >> "$RESULTS_DIR/failure-info.txt"
+        echo "Pass count before failure: $PASS_COUNT" >> "$RESULTS_DIR/failure-info.txt"
+        echo "Failure count: $FAIL_COUNT" >> "$RESULTS_DIR/failure-info.txt"
+        echo "Error count: $ERROR_COUNT" >> "$RESULTS_DIR/failure-info.txt"
+        
+        break
+    fi
     
     # Show progress every 10 iterations
     if [ $((i % 10)) -eq 0 ]; then
@@ -124,14 +154,18 @@ done
 clean_resources "final"
 
 # Generate summary report
+TOTAL_RUNS=$((PASS_COUNT + FAIL_COUNT + ERROR_COUNT))
 echo "" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
 echo "Test Results Summary" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
-echo "Total Iterations: $ITERATIONS" | tee -a "$LOG_FILE"
-echo -e "${GREEN}Passed:  $PASS_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$ITERATIONS)*100}")%)" | tee -a "$LOG_FILE"
-echo -e "${RED}Failed:  $FAIL_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$ITERATIONS)*100}")%)" | tee -a "$LOG_FILE"
-echo -e "${YELLOW}Errors:  $ERROR_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$ITERATIONS)*100}")%)" | tee -a "$LOG_FILE"
+if [ $FIRST_FAILURE_ITERATION -gt 0 ]; then
+    echo -e "${RED}STOPPED EARLY at iteration $FIRST_FAILURE_ITERATION due to failure${NC}" | tee -a "$LOG_FILE"
+fi
+echo "Total Iterations Completed: $TOTAL_RUNS / $ITERATIONS" | tee -a "$LOG_FILE"
+echo -e "${GREEN}Passed:  $PASS_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
+echo -e "${RED}Failed:  $FAIL_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
+echo -e "${YELLOW}Errors:  $ERROR_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
 echo "Completed: $(date)" | tee -a "$LOG_FILE"
 echo "Results saved to: $RESULTS_DIR" | tee -a "$LOG_FILE"
@@ -142,29 +176,36 @@ cat > "$RESULTS_DIR/summary.txt" << EOF
 Test Verification Summary
 =========================
 Test: $TEST_METHOD
-Iterations: $ITERATIONS
-Started: $(head -8 "$LOG_FILE" | tail -1)
+Mode: BREAK ON FIRST FAILURE
+Planned Iterations: $ITERATIONS
+Completed Iterations: $TOTAL_RUNS
+Started: $(head -12 "$LOG_FILE" | tail -1 | cut -d' ' -f2-)
 Completed: $(date)
 
 Results:
 --------
-Passed:  $PASS_COUNT / $ITERATIONS ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$ITERATIONS)*100}")%)
-Failed:  $FAIL_COUNT / $ITERATIONS ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$ITERATIONS)*100}")%)
-Errors:  $ERROR_COUNT / $ITERATIONS ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$ITERATIONS)*100}")%)
+Passed:  $PASS_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$TOTAL_RUNS)*100}")%)
+Failed:  $FAIL_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%)
+Errors:  $ERROR_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$TOTAL_RUNS)*100}")%)
 
-Status: $([ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && echo "SUCCESS - All tests passed!" || echo "FAILURE - Some tests failed")
+Status: $([ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ] && echo "SUCCESS - All $ITERATIONS tests passed!" || echo "FAILURE - Test stopped at iteration $FIRST_FAILURE_ITERATION")
 
 Previous failure rate (before fix): ~23.5%
 Expected failure rate (with fix): 0%
 
 Analysis:
 ---------
-$(if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ]; then
-    echo "✓ Fix verified! No failures in 100 iterations."
+$(if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ]; then
+    echo "✓ Fix verified! No failures in $ITERATIONS iterations."
     echo "✓ The WaitForHealthyAsync approach eliminates the race condition."
+elif [ $FIRST_FAILURE_ITERATION -gt 0 ]; then
+    echo "✗ FAILURE on iteration $FIRST_FAILURE_ITERATION"
+    echo "  Test stopped early for investigation."
+    echo "  Pass count before failure: $PASS_COUNT"
+    echo "  Review failure-$FIRST_FAILURE_ITERATION.log for details"
 elif [ $FAIL_COUNT -lt 10 ]; then
     echo "⚠ Minor failures detected. Review failure logs."
-    echo "  Previous rate was ~23.5%, current is $(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$ITERATIONS)*100}")%"
+    echo "  Previous rate was ~23.5%, current is $(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%"
 else
     echo "✗ Significant failures still occurring."
     echo "  Additional investigation needed."
@@ -173,19 +214,27 @@ fi)
 Log files:
 ----------
 Main log: $LOG_FILE
+Command info: $RESULTS_DIR/command.txt
 Failure logs: $RESULTS_DIR/failure-*.log
 Timeout logs: $RESULTS_DIR/timeout-*.log
+$([ $FIRST_FAILURE_ITERATION -gt 0 ] && echo "Failure info: $RESULTS_DIR/failure-info.txt")
 EOF
 
 cat "$RESULTS_DIR/summary.txt"
 
 # Exit with appropriate code
-if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ]; then
+if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ]; then
     echo ""
     echo -e "${GREEN}✓ SUCCESS: All $ITERATIONS iterations passed!${NC}"
     exit 0
 else
     echo ""
-    echo -e "${RED}✗ FAILURE: $FAIL_COUNT failures and $ERROR_COUNT errors detected${NC}"
+    echo -e "${RED}✗ FAILURE: Stopped at iteration $FIRST_FAILURE_ITERATION${NC}"
+    echo -e "${RED}  Failures: $FAIL_COUNT, Errors: $ERROR_COUNT${NC}"
+    if [ -f "$RESULTS_DIR/failure-info.txt" ]; then
+        echo ""
+        echo "Failure details:"
+        cat "$RESULTS_DIR/failure-info.txt"
+    fi
     exit 1
 fi
