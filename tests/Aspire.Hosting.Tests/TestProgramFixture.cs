@@ -63,16 +63,20 @@ public class SlimTestProgramFixture : TestProgramFixture
 
     public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
     {
-        // Make sure services A, B and C are running
-        await App.WaitForTextAsync("Application started.", "servicea", cancellationToken);
+        // Wait for services A, B and C to become healthy (reach Running state).
+        // This is more reliable than waiting for log messages, as it ensures the resource
+        // is fully ready to accept connections.
+        await App.WaitForHealthyAsync(TestProgram.ServiceABuilder, cancellationToken);
+        await App.WaitForHealthyAsync(TestProgram.ServiceBBuilder, cancellationToken);
+        await App.WaitForHealthyAsync(TestProgram.ServiceCBuilder, cancellationToken);
+
+        // Verify each service is actually responding to HTTP requests
         using var clientA = App.CreateHttpClientWithResilience(TestProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
-        await App.WaitForTextAsync("Application started.", "serviceb", cancellationToken);
         using var clientB = App.CreateHttpClientWithResilience(TestProgram.ServiceBBuilder.Resource.Name, "http");
         await clientB.GetStringAsync("/", cancellationToken);
 
-        await App.WaitForTextAsync("Application started.", "servicec", cancellationToken);
         using var clientC = App.CreateHttpClientWithResilience(TestProgram.ServiceCBuilder.Resource.Name, "http");
         await clientC.GetStringAsync("/", cancellationToken);
     }
