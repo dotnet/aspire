@@ -22,7 +22,6 @@ tools:
     toolsets: [repos, issues, pull_requests, discussions, search]
     lockdown: false
   cache-memory:
-  bash: ["echo", "date", "cat", "wc"]
 
 safe-outputs:
   create-issue:
