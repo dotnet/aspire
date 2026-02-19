@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure.AIFoundry.Tests;
 public class ProjectWithReferenceTests
 {
     [Fact]
-    public async Task WithReference_InjectsFoundryProjectEndpointEnvVar()
+    public async Task WithReference_InjectsFoundryProjectEndpointAsConnectionProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddAzureAIFoundry("test-account")
@@ -23,12 +23,12 @@ public class ProjectWithReferenceTests
             pyapp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
 
         Assert.Contains(envVars, kvp =>
-            kvp.Key == "AZURE_AI_FOUNDRY_PROJECT_ENDPOINT"
+            kvp.Key == "TEST_PROJECT_URI"
             && kvp.Value == "{test-project.outputs.endpoint}");
     }
 
     [Fact]
-    public async Task WithReference_InjectsApplicationInsightsConnectionString()
+    public async Task WithReference_InjectsApplicationInsightsAsConnectionProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddAzureAIFoundry("test-account")
@@ -42,7 +42,7 @@ public class ProjectWithReferenceTests
             pyapp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
 
         Assert.Contains(envVars, kvp =>
-            kvp.Key == "APPLICATIONINSIGHTS_CONNECTION_STRING"
+            kvp.Key == "TEST_PROJECT_APPLICATIONINSIGHTSCONNECTIONSTRING"
             && kvp.Value == "{test-project.outputs.APPLICATION_INSIGHTS_CONNECTION_STRING}");
     }
 
@@ -63,5 +63,29 @@ public class ProjectWithReferenceTests
         // Standard connection string is also injected via ResourceBuilderExtensions.WithReference
         Assert.Contains(envVars, kvp =>
             kvp.Key.StartsWith("ConnectionStrings__", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task WithReference_DeploymentInjectsModelNameAsConnectionProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("test-account");
+        var deployment = foundry.AddDeployment("chat", "gpt-4", "1", "OpenAI");
+
+        var pyapp = builder.AddPythonApp("app", "./app.py", "main:app")
+            .WithReference(deployment);
+
+        builder.Build();
+        var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            pyapp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        Assert.Contains(envVars, kvp =>
+            kvp.Key == "CHAT_MODELNAME" && kvp.Value == "chat");
+        Assert.Contains(envVars, kvp =>
+            kvp.Key == "CHAT_FORMAT" && kvp.Value == "OpenAI");
+        Assert.Contains(envVars, kvp =>
+            kvp.Key == "CHAT_VERSION" && kvp.Value == "1");
+        Assert.Contains(envVars, kvp =>
+            kvp.Key == "CHAT_URI");
     }
 }

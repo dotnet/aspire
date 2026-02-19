@@ -21,8 +21,8 @@ def main():
     from azure.identity.aio import DefaultAzureCredential
     from agent.agent import Agent
 
-    FOUNDRY_ENDPOINT = os.environ['AZURE_AI_FOUNDRY_PROJECT_ENDPOINT']
-    MODEL_DEPLOYMENT_NAME = os.environ['AZURE_AI_DEPLOYMENT_NAME']
+    FOUNDRY_ENDPOINT = os.environ['PROJ_URI']
+    MODEL_DEPLOYMENT_NAME = os.environ['CHAT_MODELNAME']
     with contextlib.closing(AIProjectClient(FOUNDRY_ENDPOINT, DefaultAzureCredential())) as client:
         # Serve traffic
         Agent(client, MODEL_DEPLOYMENT_NAME).run()
@@ -40,7 +40,7 @@ def init_telemetry():
     otlp_protocol = os.getenv('OTEL_EXPORTER_OTLP_PROTOCOL', 'http/protobuf')
     traces_exporter = os.getenv('OTEL_TRACES_EXPORTER')
     logs_exporter = os.getenv('OTEL_LOGS_EXPORTER')
-    app_insights_connection_string = os.getenv('APPLICATIONINSIGHTS_CONNECTION_STRING')
+    app_insights_connection_string = os.getenv('PROJ_APPLICATIONINSIGHTSCONNECTIONSTRING')
 
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level, logging.INFO))

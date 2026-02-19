@@ -93,9 +93,6 @@ public static class AzureCognitiveServicesProjectExtensions
 
     /// <summary>
     /// Adds a reference to an Azure Cognitive Services project resource to the destination resource.
-    ///
-    /// This adds both the standard environment variables (e.g. `ConnectionStrings__{name}={url}`) but also
-    /// the `AZURE_AI_PROJECT_ENDPOINT` environment variable.
     /// </summary>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<AzureCognitiveServicesProjectResource> project)
         where TDestination : IResourceWithEnvironment
@@ -106,19 +103,6 @@ public static class AzureCognitiveServicesProjectExtensions
         // Add standard references and environment variables
         ResourceBuilderExtensions.WithReference(builder, project);
 
-        var resource = project.Resource;
-
-        // Determine what to inject based on the annotation on the destination resource
-        var injectionAnnotation = builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var annotation) ? annotation : null;
-        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
-
-        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
-        {
-            // Also inject the striaght URL as another env var, because the APIProjectClient
-            // does not accept a connection string format.
-            builder.WithEnvironment("AZURE_AI_FOUNDRY_PROJECT_ENDPOINT", resource.UriExpression);
-            builder.WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", resource.AppInsightsConnectionString);
-        }
         if (builder is IResourceBuilder<IResourceWithWaitSupport> waitableBuilder)
         {
             waitableBuilder.WaitFor(project);
