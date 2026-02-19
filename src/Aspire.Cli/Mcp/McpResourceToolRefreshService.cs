@@ -20,7 +20,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     private McpServer? _server;
     private Dictionary<string, ResourceToolEntry> _resourceToolMap = new(StringComparer.Ordinal);
     private bool _invalidated = true;
-    private string? _selectedAppHostPath;
+    private string? _lastRefreshedAppHostPath;
 
     public McpResourceToolRefreshService(
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
@@ -35,7 +35,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     {
         lock (_lock)
         {
-            if (_invalidated || _selectedAppHostPath != _auxiliaryBackchannelMonitor.SelectedAppHostPath)
+            if (_invalidated || _lastRefreshedAppHostPath != _auxiliaryBackchannelMonitor.ResolvedAppHostPath)
             {
                 resourceToolMap = null!;
                 return false;
@@ -150,7 +150,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
             }
 
             _resourceToolMap = refreshedMap;
-            _selectedAppHostPath = selectedAppHostPath;
+            _lastRefreshedAppHostPath = selectedAppHostPath;
             _invalidated = false;
             return (_resourceToolMap, changed);
         }
