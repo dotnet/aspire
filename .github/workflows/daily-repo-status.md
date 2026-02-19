@@ -17,15 +17,12 @@ permissions:
 
 network: defaults
 
-env:
-  GH_TOKEN: ${{ github.token }}
-
 tools:
   github:
     toolsets: [repos, issues, pull_requests, discussions, search]
     lockdown: false
   cache-memory:
-  bash: ["echo", "date", "cat", "wc", "jq", "gh:*"]
+  bash: ["echo", "date", "cat", "wc"]
 
 safe-outputs:
   create-issue:
