@@ -117,9 +117,11 @@ clean_environment() {
     # Kill dcp / dcpctrl processes
     pgrep -lf "dcp" 2>/dev/null | grep -E "dcp(\.exe|ctl)" | awk '{system("kill -9 "$1)}' 2>/dev/null || true
 
-    # Kill dotnet test / dotnet-tests processes
+    # Kill dotnet-tests processes (actual test runner)
     pkill -9 -f "dotnet-tests" 2>/dev/null || true
-    pkill -9 -f "dotnet test" 2>/dev/null || true
+    
+    # Don't kill "dotnet test" as it may match our script's own command line args
+    # The dotnet test launcher exits when tests complete, so no need to kill it
 
     # Kill processes matching the test assembly name
     if [[ -n "$TEST_ASSEMBLY_NAME" ]]; then
