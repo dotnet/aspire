@@ -40,6 +40,7 @@ internal sealed class ConsoleActivityLogger
 
     private string? _finalStatusHeader;
     private bool _pipelineSucceeded;
+    private IReadOnlyList<KeyValuePair<string, string>>? _pipelineSummary;
 
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
@@ -274,6 +275,19 @@ internal sealed class ConsoleActivityLogger
             {
                 _console.MarkupLine(_finalStatusHeader!);
                 
+                // Display pipeline summary if available (for successful deployments)
+                // Store in local variable to avoid potential threading issues
+                var pipelineSummary = _pipelineSummary;
+                if (_pipelineSucceeded && pipelineSummary is { Count: > 0 })
+                {
+                    _console.WriteLine();
+                    foreach (var kvp in pipelineSummary)
+                    {
+                        var formattedLine = FormatPipelineSummaryKvp(kvp.Key, kvp.Value);
+                        _console.MarkupLine(formattedLine);
+                    }
+                }
+                
                 // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
                 if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
                 {
@@ -289,12 +303,35 @@ internal sealed class ConsoleActivityLogger
     }
 
     /// <summary>
-    /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
+    /// Formats a single key-value pair for the pipeline summary display.
+    /// Values may contain markdown links which are converted to clickable links when supported.
+    /// </summary>
+    private string FormatPipelineSummaryKvp(string key, string value)
+    {
+        if (_enableColor)
+        {
+            var escapedKey = key.EscapeMarkup();
+            var convertedValue = MarkdownToSpectreConverter.ConvertToSpectre(value);
+            convertedValue = HighlightMessage(convertedValue);
+            return $"  [blue]{escapedKey}[/]: {convertedValue}";
+        }
+        else
+        {
+            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value);
+            return $"  {key}: {plainValue}";
+        }
+    }
+
+    /// <summary>
+    /// Sets the final pipeline result lines to be displayed in the summary (e.g., PIPELINE FAILED ...).
     /// Optional usage so existing callers remain compatible.
     /// </summary>
-    public void SetFinalResult(bool succeeded)
+    /// <param name="succeeded">Whether the pipeline succeeded.</param>
+    /// <param name="pipelineSummary">Optional pipeline summary as key-value pairs to display after the result. The list preserves insertion order.</param>
+    public void SetFinalResult(bool succeeded, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null)
     {
         _pipelineSucceeded = succeeded;
+        _pipelineSummary = pipelineSummary;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -44,6 +46,11 @@ public static class AzureServiceBusExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
+
+            // Check if this Service Bus has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             AzureProvisioning.ServiceBusNamespace serviceBusNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -55,7 +62,7 @@ public static class AzureServiceBusExtensions
                 {
                     var skuParameter = new ProvisioningParameter("sku", typeof(string))
                     {
-                        Value = "Standard"
+                        Value = hasPrivateEndpoint ? "Premium" : "Standard"
                     };
                     infrastructure.Add(skuParameter);
                     var resource = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())
@@ -65,6 +72,10 @@ public static class AzureServiceBusExtensions
                             Name = skuParameter
                         },
                         DisableLocalAuth = true,
+                        // When using private endpoints, disable public network access.
+                        PublicNetworkAccess = hasPrivateEndpoint
+                            ? AzureProvisioning.ServiceBusPublicNetworkAccess.Disabled
+                            : AzureProvisioning.ServiceBusPublicNetworkAccess.Enabled,
                         Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                     };
                     return resource;
@@ -90,7 +101,8 @@ public static class AzureServiceBusExtensions
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = serviceBusNamespace.Name.ToBicepExpression() });
 
-            var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = serviceBusNamespace.Id.ToBicepExpression() });
 
             foreach (var queue in azureResource.Queues)
             {

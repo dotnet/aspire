@@ -82,6 +82,36 @@
         <target state="translated">全域設定</target>
         <note />
       </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="translated">可用功能</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="translated">顯示設定檔路徑和可用功能。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="translated">全域設定路徑</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="translated">以 JSON 格式輸出資訊。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="translated">本機設定路徑</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="translated">設定檔案屬性</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">列出所有設定值。</target>

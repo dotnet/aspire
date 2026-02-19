@@ -10,6 +10,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -37,7 +38,7 @@ internal sealed class ProjectLocator(
 
     private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {
@@ -199,7 +200,7 @@ internal sealed class ProjectLocator(
                         projectFile = await interactionService.PromptForSelectionAsync(
                             InteractionServiceStrings.SelectAppHostToUse,
                             appHostProjects,
-                            file => $"{file.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName)})",
+                            file => $"{file.Name.EscapeMarkup()} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName).EscapeMarkup()})",
                             cancellationToken
                         );
                     }
@@ -277,7 +278,7 @@ internal sealed class ProjectLocator(
             selectedAppHost = multipleAppHostProjectsFoundBehavior switch
             {
                 MultipleAppHostProjectsFoundBehavior.Throw => throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound),
-                MultipleAppHostProjectsFoundBehavior.Prompt => await interactionService.PromptForSelectionAsync(InteractionServiceStrings.SelectAppHostToUse, results.BuildableAppHost, projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})", cancellationToken),
+                MultipleAppHostProjectsFoundBehavior.Prompt => await interactionService.PromptForSelectionAsync(InteractionServiceStrings.SelectAppHostToUse, results.BuildableAppHost, projectFile => $"{projectFile.Name.EscapeMarkup()} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName).EscapeMarkup()})", cancellationToken),
                 MultipleAppHostProjectsFoundBehavior.None => null,
                 _ => selectedAppHost
             };
@@ -314,7 +315,7 @@ internal sealed class ProjectLocator(
         if (language is not null && !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
             await configurationService.SetConfigurationAsync("language", language.LanguageId.Value, isGlobal: false, cancellationToken);
-            
+
             // Inherit SDK version from parent/global config if available
             var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
             if (!string.IsNullOrEmpty(inheritedSdkVersion))

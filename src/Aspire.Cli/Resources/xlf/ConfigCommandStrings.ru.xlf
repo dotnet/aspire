@@ -82,6 +82,36 @@
         <target state="translated">Глобальная конфигурация</target>
         <note />
       </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="translated">Доступные функции</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="translated">Отобразить пути к файлам конфигурации и доступные функции.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="translated">Путь к глобальным параметрам</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="translated">Вывод информации в формате JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="translated">Путь к локальным параметрам</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="translated">Свойства файла параметров</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">Перечислить все значения конфигурации.</target>

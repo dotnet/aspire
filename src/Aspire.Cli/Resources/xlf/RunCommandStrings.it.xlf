@@ -37,6 +37,11 @@
         <target state="translated">Processo AppHost terminato con codice {0}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost avviato correttamente.</target>
@@ -55,6 +60,11 @@
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Connessione all'AppHost Aspire in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="translated">Copia dei segreti utente per la modalità isolata in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -92,6 +102,11 @@
         <target state="translated">Arresta qualsiasi istanza in esecuzione di AppHost senza chiedere conferma.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="translated">L'opzione --format può essere usata solo insieme a --detach.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">Integrità della risorsa, ad esempio Integro</target>
@@ -102,9 +117,34 @@
         <target state="translated">IsCompatibleAppHost è null</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="translated">Restituisce il risultato in formato JSON (valido solo con --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">Eseguire in modalità isolata con porte casuali e segreti utente separati, consentendo l'esecuzione simultanea di più istanze.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="translated">È stata trovata un'istanza in esecuzione di questo AppHost e verrà arrestata. Per eseguire più istanze isolate contemporaneamente, avviare l'app da directory diverse, ad esempio dalle directory di un albero di lavoro Git.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Log</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="new">Do not build or restore the project before running.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -123,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">Non è possibile eseguire il progetto. Per altre informazioni, eseguire con l'opzione --debug.</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="new">The project could not be run. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

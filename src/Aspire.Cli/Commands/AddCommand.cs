@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -21,63 +22,57 @@ internal sealed class AddCommand : BaseCommand
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
-    public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
-        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    private static readonly Argument<string> s_integrationArgument = new("integration")
     {
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(telemetry);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(projectFactory);
+        Description = AddCommandStrings.IntegrationArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = AddCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    {
+        Description = AddCommandStrings.VersionArgumentDescription
+    };
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = AddCommandStrings.SourceArgumentDescription
+    };
 
+    public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
+        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+    {
         _packagingService = packagingService;
         _projectLocator = projectLocator;
         _prompter = prompter;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
         _projectFactory = projectFactory;
 
-        var integrationArgument = new Argument<string>("integration");
-        integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
-        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(integrationArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = AddCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var versionOption = new Option<string>("--version", "-v");
-        versionOption.Description = AddCommandStrings.VersionArgumentDescription;
-        Options.Add(versionOption);
-
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = AddCommandStrings.SourceArgumentDescription;
-        Options.Add(sourceOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_versionOption);
+        Options.Add(s_sourceOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         AddPackageContext? context = null;
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("integration");
+            var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -92,13 +87,13 @@ internal sealed class AddCommand : BaseCommand
             // Check if the .NET SDK is available (only needed for .NET projects)
             if (project.LanguageId == KnownLanguageId.CSharp)
             {
-                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
                 {
                     return ExitCodeConstants.SdkNotInstalled;
                 }
             }
 
-            var source = parseResult.GetValue<string?>("--source");
+            var source = parseResult.GetValue(s_sourceOption);
 
             // For non-.NET projects, read the channel from settings.json if available.
             // Unlike .NET projects which have a nuget.config, polyglot apphosts store
@@ -106,8 +101,13 @@ internal sealed class AddCommand : BaseCommand
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
-                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
-                configuredChannel = settings?.Channel;
+                var appHostDirectory = effectiveAppHostProjectFile.Directory!.FullName;
+                var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
+                if (!isProjectReferenceMode)
+                {
+                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
+                    configuredChannel = settings?.Channel;
+                }
             }
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
@@ -154,7 +154,7 @@ internal sealed class AddCommand : BaseCommand
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
-            var version = parseResult.GetValue<string?>("--version");
+            var version = parseResult.GetValue(s_versionOption);
 
             var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
@@ -219,7 +219,7 @@ internal sealed class AddCommand : BaseCommand
                 {
                     InteractionService.DisplayLines(outputCollector.GetLines());
                 }
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage, ExecutionContext.LogFilePath));
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -228,7 +228,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
         {
@@ -237,6 +237,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (EmptyChoicesException ex)
         {
+            Telemetry.RecordError(ex.Message, ex);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
@@ -246,7 +247,9 @@ internal sealed class AddCommand : BaseCommand
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
             }
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
@@ -323,7 +326,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         // Helper to keep labels consistently formatted: "Version (source)"
         static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+            return $"{item.Package.Version.EscapeMarkup()} ({item.Channel.SourceDetails.EscapeMarkup()})";
         }
 
         async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -337,6 +340,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                     Result: i
                 ))
                 .ToArray();
+
+            // Auto-select when there's only one version in the channel
+            if (choices.Length == 1)
+            {
+                return choices[0].Result;
+            }
 
             var selection = await interactionService.PromptForSelectionAsync(
                 string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
@@ -387,7 +396,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             var item = channelGroup.HighestVersion;
 
             rootChoices.Add((
-                Label: channel.Name,
+                Label: channel.Name.EscapeMarkup(),
                 // For explicit channels, we still show submenu but with only the highest version
                 Action: ct => PromptForChannelPackagesAsync(channel, new[] { item }, ct)
             ));
@@ -397,6 +406,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         if (rootChoices.Count == 0)
         {
             return firstPackage;
+        }
+
+        // Auto-select when there's only one option (e.g., single explicit channel)
+        if (rootChoices.Count == 1)
+        {
+            return await rootChoices[0].Action(cancellationToken);
         }
 
         var topSelection = await interactionService.PromptForSelectionAsync(
@@ -428,11 +443,11 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
     {
         if (packageWithFriendlyName.FriendlyName is { } friendlyName)
         {
-            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+            return $"[bold]{friendlyName.EscapeMarkup()}[/] ({packageWithFriendlyName.Package.Id.EscapeMarkup()})";
         }
         else
         {
-            return packageWithFriendlyName.Package.Id;
+            return packageWithFriendlyName.Package.Id.EscapeMarkup();
         }
     }
 }

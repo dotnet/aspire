@@ -7,18 +7,17 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class CacheCommand : BaseCommand
 {
-    public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+        : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-
-        var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext);
+        var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext, telemetry);
 
         Subcommands.Add(clearCommand);
     }
@@ -33,8 +32,8 @@ internal sealed class CacheCommand : BaseCommand
 
     private sealed class ClearCommand : BaseCommand
     {
-        public ClearCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("clear", CacheCommandStrings.ClearCommand_Description, features, updateNotifier, executionContext, interactionService)
+        public ClearCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("clear", CacheCommandStrings.ClearCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
         {
         }
 
@@ -46,7 +45,7 @@ internal sealed class CacheCommand : BaseCommand
             {
                 var cacheDirectory = ExecutionContext.CacheDirectory;
                 var filesDeleted = 0;
-                
+
                 // Delete cache files and subdirectories
                 if (cacheDirectory.Exists)
                 {
@@ -109,6 +108,44 @@ internal sealed class CacheCommand : BaseCommand
                     }
                 }
 
+                // Also clear the logs directory (skip current process's log file)
+                var logsDirectory = ExecutionContext.LogsDirectory;
+                var currentLogFilePath = ExecutionContext.LogFilePath;
+                if (logsDirectory.Exists)
+                {
+                    foreach (var file in logsDirectory.GetFiles("*", SearchOption.AllDirectories))
+                    {
+                        // Skip the current process's log file to avoid deleting it while in use
+                        if (file.FullName.Equals(currentLogFilePath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            file.Delete();
+                            filesDeleted++;
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other files even if some fail
+                        }
+                    }
+
+                    // Delete subdirectories
+                    foreach (var directory in logsDirectory.GetDirectories())
+                    {
+                        try
+                        {
+                            directory.Delete(recursive: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other directories even if some fail
+                        }
+                    }
+                }
+
                 if (filesDeleted == 0)
                 {
                     InteractionService.DisplayMessage("information", CacheCommandStrings.CacheAlreadyEmpty);
@@ -122,7 +159,9 @@ internal sealed class CacheCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, CacheCommandStrings.CacheClearFailed, ex.Message));
+                var errorMessage = string.Format(CultureInfo.CurrentCulture, CacheCommandStrings.CacheClearFailed, ex.Message);
+                Telemetry.RecordError(errorMessage, ex);
+                InteractionService.DisplayError(errorMessage);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
         }

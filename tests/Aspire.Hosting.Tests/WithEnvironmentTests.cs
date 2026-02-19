@@ -227,7 +227,9 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary", targetPort: 10005)
                                .WithEndpoint("primary", ep =>
                                {
-                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 17454);
+
+                                   ep.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(ep, "container1.dev.internal", 10005, EndpointBindingMode.SingleAddress, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
                                });
 
         var endpoint = container.GetEndpoint("primary");
@@ -302,8 +304,7 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary")
                                .WithEndpoint("primary", ep =>
                                {
-                                   var endpointSnapshot = new ValueSnapshot<AllocatedEndpoint>();
-                                   endpointSnapshot.SetValue(new AllocatedEndpoint(
+                                   ep.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(
                                        ep,
                                        "localhost",
                                        90,
@@ -311,7 +312,6 @@ public class WithEnvironmentTests
                                        """{{- portForServing "container1_primary" -}}""",
                                        KnownNetworkIdentifiers.DefaultAspireContainerNetwork
                                    ));
-                                   ep.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, endpointSnapshot);
                                });
 
         var endpoint = container.GetEndpoint("primary");

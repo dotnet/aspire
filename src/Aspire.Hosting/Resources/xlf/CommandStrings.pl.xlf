@@ -22,6 +22,11 @@
         <target state="translated">Ponownie uruchom</target>
         <note />
       </trans-unit>
+      <trans-unit id="RestartProjectDescription">
+        <source>Restart resource. Source code is not recompiled.</source>
+        <target state="translated">Uruchom ponownie zasób. Kod źródłowy nie jest ponownie kompilowany.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SetParameterDescription">
         <source>Set parameter value</source>
         <target state="translated">Ustaw wartość parametru</target>

@@ -1,7 +1,7 @@
 # Polyglot SDK Validation Tests (Reusable)
 # Validates Python, Go, Java, Rust, and TypeScript AppHost SDKs with Redis integration
 # Uses Dockerfiles from .github/workflows/polyglot-validation/ for reproducible environments
-# Uses locally built CLI and NuGet packages from the workflow artifacts
+# Uses locally built bundle and NuGet packages from the workflow artifacts
 name: Polyglot SDK Validation
 
 on:
@@ -19,11 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -36,6 +36,12 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Verify bundle artifact
+        run: |
+          echo "=== Verifying self-extracting binary ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire || { echo "ERROR: aspire binary not found"; exit 1; }
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire
 
       - name: Build Python validation image
         run: |
@@ -58,11 +64,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -75,6 +81,12 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Verify bundle artifact
+        run: |
+          echo "=== Verifying self-extracting binary ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire || { echo "ERROR: aspire binary not found"; exit 1; }
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire
 
       - name: Build Go validation image
         run: |
@@ -97,11 +109,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -114,6 +126,12 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Verify bundle artifact
+        run: |
+          echo "=== Verifying self-extracting binary ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire || { echo "ERROR: aspire binary not found"; exit 1; }
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire
 
       - name: Build Java validation image
         run: |
@@ -138,11 +156,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -155,6 +173,12 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Verify bundle artifact
+        run: |
+          echo "=== Verifying self-extracting binary ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire || { echo "ERROR: aspire binary not found"; exit 1; }
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire
 
       - name: Build Rust validation image
         run: |
@@ -177,11 +201,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download CLI archive
+      - name: Download bundle
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/artifacts/cli
+          name: aspire-bundle-linux-x64
+          path: ${{ github.workspace }}/artifacts/bundle
 
       - name: Download NuGet packages
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -194,6 +218,12 @@ jobs:
         with:
           name: built-nugets-for-linux-x64
           path: ${{ github.workspace }}/artifacts/nugets-rid
+
+      - name: Verify bundle artifact
+        run: |
+          echo "=== Verifying self-extracting binary ==="
+          ls -la ${{ github.workspace }}/artifacts/bundle/aspire || { echo "ERROR: aspire binary not found"; exit 1; }
+          chmod +x ${{ github.workspace }}/artifacts/bundle/aspire
 
       - name: Build TypeScript validation image
         run: |

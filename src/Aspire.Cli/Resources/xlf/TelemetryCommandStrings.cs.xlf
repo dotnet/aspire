@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../TelemetryCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Nenašel se žádný spuštěný hostitel aplikací. Nejprve spusťte spuštění pomocí příkazu „aspire run“.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardApiNotAvailable">
+        <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
+        <target state="translated">Rozhraní API řídicího panelu není k dispozici. Ujistěte se, že hostitel aplikací běží s povoleným řídicím panelem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
+        <target state="translated">Umožňuje zobrazit telemetrická data (protokoly, rozsahy, trasování) ze spuštěné aplikace Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToFetchTelemetry">
+        <source>Failed to fetch telemetry: {0}</source>
+        <target state="translated">Nepodařilo se načíst telemetrii: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Stream telemetry in real-time as it arrives.</source>
+        <target state="translated">Umožňuje streamovat telemetrii v reálném čase, jakmile dorazí.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format (Table or Json).</source>
+        <target state="translated">Výstupní formát (tabulka nebo JSON).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HasErrorOptionDescription">
+        <source>Filter by error status (true to show only errors, false to exclude errors).</source>
+        <target state="translated">Umožňuje filtrovat podle chybového stavu (true pro zobrazení pouze chyb, false pro vyloučení chyb).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitMustBePositive">
+        <source>The --limit value must be a positive number.</source>
+        <target state="translated">Hodnota --tail musí být kladné číslo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitOptionDescription">
+        <source>Maximum number of items to return.</source>
+        <target state="translated">Maximální počet položek, které se mají vrátit.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsDescription">
+        <source>View structured logs from the Dashboard telemetry API.</source>
+        <target state="translated">Umožňuje zobrazit strukturované protokoly z rozhraní API telemetrie řídicího panelu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
+        <target state="translated">V aktuálním adresáři se nenašli žádní hostitelé aplikací. Zobrazují se všichni spuštění hostitelé aplikací.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>Filter by resource name.</source>
+        <target state="translated">Filtrovat podle názvu prostředku.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Vyhledávání spuštěných hostitelů aplikací...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">Vyberte hostitele aplikací:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SeverityOptionDescription">
+        <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="translated">Umožňuje filtrovat protokoly podle minimální závažnosti (trasování, ladění, informace, upozornění, chyba, kritické).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpansDescription">
+        <source>View spans from the Dashboard telemetry API.</source>
+        <target state="translated">Umožňuje zobrazit rozsahy z rozhraní API telemetrie řídicího panelu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdArgumentDescription">
+        <source>The trace ID to view. If not specified, lists all traces.</source>
+        <target state="translated">ID trasování, které se má zobrazit. Pokud není zadáno, vypíše všechna trasování.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdOptionDescription">
+        <source>Filter by trace ID.</source>
+        <target state="translated">Umožňuje filtrovat podle ID trasování.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceNotFound">
+        <source>Trace with ID '{0}' was not found.</source>
+        <target state="translated">Trasování s ID {0} nebylo nalezeno.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TracesDescription">
+        <source>View traces from the Dashboard telemetry API.</source>
+        <target state="translated">Umožňuje zobrazit trasování z rozhraní API telemetrie řídicího panelu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedContentType">
+        <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
+        <target state="translated">Rozhraní API řídicího panelu vrátilo neočekávaný typ obsahu. Očekávala se odpověď JSON.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

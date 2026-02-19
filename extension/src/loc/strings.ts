@@ -49,6 +49,9 @@ export const defaultConfigurationName = vscode.l10n.t('Aspire: Launch default ap
 export const debugSessionAlreadyExists = (id: string) => vscode.l10n.t('A debug session is already active for id {0}.', id);
 export const processExceptionOccurred = (error: string, command: string) => vscode.l10n.t('Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
+export const failedToGetConfigInfo = (exitCode: number) => vscode.l10n.t('Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update', exitCode);
+export const failedToParseConfigInfo = (error: any) => vscode.l10n.t('Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);
+export const errorGettingConfigInfo = (error: any) => vscode.l10n.t('Error getting Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);
 export const invalidLaunchConfiguration = (projectPath: string) => vscode.l10n.t('Invalid launch configuration for {0}.', projectPath);
 export const dontShowAgainLabel = vscode.l10n.t("Don't Show Again");
 export const doYouWantToSetDefaultApphost = (appHost: string) => vscode.l10n.t('Do you want to set {0} as the default apphost for this workspace?', appHost);
@@ -68,3 +71,4 @@ export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not install
 export const dismissLabel = vscode.l10n.t('Dismiss');
 export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
 export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
+export const cliFoundAtDefaultPath = (path: string) => vscode.l10n.t('Aspire CLI found at {0}. The extension will use this path.', path);

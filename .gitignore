@@ -168,6 +168,9 @@ playground/**/dist/
 #Aspire CLI
 .aspire/
 
+# Required for polyglot apps
+!playground/polyglot/**/.aspire/
+
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
 tools/ReleaseNotes/release-notes-*.md
@@ -183,3 +186,6 @@ extension/.vscode-test/
 extension/l10n/bundle.l10n.json
 extension/l10n/bundle.l10n.*.json
 extension/package.nls.*.json
+
+# Playwright CLI artifacts
+.playwright-cli/

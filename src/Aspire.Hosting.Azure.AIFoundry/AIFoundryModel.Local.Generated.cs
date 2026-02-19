@@ -853,5 +853,49 @@ public partial class AIFoundryModel
         ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct">Qwen2.5-Coder-7B-Instruct</see> for details.</para>
         /// </summary>
         public static readonly AIFoundryModel Qwen25Coder7b = new() { Name = "qwen2.5-coder-7b", Version = "4", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>This model is an optimized version of Qwen3-0.6B to enable local inference. This model uses KLD Gradient quantization.</para>
+        ///   <para>
+        ///     <b>Model Description</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Developed by:</b> Microsoft</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model type:</b> ONNX</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>License:</b> apache-2.0</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model Description:</b> This is a conversion of the Qwen3-0.6B for local inference.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Disclaimer:</b> Model is only an optimization of the base model, any risk associated with the model is the responsibility of the user of the model. Please verify and test for your scenarios. There may be a slight difference in output from the base model with the optimizations applied. Note that optimizations applied are distinct from fine tuning and thus do not alter the intended uses or capabilities of the model.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Base Model Information</b>
+        ///   </para>
+        ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen3-0.6B">Qwen3-0.6B</see> for details.</para>
+        /// </summary>
+        public static readonly AIFoundryModel Qwen306b = new() { Name = "qwen3-0.6b", Version = "1", Format = "Microsoft" };
     }
 }

@@ -47,6 +47,23 @@ When reviewing pull requests:
   - There are breaking changes to existing APIs without proper justification
   - The PR explicitly claims to update API compatibility but doesn't regenerate the files
 
+### NuGet Feed Configuration
+
+The NuGet.config file defines approved package sources for the internal build. External package feeds can break the internal build pipeline.
+
+When reviewing pull requests:
+
+* **Flag any changes to NuGet.config that add package sources not from these approved domains:**
+  - `https://pkgs.dev.azure.com/dnceng`
+  - `https://dnceng.pkgs.visualstudio.com/public`
+* **Flag any additions of external NuGet feeds** such as:
+  - `https://api.nuget.org/v3/index.json` (nuget.org)
+  - Any other public or third-party package sources
+* If a PR adds an external feed, request that:
+  - The packages be mirrored to an approved internal feed, or
+  - Use existing internal feeds that already mirror public packages (like dotnet-public, dotnet-eng)
+* The wildcard pattern mappings (`<package pattern="*" />`) in dotnet-public and dotnet-eng feeds typically provide access to commonly-used public packages
+
 ## Formatting
 
 * Apply code-formatting style defined in `.editorconfig`.
@@ -337,6 +354,8 @@ The following specialized skills are available in `.github/skills/`:
 - **cli-e2e-testing**: Guide for writing Aspire CLI end-to-end tests using Hex1b terminal automation
 - **test-management**: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
 - **connection-properties**: Expert for creating and improving Connection Properties in Aspire resources
+- **dependency-update**: Guides dependency version updates by checking nuget.org, triggering the dotnet-migrate-package Azure DevOps pipeline, and monitoring runs
+- **startup-perf**: Measures Aspire application startup performance using dotnet-trace and the TraceAnalyzer tool
 
 ## Pattern-Based Instructions
 

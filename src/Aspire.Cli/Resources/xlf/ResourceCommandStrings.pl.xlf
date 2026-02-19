@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../ResourceCommandStrings.resx">
+    <body>
+      <trans-unit id="CommandDescription">
+        <source>Execute a command on a resource.</source>
+        <target state="translated">Wykonaj polecenie dla zasobu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandNameArgumentDescription">
+        <source>The name of the command to execute.</source>
+        <target state="translated">Nazwa polecenia do wykonania.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandResourceArgumentDescription">
+        <source>The name of the resource to execute the command on.</source>
+        <target state="translated">Nazwa zasobu, na którym ma zostać wykonane polecenie.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
+        <target state="translated">Nie znaleziono hostów aplikacji w zakresie. Wyświetlanie wszystkich uruchomionych hostów aplikacji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found.</source>
+        <target state="translated">Nie znaleziono uruchomionych hostów aplikacji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Ścieżka do pliku projektu hosta AppHost platformy Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestartDescription">
+        <source>Restart a running resource.</source>
+        <target state="translated">Uruchom ponownie uruchomiony zasób.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestartResourceArgumentDescription">
+        <source>The name of the resource to restart.</source>
+        <target state="translated">Nazwa zasobu do ponownego uruchomienia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Skanowanie w poszukiwaniu uruchomionych hostów aplikacji...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select which AppHost to connect to:</source>
+        <target state="translated">Wybierz host aplikacji, z którym chcesz nawiązać połączenie:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartDescription">
+        <source>Start a stopped resource.</source>
+        <target state="translated">Uruchom zatrzymany zasób.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartResourceArgumentDescription">
+        <source>The name of the resource to start.</source>
+        <target state="translated">Nazwa zasobu do uruchomienia.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

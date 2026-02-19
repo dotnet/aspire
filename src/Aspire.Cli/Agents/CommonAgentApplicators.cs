@@ -20,7 +20,7 @@ internal static class CommonAgentApplicators
     /// <param name="workspaceRoot">The workspace root directory.</param>
     /// <param name="skillRelativePath">The relative path to the skill file from workspace root (e.g., ".github/skills/aspire/SKILL.md").</param>
     /// <param name="description">The description to show in the applicator prompt.</param>
-    /// <returns>True if the applicator was added, false if it was already added or the file exists.</returns>
+    /// <returns>True if the applicator was added, false if it was already added.</returns>
     public static bool TryAddSkillFileApplicator(
         AgentEnvironmentScanContext context,
         DirectoryInfo workspaceRoot,
@@ -38,9 +38,27 @@ internal static class CommonAgentApplicators
         // Mark this skill path as having an applicator (whether file exists or not)
         context.MarkSkillFileApplicatorAdded(skillRelativePath);
 
-        // Don't add applicator if the skill file already exists
+        // Check if the skill file already exists
         if (File.Exists(skillFilePath))
         {
+            // Read existing content and check if it differs from current content
+            // Normalize line endings for comparison to handle cross-platform differences
+            var existingContent = File.ReadAllText(skillFilePath);
+            var normalizedExisting = NormalizeLineEndings(existingContent);
+            var normalizedExpected = NormalizeLineEndings(SkillFileContent);
+
+            if (!string.Equals(normalizedExisting, normalizedExpected, StringComparison.Ordinal))
+            {
+                // Content differs, offer to update
+                context.AddApplicator(new AgentEnvironmentApplicator(
+                    $"{description} (update - content has changed)",
+                    ct => UpdateSkillFileAsync(skillFilePath, ct),
+                    promptGroup: McpInitPromptGroup.AdditionalOptions,
+                    priority: 0));
+                return true;
+            }
+
+            // File exists and content is the same, nothing to do
             return false;
         }
 
@@ -108,10 +126,31 @@ internal static class CommonAgentApplicators
     }
 
     /// <summary>
+    /// Updates an existing skill file at the specified path with the latest content.
+    /// </summary>
+    private static async Task UpdateSkillFileAsync(string skillFilePath, CancellationToken cancellationToken)
+    {
+        await File.WriteAllTextAsync(skillFilePath, SkillFileContent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Normalizes line endings to LF for consistent comparison across platforms.
+    /// </summary>
+    private static string NormalizeLineEndings(string content)
+    {
+        return content.ReplaceLineEndings("\n");
+    }
+
+    /// <summary>
     /// Gets the content for the Aspire skill file.
     /// </summary>
     internal const string SkillFileContent =
         """
+        ---
+        name: aspire
+        description: "**WORKFLOW SKILL** - Orchestrates Aspire applications using the Aspire CLI and MCP tools for running, debugging, and managing distributed apps. USE FOR: aspire run, aspire stop, start aspire app, check aspire resources, list aspire integrations, debug aspire issues, view aspire logs, add aspire resource, aspire dashboard, update aspire apphost. DO NOT USE FOR: non-Aspire .NET apps (use dotnet CLI), container-only deployments (use docker/podman), Azure deployment after local testing (use azure-deploy skill). INVOKES: Aspire MCP tools (list_resources, list_integrations, list_structured_logs, get_doc, search_docs), bash for CLI commands. FOR SINGLE OPERATIONS: Use Aspire MCP tools directly for quick resource status or doc lookups."
+        ---
+
         # Aspire Skill
 
         This repository is set up to use Aspire. Aspire is an orchestrator for the entire application and will take care of configuring dependencies, building, and running the application. The resources that make up the application are defined in `apphost.cs` including application code and external dependencies.
@@ -128,7 +167,7 @@ internal static class CommonAgentApplicators
         Agent environments may terminate foreground processes when a command finishes. Use detached mode:
 
         ```bash
-        aspire run --detach
+        aspire run --detach --isolated
         ```
 
         This starts the AppHost in the background and returns immediately. The CLI will:
@@ -202,6 +241,23 @@ internal static class CommonAgentApplicators
         ## Aspire workload
 
         IMPORTANT! The aspire workload is obsolete. You should never attempt to install or use the Aspire workload.
+
+        ## Aspire Documentation Tools
+
+        IMPORTANT! The Aspire MCP server provides tools to search and retrieve official Aspire documentation directly. Use these tools to find accurate, up-to-date information about Aspire features, APIs, and integrations:
+
+        1. **list_docs**: Lists all available documentation pages from aspire.dev. Returns titles, slugs, and summaries. Use this to discover available topics.
+
+        2. **search_docs**: Searches the documentation using keywords. Returns ranked results with titles, slugs, and matched content. Use this when looking for specific features, APIs, or concepts.
+
+        3. **get_doc**: Retrieves the full content of a documentation page by its slug. After using `list_docs` or `search_docs` to find a relevant page, pass the slug to `get_doc` to retrieve the complete documentation.
+
+        ### Recommended workflow for documentation
+
+        1. Use `search_docs` with relevant keywords to find documentation about a topic
+        2. Review the search results - each result includes a **Slug** that identifies the page
+        3. Use `get_doc` with the slug to retrieve the full documentation content
+        4. Optionally use the `section` parameter with `get_doc` to retrieve only a specific section
 
         ## Official documentation
 

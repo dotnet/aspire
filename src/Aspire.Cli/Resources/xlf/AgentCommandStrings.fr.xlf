@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../AgentCommandStrings.resx">
+    <body>
+      <trans-unit id="ConfigUpdatesSelectPrompt">
+        <source>The following agent configurations use the deprecated 'mcp start' command. Update them?</source>
+        <target state="translated">Les configurations d’agent suivantes utilisent la commande « mcp start » obsolète. Voulez-vous les mettre à jour ?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeprecatedConfigFix">
+        <source>Run 'aspire agent init' to update configuration</source>
+        <target state="translated">Exécutez « aspire agent init » pour mettre à jour la configuration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeprecatedConfigUpdate_Description">
+        <source>Update {0} config to use new 'agent mcp' command</source>
+        <target state="translated">Mettre à jour {0} la configuration pour utiliser la nouvelle commande « agent mcp »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeprecatedConfigWarning">
+        <source>{0} config uses deprecated 'mcp start' command</source>
+        <target state="translated">{0} configuration utilise la commande « mcp start » dépréciée</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage AI agent integrations.</source>
+        <target state="translated">Gérer les intégrations des agents IA.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_Description">
+        <source>Initialize agent environment configuration for detected agents.</source>
+        <target state="translated">Initialiser la configuration de l’environnement des agents détectés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpCommand_Description">
+        <source>Start the MCP (Model Context Protocol) server.</source>
+        <target state="translated">Démarrez le serveur MCP (Model Context Protocol).</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

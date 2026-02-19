@@ -497,4 +497,116 @@ public class AzureKeyVaultTests
         // The redirect annotation should take precedence over emulator
         Assert.Equal("https://redirected-vault.vault.azure.net", connectionStringValue);
     }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_ValidRoles_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, "KeyVaultSecretsUser", "KeyVaultReader"));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_SingleRole_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, "KeyVaultAdministrator"));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_InvalidRole_ThrowsArgumentException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            container.WithRoleAssignments(kv, "NotARealRole"));
+
+        Assert.Contains("'NotARealRole' is not a valid Key Vault built-in role", exception.Message);
+        Assert.Contains("Valid roles:", exception.Message);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_MixedValidAndInvalidRoles_ThrowsOnInvalid()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            container.WithRoleAssignments(kv, "KeyVaultReader", "InvalidRole"));
+
+        Assert.Contains("'InvalidRole'", exception.Message);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_CaseInsensitive()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, "keyvaultsecretsuser", "KEYVAULTREADER"));
+
+        Assert.Null(exception);
+    }
+
+    [Theory]
+    [InlineData("KeyVaultAdministrator")]
+    [InlineData("KeyVaultCertificateUser")]
+    [InlineData("KeyVaultCertificatesOfficer")]
+    [InlineData("KeyVaultContributor")]
+    [InlineData("KeyVaultCryptoOfficer")]
+    [InlineData("KeyVaultCryptoServiceEncryptionUser")]
+    [InlineData("KeyVaultCryptoServiceReleaseUser")]
+    [InlineData("KeyVaultCryptoUser")]
+    [InlineData("KeyVaultDataAccessAdministrator")]
+    [InlineData("KeyVaultReader")]
+    [InlineData("KeyVaultSecretsOfficer")]
+    [InlineData("KeyVaultSecretsUser")]
+    [InlineData("ManagedHsmContributor")]
+    public void WithRoleAssignments_StringOverload_AllBuiltInRoles_AreAccepted(string roleName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, roleName));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_EmptyRoles_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, Array.Empty<string>()));
+
+        Assert.Null(exception);
+    }
 }
