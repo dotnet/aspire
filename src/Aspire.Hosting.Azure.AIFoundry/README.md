@@ -47,6 +47,18 @@ var myService = builder.AddProject<Projects.MyService>()
 
 The `WithReference` method passes that connection information into a connection string named `chat` in the `MyService` project.
 
+### Configuring deployment rate limits
+
+The `SkuCapacity` property controls the rate limit in thousands of tokens per minute (TPM). For example, a value of `10` means 10,000 TPM. The default is `1` (1,000 TPM). Use `WithProperties` to configure it:
+
+```csharp
+var chat = builder.AddAzureAIFoundry("foundry")
+                  .AddDeployment("chat", "gpt-4", "1", "OpenAI")
+                  .WithProperties(d => d.SkuCapacity = 10);
+```
+
+See the [Azure AI quota management](https://learn.microsoft.com/azure/ai-foundry/openai/how-to/quota) documentation for available quota limits per model and region.
+
 In the _Program.cs_ file of `MyService`, the connection can be consumed using a client library like [Aspire.Azure.AI.Inference](https://www.nuget.org/packages/Aspire.Azure.AI.Inference) or [Aspire.OpenAI](https://www.nuget.org/packages/Aspire.OpenAI) if the model is compatible with the OpenAI API:
 
 Note: The `format` parameter of the `AddDeployment()` method can be found in the Azure AI Foundry portal in the details
