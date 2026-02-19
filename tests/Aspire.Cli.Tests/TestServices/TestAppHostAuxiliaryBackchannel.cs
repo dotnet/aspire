@@ -46,6 +46,12 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
     /// </summary>
     public Func<string, string, IReadOnlyDictionary<string, JsonElement>?, CancellationToken, Task<CallToolResult>>? CallResourceMcpToolHandler { get; set; }
 
+    /// <summary>
+    /// Gets or sets the function to call when GetResourceSnapshotsAsync is invoked.
+    /// If null, returns the ResourceSnapshots list.
+    /// </summary>
+    public Func<CancellationToken, Task<List<ResourceSnapshot>>>? GetResourceSnapshotsHandler { get; set; }
+
     public Task<DashboardUrlsState?> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(DashboardUrlsState);
@@ -53,6 +59,11 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
 
     public Task<List<ResourceSnapshot>> GetResourceSnapshotsAsync(CancellationToken cancellationToken = default)
     {
+        if (GetResourceSnapshotsHandler is not null)
+        {
+            return GetResourceSnapshotsHandler(cancellationToken);
+        }
+
         return Task.FromResult(ResourceSnapshots);
     }
 
