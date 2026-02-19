@@ -228,10 +228,9 @@ public class AzureCognitiveServicesProjectResource :
 
 /// <summary>
 /// Configuration for an Azure Cognitive Services capability host.
-///
-/// This is a separate class to ensure that we set all storage resources or none.
 /// </summary>
-public class CapabilityHostConfiguration(string name, AzureCosmosDBResource cosmosDB, AzureStorageResource storage, AzureSearchResource search)
+/// <param name="name">The name of the capability host.</param>
+public class CapabilityHostConfiguration(string name)
 {
     /// <summary>
     /// The name of the capability host.
@@ -246,20 +245,95 @@ public class CapabilityHostConfiguration(string name, AzureCosmosDBResource cosm
     /// <summary>
     /// The Cosmos DB resource to use for metadata and conversation state storage.
     /// </summary>
-    public AzureCosmosDBResource CosmosDB { get; set; } = cosmosDB;
+    public AzureCosmosDBResource? CosmosDB { get; set; }
 
     /// <summary>
     /// The Storage resource to use for file storage.
     /// </summary>
-    public AzureStorageResource Storage { get; set; } = storage;
+    public AzureStorageResource? Storage { get; set; }
 
     /// <summary>
     /// The Azure Search resource to use for vector search capabilities.
     /// </summary>
-    public AzureSearchResource Search { get; set; } = search;
+    public AzureSearchResource? Search { get; set; }
 
     /// <summary>
     /// An OpenAI-type Foundry account to use for AI model calls, if any.
     /// </summary>
     public AzureAIFoundryResource? AzureOpenAI { get; set; }
+
+    internal void Validate(string projectName)
+    {
+        if (CosmosDB is null)
+        {
+            throw new InvalidOperationException($"Capability host '{Name}' on project '{projectName}' requires a CosmosDB resource. Call WithCosmosDB() on the capability host builder.");
+        }
+        if (Storage is null)
+        {
+            throw new InvalidOperationException($"Capability host '{Name}' on project '{projectName}' requires a Storage resource. Call WithStorage() on the capability host builder.");
+        }
+        if (Search is null)
+        {
+            throw new InvalidOperationException($"Capability host '{Name}' on project '{projectName}' requires a Search resource. Call WithSearch() on the capability host builder.");
+        }
+    }
+}
+
+/// <summary>
+/// A fluent builder for configuring a capability host on an Azure Cognitive Services project.
+/// </summary>
+public class CapabilityHostBuilder(IResourceBuilder<AzureCognitiveServicesProjectResource> projectBuilder, CapabilityHostConfiguration configuration)
+{
+    /// <summary>
+    /// Gets the underlying project resource builder.
+    /// </summary>
+    public IResourceBuilder<AzureCognitiveServicesProjectResource> ProjectBuilder { get; } = projectBuilder;
+
+    /// <summary>
+    /// Configures the Cosmos DB resource for metadata and conversation state storage.
+    /// </summary>
+    /// <param name="cosmosDb">The Cosmos DB resource builder.</param>
+    /// <returns>The capability host builder for chaining.</returns>
+    public CapabilityHostBuilder WithCosmosDB(IResourceBuilder<AzureCosmosDBResource> cosmosDb)
+    {
+        ArgumentNullException.ThrowIfNull(cosmosDb);
+        configuration.CosmosDB = cosmosDb.Resource;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the Storage resource for file storage.
+    /// </summary>
+    /// <param name="storage">The Storage resource builder.</param>
+    /// <returns>The capability host builder for chaining.</returns>
+    public CapabilityHostBuilder WithStorage(IResourceBuilder<AzureStorageResource> storage)
+    {
+        ArgumentNullException.ThrowIfNull(storage);
+        configuration.Storage = storage.Resource;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the Azure Search resource for vector search capabilities.
+    /// </summary>
+    /// <param name="search">The Search resource builder.</param>
+    /// <returns>The capability host builder for chaining.</returns>
+    public CapabilityHostBuilder WithSearch(IResourceBuilder<AzureSearchResource> search)
+    {
+        ArgumentNullException.ThrowIfNull(search);
+        configuration.Search = search.Resource;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures an Azure OpenAI-type Foundry account for AI model calls.
+    /// </summary>
+    /// <param name="openAI">The Azure AI Foundry resource builder.</param>
+    /// <returns>The capability host builder for chaining.</returns>
+    public CapabilityHostBuilder WithAzureOpenAI(IResourceBuilder<AzureAIFoundryResource> openAI)
+    {
+        ArgumentNullException.ThrowIfNull(openAI);
+        configuration.AzureOpenAI = openAI.Resource;
+        return this;
+    }
 }

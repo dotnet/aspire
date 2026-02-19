@@ -150,17 +150,31 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Configures capability host settings for the Azure Cognitive Services project.
+    /// Adds a capability host to the Azure Cognitive Services project, enabling agent capabilities
+    /// with external Azure resources such as CosmosDB, Storage, and Search.
     /// </summary>
     /// <param name="builder">The resource builder for the Azure Cognitive Services project.</param>
-    /// <param name="config">The capability host configuration specifying CosmosDB, Storage, and Search resources.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithCapabilityHost(
+    /// <param name="name">The name of the capability host.</param>
+    /// <returns>A <see cref="CapabilityHostBuilder"/> for fluent configuration of the capability host resources.</returns>
+    /// <example>
+    /// <code lang="csharp">
+    /// project.AddCapabilityHost("cap-host")
+    ///     .WithCosmosDB(cosmosDb)
+    ///     .WithStorage(storage)
+    ///     .WithSearch(search)
+    ///     .WithAzureOpenAI(foundry);
+    /// </code>
+    /// </example>
+    public static CapabilityHostBuilder AddCapabilityHost(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        CapabilityHostConfiguration config)
+        string name)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var config = new CapabilityHostConfiguration(name);
         builder.Resource.CapabilityHostConfiguration = config;
-        return builder;
+        return new CapabilityHostBuilder(builder, config);
     }
 
     /// <summary>
@@ -390,6 +404,10 @@ public static class AzureCognitiveServicesProjectExtensions
             return;
         }
 
+        aspireResource.CapabilityHostConfiguration.Validate(aspireResource.Name);
+
+        var capHostConfig = aspireResource.CapabilityHostConfiguration;
+
         var capHostProps = new PublicHostingCognitiveServicesCapabilityHostProperties()
         {
             CapabilityHostKind = CapabilityHostKind.Agents
@@ -399,14 +417,14 @@ public static class AzureCognitiveServicesProjectExtensions
         * Storage
         */
 
-        var storage = (StorageAccount)aspireResource.CapabilityHostConfiguration.Storage.AddAsExistingResource(infra);
+        var storage = (StorageAccount)capHostConfig.Storage!.AddAsExistingResource(infra);
         var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
         {
             Parent = project,
             Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
             Properties = new AzureStorageAccountConnectionProperties()
             {
-                Target = aspireResource.CapabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
+                Target = capHostConfig.Storage!.BlobEndpoint.AsProvisioningParameter(infra),
                 Metadata =
                 {
                     { "ApiType", "Azure" },
@@ -431,7 +449,7 @@ public static class AzureCognitiveServicesProjectExtensions
         * CosmosDB
         */
 
-        var cosmosDb = (CosmosDBAccount)aspireResource.CapabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
+        var cosmosDb = (CosmosDBAccount)capHostConfig.CosmosDB!.AddAsExistingResource(infra);
         var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
         {
             Parent = project,
@@ -440,7 +458,7 @@ public static class AzureCognitiveServicesProjectExtensions
             {
                 Category = CognitiveServicesConnectionCategory.CosmosDB,
                 // This is the document endpoint
-                Target = aspireResource.CapabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                Target = capHostConfig.CosmosDB!.ConnectionStringOutput.AsProvisioningParameter(infra),
                 Metadata =
                 {
                     { "ApiType", "Azure" },
@@ -470,7 +488,7 @@ public static class AzureCognitiveServicesProjectExtensions
         * Azure Search
         */
 
-        var searchService = (SearchService)aspireResource.CapabilityHostConfiguration.Search.AddAsExistingResource(infra);
+        var searchService = (SearchService)capHostConfig.Search!.AddAsExistingResource(infra);
         var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
         {
             Parent = project,
@@ -508,9 +526,9 @@ public static class AzureCognitiveServicesProjectExtensions
         */
 
         CognitiveServicesProjectConnection? aoaiConn = null;
-        if (aspireResource.CapabilityHostConfiguration.AzureOpenAI is not null)
+        if (capHostConfig.AzureOpenAI is not null)
         {
-            var aoaiAccount = aspireResource.CapabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
+            var aoaiAccount = capHostConfig.AzureOpenAI.AddAsExistingResource(infra);
             aoaiConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_aoai_conn")
             {
                 Parent = project,
