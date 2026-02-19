@@ -121,4 +121,57 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         await pendingRun;
     }
+
+    [Fact]
+    public async Task StopWithNoRunningAppHostExitsSuccessfully()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(StopWithNoRunningAppHostExitsSuccessfully));
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithDimensions(160, 48)
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        using var terminal = builder.Build();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Pattern searcher for the informational message (not an error)
+        var waitForNoRunningAppHosts = new CellPatternSearcher()
+            .Find("No running AppHosts found in scope.");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Run aspire stop with no running AppHost - should exit with code 0
+        sequenceBuilder.Type("aspire stop")
+            .Enter()
+            .WaitUntil(s => waitForNoRunningAppHosts.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
+
+        // Exit the shell
+        sequenceBuilder.Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
 }
