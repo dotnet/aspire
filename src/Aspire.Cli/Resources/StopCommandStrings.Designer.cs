@@ -104,5 +104,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
             }
         }
+
+        public static string AllOptionDescription {
+            get {
+                return ResourceManager.GetString("AllOptionDescription", resourceCulture);
+            }
+        }
+
+        public static string MultipleAppHostsNonInteractive {
+            get {
+                return ResourceManager.GetString("MultipleAppHostsNonInteractive", resourceCulture);
+            }
+        }
     }
 }

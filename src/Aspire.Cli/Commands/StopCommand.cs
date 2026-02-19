@@ -20,6 +20,7 @@ internal sealed class StopCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<StopCommand> _logger;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
 
     private static readonly Argument<string?> s_resourceArgument = new("resource")
@@ -33,12 +34,18 @@ internal sealed class StopCommand : BaseCommand
         Description = StopCommandStrings.ProjectArgumentDescription
     };
 
+    private static readonly Option<bool> s_allOption = new("--all")
+    {
+        Description = StopCommandStrings.AllOptionDescription
+    };
+
     public StopCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
         ILogger<StopCommand> logger,
         AspireCliTelemetry telemetry,
         TimeProvider? timeProvider = null)
@@ -46,18 +53,73 @@ internal sealed class StopCommand : BaseCommand
     {
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         Arguments.Add(s_resourceArgument);
         Options.Add(s_projectOption);
+        Options.Add(s_allOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var stopAll = parseResult.GetValue(s_allOption);
 
+        // Handle --all: stop all running AppHosts
+        if (stopAll)
+        {
+            return await StopAllAppHostsAsync(cancellationToken);
+        }
+
+        // In non-interactive mode, try to auto-resolve without prompting
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            return await ExecuteNonInteractiveAsync(passedAppHostProjectFile, resourceName, cancellationToken);
+        }
+
+        return await ExecuteInteractiveAsync(passedAppHostProjectFile, resourceName, cancellationToken);
+    }
+
+    private async Task<int> ExecuteNonInteractiveAsync(FileInfo? passedAppHostProjectFile, string? resourceName, CancellationToken cancellationToken)
+    {
+        // If --project is specified, use the standard resolver (no prompting needed)
+        if (passedAppHostProjectFile is not null)
+        {
+            return await ExecuteInteractiveAsync(passedAppHostProjectFile, resourceName, cancellationToken);
+        }
+
+        // Scan for all running AppHosts
+        var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
+            StopCommandStrings.ScanningForRunningAppHosts,
+            cancellationToken);
+
+        if (allConnections.Length == 0)
+        {
+            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        // Single AppHost: auto-select it
+        if (allConnections.Length == 1)
+        {
+            var connection = allConnections[0].Connection!;
+            if (!string.IsNullOrEmpty(resourceName))
+            {
+                return await StopResourceAsync(connection, resourceName, cancellationToken);
+            }
+            return await StopAppHostAsync(connection);
+        }
+
+        // Multiple AppHosts: error with guidance
+        _interactionService.DisplayError(StopCommandStrings.MultipleAppHostsNonInteractive);
+        return ExitCodeConstants.FailedToFindProject;
+    }
+
+    private async Task<int> ExecuteInteractiveAsync(FileInfo? passedAppHostProjectFile, string? resourceName, CancellationToken cancellationToken)
+    {
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
             StopCommandStrings.ScanningForRunningAppHosts,
@@ -74,22 +136,52 @@ internal sealed class StopCommand : BaseCommand
 
         var selectedConnection = result.Connection!;
 
-        // If a resource name is provided, stop that specific resource instead of the AppHost
         if (!string.IsNullOrEmpty(resourceName))
         {
             return await StopResourceAsync(selectedConnection, resourceName, cancellationToken);
         }
 
+        return await StopAppHostAsync(selectedConnection);
+    }
+
+    private async Task<int> StopAllAppHostsAsync(CancellationToken cancellationToken)
+    {
+        var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
+            StopCommandStrings.ScanningForRunningAppHosts,
+            cancellationToken);
+
+        if (allConnections.Length == 0)
+        {
+            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        var allStopped = true;
+        foreach (var connectionResult in allConnections)
+        {
+            var connection = connectionResult.Connection!;
+            var exitCode = await StopAppHostAsync(connection);
+            if (exitCode != ExitCodeConstants.Success)
+            {
+                allStopped = false;
+            }
+        }
+
+        return allStopped ? ExitCodeConstants.Success : ExitCodeConstants.FailedToDotnetRunAppHost;
+    }
+
+    private async Task<int> StopAppHostAsync(IAppHostAuxiliaryBackchannel connection)
+    {
         // Stop the selected AppHost
-        var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
+        var appHostPath = connection.AppHostInfo?.AppHostPath ?? "Unknown";
         // Use relative path for in-scope, full path for out-of-scope
-        var displayPath = selectedConnection.IsInScope 
-            ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath) 
+        var displayPath = connection.IsInScope
+            ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath)
             : appHostPath;
         _interactionService.DisplayMessage("package", $"Found running AppHost: {displayPath}");
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
-        var appHostInfo = selectedConnection.AppHostInfo;
+        var appHostInfo = connection.AppHostInfo;
 
         _interactionService.DisplayMessage("stop_sign", "Sending stop signal...");
 
@@ -118,7 +210,7 @@ internal sealed class StopCommand : BaseCommand
             var rpcSucceeded = false;
             try
             {
-                rpcSucceeded = await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+                rpcSucceeded = await connection.StopAppHostAsync(default).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -158,7 +250,7 @@ internal sealed class StopCommand : BaseCommand
 
                     if (appHostInfo is not null)
                     {
-                        return await manager.MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
+                        return await manager.MonitorProcessesForTerminationAsync(appHostInfo, default).ConfigureAwait(false);
                     }
 
                     return true;
