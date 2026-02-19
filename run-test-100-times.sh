@@ -114,19 +114,27 @@ fi
 
 # ---------- cleanup ----------
 clean_environment() {
-    # Kill dcp / dcpctrl processes
-    pgrep -lf "dcp" 2>/dev/null | grep -E "dcp(\.exe|ctl)" | awk '{system("kill -9 "$1)}' 2>/dev/null || true
+    # Kill dcp / dcpctrl processes using pgrep + while loop
+    pgrep -lf "dcp" 2>/dev/null | grep -E "dcp(\.exe|ctl)" | awk '{print $1}' | while read pid; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
 
     # Kill dotnet-tests processes (actual test runner)
-    pkill -9 -f "dotnet-tests" 2>/dev/null || true
+    pgrep -f "dotnet-tests" 2>/dev/null | while read pid; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
     
     # Don't kill "dotnet test" as it may match our script's own command line args
     # The dotnet test launcher exits when tests complete, so no need to kill it
 
-    # Kill processes matching the test assembly name
-    if [[ -n "$TEST_ASSEMBLY_NAME" ]]; then
-        pkill -9 -f "$TEST_ASSEMBLY_NAME" 2>/dev/null || true
-    fi
+    # Kill test service processes (TestProject.Service*, TestProject.Worker*)
+    # Be specific to avoid killing this script
+    pgrep -f "TestProject\.Service" 2>/dev/null | while read pid; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
+    pgrep -f "TestProject\.Worker" 2>/dev/null | while read pid; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
 
     # Brief wait for processes to die
     sleep 1
