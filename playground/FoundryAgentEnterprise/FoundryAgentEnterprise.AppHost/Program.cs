@@ -6,7 +6,8 @@ using Aspire.Hosting.Azure;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var foundry = builder.AddAzureAIFoundry("my-foundry");
-var deployment = foundry.AddDeployment("my-gpt-5", AIFoundryModel.OpenAI.Gpt5);
+var deployment = foundry.AddDeployment("my-gpt-5", AIFoundryModel.OpenAI.Gpt5)
+    .WithProperties(d => d.SkuCapacity = 10);
 var project = foundry.AddProject("my-foundry-proj");
 
 project.WithKeyVault(builder.AddAzureKeyVault("foundry-kv"));
