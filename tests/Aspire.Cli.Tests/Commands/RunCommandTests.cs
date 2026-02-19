@@ -88,6 +88,48 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunCommand_WithDetachFlag_DoesNotShowUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var trackingNotifier = new TrackingCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => trackingNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --detach");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.False(trackingNotifier.NotifyWasCalled, "Update notification should not be shown when --detach is used");
+    }
+
+    [Fact]
+    public async Task RunCommand_WithoutDetachFlag_ShowsUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var trackingNotifier = new TrackingCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => trackingNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.True(trackingNotifier.NotifyWasCalled, "Update notification should be shown when --detach is not used");
+    }
+
+    [Fact]
     public void GetDetachedFailureMessage_ReturnsBuildSpecificMessage_ForBuildFailureExitCode()
     {
         var message = RunCommand.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
@@ -1450,6 +1492,26 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
         {
             return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
+        }
+    }
+
+    private sealed class TrackingCliUpdateNotifier : ICliUpdateNotifier
+    {
+        public bool NotifyWasCalled { get; private set; }
+
+        public Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public void NotifyIfUpdateAvailable()
+        {
+            NotifyWasCalled = true;
+        }
+
+        public bool IsUpdateAvailable()
+        {
+            return false;
         }
     }
 }
