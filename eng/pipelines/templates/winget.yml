@@ -41,49 +41,16 @@ steps:
 
   - pwsh: |
       $ErrorActionPreference = 'Stop'
-      $ProgressPreference = 'SilentlyContinue'
 
-      # Check if winget is already available
       $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
-      if ($wingetPath) {
-        Write-Host "winget is already installed at: $($wingetPath.Source)"
-        winget --version
-        exit 0
-      }
-
-      # Ensure NuGet package provider is installed (required for PSGallery)
-      Write-Host "Bootstrapping NuGet package provider..."
-      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope AllUsers | Out-Null
-
-      # Diagnose available repositories
-      Write-Host "Available PowerShell repositories:"
-      Get-PSRepository | Format-Table -AutoSize
-
-      # Register PSGallery if it's missing (restricted environments may not have it)
-      if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-        Write-Host "PSGallery not found. Registering it..."
-        Register-PSRepository -Default
-        Write-Host "PSGallery registered."
-      }
-
-      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
-      Write-Host "Installing Microsoft.WinGet.Client module..."
-      Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Force -Scope AllUsers
-
-      Write-Host "Installing WinGet using Repair-WinGetPackageManager..."
-      Repair-WinGetPackageManager -Latest -Force -AllUsers
-
-      # Verify installation
-      $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
-      if ($wingetPath) {
-        Write-Host "winget installed successfully at: $($wingetPath.Source)"
-        winget --version
-      } else {
-        Write-Error "winget installation failed - command not found"
+      if (-not $wingetPath) {
+        Write-Error "winget is not available on this agent. Expected it to be pre-installed."
         exit 1
       }
-    displayName: 🟣Install winget CLI
+
+      Write-Host "winget found at: $($wingetPath.Source)"
+      winget --version
+    displayName: 🟣Verify winget CLI
 
   - pwsh: |
       $ErrorActionPreference = 'Stop'
