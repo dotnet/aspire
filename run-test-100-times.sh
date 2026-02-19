@@ -1,240 +1,279 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Script to run flaky test 100 times to verify the fix
-# This helps ensure the fix for issue #9673 is stable
-# BREAKS ON FIRST FAILURE for immediate investigation
+# Repeatedly runs a dotnet test command to validate flaky test fixes.
+# Cleanup logic modeled on tests/helix/send-to-helix-inner.proj pre-commands.
 
-set -u  # Exit on undefined variables
-set -E  # Inherit ERR trap
+set -u # Error on undefined variables
 
-# Configuration
-TEST_PROJECT="tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"
-TEST_METHOD="*.TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices"
+# ---------- defaults ----------
 ITERATIONS=100
+STOP_ON_FAILURE=true
+
+# ---------- usage ----------
+usage() {
+    cat <<'EOF'
+Usage: ./run-test-100-times.sh [OPTIONS] -- <test command...>
+
+Runs <test command> repeatedly to validate flaky test fixes.
+Everything after '--' is executed verbatim each iteration.
+
+Options:
+  -n <count>    Number of iterations (default: 100)
+  --run-all     Don't stop on first failure, run all iterations
+  --help        Show this help message
+
+Examples:
+  ./run-test-100-times.sh -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
+  ./run-test-100-times.sh -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+EOF
+    exit 0
+}
+
+# ---------- parse options ----------
+TEST_CMD=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -n)
+            ITERATIONS="$2"
+            shift 2
+            ;;
+        --run-all)
+            STOP_ON_FAILURE=false
+            shift
+            ;;
+        --help)
+            usage
+            ;;
+        --)
+            shift
+            TEST_CMD=("$@")
+            break
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Run with --help for usage." >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ ${#TEST_CMD[@]} -eq 0 ]]; then
+    echo "Error: no test command provided. Use -- to separate options from the test command." >&2
+    echo "Run with --help for usage." >&2
+    exit 1
+fi
+
+# ---------- infer test assembly name from .csproj in args ----------
+TEST_ASSEMBLY_NAME=""
+TEST_PROJECT_DIR=""
+for arg in "${TEST_CMD[@]}"; do
+    if [[ "$arg" == *.csproj ]]; then
+        TEST_ASSEMBLY_NAME="$(basename "$arg" .csproj)"
+        TEST_PROJECT_DIR="$(dirname "$arg")"
+        break
+    fi
+done
+
+# ---------- setup ----------
 RESULTS_DIR="/tmp/test-results-$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="$RESULTS_DIR/test-run.log"
+mkdir -p "$RESULTS_DIR"
 
-# Statistics
 PASS_COUNT=0
 FAIL_COUNT=0
-ERROR_COUNT=0
+TIMEOUT_COUNT=0
 
-# Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Create results directory
-mkdir -p "$RESULTS_DIR"
-
-# Save command line for reproducibility
-echo "Command line: $0 $@" > "$RESULTS_DIR/command.txt"
-echo "Working directory: $(pwd)" >> "$RESULTS_DIR/command.txt"
-echo "Git commit: $(git rev-parse HEAD 2>/dev/null || echo 'N/A')" >> "$RESULTS_DIR/command.txt"
-echo "Started: $(date)" >> "$RESULTS_DIR/command.txt"
-
-echo "========================================" | tee -a "$LOG_FILE"
-echo "Test Verification Run - 100 Iterations" | tee -a "$LOG_FILE"
-echo "BREAK ON FIRST FAILURE MODE" | tee -a "$LOG_FILE"
-echo "========================================" | tee -a "$LOG_FILE"
-echo "Test: $TEST_METHOD" | tee -a "$LOG_FILE"
-echo "Project: $TEST_PROJECT" | tee -a "$LOG_FILE"
-echo "Results: $RESULTS_DIR" | tee -a "$LOG_FILE"
-echo "Started: $(date)" | tee -a "$LOG_FILE"
-echo "Command: $0 $@" | tee -a "$LOG_FILE"
-echo "Git commit: $(git rev-parse HEAD 2>/dev/null || echo 'N/A')" | tee -a "$LOG_FILE"
-echo "========================================" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
-
-# Function to clean resources between runs
-clean_resources() {
-    local iteration=$1
-    
-    # Kill any remaining test processes
-    pkill -9 -f "Aspire.Hosting.Tests" 2>/dev/null || true
-    pkill -9 -f "TestProject.Service" 2>/dev/null || true
-    pkill -9 -f "TestProject.Worker" 2>/dev/null || true
-    
-    # Clean up DCP resources if running
-    pkill -9 -f "dcp" 2>/dev/null || true
-    
-    # Clean test result files
-    rm -rf tests/Aspire.Hosting.Tests/TestResults 2>/dev/null || true
-    rm -rf artifacts/bin/Aspire.Hosting.Tests/Debug/net8.0/TestResults 2>/dev/null || true
-    
-    # Wait a moment for cleanup
-    sleep 1
-}
-
-# Function to run a single test iteration
-run_test() {
-    local iteration=$1
-    local test_log="$RESULTS_DIR/iteration-$iteration.log"
-    
-    echo -n "Iteration $iteration/$ITERATIONS: " | tee -a "$LOG_FILE"
-    
-    # Run the test with timeout
-    timeout 180 dotnet test "$TEST_PROJECT" \
-        --no-build \
-        --no-restore \
-        -- \
-        --filter-method "$TEST_METHOD" \
-        > "$test_log" 2>&1
-    
-    local exit_code=$?
-    
-    # Analyze result
-    if [ $exit_code -eq 0 ]; then
-        if grep -q "Passed!" "$test_log" || grep -q "total: 1" "$test_log" && grep -q "succeeded: 1" "$test_log"; then
-            echo -e "${GREEN}PASS${NC}" | tee -a "$LOG_FILE"
-            PASS_COUNT=$((PASS_COUNT + 1))
-            return 0
-        else
-            echo -e "${RED}FAIL${NC} (exit 0 but no pass indicator)" | tee -a "$LOG_FILE"
-            FAIL_COUNT=$((FAIL_COUNT + 1))
-            # Save failure log
-            cp "$test_log" "$RESULTS_DIR/failure-$iteration.log"
-            return 1
+# ---------- portable timeout wrapper ----------
+# macOS doesn't ship GNU timeout; fall back to a bash implementation.
+if command -v timeout &>/dev/null; then
+    run_with_timeout() { timeout "$@"; }
+else
+    run_with_timeout() {
+        local secs="$1"; shift
+        "$@" &
+        local pid=$!
+        ( sleep "$secs" && kill -9 "$pid" 2>/dev/null ) &
+        local watcher=$!
+        wait "$pid" 2>/dev/null
+        local rc=$?
+        kill "$watcher" 2>/dev/null
+        wait "$watcher" 2>/dev/null
+        # If the process was killed by our watcher, simulate timeout exit code 124.
+        if [[ $rc -eq 137 ]]; then
+            return 124
         fi
-    elif [ $exit_code -eq 124 ]; then
-        echo -e "${YELLOW}TIMEOUT${NC}" | tee -a "$LOG_FILE"
-        ERROR_COUNT=$((ERROR_COUNT + 1))
-        cp "$test_log" "$RESULTS_DIR/timeout-$iteration.log"
-        return 1
-    else
-        echo -e "${RED}FAIL${NC} (exit code: $exit_code)" | tee -a "$LOG_FILE"
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-        cp "$test_log" "$RESULTS_DIR/failure-$iteration.log"
-        return 1
+        return $rc
+    }
+fi
+
+# ---------- cleanup ----------
+clean_environment() {
+    # Kill dcp / dcpctrl processes
+    pgrep -lf "dcp" 2>/dev/null | grep -E "dcp(\.exe|ctl)" | awk '{system("kill -9 "$1)}' 2>/dev/null || true
+
+    # Kill dotnet test / dotnet-tests processes
+    pkill -9 -f "dotnet-tests" 2>/dev/null || true
+    pkill -9 -f "dotnet test" 2>/dev/null || true
+
+    # Kill processes matching the test assembly name
+    if [[ -n "$TEST_ASSEMBLY_NAME" ]]; then
+        pkill -9 -f "$TEST_ASSEMBLY_NAME" 2>/dev/null || true
+    fi
+
+    # Brief wait for processes to die
+    sleep 1
+
+    # Docker cleanup — only if docker is available
+    if command -v docker &>/dev/null; then
+        local containers
+        containers="$(docker ps -aq 2>/dev/null)"
+        if [[ -n "$containers" ]]; then
+            echo "$containers" | xargs docker stop 2>/dev/null || true
+            echo "$containers" | xargs docker rm 2>/dev/null || true
+        fi
+
+        local volumes
+        volumes="$(docker volume ls -q 2>/dev/null)"
+        if [[ -n "$volumes" ]]; then
+            echo "$volumes" | xargs docker volume rm 2>/dev/null || true
+        fi
+
+        docker network prune -f 2>/dev/null || true
+    fi
+
+    # Clean test result directories under the project path
+    if [[ -n "$TEST_PROJECT_DIR" ]]; then
+        rm -rf "$TEST_PROJECT_DIR/TestResults" 2>/dev/null || true
     fi
 }
 
-# Main test loop
-echo "Starting test iterations..." | tee -a "$LOG_FILE"
-echo "Mode: BREAK ON FIRST FAILURE" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+# ---------- state logging ----------
+log_environment_state() {
+    local iteration=$1
+    local log_target="$2"
 
+    {
+        echo "--- Environment state before cleanup (iteration $iteration) ---"
+        if command -v docker &>/dev/null; then
+            echo ">> docker container ls --all"
+            docker container ls --all 2>&1 || true
+            echo ">> docker volume ls"
+            docker volume ls 2>&1 || true
+            echo ">> docker network ls"
+            docker network ls 2>&1 || true
+        fi
+        echo ">> processes (dcp|dotnet)"
+        pgrep -lf "dcp|dotnet" 2>&1 || echo "(none)"
+        echo "--- end environment state ---"
+    } >> "$log_target" 2>&1
+}
+
+# ---------- header ----------
+{
+    echo "========================================"
+    echo "Test Verification Run — $ITERATIONS iterations"
+    if $STOP_ON_FAILURE; then
+        echo "Mode: STOP ON FIRST FAILURE"
+    else
+        echo "Mode: RUN ALL"
+    fi
+    echo "========================================"
+    echo "Command: ${TEST_CMD[*]}"
+    echo "Test assembly: ${TEST_ASSEMBLY_NAME:-(unknown)}"
+    echo "Results: $RESULTS_DIR"
+    echo "Started: $(date)"
+    echo "Git commit: $(git rev-parse HEAD 2>/dev/null || echo 'N/A')"
+    echo "========================================"
+    echo ""
+} | tee -a "$LOG_FILE"
+
+# ---------- main loop ----------
 FIRST_FAILURE_ITERATION=0
 
-for i in $(seq 1 $ITERATIONS); do
-    # Clean before each run
-    clean_resources $i
-    
-    # Run the test
-    if ! run_test $i; then
-        # Test failed - break immediately
-        FIRST_FAILURE_ITERATION=$i
-        echo "" | tee -a "$LOG_FILE"
-        echo -e "${RED}========================================${NC}" | tee -a "$LOG_FILE"
-        echo -e "${RED}FAILURE DETECTED - Breaking on iteration $i${NC}" | tee -a "$LOG_FILE"
-        echo -e "${RED}========================================${NC}" | tee -a "$LOG_FILE"
-        echo "" | tee -a "$LOG_FILE"
-        
-        # Save failure details
-        echo "First failure at iteration: $i" >> "$RESULTS_DIR/failure-info.txt"
-        echo "Pass count before failure: $PASS_COUNT" >> "$RESULTS_DIR/failure-info.txt"
-        echo "Failure count: $FAIL_COUNT" >> "$RESULTS_DIR/failure-info.txt"
-        echo "Error count: $ERROR_COUNT" >> "$RESULTS_DIR/failure-info.txt"
-        
-        break
+for i in $(seq 1 "$ITERATIONS"); do
+    ITER_LOG="$RESULTS_DIR/iteration-$i.log"
+
+    # Log environment state, then clean
+    log_environment_state "$i" "$ITER_LOG"
+    clean_environment
+
+    # Print iteration header
+    printf "Iteration %d/%d [%s]: " "$i" "$ITERATIONS" "$(date +%H:%M:%S)" | tee -a "$LOG_FILE"
+
+    # Log exact command
+    echo "Running: ${TEST_CMD[*]}" >> "$ITER_LOG"
+
+    # Run test with 3-minute timeout
+    run_with_timeout 180 "${TEST_CMD[@]}" >> "$ITER_LOG" 2>&1
+    EXIT_CODE=$?
+
+    # Classify result
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        echo -e "${GREEN}PASS${NC}" | tee -a "$LOG_FILE"
+        PASS_COUNT=$((PASS_COUNT + 1))
+    elif [[ $EXIT_CODE -eq 124 ]]; then
+        echo -e "${YELLOW}TIMEOUT${NC}" | tee -a "$LOG_FILE"
+        TIMEOUT_COUNT=$((TIMEOUT_COUNT + 1))
+        cp "$ITER_LOG" "$RESULTS_DIR/timeout-$i.log"
+    else
+        echo -e "${RED}FAIL${NC} (exit $EXIT_CODE)" | tee -a "$LOG_FILE"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        cp "$ITER_LOG" "$RESULTS_DIR/failure-$i.log"
     fi
-    
-    # Show progress every 10 iterations
-    if [ $((i % 10)) -eq 0 ]; then
-        echo "" | tee -a "$LOG_FILE"
-        echo -e "${BLUE}Progress: $i/$ITERATIONS completed${NC}" | tee -a "$LOG_FILE"
-        echo "  Pass: $PASS_COUNT, Fail: $FAIL_COUNT, Errors: $ERROR_COUNT" | tee -a "$LOG_FILE"
-        echo "" | tee -a "$LOG_FILE"
+
+    # Handle failure
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        if [[ $FIRST_FAILURE_ITERATION -eq 0 ]]; then
+            FIRST_FAILURE_ITERATION=$i
+        fi
+        if $STOP_ON_FAILURE; then
+            echo "" | tee -a "$LOG_FILE"
+            echo -e "${RED}Stopping at iteration $i due to failure.${NC}" | tee -a "$LOG_FILE"
+            break
+        fi
+    fi
+
+    # Progress every 10 iterations
+    if [[ $((i % 10)) -eq 0 ]]; then
+        echo -e "${BLUE}  Progress: $i/$ITERATIONS — Pass: $PASS_COUNT, Fail: $FAIL_COUNT, Timeout: $TIMEOUT_COUNT${NC}" | tee -a "$LOG_FILE"
     fi
 done
 
-# Final cleanup
-clean_resources "final"
+# ---------- final cleanup ----------
+clean_environment
 
-# Generate summary report
-TOTAL_RUNS=$((PASS_COUNT + FAIL_COUNT + ERROR_COUNT))
+# ---------- summary ----------
+TOTAL=$((PASS_COUNT + FAIL_COUNT + TIMEOUT_COUNT))
+pct() { awk "BEGIN {printf \"%.1f\", ($1/$2)*100}"; }
+
 echo "" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
-echo "Test Results Summary" | tee -a "$LOG_FILE"
+echo "Summary" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
-if [ $FIRST_FAILURE_ITERATION -gt 0 ]; then
-    echo -e "${RED}STOPPED EARLY at iteration $FIRST_FAILURE_ITERATION due to failure${NC}" | tee -a "$LOG_FILE"
+if [[ $FIRST_FAILURE_ITERATION -gt 0 ]] && $STOP_ON_FAILURE; then
+    echo -e "${RED}Stopped at iteration $FIRST_FAILURE_ITERATION${NC}" | tee -a "$LOG_FILE"
 fi
-echo "Total Iterations Completed: $TOTAL_RUNS / $ITERATIONS" | tee -a "$LOG_FILE"
-echo -e "${GREEN}Passed:  $PASS_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
-echo -e "${RED}Failed:  $FAIL_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
-echo -e "${YELLOW}Errors:  $ERROR_COUNT${NC} ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$TOTAL_RUNS)*100}")%)" | tee -a "$LOG_FILE"
+echo "Completed: $TOTAL / $ITERATIONS" | tee -a "$LOG_FILE"
+echo -e "  ${GREEN}Pass:    $PASS_COUNT${NC} ($(pct $PASS_COUNT $TOTAL)%)" | tee -a "$LOG_FILE"
+echo -e "  ${RED}Fail:    $FAIL_COUNT${NC} ($(pct $FAIL_COUNT $TOTAL)%)" | tee -a "$LOG_FILE"
+echo -e "  ${YELLOW}Timeout: $TIMEOUT_COUNT${NC} ($(pct $TIMEOUT_COUNT $TOTAL)%)" | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
-echo "Completed: $(date)" | tee -a "$LOG_FILE"
-echo "Results saved to: $RESULTS_DIR" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+echo "Finished: $(date)" | tee -a "$LOG_FILE"
+echo "Results:  $RESULTS_DIR" | tee -a "$LOG_FILE"
 
-# Create summary file
-cat > "$RESULTS_DIR/summary.txt" << EOF
-Test Verification Summary
-=========================
-Test: $TEST_METHOD
-Mode: BREAK ON FIRST FAILURE
-Planned Iterations: $ITERATIONS
-Completed Iterations: $TOTAL_RUNS
-Started: $(head -12 "$LOG_FILE" | tail -1 | cut -d' ' -f2-)
-Completed: $(date)
-
-Results:
---------
-Passed:  $PASS_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($PASS_COUNT/$TOTAL_RUNS)*100}")%)
-Failed:  $FAIL_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%)
-Errors:  $ERROR_COUNT / $TOTAL_RUNS ($(awk "BEGIN {printf \"%.1f\", ($ERROR_COUNT/$TOTAL_RUNS)*100}")%)
-
-Status: $([ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ] && echo "SUCCESS - All $ITERATIONS tests passed!" || echo "FAILURE - Test stopped at iteration $FIRST_FAILURE_ITERATION")
-
-Previous failure rate (before fix): ~23.5%
-Expected failure rate (with fix): 0%
-
-Analysis:
----------
-$(if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ]; then
-    echo "✓ Fix verified! No failures in $ITERATIONS iterations."
-    echo "✓ The WaitForHealthyAsync approach eliminates the race condition."
-elif [ $FIRST_FAILURE_ITERATION -gt 0 ]; then
-    echo "✗ FAILURE on iteration $FIRST_FAILURE_ITERATION"
-    echo "  Test stopped early for investigation."
-    echo "  Pass count before failure: $PASS_COUNT"
-    echo "  Review failure-$FIRST_FAILURE_ITERATION.log for details"
-elif [ $FAIL_COUNT -lt 10 ]; then
-    echo "⚠ Minor failures detected. Review failure logs."
-    echo "  Previous rate was ~23.5%, current is $(awk "BEGIN {printf \"%.1f\", ($FAIL_COUNT/$TOTAL_RUNS)*100}")%"
-else
-    echo "✗ Significant failures still occurring."
-    echo "  Additional investigation needed."
-fi)
-
-Log files:
-----------
-Main log: $LOG_FILE
-Command info: $RESULTS_DIR/command.txt
-Failure logs: $RESULTS_DIR/failure-*.log
-Timeout logs: $RESULTS_DIR/timeout-*.log
-$([ $FIRST_FAILURE_ITERATION -gt 0 ] && echo "Failure info: $RESULTS_DIR/failure-info.txt")
-EOF
-
-cat "$RESULTS_DIR/summary.txt"
-
-# Exit with appropriate code
-if [ $FAIL_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ] && [ $TOTAL_RUNS -eq $ITERATIONS ]; then
-    echo ""
-    echo -e "${GREEN}✓ SUCCESS: All $ITERATIONS iterations passed!${NC}"
+if [[ $FAIL_COUNT -eq 0 ]] && [[ $TIMEOUT_COUNT -eq 0 ]] && [[ $TOTAL -eq $ITERATIONS ]]; then
+    echo "" | tee -a "$LOG_FILE"
+    echo -e "${GREEN}All $ITERATIONS iterations passed.${NC}" | tee -a "$LOG_FILE"
     exit 0
 else
-    echo ""
-    echo -e "${RED}✗ FAILURE: Stopped at iteration $FIRST_FAILURE_ITERATION${NC}"
-    echo -e "${RED}  Failures: $FAIL_COUNT, Errors: $ERROR_COUNT${NC}"
-    if [ -f "$RESULTS_DIR/failure-info.txt" ]; then
-        echo ""
-        echo "Failure details:"
-        cat "$RESULTS_DIR/failure-info.txt"
-    fi
+    echo "" | tee -a "$LOG_FILE"
+    echo "Failure logs: $RESULTS_DIR/failure-*.log" | tee -a "$LOG_FILE"
+    echo "Timeout logs: $RESULTS_DIR/timeout-*.log" | tee -a "$LOG_FILE"
     exit 1
 fi
