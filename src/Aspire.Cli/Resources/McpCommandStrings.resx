@@ -100,6 +100,6 @@
     <value>Create agent environment specific instruction files?</value>
   </data>
   <data name="InitCommand_ConfigurePlaywrightPrompt" xml:space="preserve">
-    <value>Pre-configure Playwright MCP server?</value>
+    <value>Install Playwright CLI for browser automation?</value>
   </data>
 </root>

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -19,18 +20,22 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private const string SkillFileDescription = "Create Aspire skill file (.opencode/skill/aspire/SKILL.md)";
 
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
+    private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="OpenCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
+    /// <param name="playwrightCliInstaller">The Playwright CLI installer for secure installation.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
+    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, PlaywrightCliInstaller playwrightCliInstaller, ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(playwrightCliInstaller);
         ArgumentNullException.ThrowIfNull(logger);
         _openCodeCliRunner = openCodeCliRunner;
+        _playwrightCliInstaller = playwrightCliInstaller;
         _logger = logger;
     }
 
@@ -62,18 +67,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Aspire MCP server is already configured");
             }
 
-            // Add Playwright configuration callback if not already configured
-            if (!HasPlaywrightServerConfigured(configFilePath))
-            {
-                _logger.LogDebug("Registering Playwright MCP configuration callback for OpenCode");
-                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
-                    context,
-                    ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
-            }
-            else
-            {
-                _logger.LogDebug("Playwright MCP server is already configured");
-            }
+            // Register Playwright CLI installation applicator
+            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller);
 
             // Try to add skill file applicator for OpenCode
             CommonAgentApplicators.TryAddSkillFileApplicator(
@@ -95,10 +90,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
                 context.AddApplicator(CreateApplicator(configDirectory));
                 
-                // Register Playwright configuration callback
-                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
-                    context,
-                    ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
+                // Register Playwright CLI installation applicator
+                CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller);
                 
                 // Try to add skill file applicator for OpenCode
                 CommonAgentApplicators.TryAddSkillFileApplicator(
@@ -121,7 +114,32 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <returns>True if the aspire server is already configured, false otherwise.</returns>
     private static bool HasAspireServerConfigured(string configFilePath)
     {
-        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcp", AspireServerName, RemoveJsonComments);
+        try
+        {
+            var content = File.ReadAllText(configFilePath);
+
+            // Remove single-line comments for parsing (JSONC support)
+            content = RemoveJsonComments(content);
+
+            var config = JsonNode.Parse(content)?.AsObject();
+
+            if (config is null)
+            {
+                return false;
+            }
+
+            if (config.TryGetPropertyValue("mcp", out var mcpNode) && mcpNode is JsonObject mcp)
+            {
+                return mcp.ContainsKey(AspireServerName);
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            // If the JSON is malformed, assume aspire is not configured
+            return false;
+        }
     }
 
     /// <summary>
@@ -180,8 +198,11 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
         var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken, RemoveJsonComments);
 
-        // Ensure schema is set for new files
-        config.TryAdd("$schema", "https://opencode.ai/config.json");
+        // Ensure schema is set for new configs
+        if (!config.ContainsKey("$schema"))
+        {
+            config["$schema"] = "https://opencode.ai/config.json";
+        }
 
         // Ensure "mcp" object exists
         if (!config.ContainsKey("mcp") || config["mcp"] is not JsonObject)
@@ -204,45 +225,4 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
     }
 
-    /// <summary>
-    /// Creates or updates the opencode.jsonc file with Playwright MCP configuration.
-    /// </summary>
-    private static async Task ApplyPlaywrightMcpConfigurationAsync(
-        DirectoryInfo configDirectory,
-        CancellationToken cancellationToken)
-    {
-        var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken, RemoveJsonComments);
-
-        // Ensure schema is set for new files
-        config.TryAdd("$schema", "https://opencode.ai/config.json");
-
-        // Ensure "mcp" object exists
-        if (!config.ContainsKey("mcp") || config["mcp"] is not JsonObject)
-        {
-            config["mcp"] = new JsonObject();
-        }
-
-        var mcp = config["mcp"]!.AsObject();
-
-        // Add Playwright MCP server configuration
-        mcp["playwright"] = new JsonObject
-        {
-            ["type"] = "local",
-            ["command"] = new JsonArray("npx", "-y", "@playwright/mcp@latest"),
-            ["enabled"] = true
-        };
-
-        // Write the updated config using AOT-compatible serialization
-        var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
-        await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
-    }
-
-    /// <summary>
-    /// Checks if the Playwright MCP server is already configured in the opencode.jsonc file.
-    /// </summary>
-    private static bool HasPlaywrightServerConfigured(string configFilePath)
-    {
-        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcp", "playwright", RemoveJsonComments);
-    }
 }

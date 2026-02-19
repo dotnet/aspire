@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.CopilotCli;
+using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
@@ -19,12 +21,12 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // Scanner adds applicators for: Aspire MCP, Playwright MCP, and agent instructions
+        // Scanner adds applicators for: Aspire MCP, Playwright CLI, and agent instructions
         Assert.NotEmpty(context.Applicators);
         Assert.Contains(context.Applicators, a => a.Description.Contains("GitHub Copilot CLI"));
     }
@@ -40,12 +42,12 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         // Create a scanner that writes to a known test location
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
         
-        // Scanner adds applicators for: Aspire MCP, Playwright MCP, and agent instructions
+        // Scanner adds applicators for: Aspire MCP, Playwright CLI, and agent instructions
         Assert.NotEmpty(context.Applicators);
         var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
         
@@ -109,7 +111,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -128,7 +130,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     }
 
     [Fact]
-    public async Task ScanAsync_WhenAspireAlreadyConfigured_ReturnsNoApplicator()
+    public async Task ScanAsync_WhenAspireAlreadyConfigured_ReturnsPlaywrightCliApplicatorOnly()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotFolder = workspace.CreateDirectory(".copilot");
@@ -141,10 +143,6 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
                 ["aspire"] = new JsonObject
                 {
                     ["command"] = "aspire"
-                },
-                ["playwright"] = new JsonObject
-                {
-                    ["command"] = "npx"
                 }
             }
         };
@@ -158,13 +156,14 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists with same content
-        Assert.Empty(context.Applicators);
+        // Only the Playwright CLI applicator should be offered (Aspire MCP is configured, skill file is up to date)
+        Assert.Single(context.Applicators);
+        Assert.Contains(context.Applicators, a => a.Description.Contains("Playwright CLI"));
     }
 
     [Fact]
@@ -173,12 +172,12 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null); // Return null to verify it's not called
         var executionContext = CreateExecutionContextWithVSCode(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // Scanner adds applicators for: Aspire MCP, Playwright MCP, and agent instructions
+        // Scanner adds applicators for: Aspire MCP, Playwright CLI, and agent instructions
         Assert.NotEmpty(context.Applicators);
         Assert.Contains(context.Applicators, a => a.Description.Contains("GitHub Copilot"));
         Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
@@ -239,7 +238,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -267,7 +266,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -293,7 +292,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -321,5 +320,13 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             WasCalled = true;
             return Task.FromResult(version);
         }
+    }
+
+    private static PlaywrightCliInstaller CreatePlaywrightCliInstaller()
+    {
+        return new PlaywrightCliInstaller(
+            new FakeNpmRunner(),
+            new FakePlaywrightCliRunner(),
+            NullLogger<PlaywrightCliInstaller>.Instance);
     }
 }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Agents.Playwright;
+
 namespace Aspire.Cli.Agents;
 
 /// <summary>
@@ -73,18 +75,16 @@ internal static class CommonAgentApplicators
     }
 
     /// <summary>
-    /// Tracks a detected environment and adds a single Playwright applicator if not already added.
-    /// This should be called by each scanner that detects an environment supporting Playwright.
+    /// Adds a single Playwright CLI installation applicator if not already added.
+    /// Called by scanners that detect an environment supporting Playwright.
+    /// The applicator uses <see cref="PlaywrightCliInstaller"/> to securely install the CLI and generate skill files.
     /// </summary>
     /// <param name="context">The scan context.</param>
-    /// <param name="configurationCallback">The callback to configure Playwright for this specific environment.</param>
-    public static void AddPlaywrightConfigurationCallback(
+    /// <param name="installer">The Playwright CLI installer that handles secure installation.</param>
+    public static void AddPlaywrightCliApplicator(
         AgentEnvironmentScanContext context,
-        Func<CancellationToken, Task> configurationCallback)
+        PlaywrightCliInstaller installer)
     {
-        // Add this environment's Playwright configuration callback
-        context.AddPlaywrightConfigurationCallback(configurationCallback);
-
         // Only add the Playwright applicator prompt once across all environments
         if (context.PlaywrightApplicatorAdded)
         {
@@ -93,15 +93,8 @@ internal static class CommonAgentApplicators
 
         context.PlaywrightApplicatorAdded = true;
         context.AddApplicator(new AgentEnvironmentApplicator(
-            "Configure Playwright MCP server",
-            async ct =>
-            {
-                // Execute all registered Playwright configuration callbacks
-                foreach (var callback in context.PlaywrightConfigurationCallbacks)
-                {
-                    await callback(ct);
-                }
-            },
+            "Install Playwright CLI for browser automation",
+            installer.InstallAsync,
             promptGroup: McpInitPromptGroup.AdditionalOptions,
             priority: 1));
     }
@@ -235,9 +228,9 @@ internal static class CommonAgentApplicators
         1. _select apphost_; use this tool if working with multiple app hosts within a workspace.
         2. _list apphosts_; use this tool to get details about active app hosts.
 
-        ## Playwright MCP server
+        ## Playwright CLI
 
-        The playwright MCP server has also been configured in this repository and you should use it to perform functional investigations of the resources defined in the app model as you work on the codebase. To get endpoints that can be used for navigation using the playwright MCP server use the list resources tool.
+        The Playwright CLI has been installed in this repository for browser automation. Use it to perform functional investigations of the resources defined in the app model as you work on the codebase. To get endpoints that can be used for navigation use the list resources tool. Run `playwright-cli --help` for available commands.
 
         ## Updating the app host
 
