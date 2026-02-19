@@ -43,8 +43,16 @@ Collect the following data using the GitHub tools. All time-based queries should
 ### 1. Milestone snapshot
 
 - Find the milestone named **13.2** in this repository.
-- Count the **total open issues** and **total closed issues** in the milestone.
-- Store today's snapshot (date, open count, closed count) using the **cache-memory** tool with the key `burndown-13.2-snapshot`. Append today's data point to any existing historical data so we accumulate day-over-day history.
+- Count the **total open issues** and **total closed issues** in the milestone, **excluding pull requests**. Use an issues-only filter (for example, a search query like `is:issue milestone:"13.2" state:open` / `state:closed`) so the counts are consistent across tools.
+- Store today's snapshot (date, open count, closed count) using the **cache-memory** tool with the key `burndown-13.2-snapshot`.
+  - The value for this key **must** be a JSON array of objects with the exact shape:
+    `[{ "date": "YYYY-MM-DD", "open": <number>, "closed": <number> }, ...]`
+  - When writing today's data:
+    1. Read the existing cache value (if any) and parse it as JSON. If the cache is empty or invalid, start from an empty array.
+    2. If an entry for today's date already exists, **replace** it instead of adding a duplicate.
+    3. If no entry exists, append a new object.
+    4. Sort by date ascending and trim to the **most recent 7 entries**.
+    5. Serialize back to JSON and overwrite the cache value.
 
 ### 2. Issues closed in the last 24 hours (13.2 milestone)
 
@@ -53,7 +61,7 @@ Collect the following data using the GitHub tools. All time-based queries should
 
 ### 3. New issues added to 13.2 milestone in the last 24 hours
 
-- Search for issues in this repository that were **opened or added to the 13.2 milestone in the last 24 hours**.
+- Search for issues in this repository that were **opened in the last 24 hours** and are assigned to the **13.2 milestone**.
 - Highlight any that are labeled as `bug` — these are newly discovered bugs for the release.
 
 ### 4. Notable changes merged into release/13.2
