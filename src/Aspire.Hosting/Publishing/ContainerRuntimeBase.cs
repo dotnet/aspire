@@ -241,22 +241,22 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="buildSecrets">The build secrets to include.</param>
     /// <param name="requireValue">Whether to require a non-null value for secrets (default: false).</param>
     /// <returns>A string containing the formatted build secrets.</returns>
-    protected static string BuildSecretsString(Dictionary<string, BuildImageSecretValue> buildSecrets, bool requireValue = false)
+    internal static string BuildSecretsString(Dictionary<string, BuildImageSecretValue> buildSecrets, bool requireValue = false)
     {
         var result = string.Empty;
         foreach (var buildSecret in buildSecrets)
         {
             if (buildSecret.Value.Type == BuildImageSecretType.File)
             {
-                result += $" --secret \"id={buildSecret.Key},src={buildSecret.Value.Value}\"";
+                result += $" --secret \"id={buildSecret.Key},type=file,src={buildSecret.Value.Value}\"";
             }
             else if (requireValue && buildSecret.Value.Value is null)
             {
-                result += $" --secret \"id={buildSecret.Key}\"";
+                result += $" --secret \"id={buildSecret.Key},type=env\"";
             }
             else
             {
-                result += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
+                result += $" --secret \"id={buildSecret.Key},type=env,env={buildSecret.Key.ToUpperInvariant()}\"";
             }
         }
         return result;

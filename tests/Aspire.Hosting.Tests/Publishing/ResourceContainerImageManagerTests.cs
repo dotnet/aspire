@@ -891,6 +891,59 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void BuildSecretsStringFormatsEnvSecretCorrectly()
+    {
+        var secrets = new Dictionary<string, BuildImageSecretValue>
+        {
+            ["MY_SECRET"] = new BuildImageSecretValue("secret-value", BuildImageSecretType.Environment)
+        };
+
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecretsString(secrets);
+
+        Assert.Equal(" --secret \"id=MY_SECRET,type=env,env=MY_SECRET\"", result);
+    }
+
+    [Fact]
+    public void BuildSecretsStringFormatsFileSecretCorrectly()
+    {
+        var secrets = new Dictionary<string, BuildImageSecretValue>
+        {
+            ["npmrc"] = new BuildImageSecretValue("/path/to/.npmrc", BuildImageSecretType.File)
+        };
+
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecretsString(secrets);
+
+        Assert.Equal(" --secret \"id=npmrc,type=file,src=/path/to/.npmrc\"", result);
+    }
+
+    [Fact]
+    public void BuildSecretsStringFormatsNullEnvSecretWithRequireValue()
+    {
+        var secrets = new Dictionary<string, BuildImageSecretValue>
+        {
+            ["MY_SECRET"] = new BuildImageSecretValue(null, BuildImageSecretType.Environment)
+        };
+
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecretsString(secrets, requireValue: true);
+
+        Assert.Equal(" --secret \"id=MY_SECRET,type=env\"", result);
+    }
+
+    [Fact]
+    public void BuildSecretsStringFormatsMixedSecretTypes()
+    {
+        var secrets = new Dictionary<string, BuildImageSecretValue>
+        {
+            ["ENV_TOKEN"] = new BuildImageSecretValue("token-value", BuildImageSecretType.Environment),
+            ["npmrc"] = new BuildImageSecretValue("/app/.npmrc", BuildImageSecretType.File)
+        };
+
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecretsString(secrets);
+
+        Assert.Equal(" --secret \"id=ENV_TOKEN,type=env,env=ENV_TOKEN\" --secret \"id=npmrc,type=file,src=/app/.npmrc\"", result);
+    }
+
+    [Fact]
     public async Task MultipleAnnotations_AppliedInOrder()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
