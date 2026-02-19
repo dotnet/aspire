@@ -89,7 +89,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     private ResiliencePipeline? _resiliencePipeline;
     private bool _disposed;
 
-    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
+    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(180);
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
         where T : CustomResource, IKubernetesStaticMetadata
