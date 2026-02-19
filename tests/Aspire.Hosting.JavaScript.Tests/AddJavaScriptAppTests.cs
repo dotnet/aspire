@@ -233,7 +233,7 @@ public class AddJavaScriptAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
 
-        Assert.Contains("COPY package.json .npmrc .yarnrc ./", dockerfileContents);
+        Assert.Contains("COPY package.json .yarnrc .npmrc ./", dockerfileContents);
     }
 
     [Fact]
@@ -256,6 +256,6 @@ public class AddJavaScriptAppTests
         var dockerfilePath = Path.Combine(tempDir.Path, "js.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
 
-        Assert.Contains("COPY package.json .npmrc bunfig.toml ./", dockerfileContents);
+        Assert.Contains("COPY package.json bunfig.toml .npmrc ./", dockerfileContents);
     }
 }
