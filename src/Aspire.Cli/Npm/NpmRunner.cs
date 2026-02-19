@@ -1,0 +1,186 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Semver;
+
+namespace Aspire.Cli.Npm;
+
+/// <summary>
+/// Runs npm CLI commands for package management operations.
+/// </summary>
+internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
+{
+    /// <inheritdoc />
+    public async Task<NpmPackageInfo?> ResolvePackageAsync(string packageName, string versionRange, CancellationToken cancellationToken)
+    {
+        var npmPath = FindNpmPath();
+        if (npmPath is null)
+        {
+            return null;
+        }
+
+        // Resolve version: npm view <package>@<range> version
+        var versionOutput = await RunNpmCommandAsync(
+            npmPath,
+            ["view", $"{packageName}@{versionRange}", "version"],
+            cancellationToken);
+
+        if (versionOutput is null)
+        {
+            return null;
+        }
+
+        var versionString = versionOutput.Trim();
+        if (!SemVersion.TryParse(versionString, SemVersionStyles.Any, out var version))
+        {
+            logger.LogDebug("Could not parse npm version from output: {Output}", versionString);
+            return null;
+        }
+
+        // Resolve integrity hash: npm view <package>@<version> dist.integrity
+        var integrityOutput = await RunNpmCommandAsync(
+            npmPath,
+            ["view", $"{packageName}@{version}", "dist.integrity"],
+            cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(integrityOutput))
+        {
+            logger.LogDebug("Could not resolve integrity hash for {Package}@{Version}", packageName, version);
+            return null;
+        }
+
+        return new NpmPackageInfo
+        {
+            Version = version,
+            Integrity = integrityOutput.Trim()
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> PackAsync(string packageName, string version, string outputDirectory, CancellationToken cancellationToken)
+    {
+        var npmPath = FindNpmPath();
+        if (npmPath is null)
+        {
+            return null;
+        }
+
+        var output = await RunNpmCommandAsync(
+            npmPath,
+            ["pack", $"{packageName}@{version}", "--pack-destination", outputDirectory],
+            cancellationToken);
+
+        if (output is null)
+        {
+            return null;
+        }
+
+        // npm pack outputs the filename of the created tarball
+        var filename = output.Trim().Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        if (string.IsNullOrWhiteSpace(filename))
+        {
+            logger.LogDebug("npm pack returned empty filename");
+            return null;
+        }
+
+        var tarballPath = Path.Combine(outputDirectory, filename);
+        if (!File.Exists(tarballPath))
+        {
+            logger.LogDebug("npm pack output file not found: {Path}", tarballPath);
+            return null;
+        }
+
+        return tarballPath;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AuditSignaturesAsync(CancellationToken cancellationToken)
+    {
+        var npmPath = FindNpmPath();
+        if (npmPath is null)
+        {
+            return false;
+        }
+
+        var output = await RunNpmCommandAsync(
+            npmPath,
+            ["audit", "signatures"],
+            cancellationToken);
+
+        return output is not null;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> InstallGlobalAsync(string tarballPath, CancellationToken cancellationToken)
+    {
+        var npmPath = FindNpmPath();
+        if (npmPath is null)
+        {
+            return false;
+        }
+
+        var output = await RunNpmCommandAsync(
+            npmPath,
+            ["install", "-g", tarballPath],
+            cancellationToken);
+
+        return output is not null;
+    }
+
+    private string? FindNpmPath()
+    {
+        var npmPath = PathLookupHelper.FindFullPathFromPath("npm");
+        if (npmPath is null)
+        {
+            logger.LogDebug("npm is not installed or not found in PATH");
+        }
+
+        return npmPath;
+    }
+
+    private async Task<string?> RunNpmCommandAsync(string npmPath, string[] args, CancellationToken cancellationToken)
+    {
+        var argsString = string.Join(" ", args);
+        logger.LogDebug("Running npm {Args}", argsString);
+
+        try
+        {
+            var startInfo = new ProcessStartInfo(npmPath)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            foreach (var arg in args)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
+
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode != 0)
+            {
+                var errorOutput = await errorTask.ConfigureAwait(false);
+                logger.LogDebug("npm {Args} returned non-zero exit code {ExitCode}: {Error}", argsString, process.ExitCode, errorOutput.Trim());
+                return null;
+            }
+
+            return await outputTask.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            logger.LogDebug(ex, "Failed to run npm {Args}", argsString);
+            return null;
+        }
+    }
+}
