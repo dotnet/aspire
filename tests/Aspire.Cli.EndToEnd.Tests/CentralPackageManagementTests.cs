@@ -40,6 +40,12 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var waitingForPerformUpdates = new CellPatternSearcher()
             .Find("Perform updates?");
 
+        var waitingForNuGetConfigDirectory = new CellPatternSearcher()
+            .Find("Which directory for NuGet.config file?");
+
+        var waitingForApplyNuGetConfig = new CellPatternSearcher()
+            .Find("Apply these changes to NuGet.config?");
+
         var waitingForUpdateSuccessful = new CellPatternSearcher()
             .Find("Update successful!");
 
@@ -111,6 +117,12 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .Enter() // confirm "Perform updates?" (default: Yes)
+            // The updater may prompt for a NuGet.config location and ask to apply changes
+            // when the project doesn't have an existing NuGet.config. Accept defaults for both.
+            .WaitUntil(s => waitingForNuGetConfigDirectory.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Enter() // accept default directory
+            .WaitUntil(s => waitingForApplyNuGetConfig.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Enter() // confirm "Apply these changes to NuGet.config?" (default: Yes)
             .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter)
             // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
