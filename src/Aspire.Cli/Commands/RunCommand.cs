@@ -624,6 +624,13 @@ internal sealed class RunCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
+        // When outputting JSON, redirect human-readable messages to stderr
+        // so that only the JSON result appears on stdout.
+        if (format == OutputFormat.Json)
+        {
+            _interactionService.UseStderrForMessages = true;
+        }
+
         // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,

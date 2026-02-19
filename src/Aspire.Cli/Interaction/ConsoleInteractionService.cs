@@ -22,6 +22,18 @@ internal class ConsoleInteractionService : IInteractionService
     private readonly CliExecutionContext _executionContext;
     private readonly ICliHostEnvironment _hostEnvironment;
     private int _inStatus;
+    private bool _useStderrForMessages;
+
+    /// <summary>
+    /// Console used for human-readable messages; routes to stderr when structured output mode is active.
+    /// </summary>
+    private IAnsiConsole MessageConsole => _useStderrForMessages ? _errorConsole : _outConsole;
+
+    public bool UseStderrForMessages
+    {
+        get => _useStderrForMessages;
+        set => _useStderrForMessages = value;
+    }
 
     public ConsoleInteractionService(ConsoleEnvironment consoleEnvironment, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
@@ -55,7 +67,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         try
         {
-            return await _outConsole.Status()
+            return await MessageConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .StartAsync(statusText, (context) => action());
         }
@@ -86,7 +98,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         try
         {
-            _outConsole.Status()
+            MessageConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .Start(statusText, (context) => action());
         }
@@ -187,12 +199,12 @@ internal class ConsoleInteractionService : IInteractionService
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();
 
         DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
-        Console.WriteLine();
-        _outConsole.MarkupLine(
+        MessageConsole.WriteLine();
+        MessageConsole.MarkupLine(
             $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion.EscapeMarkup()}");
-        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion.EscapeMarkup()}");
-        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability.EscapeMarkup()}");
-        Console.WriteLine();
+        MessageConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion.EscapeMarkup()}");
+        MessageConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability.EscapeMarkup()}");
+        MessageConsole.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
 
@@ -206,15 +218,16 @@ internal class ConsoleInteractionService : IInteractionService
         // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
         // on the same line before writing the message. This ensures that the message starts at the same position regardless
         // of the emoji used. I'm not OCD .. you are!
-        _outConsole.Markup($":{emoji}:");
-        _outConsole.Write("\u001b[4G");
-        _outConsole.MarkupLine(message);
+        var console = MessageConsole;
+        console.Markup($":{emoji}:");
+        console.Write("\u001b[4G");
+        console.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)
     {
         // Write directly to avoid Spectre.Console line wrapping
-        _outConsole.Profile.Out.Writer.WriteLine(message);
+        MessageConsole.Profile.Out.Writer.WriteLine(message);
     }
 
     public void DisplayRawText(string text)
@@ -226,12 +239,12 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayMarkdown(string markdown)
     {
         var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
-        _outConsole.MarkupLine(spectreMarkup);
+        MessageConsole.MarkupLine(spectreMarkup);
     }
 
     public void DisplayMarkupLine(string markup)
     {
-        _outConsole.MarkupLine(markup);
+        MessageConsole.MarkupLine(markup);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
@@ -247,7 +260,7 @@ internal class ConsoleInteractionService : IInteractionService
             };
 
         var prefix = lineNumber.HasValue ? $"#{lineNumber.Value}: " : "";
-        _outConsole.WriteLine($"{prefix}{message}", style);
+        MessageConsole.WriteLine($"{prefix}{message}", style);
     }
 
     public void DisplaySuccess(string message)
@@ -261,18 +274,18 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _outConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
+                MessageConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
             else
             {
-                _outConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
+                MessageConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
 
     public void DisplayCancellationMessage()
     {
-        _outConsole.WriteLine();
+        MessageConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
@@ -289,12 +302,12 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
-        _outConsole.MarkupLine($"[dim]{displayMessage}[/]");
+        MessageConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()
     {
-        _outConsole.WriteLine();
+        MessageConsole.WriteLine();
     }
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";

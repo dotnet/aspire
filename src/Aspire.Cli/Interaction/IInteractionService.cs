@@ -27,6 +27,12 @@ internal interface IInteractionService
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 
+    /// <summary>
+    /// When true, routes human-readable messages to stderr instead of stdout
+    /// so that structured output (e.g., JSON) on stdout remains parseable.
+    /// </summary>
+    bool UseStderrForMessages { get => false; set { } }
+
     void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }
