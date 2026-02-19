@@ -218,11 +218,11 @@ public sealed class StartStopTests(ITestOutputHelper output)
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
 
+        var waitForVersionSelectionPrompt = new CellPatternSearcher()
+            .Find("Select a version of Aspire.Hosting.MongoDB:");
+
         var waitForPackageAddedSuccessfully = new CellPatternSearcher()
             .Find("was added successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -269,6 +269,8 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // running instance before modifying the project, then succeed
         sequenceBuilder.Type("aspire add mongodb --non-interactive")
             .Enter()
+            .WaitUntil(s => waitForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromMinutes(1))
+            .Enter() // Accept the default version
             .WaitUntil(s => waitForPackageAddedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
