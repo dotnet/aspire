@@ -14,14 +14,32 @@
     display: inline-flex;
 }
 
+.page-content-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.page-content-container h1 {
+    flex-shrink: 0;
+}
+
+.manage-data-grid-container {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
 .button-container {
     display: grid;
     grid-template-columns: 1fr auto;
-    margin-top: 16px;
+    padding: 16px 16px 16px 16px;
+    flex-shrink: 0;
 }
 
 .error-message {
     color: var(--error);
     font-size: var(--type-ramp-minus-1-font-size);
     margin-top: 8px;
+    flex-shrink: 0;
 }
