@@ -140,5 +140,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SkippedMalformedConfigFile", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configuration completed with errors. Please fix the reported issues and re-run the command..
+        /// </summary>
+        internal static string ConfigurationCompletedWithErrors {
+            get {
+                return ResourceManager.GetString("ConfigurationCompletedWithErrors", resourceCulture);
+            }
+        }
     }
 }

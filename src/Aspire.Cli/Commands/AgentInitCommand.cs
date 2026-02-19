@@ -159,7 +159,11 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
             }
         }
 
-        if (!hasErrors)
+        if (hasErrors)
+        {
+            _interactionService.DisplayMessage("warning", AgentCommandStrings.ConfigurationCompletedWithErrors);
+        }
+        else
         {
             _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
         }

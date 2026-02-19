@@ -359,6 +359,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Pattern for the skip message
         var skippingMessage = new CellPatternSearcher().Find("Skipping");
 
+        // Pattern for the partial success warning message
+        var completedWithErrors = new CellPatternSearcher().Find("completed with errors");
+
         // Pattern for the agent environment selection prompt
         var agentSelectPrompt = new CellPatternSearcher().Find("agent environments");
 
@@ -407,7 +410,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             {
                 var hasError = malformedError.Search(s).Count > 0;
                 var hasSkip = skippingMessage.Search(s).Count > 0;
-                return hasError && hasSkip;
+                var hasCompletedWithErrors = completedWithErrors.Search(s).Count > 0;
+                return hasError && hasSkip && hasCompletedWithErrors;
             }, TimeSpan.FromSeconds(30))
             .WaitForErrorPrompt(counter);
 

@@ -47,6 +47,11 @@
         <target state="new">Skipping update of '{0}'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConfigurationCompletedWithErrors">
+        <source>Configuration completed with errors. Please fix the reported issues and re-run the command.</source>
+        <target state="new">Configuration completed with errors. Please fix the reported issues and re-run the command.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

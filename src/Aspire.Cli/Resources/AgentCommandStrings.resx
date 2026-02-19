@@ -87,4 +87,7 @@
   <data name="SkippedMalformedConfigFile" xml:space="preserve">
     <value>Skipping update of '{0}'.</value>
   </data>
+  <data name="ConfigurationCompletedWithErrors" xml:space="preserve">
+    <value>Configuration completed with errors. Please fix the reported issues and re-run the command.</value>
+  </data>
 </root>
