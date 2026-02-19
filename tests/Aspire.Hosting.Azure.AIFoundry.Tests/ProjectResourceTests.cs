@@ -117,6 +117,50 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void AddCapabilityHost_SetsCapabilityHostConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmosDb = builder.AddAzureCosmosDB("cosmos");
+        var storage = builder.AddAzureStorage("storage");
+        var search = builder.AddAzureSearch("search");
+
+        var project = builder.AddAzureAIFoundry("account")
+            .AddProject("my-project");
+
+        project.AddCapabilityHost("cap-host")
+            .WithCosmosDB(cosmosDb)
+            .WithStorage(storage)
+            .WithSearch(search);
+
+        Assert.NotNull(project.Resource.CapabilityHostConfiguration);
+        Assert.Equal("cap-host", project.Resource.CapabilityHostConfiguration.Name);
+        Assert.Same(cosmosDb.Resource, project.Resource.CapabilityHostConfiguration.CosmosDB);
+        Assert.Same(storage.Resource, project.Resource.CapabilityHostConfiguration.Storage);
+        Assert.Same(search.Resource, project.Resource.CapabilityHostConfiguration.Search);
+    }
+
+    [Fact]
+    public void AddCapabilityHost_WithOptionalOpenAI_SetsAzureOpenAI()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmosDb = builder.AddAzureCosmosDB("cosmos");
+        var storage = builder.AddAzureStorage("storage");
+        var search = builder.AddAzureSearch("search");
+        var foundry = builder.AddAzureAIFoundry("account");
+
+        var project = foundry.AddProject("my-project");
+
+        project.AddCapabilityHost("cap-host")
+            .WithCosmosDB(cosmosDb)
+            .WithStorage(storage)
+            .WithSearch(search)
+            .WithAzureOpenAI(foundry);
+
+        Assert.NotNull(project.Resource.CapabilityHostConfiguration);
+        Assert.Same(foundry.Resource, project.Resource.CapabilityHostConfiguration.AzureOpenAI);
+    }
+
+    [Fact]
     public void AddAzureAIFoundryProject_ResourceIsCreated()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

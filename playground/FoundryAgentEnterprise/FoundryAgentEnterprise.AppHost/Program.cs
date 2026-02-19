@@ -9,16 +9,13 @@ var foundry = builder.AddAzureAIFoundry("my-foundry");
 var deployment = foundry.AddDeployment("my-gpt-5", AIFoundryModel.OpenAI.Gpt5);
 var project = foundry.AddProject("my-foundry-proj");
 
-var kvConn = project.AddConnection(builder.AddAzureKeyVault("foundry-kv"));
-var dbConn = project.AddConnection(builder.AddAzureCosmosDB("foundry-db"));
-var registryConn = project.AddConnection(builder.AddAzureContainerRegistry("foundry-registry"));
-var storageConn = project.AddConnection(builder.AddAzureStorage("storage-account"));
-// TODO: Enable
-//var capHost = project.AddCapabilityHost("capability-host")
-//    .WithReference(kvConn)
-//    .WithReference(dbConn)
-//    .WithReference(registryConn)
-//    .WithReference(storageConn);
+project.WithKeyVault(builder.AddAzureKeyVault("foundry-kv"));
+
+project.AddCapabilityHost("capability-host")
+    .WithCosmosDB(builder.AddAzureCosmosDB("foundry-db"))
+    .WithStorage(builder.AddAzureStorage("storage-account"))
+    .WithSearch(builder.AddAzureSearch("foundry-search"))
+    .WithAzureOpenAI(foundry);
 
 var app = builder.AddUvicornApp("app", "./app", "main:app")
     .WithUv()
