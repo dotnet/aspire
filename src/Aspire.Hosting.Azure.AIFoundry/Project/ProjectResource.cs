@@ -115,6 +115,7 @@ public class AzureCognitiveServicesProjectResource :
         yield return new("Uri", UriExpression);
         // Without this, `.WithReference(project)` causes an error like "waiting for connection string for resource {projectName}"
         yield return new("ConnectionString", ConnectionStringExpression);
+        yield return new("ApplicationInsightsConnectionString", ReferenceExpression.Create($"{AppInsightsConnectionString}"));
     }
 
     /// <summary>

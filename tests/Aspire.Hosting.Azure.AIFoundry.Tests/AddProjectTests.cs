@@ -24,7 +24,7 @@ public class AddProjectTests
     }
 
     [Fact]
-    public async Task AddProject_WithReference_ShouldBindConnectionStringEnvVar()
+    public async Task AddProject_WithReference_ShouldBindUriConnectionProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddAzureAIFoundry("test-account")
@@ -39,7 +39,7 @@ public class AddProjectTests
         Assert.Contains(envVars, (kvp) =>
         {
             var (key, value) = kvp;
-            return key is "AZURE_AI_FOUNDRY_PROJECT_ENDPOINT"
+            return key is "TEST_PROJECT_URI"
                 && value is "{test-project.outputs.endpoint}";
         });
     }

@@ -60,10 +60,10 @@ logger = logging.getLogger("bilingual_weekend_planner")
 tracer = trace.get_tracer(__name__)
 
 # Explicitly check for required environment variables
-if "AZURE_AI_PROJECT_ENDPOINT" not in os.environ:
-    raise ValueError("AZURE_AI_PROJECT_ENDPOINT is required")
+if "PROJ_URI" not in os.environ:
+    raise ValueError("PROJ_URI is required")
 project_client = AIProjectClient(
-    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
+    endpoint=os.environ["PROJ_URI"],
     credential=DefaultAzureCredential(),
 )
 client = project_client.get_openai_client()
@@ -72,10 +72,10 @@ set_default_openai_client(client)
 def _get_model(client: AsyncOpenAI) -> OpenAIResponsesModel:
     """Return the chat model configuration for the requested host."""
 
-    if "AZURE_AI_DEPLOYMENT_NAME" not in os.environ:
-        raise ValueError("AZURE_AI_DEPLOYMENT_NAME is required")
+    if "CHAT_MODELNAME" not in os.environ:
+        raise ValueError("CHAT_MODELNAME is required")
     return OpenAIResponsesModel(
-        model=os.environ["AZURE_AI_DEPLOYMENT_NAME"],
+        model=os.environ["CHAT_MODELNAME"],
         openai_client=client,
     )
 
@@ -118,7 +118,7 @@ def _configure_otel(base_url: str) -> None:
         if default_otlp_endpoint and protocol == "grpc":
             grpc_endpoint = default_otlp_endpoint
 
-    conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+    conn = os.getenv("PROJ_APPLICATIONINSIGHTSCONNECTIONSTRING")
     resource = Resource.create(
         {
             "service.name": "weekend-planner-service",
@@ -154,7 +154,7 @@ def _configure_otel(base_url: str) -> None:
         tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
         print("[otel] Console span exporter configured")
         print(
-            "[otel] Set APPLICATIONINSIGHTS_CONNECTION_STRING to export to Application Insights "
+            "[otel] Set PROJ_APPLICATIONINSIGHTSCONNECTIONSTRING to export to Application Insights "
             "instead of the console",
         )
 

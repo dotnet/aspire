@@ -68,10 +68,12 @@ public class ProjectResourceTests
             .GetConnectionProperties()
             .ToArray();
 
-        Assert.Equal(2, properties.Length);
+        Assert.Equal(3, properties.Length);
         Assert.Equal("Uri", properties[0].Key);
         Assert.Equal("{my-project.outputs.endpoint}", properties[0].Value.ValueExpression);
         Assert.Equal("ConnectionString", properties[1].Key);
+        Assert.Equal("ApplicationInsightsConnectionString", properties[2].Key);
+        Assert.Equal("{my-project.outputs.APPLICATION_INSIGHTS_CONNECTION_STRING}", properties[2].Value.ValueExpression);
     }
 
     [Fact]
