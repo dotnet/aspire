@@ -34,6 +34,7 @@ public class CopilotCliRunnerTests
     [InlineData("V1.2.3", 1, 2, 3)]
     [InlineData("GitHub Copilot CLI 0.0.397\nsome other output", 0, 0, 397)]
     [InlineData("  GitHub Copilot CLI 0.0.397  ", 0, 0, 397)]
+    [InlineData("GitHub Copilot CLI 0.0.397.", 0, 0, 397)]
     public void TryParseVersionOutput_ValidVersionStrings_ReturnsTrue(string input, int major, int minor, int patch)
     {
         var result = CopilotCliRunner.TryParseVersionOutput(input, out var version);

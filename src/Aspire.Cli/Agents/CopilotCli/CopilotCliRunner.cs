@@ -93,6 +93,9 @@ internal sealed class CopilotCliRunner(ILogger<CopilotCliRunner> logger) : ICopi
             versionString = versionString[(lastSpaceIndex + 1)..];
         }
 
+        // Trim common trailing punctuation that may follow the version (for example, "0.0.397.")
+        versionString = versionString.TrimEnd('.', ',', ')');
+
         // Try to parse the version string (may have a 'v' prefix like "v1.2.3")
         if (versionString.StartsWith('v') || versionString.StartsWith('V'))
         {
