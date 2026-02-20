@@ -354,7 +354,7 @@ For most development tasks, following these instructions should be sufficient to
 The following specialized skills are available in `.github/skills/`:
 
 - **cli-e2e-testing**: Guide for writing Aspire CLI end-to-end tests using Hex1b terminal automation
-- **fix-flaky-test**: Reproduces and fixes flaky/quarantined tests using the CI reproduce workflow (`tests-reproduce.yml`). Use this when investigating, reproducing, or fixing a flaky or quarantined test.
+- **fix-flaky-test**: Reproduces and fixes flaky/quarantined tests using the CI reproduce workflow (`reproduce-flaky-tests.yml`). Use this when investigating, reproducing, or fixing a flaky or quarantined test.
 - **test-management**: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
 - **connection-properties**: Expert for creating and improving Connection Properties in Aspire resources
 - **dependency-update**: Guides dependency version updates by checking nuget.org, triggering the dotnet-migrate-package Azure DevOps pipeline, and monitoring runs
