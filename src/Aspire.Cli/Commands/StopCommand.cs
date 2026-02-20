@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -71,7 +72,14 @@ internal sealed class StopCommand : BaseCommand
         // Validate mutual exclusivity of --all and --project
         if (stopAll && passedAppHostProjectFile is not null)
         {
-            _interactionService.DisplayError("The --all and --project options cannot be used together.");
+            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndProjectMutuallyExclusive, s_allOption.Name, s_projectOption.Name));
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        // Validate mutual exclusivity of --all and resource argument
+        if (stopAll && !string.IsNullOrEmpty(resourceName))
+        {
+            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndResourceMutuallyExclusive, s_allOption.Name));
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -113,10 +121,14 @@ internal sealed class StopCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        // Single AppHost: auto-select it
-        if (allConnections.Length == 1)
+        // In non-interactive mode, only consider in-scope AppHosts (under current directory)
+        // to avoid accidentally stopping unrelated AppHosts
+        var inScopeConnections = allConnections.Where(c => c.Connection!.IsInScope).ToArray();
+
+        // Single in-scope AppHost: auto-select it
+        if (inScopeConnections.Length == 1)
         {
-            var connection = allConnections[0].Connection!;
+            var connection = inScopeConnections[0].Connection!;
             if (!string.IsNullOrEmpty(resourceName))
             {
                 return await StopResourceAsync(connection, resourceName, cancellationToken);
@@ -124,8 +136,8 @@ internal sealed class StopCommand : BaseCommand
             return await StopAppHostAsync(connection, cancellationToken);
         }
 
-        // Multiple AppHosts: error with guidance
-        _interactionService.DisplayError(StopCommandStrings.MultipleAppHostsNonInteractive);
+        // Multiple in-scope AppHosts or none in scope: error with guidance
+        _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.MultipleAppHostsNonInteractive, s_projectOption.Name, s_allOption.Name));
         return ExitCodeConstants.FailedToFindProject;
     }
 
@@ -173,16 +185,21 @@ internal sealed class StopCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        var allStopped = true;
-        foreach (var connectionResult in allConnections)
+        _logger.LogDebug("Found {Count} running AppHost(s) to stop", allConnections.Length);
+
+        // Stop all AppHosts in parallel
+        var stopTasks = allConnections.Select(connectionResult =>
         {
             var connection = connectionResult.Connection!;
-            var exitCode = await StopAppHostAsync(connection, cancellationToken);
-            if (exitCode != ExitCodeConstants.Success)
-            {
-                allStopped = false;
-            }
-        }
+            var appHostPath = connection.AppHostInfo?.AppHostPath ?? "Unknown";
+            _logger.LogDebug("Queuing stop for AppHost: {AppHostPath}", appHostPath);
+            return StopAppHostAsync(connection, cancellationToken);
+        }).ToArray();
+
+        var results = await Task.WhenAll(stopTasks);
+        var allStopped = results.All(exitCode => exitCode == ExitCodeConstants.Success);
+
+        _logger.LogDebug("Stop all completed. All stopped: {AllStopped}", allStopped);
 
         return allStopped ? ExitCodeConstants.Success : ExitCodeConstants.FailedToDotnetRunAppHost;
     }

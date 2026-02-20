@@ -116,5 +116,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("MultipleAppHostsNonInteractive", resourceCulture);
             }
         }
+
+        public static string AllAndProjectMutuallyExclusive {
+            get {
+                return ResourceManager.GetString("AllAndProjectMutuallyExclusive", resourceCulture);
+            }
+        }
+
+        public static string AllAndResourceMutuallyExclusive {
+            get {
+                return ResourceManager.GetString("AllAndResourceMutuallyExclusive", resourceCulture);
+            }
+        }
     }
 }

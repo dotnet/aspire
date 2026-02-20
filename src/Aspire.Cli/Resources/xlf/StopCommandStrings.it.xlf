@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or use --all to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use --project to specify which one to stop, or use --all to stop all of them.</target>
+        <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
+        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
@@ -60,6 +60,16 @@
       <trans-unit id="StoppingAppHost">
         <source>Stopping Aspire apphost...</source>
         <target state="translated">Arresto dell'apphost Aspire in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AllAndProjectMutuallyExclusive">
+        <source>The {0} and {1} options cannot be used together.</source>
+        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AllAndResourceMutuallyExclusive">
+        <source>The {0} option cannot be used with a resource argument.</source>
+        <target state="new">The {0} option cannot be used with a resource argument.</target>
         <note />
       </trans-unit>
     </body>
