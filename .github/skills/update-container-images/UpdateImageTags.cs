@@ -5,6 +5,10 @@
 // This script discovers all *ImageTags.cs files in the repository, parses them
 // to extract (registry, image, tag) tuples, queries each registry for available
 // tags, and outputs a JSON report for LLM-driven version analysis.
+//
+// Output conventions:
+//   stdout — structured JSON report (redirect with 1>report.json)
+//   stderr — progress messages and diagnostics (redirect with 2>progress.txt)
 
 using System.Net.Http.Headers;
 using System.Text.Json;
