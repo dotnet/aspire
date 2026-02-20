@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../StopCommandStrings.resx">
     <body>
+      <trans-unit id="AllOptionDescription">
+        <source>Stop all running AppHosts.</source>
+        <target state="new">Stop all running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
         <source>AppHost stopped successfully.</source>
         <target state="translated">Hostitel aplikací se úspěšně zastavil.</target>
@@ -15,6 +20,11 @@
       <trans-unit id="FailedToStopAppHost">
         <source>Failed to stop the AppHost.</source>
         <target state="translated">Nepovedlo se zastavit hostitele aplikací.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleAppHostsNonInteractive">
+        <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
+        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
@@ -50,6 +60,16 @@
       <trans-unit id="StoppingAppHost">
         <source>Stopping Aspire apphost...</source>
         <target state="translated">Spouští se hostitel aplikací Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AllAndProjectMutuallyExclusive">
+        <source>The {0} and {1} options cannot be used together.</source>
+        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AllAndResourceMutuallyExclusive">
+        <source>The {0} option cannot be used with a resource argument.</source>
+        <target state="new">The {0} option cannot be used with a resource argument.</target>
         <note />
       </trans-unit>
     </body>

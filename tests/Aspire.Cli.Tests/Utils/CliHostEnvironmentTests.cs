@@ -285,9 +285,9 @@ public class CliHostEnvironmentTests
     }
 
     [Fact]
-    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveInput_ReturnsFalse_WhenNonInteractiveIsTrue_EvenWithPlaygroundMode()
     {
-        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        // Arrange - --non-interactive should take precedence over ASPIRE_PLAYGROUND
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -299,14 +299,14 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
         
         // Assert
-        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
-        Assert.True(env.SupportsInteractiveInput);
+        // --non-interactive takes precedence over ASPIRE_PLAYGROUND
+        Assert.False(env.SupportsInteractiveInput);
     }
 
     [Fact]
-    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveOutput_ReturnsFalse_WhenNonInteractiveIsTrue_EvenWithPlaygroundMode()
     {
-        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        // Arrange - --non-interactive should take precedence over ASPIRE_PLAYGROUND
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -318,8 +318,8 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
         
         // Assert
-        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
-        Assert.True(env.SupportsInteractiveOutput);
+        // --non-interactive takes precedence over ASPIRE_PLAYGROUND
+        Assert.False(env.SupportsInteractiveOutput);
     }
 
     [Fact]
