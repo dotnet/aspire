@@ -180,9 +180,8 @@ internal sealed class RootCommand : BaseRootCommand
                 return Task.FromResult(ExitCodeConstants.Success);
             }
 
-            // No subcommand provided - show help but return InvalidCommand to signal usage error
-            // This is consistent with other parent commands (DocsCommand, SdkCommand, etc.)
-            new HelpAction().Invoke(context);
+            // No subcommand provided - show grouped help but return InvalidCommand to signal usage error
+            GroupedHelpWriter.WriteHelp(this, Console.Out);
             return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
@@ -224,6 +223,16 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        // Replace the default --help action with grouped help output.
+        foreach (var option in Options)
+        {
+            if (option is HelpOption helpOption)
+            {
+                helpOption.Action = new GroupedHelpAction(this);
+                break;
+            }
         }
 
     }
