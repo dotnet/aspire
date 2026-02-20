@@ -39,28 +39,36 @@ steps:
       Write-Host "wingetcreate downloaded successfully"
     displayName: 🟣Install wingetcreate
 
-  - pwsh: |
-      $ErrorActionPreference = 'Stop'
+  - task: NuGetAuthenticate@1
+    displayName: 🟣NuGet Authentication
 
-      $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
-      if (-not $wingetPath) {
-        Write-Host "winget not found, installing..."
-        & "$(Build.SourcesDirectory)/eng/install-winget.ps1"
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "install-winget.ps1 failed with exit code $LASTEXITCODE"
-          exit $LASTEXITCODE
-        }
+  - task: PowerShell@2
+    displayName: 🟣Install winget CLI
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    inputs:
+      targetType: 'inline'
+      script: |
+        Write-Host "Installing Microsoft.WinGet.Client using Azure Artifacts feed..."
+        $MachineAccessTokenSecureString = $env:SYSTEM_ACCESSTOKEN | ConvertTo-SecureString -AsPlainText -Force
+        $myCredentialsObject = [pscredential]::new("username", $MachineAccessTokenSecureString)
+        Register-PSRepository -Name "PSGalleryUpstream" -SourceLocation `
+          "https://pkgs.dev.azure.com/dnceng/_packaging/ps-gallery-for-aspire/nuget/v2" -InstallationPolicy Trusted `
+          -Credential $myCredentialsObject
 
-        $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
-        if (-not $wingetPath) {
-          Write-Error "winget is still not available after running install-winget.ps1"
-          exit 1
-        }
-      }
+        Write-Host "Listing registered repositories..."
+        Get-PSRepository
 
-      Write-Host "winget found at: $($wingetPath.Source)"
-      winget --version
-    displayName: 🟣Install/Verify winget CLI
+        Install-Module -Name Microsoft.WinGet.Client -Repository "PSGalleryUpstream" -Credential $myCredentialsObject -Force
+
+        Write-Host "Microsoft.WinGet.Client installed. Listing installed version:"
+        Get-Module -ListAvailable Microsoft.WinGet.Client | Select-Object Name, Version | Format-Table
+
+        Write-Host "Installing WinGet..."
+        Repair-WinGetPackageManager -Latest -Force -AllUsers
+
+        Write-Host "winget installed:"
+        winget --version
 
   - pwsh: |
       $ErrorActionPreference = 'Stop'
