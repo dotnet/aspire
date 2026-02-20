@@ -72,6 +72,11 @@
         <target state="translated">Origine NuGet da usare per l'integrazione.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnableToStopRunningInstances">
+        <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
+        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">È stato trovato un numero imprevisto di pacchetti.</target>
