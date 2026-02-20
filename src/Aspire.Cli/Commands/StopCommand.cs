@@ -68,8 +68,8 @@ internal sealed class StopCommand : BaseCommand
 
         if (!result.Success)
         {
-            _interactionService.DisplayError(result.ErrorMessage ?? StopCommandStrings.NoRunningAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
+            _interactionService.DisplayMessage("information", StopCommandStrings.NoRunningAppHostsFound);
+            return ExitCodeConstants.Success;
         }
 
         var selectedConnection = result.Connection!;
