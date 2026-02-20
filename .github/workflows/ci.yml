@@ -1,113 +1,344 @@
-name: CI
+# Reproduces flaky tests by running them repeatedly across multiple OS runners.
+#
+# HOW TO USE:
+# 1. Edit the CONFIGURATION section below with the test you want to reproduce
+# 2. Push to your branch
+# 3. Trigger: gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <your-branch>
+# 4. Check the results across OSes and runners
+#
+# The configuration is designed to be edited by agents (Copilot, etc.)
+# who modify the env vars below and push to trigger a run.
+
+name: Reproduce Flaky Tests
 
 on:
+  workflow_dispatch: {}
   pull_request:
     branches:
       - main
-      - 'release/**'
 
-  push:
-    branches:
-      - main
-      - 'release/**'
+# ============================================================
+# CONFIGURATION — Edit these values to customize the test run
+# ============================================================
+env:
+  # Test project shortname (maps to tests/Aspire.{name}.Tests/ or tests/{name}.Tests/)
+  # Examples: Hosting, Core, Dashboard, Components.Common, Cli.EndToEnd
+  TEST_PROJECT: "Hosting.OpenAI"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Test filter arguments passed to dotnet test (after the -- separator).
+  # Use quotes around wildcard patterns to prevent shell glob expansion.
+  # Examples:
+  #   --filter-method "*.TestMethodName"
+  #   --filter-class "*.TestClassName"
+  #   --filter-method "*.Test1" --filter-method "*.Test2"
+  TEST_FILTER: '--filter-method "*.DependentResourceWaitsForOpenAIModelResourceWithHealthCheckToBeHealthy"'
+
+  # Target operating systems (comma-separated)
+  # Options: ubuntu-latest, windows-latest, macos-latest
+  TARGET_OSES: "ubuntu-latest"
+
+  # Number of parallel runners per OS
+  # Total jobs = RUNNERS_PER_OS × number of OSes (must be ≤ 256)
+  RUNNERS_PER_OS: "10"
+
+  # Number of test iterations each runner executes
+  ITERATIONS_PER_RUNNER: "10"
 
 jobs:
 
-  prepare_for_ci:
+  setup:
+    name: Generate matrix
     runs-on: ubuntu-latest
-    name: Prepare for CI
-    if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
-      skip_workflow: ${{ (steps.check_for_changes.outputs.no_changes == 'true' || steps.check_for_changes.outputs.only_changed == 'true') && 'true' || 'false' }}
-      VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - name: Validate configuration
+        shell: bash
+        run: |
+          ERRORS=0
+
+          # Validate RUNNERS_PER_OS is a positive integer
+          if ! [[ "${{ env.RUNNERS_PER_OS }}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::RUNNERS_PER_OS must be a positive integer, got '${{ env.RUNNERS_PER_OS }}'"
+            ERRORS=1
+          fi
+
+          # Validate ITERATIONS_PER_RUNNER is a positive integer
+          if ! [[ "${{ env.ITERATIONS_PER_RUNNER }}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::ITERATIONS_PER_RUNNER must be a positive integer, got '${{ env.ITERATIONS_PER_RUNNER }}'"
+            ERRORS=1
+          fi
+
+          # Validate TARGET_OSES is not empty and contains only known runners
+          if [[ -z "${{ env.TARGET_OSES }}" ]]; then
+            echo "::error::TARGET_OSES must not be empty"
+            ERRORS=1
+          else
+            IFS=',' read -ra CHECK_OSES <<< "${{ env.TARGET_OSES }}"
+            for os in "${CHECK_OSES[@]}"; do
+              os=$(echo "$os" | xargs)
+              if [[ "$os" != "ubuntu-latest" && "$os" != "windows-latest" && "$os" != "macos-latest" ]]; then
+                echo "::error::Unknown OS in TARGET_OSES: '$os'. Allowed: ubuntu-latest, windows-latest, macos-latest"
+                ERRORS=1
+              fi
+            done
+          fi
+
+          # Validate TEST_FILTER is not the placeholder
+          if [[ "${{ env.TEST_FILTER }}" == *"YourTestMethodName"* ]]; then
+            echo "::error::TEST_FILTER still contains the placeholder 'YourTestMethodName'. Configure it with the actual test to reproduce."
+            ERRORS=1
+          fi
+
+          if [[ $ERRORS -ne 0 ]]; then exit 1; fi
+
+      - name: Generate runner matrix
+        id: generate
+        shell: bash
+        run: |
+          IFS=',' read -ra OSES <<< "${{ env.TARGET_OSES }}"
+          RUNNERS=${{ env.RUNNERS_PER_OS }}
+
+          ENTRIES=""
+          for os in "${OSES[@]}"; do
+            os=$(echo "$os" | xargs)
+            for i in $(seq 1 "$RUNNERS"); do
+              if [ -n "$ENTRIES" ]; then ENTRIES="$ENTRIES,"; fi
+              ENTRIES="${ENTRIES}{\"os\":\"${os}\",\"index\":${i}}"
+            done
+          done
+
+          MATRIX="{\"include\":[${ENTRIES}]}"
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
+          TOTAL=$(echo "$ENTRIES" | tr ',' '\n' | wc -l)
+          echo "Generated matrix: $TOTAL runners across ${#OSES[@]} OS(es)"
+          echo "Each runner will execute ${{ env.ITERATIONS_PER_RUNNER }} iterations"
+          echo "Total test executions: $(( TOTAL * ${{ env.ITERATIONS_PER_RUNNER }} ))"
+
+  reproduce:
+    name: "${{ matrix.os }} #${{ matrix.index }}"
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    env:
+      DOTNET_ROOT: ${{ github.workspace }}/.dotnet
 
     steps:
+      - name: Setup vars (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/.dotnet" >> $GITHUB_PATH
+
+      - name: Setup vars (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          echo "${{ github.workspace }}\.dotnet" >> $env:GITHUB_PATH
+
       - name: Checkout code
-        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-        with:
-          fetch-depth: 0
 
-      - name: Check for any changes that require CI
-        id: check_for_changes
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: ./.github/actions/check-changed-files
-        with:
-          # Patterns that do NOT require CI to run
-          patterns: |
-            \.md$
-            eng/pipelines/.*
-            eng/test-configuration.json
-            \.github/workflows/apply-test-attributes.yml
-            \.github/workflows/backmerge-release.yml
-            \.github/workflows/backport.yml
-            \.github/workflows/dogfood-comment.yml
-            \.github/workflows/generate-api-diffs.yml
-            \.github/workflows/generate-ats-diffs.yml
-            \.github/workflows/labeler-*.yml
-            \.github/workflows/markdownlint*.yml
-            \.github/workflows/refresh-manifests.yml
-            \.github/workflows/pr-review-needed.yml
-            \.github/workflows/specialized-test-runner.yml
-            \.github/workflows/tests-outerloop.yml
-            \.github/workflows/tests-quarantine.yml
-            \.github/workflows/update-*.yml
+      - name: Trust HTTPS development certificate (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          EXIT_CODE=0
+          ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 4 ]; then
+            echo "dev-certs https --trust failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+        env:
+          WSL_INTEROP: ""
 
-      - id: compute_version_suffix
-        name: Compute version suffix for PRs
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Verify Docker is running (Linux)
+        if: runner.os == 'Linux'
+        run: docker info
+
+      - name: Unlock macOS keychain
+        if: runner.os == 'macOS'
+        uses: ./.github/actions/unlock-macos-keychain
+
+      - name: Compute test project path
+        shell: pwsh
+        run: |
+          $testShortName = "${{ env.TEST_PROJECT }}"
+          $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
+          $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
+
+          if (Test-Path -Path $projectPath1) {
+              $projectPath = $projectPath1
+          } elseif (Test-Path -Path $projectPath2) {
+              $projectPath = $projectPath2
+          } else {
+              Write-Error "No test project found for shortname '$testShortName'. Looked at: $projectPath1, $projectPath2"
+              exit 1
+          }
+
+          echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+          Write-Host "Resolved test project: $projectPath"
+
+      - name: Build test project
+        run: >
+          ${{ env.BUILD_SCRIPT }}
+          -restore -ci -build
+          -projects ${{ env.TEST_PROJECT_PATH }}
+          /p:InstallBrowsersForPlaywright=false
+          /p:RunQuarantinedTests=true
+
+      - name: Run test iterations (Linux/macOS)
+        if: runner.os != 'Windows'
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+        run: |
+          PASS=0
+          FAIL=0
+          ITERATIONS=${{ env.ITERATIONS_PER_RUNNER }}
+
+          for i in $(seq 1 "$ITERATIONS"); do
+            echo "::group::Iteration $i/$ITERATIONS"
+
+            # Cleanup between iterations
+            rm -rf "${{ github.workspace }}/testresults" 2>/dev/null || true
+            pgrep -lf "dcp" 2>/dev/null | grep -E "\bdcp(\.exe|ctl)?\b" | awk '{print $1}' | while read pid; do
+              kill -9 "$pid" 2>/dev/null || true
+            done
+            sleep 1
+
+            # Run test
+            ${{ env.DOTNET_SCRIPT }} test "${{ env.TEST_PROJECT_PATH }}" \
+              /p:ContinuousIntegrationBuild=true \
+              -tl:false \
+              --no-restore \
+              --no-build \
+              -- \
+              --timeout 10m \
+              --results-directory "${{ github.workspace }}/testresults" \
+              ${{ env.TEST_FILTER }} \
+              && RESULT=0 || RESULT=$?
+
+            if [ "$RESULT" -eq 0 ]; then
+              echo "✅ Iteration $i: PASS"
+              PASS=$((PASS + 1))
+            else
+              echo "❌ Iteration $i: FAIL (exit $RESULT)"
+              FAIL=$((FAIL + 1))
+              mkdir -p "${{ github.workspace }}/all-results/failure-$i"
+              cp -r "${{ github.workspace }}/testresults/"* "${{ github.workspace }}/all-results/failure-$i/" 2>/dev/null || true
+            fi
+
+            echo "::endgroup::"
+          done
+
+          echo ""
+          echo "========================================"
+          echo "Summary for runner #${{ matrix.index }} on ${{ matrix.os }}"
+          echo "  Passed: $PASS / $ITERATIONS"
+          echo "  Failed: $FAIL / $ITERATIONS"
+          echo "========================================"
+
+          if [ "$FAIL" -gt 0 ]; then exit 1; fi
+
+      - name: Run test iterations (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         env:
-          # Use the pull request head SHA instead of GITHUB_SHA (which can be a merge commit)
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.number }}
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
         run: |
-          Write-Host "Determining VERSION_SUFFIX_OVERRIDE (PR only step)..."
-          if ([string]::IsNullOrWhiteSpace($Env:PR_HEAD_SHA)) {
-            Write-Error "PR_HEAD_SHA not set; cannot compute version suffix."
-            exit 1
+          $pass = 0
+          $fail = 0
+          $iterations = [int]"${{ env.ITERATIONS_PER_RUNNER }}"
+
+          for ($i = 1; $i -le $iterations; $i++) {
+            Write-Host "::group::Iteration $i/$iterations"
+
+            # Cleanup between iterations
+            Remove-Item -Recurse -Force "${{ github.workspace }}/testresults" -ErrorAction SilentlyContinue
+            Get-Process | Where-Object { $_.ProcessName -match '^dcp' } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+
+            # Run test
+            & ${{ env.DOTNET_SCRIPT }} test "${{ env.TEST_PROJECT_PATH }}" `
+              /p:ContinuousIntegrationBuild=true `
+              -tl:false `
+              --no-restore `
+              --no-build `
+              -- `
+              --timeout 10m `
+              --results-directory "${{ github.workspace }}/testresults" `
+              ${{ env.TEST_FILTER }}
+            $result = $LASTEXITCODE
+
+            if ($result -eq 0) {
+              Write-Host "✅ Iteration ${i}: PASS"
+              $pass++
+            } else {
+              Write-Host "❌ Iteration ${i}: FAIL (exit $result)"
+              $fail++
+              $dest = "${{ github.workspace }}/all-results/failure-$i"
+              New-Item -ItemType Directory -Path $dest -Force | Out-Null
+              Copy-Item -Recurse "${{ github.workspace }}/testresults/*" $dest -ErrorAction SilentlyContinue
+            }
+
+            Write-Host "::endgroup::"
           }
-          $SHORT_SHA = $Env:PR_HEAD_SHA.Substring(0,8)
-          $VERSION_SUFFIX = "/p:VersionSuffix=pr.$($Env:PR_NUMBER).g$SHORT_SHA"
-          Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
-          "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
 
-  tests:
-    uses: ./.github/workflows/tests.yml
-    name: Tests
-    needs: [prepare_for_ci]
-    if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
-    with:
-      versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "Summary for runner #${{ matrix.index }} on ${{ matrix.os }}"
+          Write-Host "  Passed: $pass / $iterations"
+          Write-Host "  Failed: $fail / $iterations"
+          Write-Host "========================================"
 
-  # This job is used for branch protection. It fails if any of the dependent jobs failed
+          if ($fail -gt 0) { exit 1 }
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: failures-${{ matrix.os }}-${{ matrix.index }}
+          path: all-results/
+          if-no-files-found: ignore
+
   results:
-    if: ${{ always() && github.repository_owner == 'dotnet' }}
+    if: always()
     runs-on: ubuntu-latest
-    name: Final Results
-    needs: [prepare_for_ci, tests]
-
+    name: Reproduce Results
+    needs: [reproduce]
     steps:
-      - name: Fail if any of the dependent jobs failed
-        # Don't fail if the workflow is being skipped.
-        # Check skip_workflow on all declared dependencies. Workflows without
-        # skip_workflow outputs (e.g., tests, build_cli_archives) evaluate to
-        # empty string, so the check still works ('!= true' is true for empty).
-        #
-        # For others 'skipped' can be when a transitive dependency fails and the dependent job gets
-        # 'skipped'. For example, one of setup_* jobs failing and the Integration test jobs getting
-        # 'skipped'
-        if: >-
-          ${{ always() &&
-              needs.prepare_for_ci.outputs.skip_workflow != 'true' &&
-              needs.tests.outputs.skip_workflow != 'true' &&
-              (contains(needs.*.result, 'failure') ||
-               contains(needs.*.result, 'cancelled') ||
-               contains(needs.*.result, 'skipped')) }}
+      - name: Summary
+        shell: bash
         run: |
-          echo "One or more dependent jobs failed."
-          exit 1
+          echo "## Reproduce Flaky Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Project | \`${{ env.TEST_PROJECT }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Filter | \`${{ env.TEST_FILTER }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| OSes | ${{ env.TARGET_OSES }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Runners per OS | ${{ env.RUNNERS_PER_OS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Iterations per runner | ${{ env.ITERATIONS_PER_RUNNER }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.reproduce.result }}" = "success" ]; then
+            echo "### ✅ All iterations passed on all runners" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.reproduce.result }}" = "failure" ]; then
+            echo "### ❌ Some runners reported failures" >> $GITHUB_STEP_SUMMARY
+            echo "Check individual job logs and uploaded failure artifacts for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Reproduce job was ${{ needs.reproduce.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if reproduce did not succeed
+        if: ${{ needs.reproduce.result != 'success' }}
+        run: exit 1
