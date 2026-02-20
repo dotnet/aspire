@@ -139,12 +139,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">Ne générer ni ne restaurer le projet avant l’exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">L’option --no-build ne peut pas être utilisée lorsque le mode surveillance est activé.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">Désolé, le projet n’a pas pu être exécuté. Consultez les journaux à l’emplacement {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
