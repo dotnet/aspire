@@ -126,17 +126,9 @@ internal static class GroupedHelpWriter
                     hasAny = true;
                 }
 
-                var label = FormatCommandLabel(cmd, entry.UsageOverride).PadRight(columnWidth);
+                var label = FormatCommandLabel(cmd, entry.UsageOverride);
                 var description = cmd.Description ?? string.Empty;
-
-                // Truncate description to fit within terminal width.
-                var descriptionWidth = maxWidth - columnWidth - 2; // 2 for leading indent
-                if (descriptionWidth > 20 && description.Length > descriptionWidth)
-                {
-                    description = description[..(descriptionWidth - 3)] + "...";
-                }
-
-                writer.WriteLine($"  {label}{description}");
+                WriteTwoColumnRow(writer, label, description, columnWidth, maxWidth);
             }
 
             if (hasAny)
@@ -165,9 +157,9 @@ internal static class GroupedHelpWriter
 
             foreach (var opt in visibleOptions)
             {
-                var label = FormatOptionLabel(opt).PadRight(optionColumnWidth);
+                var label = FormatOptionLabel(opt);
                 var desc = opt.Description ?? string.Empty;
-                writer.WriteLine($"  {label}{desc}");
+                WriteTwoColumnRow(writer, label, desc, optionColumnWidth, maxWidth);
             }
 
             writer.WriteLine();
@@ -175,6 +167,59 @@ internal static class GroupedHelpWriter
 
         // Help hint
         writer.WriteLine("Use \"aspire [command] --help\" for more information about a command.");
+    }
+
+    /// <summary>
+    /// Writes a two-column row with word-wrapping on the description column.
+    /// Continuation lines are indented to align with the description start.
+    /// </summary>
+    private static void WriteTwoColumnRow(TextWriter writer, string label, string description, int columnWidth, int maxWidth)
+    {
+        const int indent = 2;
+        var paddedLabel = label.PadRight(columnWidth);
+        var descriptionWidth = maxWidth - columnWidth - indent;
+
+        // If the terminal is too narrow to wrap meaningfully, just write it all on one line.
+        if (descriptionWidth < 20)
+        {
+            writer.WriteLine($"{new string(' ', indent)}{paddedLabel}{description}");
+            return;
+        }
+
+        var remaining = description.AsSpan();
+        var firstLine = true;
+
+        while (remaining.Length > 0)
+        {
+            if (firstLine)
+            {
+                writer.Write(new string(' ', indent));
+                writer.Write(paddedLabel);
+                firstLine = false;
+            }
+            else
+            {
+                // Continuation line: indent to align with description column.
+                writer.Write(new string(' ', indent + columnWidth));
+            }
+
+            if (remaining.Length <= descriptionWidth)
+            {
+                writer.WriteLine(remaining);
+                break;
+            }
+
+            // Find the last space within the allowed width for a clean word break.
+            var breakAt = remaining[..descriptionWidth].LastIndexOf(' ');
+            if (breakAt <= 0)
+            {
+                // No space found — hard break at the width limit.
+                breakAt = descriptionWidth;
+            }
+
+            writer.WriteLine(remaining[..breakAt]);
+            remaining = remaining[breakAt..].TrimStart();
+        }
     }
 
     private static string FormatCommandLabel(Command cmd, string? usageOverride)
