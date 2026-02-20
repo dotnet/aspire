@@ -706,10 +706,17 @@ public static class JavaScriptHostingExtensions
 
         installCommand ??= GetDefaultNpmInstallCommand(resource);
 
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var packageFilesSourcePattern = "package*.json";
+        if (File.Exists(Path.Combine(workingDirectory, ".npmrc")))
+        {
+            packageFilesSourcePattern += " .npmrc";
+        }
+
         resource
             .WithAnnotation(new JavaScriptPackageManagerAnnotation("npm", runScriptCommand: "run", cacheMount: "/root/.npm")
             {
-                PackageFilesPatterns = { new CopyFilePattern("package*.json", "./") }
+                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") }
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation([installCommand, .. installArgs ?? []]))
             .WithRequiredCommand("npm", "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm");
@@ -761,6 +768,14 @@ public static class JavaScriptHostingExtensions
         if (File.Exists(Path.Combine(workingDirectory, "bun.lockb")))
         {
             packageFilesSourcePattern += " bun.lockb";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, "bunfig.toml")))
+        {
+            packageFilesSourcePattern += " bunfig.toml";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, ".npmrc")))
+        {
+            packageFilesSourcePattern += " .npmrc";
         }
 
         resource
@@ -835,6 +850,14 @@ public static class JavaScriptHostingExtensions
         {
             packageFilesSourcePattern += " .yarnrc.yml";
         }
+        if (File.Exists(Path.Combine(workingDirectory, ".yarnrc")))
+        {
+            packageFilesSourcePattern += " .yarnrc";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, ".npmrc")))
+        {
+            packageFilesSourcePattern += " .npmrc";
+        }
         packageManager.PackageFilesPatterns.Add(new CopyFilePattern(packageFilesSourcePattern, "./"));
 
         if (hasYarnBerryDir)
@@ -893,6 +916,10 @@ public static class JavaScriptHostingExtensions
         if (hasPnpmLock)
         {
             packageFilesSourcePattern += " pnpm-lock.yaml";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, ".npmrc")))
+        {
+            packageFilesSourcePattern += " .npmrc";
         }
 
         resource
