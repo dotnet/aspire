@@ -230,53 +230,68 @@ internal sealed class ConfigCommand : BaseCommand
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 
-            // Display Local Configuration (including features)
-            if (localConfig.Count > 0)
-            {
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                foreach (var kvp in localConfig.OrderBy(k => k.Key))
-                {
-                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
-                }
-            }
-            else if (globalConfig.Count > 0)
-            {
-                // Only show "no local config" message if we have global config
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
-            }
+            // Display Local Configuration
+            RenderConfigTable(
+                ConfigCommandStrings.LocalConfigurationHeader,
+                localConfig,
+                ConfigCommandStrings.NoLocalConfigurationFound);
 
-            // Display Global Configuration (including features)
-            if (globalConfig.Count > 0)
-            {
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                foreach (var kvp in globalConfig.OrderBy(k => k.Key))
-                {
-                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
-                }
-            }
-            else if (localConfig.Count > 0)
-            {
-                // Only show "no global config" message if we have local config
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
-            }
+            // Display Global Configuration
+            RenderConfigTable(
+                ConfigCommandStrings.GlobalConfigurationHeader,
+                globalConfig,
+                ConfigCommandStrings.NoGlobalConfigurationFound);
 
             // Display Available Features
-            var allConfiguredFeatures = localConfig.Concat(globalConfig).Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).Select(kvp => kvp.Key.Substring(featurePrefix.Length)).ToHashSet(StringComparer.Ordinal);
-            var availableFeatures = KnownFeatures.GetAllFeatureNames().ToList();
-            var unconfiguredFeatures = availableFeatures.Where(f => !allConfiguredFeatures.Contains(f)).ToList();
+            var allConfiguredFeatures = localConfig.Concat(globalConfig)
+                .Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal))
+                .Select(kvp => kvp.Key.Substring(featurePrefix.Length))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var unconfiguredFeatures = KnownFeatures.GetAllFeatureMetadata()
+                .Where(f => !allConfiguredFeatures.Contains(f.Name))
+                .ToList();
 
             if (unconfiguredFeatures.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                InteractionService.DisplayPlainText($"  {string.Join(", ", unconfiguredFeatures)}");
+                foreach (var feature in unconfiguredFeatures)
+                {
+                    var defaultText = feature.DefaultValue ? "true" : "false";
+                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
+                    InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                }
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
             }
 
             return ExitCodeConstants.Success;
+        }
+
+        private static void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage)
+        {
+            var table = new Table();
+            table.Title = new TableTitle($"[bold]{title.EscapeMarkup()}[/]");
+            table.Border(TableBorder.Rounded);
+            table.AddColumn(new TableColumn("[bold]Key[/]").NoWrap());
+            table.AddColumn(new TableColumn("[bold]Value[/]"));
+
+            if (config.Count > 0)
+            {
+                foreach (var kvp in config.OrderBy(k => k.Key))
+                {
+                    table.AddRow(
+                        $"[cyan]{kvp.Key.EscapeMarkup()}[/]",
+                        $"[yellow]{kvp.Value.EscapeMarkup()}[/]");
+                }
+            }
+            else
+            {
+                table.AddRow($"[dim]{emptyMessage.EscapeMarkup()}[/]", "");
+            }
+
+            AnsiConsole.Write(table);
         }
     }
 
