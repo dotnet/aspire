@@ -144,4 +144,13 @@
   <data name="NoWritePermissionToInstallDirectory" xml:space="preserve">
     <value>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</value>
   </data>
+  <data name="SkillFileOutdatedPrompt" xml:space="preserve">
+    <value>The Aspire skill file ({0}) is out of date. Would you like to update it?</value>
+  </data>
+  <data name="SkillFileUpdatedMessage" xml:space="preserve">
+    <value>Aspire skill file updated successfully.</value>
+  </data>
+  <data name="SkillFileCheckFailed" xml:space="preserve">
+    <value>Failed to check Aspire skill files: {0}</value>
+  </data>
 </root>

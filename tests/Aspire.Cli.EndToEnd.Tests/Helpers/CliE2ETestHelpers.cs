@@ -433,6 +433,26 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Verifies a file exists at the specified path.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to verify.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifyFileExists(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath)
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            if (!File.Exists(filePath))
+            {
+                throw new InvalidOperationException(
+                    $"Expected file does not exist: {filePath}");
+            }
+        });
+    }
+
+    /// <summary>
     /// Verifies a file does NOT contain specified content.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>

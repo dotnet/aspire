@@ -315,5 +315,98 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         await pendingRun;
     }
+
+    /// <summary>
+    /// Tests that aspire agent init offers to create the universal skill file
+    /// at .agents/skills/aspire/SKILL.md, which follows the agent skills convention.
+    /// </summary>
+    [Fact]
+    public async Task AgentInitCommand_OffersUniversalSkillFile()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
+            nameof(AgentInitCommand_OffersUniversalSkillFile));
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithDimensions(160, 48)
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        using var terminal = builder.Build();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Patterns for agent init prompts
+        var workspacePathPrompt = new CellPatternSearcher().Find("workspace:");
+
+        // Pattern for the universal skill file option
+        var universalSkillFileOption = new CellPatternSearcher().Find(".agents/skills/aspire/SKILL.md");
+
+        // Pattern for configuration complete
+        var configComplete = new CellPatternSearcher().Find("Configuration complete");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Initialize git repo (required for agent init)
+        sequenceBuilder
+            .Type("git init")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Run aspire agent init
+        sequenceBuilder
+            .Type("aspire agent init")
+            .Enter()
+            .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Enter(); // Accept default workspace path
+
+        // Wait for agent environments prompt and skip it (press Enter without selecting)
+        var agentEnvPrompt = new CellPatternSearcher().Find("agent environments");
+        sequenceBuilder
+            .WaitUntil(s => agentEnvPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Enter(); // Skip agent environments selection
+
+        // Wait for additional options prompt - should show universal skill file option
+        sequenceBuilder
+            .WaitUntil(s => universalSkillFileOption.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Type(" ") // Select the universal skill file option
+            .Enter()
+            .WaitUntil(s => configComplete.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
+
+        // Verify the skill file was created
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", "aspire", "SKILL.md");
+        sequenceBuilder
+            .VerifyFileExists(skillFilePath)
+            .VerifyFileContains(skillFilePath, "# Aspire Skill");
+
+        sequenceBuilder
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
 }
 
