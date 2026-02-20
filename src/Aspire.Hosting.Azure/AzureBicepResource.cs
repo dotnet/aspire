@@ -373,7 +373,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// </summary>
     /// <param name="requestEx">The Azure RequestFailedException containing the error response</param>
     /// <returns>The most specific error message found, or the original exception message if parsing fails</returns>
-    private static string ExtractDetailedErrorMessage(RequestFailedException requestEx)
+    internal static string ExtractDetailedErrorMessage(RequestFailedException requestEx)
     {
         try
         {
