@@ -63,6 +63,8 @@ For each package, extract:
 - Package ID (the `Include` attribute)
 - Current version (the `Version` attribute)
 
+**Important:** Some external dependencies have their versions defined as MSBuild properties in `eng/Versions.props` rather than inline in `Directory.Packages.props`. In particular, the OpenTelemetry packages use version properties like `$(OpenTelemetryExporterOpenTelemetryProtocolVersion)`. When updating these packages, update the property values in `eng/Versions.props` directly. Check both files when looking for a package version.
+
 ### 2. Look Up Latest Versions on nuget.org
 
 For each package, query the nuget.org API to find available versions:
@@ -234,7 +236,9 @@ Some packages should be updated together. Common families in this repo:
 
 - **Hex1b**: `Hex1b`, `Hex1b.McpServer`, `Hex1b.Tool`
 - **Azure.Provisioning**: `Azure.Provisioning`, `Azure.Provisioning.*`
-- **OpenTelemetry**: `OpenTelemetry.*` (versions often defined as MSBuild properties in `eng/Versions.props`)
+- **OpenTelemetry**: `OpenTelemetry.*` — versions are split across two locations:
+  - `Directory.Packages.props` (external deps section): `OpenTelemetry.Exporter.Console`, `OpenTelemetry.Exporter.InMemory`, `OpenTelemetry.Instrumentation.GrpcNetClient` — these have hardcoded versions and should be updated directly.
+  - `eng/Versions.props` (OTel section): `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`, `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Instrumentation.Runtime`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `Azure.Monitor.OpenTelemetry.Exporter` — these use MSBuild version properties and must be updated in `eng/Versions.props`. **All OTel packages should be kept in sync at the same version when possible.**
 - **AspNetCore.HealthChecks**: `AspNetCore.HealthChecks.*`
 - **Grpc**: `Grpc.AspNetCore`, `Grpc.Net.ClientFactory`, `Grpc.Tools`
 - **Polly**: `Polly.Core`, `Polly.Extensions`
@@ -304,8 +308,11 @@ Some external dependencies have known constraints:
 
 - **`Pomelo.EntityFrameworkCore.MySql`** — Major version bumps lift `Microsoft.EntityFrameworkCore` and its transitive `Microsoft.Extensions.*` dependencies, which conflict with net8.0 LTS pinning. Always verify compatibility across all target frameworks.
 - **`Microsoft.AI.Foundry.Local`** — Has historically had broken transitive dependency metadata (NU1603). Check if the issue is resolved before updating.
-- **`Spectre.Console`** — Currently on pre-release. Always update to the latest pre-release, not the latest stable.
+- **`Spectre.Console`** — Currently on pre-release. Always update to the latest pre-release, not the latest stable. Verify hyperlink rendering behavior hasn't changed (test: `ConsoleActivityLoggerTests`).
 - **`Milvus.Client`** — No stable release exists. Always stays on pre-release.
+- **`Humanizer.Core`** — Version 3.x ships a Roslyn analyzer that requires `System.Collections.Immutable` 9.0.0, which is incompatible with the .NET 8 SDK. Cannot update until the upstream issue is fixed ([Humanizr/Humanizer#1672](https://github.com/Humanizr/Humanizer/issues/1672)).
+- **`StreamJsonRpc`** — Version 2.24.x ships a Roslyn analyzer targeting Roslyn 4.14.0, incompatible with the .NET 8 SDK. Cannot update until the upstream issue is fixed ([microsoft/vs-streamjsonrpc#1399](https://github.com/microsoft/vs-streamjsonrpc/issues/1399)).
+- **`Azure.Monitor.OpenTelemetry.Exporter`** — Version 1.6.0 introduced AOT warnings. Hold at 1.5.0 until resolved. Version is in `eng/Versions.props`.
 
 ## Important Constraints
 
