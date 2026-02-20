@@ -122,5 +122,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ConfigUpdatesSelectPrompt", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command..
+        /// </summary>
+        internal static string MalformedConfigFileError {
+            get {
+                return ResourceManager.GetString("MalformedConfigFileError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skipping update of '{0}'..
+        /// </summary>
+        internal static string SkippedMalformedConfigFile {
+            get {
+                return ResourceManager.GetString("SkippedMalformedConfigFile", resourceCulture);
+            }
+        }
     }
 }
