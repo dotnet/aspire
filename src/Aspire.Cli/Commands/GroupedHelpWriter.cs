@@ -10,14 +10,54 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal static class GroupedHelpWriter
 {
-    private sealed record CommandGroup(string Heading, string[] CommandNames);
+    /// <summary>
+    /// A command entry within a group, with an optional usage override.
+    /// </summary>
+    /// <param name="Name">The command name.</param>
+    /// <param name="UsageOverride">
+    /// When set, replaces the auto-generated argument syntax for this entry.
+    /// Use an empty string to suppress arguments entirely.
+    /// </param>
+    private sealed record CommandEntry(string Name, string? UsageOverride = null);
+
+    private sealed record CommandGroup(string Heading, CommandEntry[] Commands);
 
     private static readonly CommandGroup[] s_groups =
     [
-        new("App Commands:", ["new", "init", "add", "update", "run", "stop", "start"]),
-        new("Resource Management:", ["run", "stop", "start", "restart", "command", "wait", "ps", "resources", "logs", "telemetry"]),
-        new("Deployment:", ["publish", "deploy", "do"]),
-        new("Tools & Configuration:", ["config", "cache", "doctor", "docs", "agent", "setup"]),
+        new("App Commands:", [
+            new("new"),
+            new("init"),
+            new("add"),
+            new("update"),
+            new("run"),
+            new("stop", UsageOverride: ""),
+            new("start", UsageOverride: ""),
+        ]),
+        new("Resource Management:", [
+            new("run"),
+            new("stop"),
+            new("start"),
+            new("restart"),
+            new("command"),
+            new("wait"),
+            new("ps"),
+            new("resources"),
+            new("logs"),
+            new("telemetry"),
+        ]),
+        new("Deployment:", [
+            new("publish"),
+            new("deploy"),
+            new("do"),
+        ]),
+        new("Tools & Configuration:", [
+            new("config"),
+            new("cache"),
+            new("doctor"),
+            new("docs"),
+            new("agent"),
+            new("setup"),
+        ]),
     ];
 
     /// <summary>
@@ -49,20 +89,24 @@ internal static class GroupedHelpWriter
             }
         }
 
-        // Compute the column width once across all groups for consistent alignment.
+        // Compute the first-column width across all groups for consistent alignment.
         var columnWidth = 0;
         foreach (var group in s_groups)
         {
-            foreach (var name in group.CommandNames)
+            foreach (var entry in group.Commands)
             {
-                if (subcommandLookup.ContainsKey(name) && name.Length > columnWidth)
+                if (subcommandLookup.TryGetValue(entry.Name, out var cmd))
                 {
-                    columnWidth = name.Length;
+                    var label = FormatCommandLabel(cmd, entry.UsageOverride);
+                    if (label.Length > columnWidth)
+                    {
+                        columnWidth = label.Length;
+                    }
                 }
             }
         }
 
-        // Padding: 2 spaces indent + name + at least 2 spaces gap
+        // Padding: 2 spaces indent + label + at least 2 spaces gap before description
         columnWidth += 4;
 
         // Write each group.
@@ -70,9 +114,9 @@ internal static class GroupedHelpWriter
         {
             var hasAny = false;
 
-            foreach (var name in group.CommandNames)
+            foreach (var entry in group.Commands)
             {
-                if (!subcommandLookup.ContainsKey(name))
+                if (!subcommandLookup.TryGetValue(entry.Name, out var cmd))
                 {
                     continue;
                 }
@@ -83,18 +127,17 @@ internal static class GroupedHelpWriter
                     hasAny = true;
                 }
 
-                var cmd = subcommandLookup[name];
-                var paddedName = cmd.Name.PadRight(columnWidth);
+                var label = FormatCommandLabel(cmd, entry.UsageOverride).PadRight(columnWidth);
                 var description = cmd.Description ?? string.Empty;
 
-                // Wrap description to fit within terminal width.
+                // Truncate description to fit within terminal width.
                 var descriptionWidth = maxWidth - columnWidth - 2; // 2 for leading indent
                 if (descriptionWidth > 20 && description.Length > descriptionWidth)
                 {
                     description = description[..(descriptionWidth - 3)] + "...";
                 }
 
-                writer.WriteLine($"  {paddedName}{description}");
+                writer.WriteLine($"  {label}{description}");
             }
 
             if (hasAny)
@@ -104,39 +147,70 @@ internal static class GroupedHelpWriter
         }
 
         // Options
-        var options = command.Options;
-        if (options.Count > 0)
+        var visibleOptions = command.Options.Where(o => !o.Hidden).ToList();
+        if (visibleOptions.Count > 0)
         {
-            var visibleOptions = options.Where(o => !o.Hidden).ToList();
-            if (visibleOptions.Count > 0)
+            writer.WriteLine("Options:");
+
+            var optionColumnWidth = 0;
+            foreach (var opt in visibleOptions)
             {
-                writer.WriteLine("Options:");
-
-                var optionColumnWidth = 0;
-                foreach (var opt in visibleOptions)
+                var label = FormatOptionLabel(opt);
+                if (label.Length > optionColumnWidth)
                 {
-                    var label = FormatOptionLabel(opt);
-                    if (label.Length > optionColumnWidth)
-                    {
-                        optionColumnWidth = label.Length;
-                    }
+                    optionColumnWidth = label.Length;
                 }
-
-                optionColumnWidth += 4;
-
-                foreach (var opt in visibleOptions)
-                {
-                    var label = FormatOptionLabel(opt).PadRight(optionColumnWidth);
-                    var desc = opt.Description ?? string.Empty;
-                    writer.WriteLine($"  {label}{desc}");
-                }
-
-                writer.WriteLine();
             }
+
+            optionColumnWidth += 4;
+
+            foreach (var opt in visibleOptions)
+            {
+                var label = FormatOptionLabel(opt).PadRight(optionColumnWidth);
+                var desc = opt.Description ?? string.Empty;
+                writer.WriteLine($"  {label}{desc}");
+            }
+
+            writer.WriteLine();
         }
 
         // Help hint
         writer.WriteLine("Use \"aspire [command] --help\" for more information about a command.");
+    }
+
+    private static string FormatCommandLabel(Command cmd, string? usageOverride)
+    {
+        var args = usageOverride ?? GetArgumentSyntax(cmd);
+        return string.IsNullOrEmpty(args) ? cmd.Name : $"{cmd.Name} {args}";
+    }
+
+    private static string GetArgumentSyntax(Command cmd)
+    {
+        if (cmd.Arguments.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        foreach (var arg in cmd.Arguments)
+        {
+            if (arg.Hidden)
+            {
+                continue;
+            }
+
+            var name = $"<{arg.Name}>";
+
+            // Optional if minimum arity is 0.
+            if (arg.Arity.MinimumNumberOfValues == 0)
+            {
+                name = $"[{name}]";
+            }
+
+            parts.Add(name);
+        }
+
+        return string.Join(" ", parts);
     }
 
     private static string FormatOptionLabel(Option option)
