@@ -40,7 +40,6 @@ internal static class GroupedHelpWriter
             new("restart"),
             new("command"),
             new("wait"),
-            new("ps"),
             new("resources"),
             new("logs"),
             new("telemetry"),

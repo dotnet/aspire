@@ -226,12 +226,16 @@ internal sealed class RootCommand : BaseRootCommand
         }
 
         // Replace the default --help action with grouped help output.
+        // Add -v as a short alias for --version.
         foreach (var option in Options)
         {
             if (option is HelpOption helpOption)
             {
                 helpOption.Action = new GroupedHelpAction(this);
-                break;
+            }
+            else if (option is VersionOption versionOption)
+            {
+                versionOption.Aliases.Add("-v");
             }
         }
 
