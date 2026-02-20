@@ -27,9 +27,9 @@ public class AzureCognitiveServicesProjectResource :
     /// <summary>
     /// Creates a new Azure Cognitive Services project resource.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="configureInfrastructure"></param>
-    /// <param name="parent"></param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
+    /// <param name="parent">The parent Azure AI Foundry resource.</param>
     public AzureCognitiveServicesProjectResource([ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure, AzureAIFoundryResource parent)
         : base(name, configureInfrastructure, parent)
     {
