@@ -28,15 +28,23 @@ internal sealed class RootCommand : BaseRootCommand
         Hidden = true // Hidden for backward compatibility, use --debug-level instead
     };
 
-    public static readonly Option<LogLevel?> DebugLevelOption = new("--debug-level", "-v")
+    public static readonly Option<LogLevel?> DebugLevelOption = new("--log-level", "-l")
     {
         Description = RootCommandStrings.DebugLevelArgumentDescription,
         Recursive = true
     };
 
+    // Hidden backward-compat alias for --log-level (was the original name)
+    private static readonly Option<LogLevel?> s_legacyDebugLevelOption = new("--debug-level")
+    {
+        Description = RootCommandStrings.DebugLevelArgumentDescription,
+        Recursive = true,
+        Hidden = true
+    };
+
     public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
-        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
+        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners.",
         Recursive = true
     };
 
@@ -77,7 +85,7 @@ internal sealed class RootCommand : BaseRootCommand
         (DebugLevelOption, pr =>
         {
             var level = pr.GetValue(DebugLevelOption);
-            return level.HasValue ? ["--debug-level", level.Value.ToString()] : null;
+            return level.HasValue ? ["--log-level", level.Value.ToString()] : null;
         }),
         (WaitForDebuggerOption, pr => pr.GetValue(WaitForDebuggerOption) ? ["--wait-for-debugger"] : null),
     ];
@@ -164,6 +172,7 @@ internal sealed class RootCommand : BaseRootCommand
 
         Options.Add(DebugOption);
         Options.Add(DebugLevelOption);
+        Options.Add(s_legacyDebugLevelOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
         Options.Add(BannerOption);
@@ -180,9 +189,8 @@ internal sealed class RootCommand : BaseRootCommand
                 return Task.FromResult(ExitCodeConstants.Success);
             }
 
-            // No subcommand provided - show help but return InvalidCommand to signal usage error
-            // This is consistent with other parent commands (DocsCommand, SdkCommand, etc.)
-            new HelpAction().Invoke(context);
+            // No subcommand provided - show grouped help but return InvalidCommand to signal usage error
+            GroupedHelpWriter.WriteHelp(this, Console.Out);
             return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
@@ -224,6 +232,20 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        // Replace the default --help action with grouped help output.
+        // Add -v as a short alias for --version.
+        foreach (var option in Options)
+        {
+            if (option is HelpOption helpOption)
+            {
+                helpOption.Action = new GroupedHelpAction(this);
+            }
+            else if (option is VersionOption versionOption)
+            {
+                versionOption.Aliases.Add("-v");
+            }
         }
 
     }

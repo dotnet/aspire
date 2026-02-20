@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display logs from resources in a running Aspire apphost.</source>
-        <target state="translated">Afficher les journaux des ressources dans un Apphost Aspire en cours d’exécution.</target>
+        <source>Display logs from resources in a running apphost.</source>
+        <target state="needs-review-translation">Afficher les journaux des ressources dans un Apphost Aspire en cours d’exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output logs in JSON format (NDJSON).</source>
-        <target state="translated">Générer les journaux au format JSON (NDJSON).</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Générer les journaux au format JSON (NDJSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">

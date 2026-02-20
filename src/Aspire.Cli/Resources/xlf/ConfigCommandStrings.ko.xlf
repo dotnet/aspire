@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">구성 설정을 관리합니다.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="needs-review-translation">구성 설정을 관리합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">

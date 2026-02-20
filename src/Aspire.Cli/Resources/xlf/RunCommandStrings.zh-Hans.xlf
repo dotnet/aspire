@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">在开发模式下运行 Aspire 应用主机。</target>
+        <source>Run an apphost in development mode.</source>
+        <target state="needs-review-translation">在开发模式下运行 Aspire 应用主机。</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">以 JSON 格式输出结果(仅在使用 --detach 时有效)。</target>
+        <source>Output format (Table or Json). Only valid with --detach.</source>
+        <target state="needs-review-translation">以 JSON 格式输出结果(仅在使用 --detach 时有效)。</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

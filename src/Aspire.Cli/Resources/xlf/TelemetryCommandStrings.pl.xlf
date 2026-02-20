@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">Wyświetl dane telemetryczne (logi, zakresy, śledzenia) z uruchomionej aplikacji Aspire.</target>
+        <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
+        <target state="needs-review-translation">Wyświetl dane telemetryczne (logi, zakresy, śledzenia) z uruchomionej aplikacji Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">

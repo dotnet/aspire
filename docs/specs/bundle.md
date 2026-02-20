@@ -222,7 +222,7 @@ aspire-{version}-{platform}/
 
 ## Self-Extracting Binary
 
-The Aspire CLI can be distributed as a **self-extracting binary** — a single native AOT executable with the full bundle tarball embedded inside. This is the simplest installation method: download one file, run `aspire setup`, done.
+The Aspire CLI can be distributed as a **self-extracting binary** — a single native AOT executable with the full bundle tarball embedded inside. This is the simplest installation method: download one file, run `aspire doctor`, done.
 
 ### Binary Format
 
@@ -269,10 +269,10 @@ The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory
 
 ### Extraction Modes
 
-#### Explicit: `aspire setup`
+#### Explicit: `aspire doctor`
 
 ```bash
-aspire setup [--install-path <path>] [--force]
+aspire doctor [--install-path <path>]
 ```
 
 Best for install scripts — reduces to:
@@ -280,7 +280,7 @@ Best for install scripts — reduces to:
 ```bash
 mkdir -p ~/.aspire/bin
 curl -fsSL .../aspire -o ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire
-~/.aspire/bin/aspire setup
+~/.aspire/bin/aspire doctor
 export PATH="$HOME/.aspire/bin:$PATH"
 ```
 
@@ -298,7 +298,7 @@ The file `.aspire-bundle-version` in the layout root contains the assembly infor
 
 - **Skip extraction** when version matches (normal startup is free)
 - **Re-extract** when CLI binary is updated (version changes)
-- **Force re-extract** with `aspire setup --force` (ignores version)
+- **Force re-extract** with `aspire doctor` (auto-extracts when needed)
 
 ### Platform Notes
 
@@ -672,7 +672,7 @@ irm https://aka.ms/install-aspire.ps1 | iex
 With self-extracting binaries, install scripts can be simplified to:
 1. Detect the current platform (OS + architecture)
 2. Download the self-extracting binary to `~/.aspire/bin/aspire`
-3. Run `aspire setup` to extract the embedded payload
+3. Run `aspire doctor` to extract the embedded payload
 4. Add `~/.aspire/bin` to PATH
 5. Verify installation with `aspire --version`
 
@@ -716,7 +716,7 @@ The bundle installs components as siblings under `~/.aspire/`, with the CLI bina
 
 **Key behaviors:**
 - The CLI lives at `~/.aspire/bin/aspire` regardless of install method
-- With self-extracting binaries, the CLI in `bin/` contains the embedded payload; `aspire setup` extracts siblings
+- With self-extracting binaries, the CLI in `bin/` contains the embedded payload; `aspire doctor` extracts siblings
 - `.aspire-bundle-version` tracks the extracted version — extraction is skipped when hash matches
 - Bundle components (`runtime/`, `dashboard/`, `dcp/`, etc.) are siblings at the `~/.aspire/` root
 - NuGet hives and settings are preserved across installations and re-extractions
@@ -1314,7 +1314,7 @@ This section tracks the implementation progress of the bundle feature.
   - Platform-aware extraction (system `tar` on Unix, .NET `TarReader` on Windows)
   - Version tracking via `.aspire-bundle-version` marker file
 - [x] **Setup command** - `src/Aspire.Cli/Commands/SetupCommand.cs`
-  - `aspire setup [--install-path] [--force]`
+  - `aspire doctor [--install-path]`
   - Delegates to `IBundleService.ExtractAsync()`
 - [x] **Self-update simplified** - `src/Aspire.Cli/Commands/UpdateCommand.cs`
   - `aspire update --self` downloads new CLI, swaps binary, extracts via `IBundleService`
@@ -1329,7 +1329,7 @@ This section tracks the implementation progress of the bundle feature.
 ### Pending
 
 - [ ] Multi-platform build workflow (GitHub Actions)
-- [ ] Simplify install scripts to thin download + `aspire setup` wrappers
+- [ ] Simplify install scripts to thin download + `aspire doctor` wrappers
 
 ### Key Files
 
@@ -1349,7 +1349,7 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Shared/BundleTrailer.cs` | (Deleted) Previously held trailer read/write logic |
 | `src/Aspire.Cli/Bundles/IBundleService.cs` | Bundle extraction interface + result enum |
 | `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with .NET TarReader |
-| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command |
+| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire doctor` command (setup folded into doctor) |
 | `src/Aspire.Cli/Utils/ArchiveHelper.cs` | Shared .zip/.tar.gz extraction utility |
 | `tools/CreateLayout/Program.cs` | Bundle build tool (layout assembly + self-extracting binary) |
 | `eng/Bundle.proj` | MSBuild orchestration for bundle creation |
@@ -1432,4 +1432,4 @@ dotnet msbuild eng/Bundle.proj /p:TargetRid=osx-arm64 /p:Configuration=Release /
 # Output: artifacts/bundle/osx-arm64/aspire (self-extracting, ~134 MB)
 ```
 
-The resulting binary is a valid native executable that also contains the full bundle. Running `aspire --version` works immediately; `aspire setup` extracts the payload.
+The resulting binary is a valid native executable that also contains the full bundle. Running `aspire --version` works immediately; `aspire doctor` extracts the payload.

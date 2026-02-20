@@ -36,7 +36,7 @@ internal sealed class AddCommand : BaseCommand
     {
         Description = AddCommandStrings.ProjectArgumentDescription
     };
-    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription
     };

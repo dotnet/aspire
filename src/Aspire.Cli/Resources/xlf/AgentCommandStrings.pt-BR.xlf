@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage AI agent integrations.</source>
-        <target state="translated">Gerencie integrações de agente de IA.</target>
+        <source>Manage AI agent specific setup.</source>
+        <target state="needs-review-translation">Gerencie integrações de agente de IA.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">

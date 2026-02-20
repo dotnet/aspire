@@ -77,7 +77,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         if (result is BundleExtractResult.ExtractionFailed)
         {
             throw new InvalidOperationException(
-                "Bundle extraction failed. Run 'aspire setup --force' to retry, or reinstall the Aspire CLI.");
+                "Bundle extraction failed. Run 'aspire doctor' to retry, or reinstall the Aspire CLI.");
         }
     }
 
