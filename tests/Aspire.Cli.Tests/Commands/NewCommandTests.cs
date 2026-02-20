@@ -896,6 +896,8 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
 
 internal sealed class OrderTrackingInteractionService(List<string> operationOrder) : IInteractionService
 {
+    public ConsoleOutput DefaultConsole { get; set; }
+
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         return action();
@@ -950,7 +952,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard) { }
     public void DisplayMarkdown(string markdown) { }
     public void DisplayMarkupLine(string markup) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
