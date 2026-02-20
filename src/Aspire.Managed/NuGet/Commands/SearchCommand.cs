@@ -10,7 +10,7 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using INuGetLogger = NuGet.Common.ILogger;
 
-namespace Aspire.Cli.NuGetHelper.Commands;
+namespace Aspire.Managed.NuGet.Commands;
 
 /// <summary>
 /// Search command - searches NuGet feeds for packages using NuGet.Protocol.

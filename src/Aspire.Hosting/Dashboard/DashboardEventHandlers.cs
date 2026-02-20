@@ -101,7 +101,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 var mainModule = Process.GetCurrentProcess().MainModule;
                 if (mainModule?.FileName is null)
                 {
-                    // Final fallback to runtime detection if we can't find AppHost location
                     return GetFallbackFrameworkVersions();
                 }
                 return GetFrameworkVersionsFromRuntimeConfig(mainModule.FileName);
@@ -111,14 +110,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
         catch (Exception)
         {
-            // If we can't read the AppHost's runtime config, fallback to runtime detection
             return GetFallbackFrameworkVersions();
         }
     }
 
     private static (string NetCoreVersion, string AspNetCoreVersion) GetFrameworkVersionsFromRuntimeConfig(string assemblyPath)
     {
-        // Find the AppHost's runtimeconfig.json file
         string runtimeConfigPath;
         if (string.Equals(".dll", Path.GetExtension(assemblyPath), StringComparison.OrdinalIgnoreCase))
         {
@@ -126,25 +123,21 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
         else
         {
-            // For executables, the runtime config is named after the base executable name
-            // Handle both Windows (.exe) and Unix (no extension) executables
             var directory = Path.GetDirectoryName(assemblyPath)!;
             var fileName = Path.GetFileName(assemblyPath);
             var baseName = Path.GetExtension(fileName) switch
             {
-                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
-                _ => fileName // Unix or other: use full filename as base
+                ".exe" => Path.GetFileNameWithoutExtension(fileName),
+                _ => fileName
             };
             runtimeConfigPath = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
         }
 
         if (!File.Exists(runtimeConfigPath))
         {
-            // Fallback to runtime detection if runtime config doesn't exist
             return GetFallbackFrameworkVersions();
         }
 
-        // Parse the AppHost's runtime config to get framework versions
         var configText = File.ReadAllText(runtimeConfigPath);
         var configJson = JsonNode.Parse(configText)?.AsObject();
 
@@ -153,8 +146,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             throw new DistributedApplicationException($"Failed to parse AppHost runtime config: {runtimeConfigPath}");
         }
 
-        string netCoreVersion = FallbackNetCoreVersion; // Default fallback
-        string aspNetCoreVersion = FallbackAspNetCoreVersion; // Default fallback
+        string netCoreVersion = FallbackNetCoreVersion;
+        string aspNetCoreVersion = FallbackAspNetCoreVersion;
 
         if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
             runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
@@ -188,32 +181,26 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
     private string CreateCustomRuntimeConfig(string dashboardPath)
     {
-        // Find the dashboard runtimeconfig.json
         string originalRuntimeConfig;
 
         if (string.Equals(".dll", Path.GetExtension(dashboardPath), StringComparison.OrdinalIgnoreCase))
         {
-            // Dashboard path is already a DLL
             originalRuntimeConfig = Path.ChangeExtension(dashboardPath, ".runtimeconfig.json");
         }
         else
         {
-            // For executables, the runtime config is named after the base executable name
-            // Handle both Windows (.exe) and Unix (no extension) executables
             var directory = Path.GetDirectoryName(dashboardPath)!;
             var fileName = Path.GetFileName(dashboardPath);
             var baseName = Path.GetExtension(fileName) switch
             {
-                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
-                _ => fileName // Unix or other: use full filename as base
+                ".exe" => Path.GetFileNameWithoutExtension(fileName),
+                _ => fileName
             };
             originalRuntimeConfig = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
         }
 
         if (!File.Exists(originalRuntimeConfig))
         {
-            // In test environments or when the dashboard runtime config doesn't exist,
-            // create a default configuration using the AppHost's framework versions
             var (appHostNetCoreVersion, appHostAspNetCoreVersion) = GetAppHostFrameworkVersions();
 
             var defaultConfig = new
@@ -236,7 +223,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             return customConfigPath;
         }
 
-        // Read the original runtime config
         var originalConfigText = File.ReadAllText(originalRuntimeConfig);
         var configJson = JsonNode.Parse(originalConfigText)?.AsObject();
 
@@ -245,10 +231,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             throw new DistributedApplicationException($"Failed to parse dashboard runtime config: {originalRuntimeConfig}");
         }
 
-        // Get AppHost framework versions from its runtimeconfig.json
         var (netCoreVersion, aspNetCoreVersion) = GetAppHostFrameworkVersions();
 
-        // Update the framework versions
         if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
             runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
         {
@@ -270,7 +254,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             }
         }
 
-        // Create a temporary file for the custom runtime config
         var tempPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
@@ -288,35 +271,23 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        // Create custom runtime config with AppHost's framework versions
-        var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
-
-        // Determine if this is a single-file executable or DLL-based deployment
-        // Single-file: run the exe directly with custom runtime config
-        // DLL-based: run via dotnet exec
-        var isSingleFileExe = IsSingleFileExecutable(fullyQualifiedDashboardPath);
-        
         ExecutableResource dashboardResource;
-        
-        if (isSingleFileExe)
+
+        if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
-            // Single-file executable - run directly
+            // aspire-managed is self-contained, run directly with "dashboard" subcommand
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
-            
-            // Set DOTNET_ROOT so the single-file app can find the shared framework
-            var dotnetRoot = BundleDiscovery.GetDotNetRoot();
-            if (!string.IsNullOrEmpty(dotnetRoot))
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
-                dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(env =>
-                {
-                    env["DOTNET_ROOT"] = dotnetRoot;
-                    env["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-                }));
-            }
+                args.Insert(0, "dashboard");
+            }));
         }
         else
         {
-            // DLL-based deployment - find the DLL and run via dotnet exec
+            // Non-bundle: run via dotnet exec with custom runtime config
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+
             string dashboardDll;
             if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
             {
@@ -324,7 +295,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             }
             else
             {
-                // For executables with separate DLLs
                 var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
                 var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
                 var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
@@ -338,8 +308,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
 
-            var dotnetExecutable = BundleDiscovery.GetDotNetExecutablePath();
-            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, dotnetExecutable, dashboardWorkingDirectory ?? "");
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
 
             dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
@@ -925,51 +894,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
-    }
-
-    /// <summary>
-    /// Determines if the given path is a single-file executable (no accompanying DLL).
-    /// </summary>
-    private static bool IsSingleFileExecutable(string path)
-    {
-        // Single-file apps are executables without a corresponding DLL.
-        // On Windows the file ends with .exe; on Unix there is no reliable
-        // extension (e.g. "Aspire.Dashboard" has a dot but is still an executable).
-        // The definitive check is: executable exists on disk and there is no
-        // matching .dll next to it.
-
-        if (string.Equals(".dll", Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (!File.Exists(path))
-        {
-            return false;
-        }
-
-        // On Unix, verify the file is executable
-        if (!OperatingSystem.IsWindows())
-        {
-            var fileInfo = new FileInfo(path);
-            var mode = fileInfo.UnixFileMode;
-            if ((mode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) == 0)
-            {
-                return false;
-            }
-        }
-
-        // Check if there's a corresponding DLL — strip .exe on Windows,
-        // but on Unix the filename may contain dots (e.g. "Aspire.Dashboard"),
-        // so always derive the DLL name by appending .dll to the full filename.
-        var directory = Path.GetDirectoryName(path)!;
-        var fileName = Path.GetFileName(path);
-        var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? fileName[..^4]
-            : fileName;
-        var dllPath = Path.Combine(directory, $"{baseName}.dll");
-
-        return !File.Exists(dllPath);
     }
 }
 

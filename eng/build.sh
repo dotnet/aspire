@@ -254,11 +254,6 @@ if [ "$build_bundle" = true ]; then
         fi
     done
     
-    # Pass through runtime version if set
-    if [ -n "$runtime_version" ]; then
-        bundle_args+=("/p:BundleRuntimeVersion=$runtime_version")
-    fi
-    
     # CI flag is passed to Bundle.proj which handles version computation via Versions.props
     if [ "${CI:-}" = "true" ]; then
         bundle_args+=("/p:ContinuousIntegrationBuild=true")

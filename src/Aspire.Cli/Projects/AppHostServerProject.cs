@@ -76,7 +76,7 @@ internal sealed class AppHostServerProjectFactory(
         var layout = await bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken);
 
         // Priority 3: Check if we have a bundle layout with a pre-built AppHost server
-        if (layout is not null && layout.GetAppHostServerPath() is string serverPath && File.Exists(serverPath))
+        if (layout is not null && layout.GetManagedPath() is string serverPath && File.Exists(serverPath))
         {
             return new PrebuiltAppHostServer(
                 appPath,
