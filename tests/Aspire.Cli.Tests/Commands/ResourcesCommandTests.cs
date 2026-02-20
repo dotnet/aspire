@@ -19,8 +19,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --help");
-
+        var result = command.Parse("describe --help");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -34,7 +33,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources");
+        var result = command.Parse("describe");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -53,25 +52,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"resources --format {format} --help");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Theory]
-    [InlineData("table")]
-    [InlineData("Table")]
-    [InlineData("TABLE")]
-    public async Task ResourcesCommand_FormatOption_AcceptsTable(string format)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"resources --format {format} --help");
+        var result = command.Parse($"describe --format {format} --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -86,7 +67,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --format invalid");
+        var result = command.Parse("describe --format invalid");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -94,14 +75,14 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_WatchOption_CanBeParsed()
+    public async Task ResourcesCommand_FollowOption_CanBeParsed()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --watch --help");
+        var result = command.Parse("describe --follow --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -109,14 +90,14 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_WatchAndFormat_CanBeCombined()
+    public async Task ResourcesCommand_FollowAndFormat_CanBeCombined()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --watch --format json --help");
+        var result = command.Parse("describe --follow --format json --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -131,7 +112,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources myresource --help");
+        var result = command.Parse("describe myresource --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -146,7 +127,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources myresource --watch --format json --help");
+        var result = command.Parse("describe myresource --follow --format json --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -164,7 +145,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
             new ResourceJson { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Starting" }
         };
 
-        // Act - serialize each resource separately (simulating NDJSON streaming output for --watch)
+        // Act - serialize each resource separately (simulating NDJSON streaming output for --follow)
         var ndjsonLines = resources
             .Select(r => System.Text.Json.JsonSerializer.Serialize(r, ResourcesCommandJsonContext.Ndjson.ResourceJson))
             .ToList();

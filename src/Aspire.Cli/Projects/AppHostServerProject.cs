@@ -90,6 +90,6 @@ internal sealed class AppHostServerProjectFactory(
 
         throw new InvalidOperationException(
             "No Aspire AppHost server is available. Ensure the Aspire CLI is installed " +
-            "with a valid bundle layout, or reinstall using 'aspire setup --force'.");
+            "with a valid bundle layout, or reinstall using 'aspire doctor'.");
     }
 }
