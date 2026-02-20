@@ -36,4 +36,18 @@ public class BrowserTimeProvider : TimeProvider
         _logger.LogDebug("Browser time zone set to '{TimeZone}' with UTC offset {UtcOffset}.", timeZoneInfo.Id, timeZoneInfo.BaseUtcOffset);
         _browserLocalTimeZone = timeZoneInfo;
     }
+
+    public TimeFormat TimeFormat { get; private set; } = TimeFormat.System;
+
+    public void SetTimeFormat(TimeFormat timeFormat)
+    {
+        TimeFormat = timeFormat;
+    }
+}
+
+public enum TimeFormat
+{
+    System,
+    TwelveHour,
+    TwentyFourHour
 }

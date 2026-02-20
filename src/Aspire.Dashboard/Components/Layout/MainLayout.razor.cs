@@ -114,6 +114,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
 
+        var timeFormatResult = await LocalStorage.GetAsync<TimeFormat>(BrowserStorageKeys.TimeFormat);
+        if (timeFormatResult.Success)
+        {
+            TimeProvider.SetTimeFormat(timeFormatResult.Value);
+        }
+
         await DisplayUnsecuredEndpointsMessageAsync();
 
         _aiDisplayChangedSubscription = AIContextProvider.OnDisplayChanged(() => InvokeAsync(StateHasChanged));

@@ -15,6 +15,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
+    private TimeFormat _timeFormat;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -30,6 +31,12 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required DashboardDialogService DialogService { get; init; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -38,6 +45,8 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             ? matchedCulture :
             // Otherwise, Blazor has fallen back to a supported language
             CultureInfo.CurrentUICulture;
+
+        _timeFormat = TimeProvider.TimeFormat;
 
         _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
 
@@ -98,6 +107,26 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         };
         await DialogService.ShowDialogAsync<ManageDataDialog>(parameters);
     }
+
+    private async Task OnTimeFormatChanged()
+    {
+        TimeProvider.SetTimeFormat(_timeFormat);
+        await LocalStorage.SetAsync(BrowserStorageKeys.TimeFormat, _timeFormat);
+
+        // Reload the page to ensure all components pick up the new format
+        var uri = new Uri(NavigationManager.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+
+        NavigationManager.NavigateTo(uri, forceLoad: true);
+    }
+
+    private string FormatTimeFormatOption(TimeFormat format) => format switch
+    {
+        TimeFormat.System => Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogTimeFormatSystem)],
+        TimeFormat.TwelveHour => Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogTimeFormatTwelveHour)],
+        TimeFormat.TwentyFourHour => Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogTimeFormatTwentyFourHour)],
+        _ => format.ToString()
+    };
 
     public void Dispose()
     {

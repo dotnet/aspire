@@ -81,6 +81,11 @@ internal static partial class FormatHelpers
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
 
+        if (timeProvider.TimeFormat != TimeFormat.System)
+        {
+            return local.ToString(GetForcedTimePattern(timeProvider.TimeFormat, millisecondsDisplay, cultureInfo), cultureInfo);
+        }
+
         // Long time
         return millisecondsDisplay switch
         {
@@ -95,6 +100,12 @@ internal static partial class FormatHelpers
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
+
+        if (timeProvider.TimeFormat != TimeFormat.System)
+        {
+            var timePattern = GetForcedTimePattern(timeProvider.TimeFormat, millisecondsDisplay, cultureInfo);
+            return local.ToString($"{cultureInfo.DateTimeFormat.ShortDatePattern} {timePattern}", cultureInfo);
+        }
 
         // Short date, long time
         return millisecondsDisplay switch
@@ -157,5 +168,26 @@ internal static partial class FormatHelpers
     public static string CombineWithSeparator(string separator, params string?[] parts)
     {
         return string.Join(separator, parts.Where(p => !string.IsNullOrEmpty(p)));
+    }
+
+    private static string GetForcedTimePattern(TimeFormat timeFormat, MillisecondsDisplay millisecondsDisplay, CultureInfo cultureInfo)
+    {
+        var timeSeparator = cultureInfo.DateTimeFormat.TimeSeparator;
+        var decimalSeparator = cultureInfo.NumberFormat.NumberDecimalSeparator;
+
+        var secondsPattern = millisecondsDisplay switch
+        {
+            MillisecondsDisplay.None => "ss",
+            MillisecondsDisplay.Truncated => $"ss'{decimalSeparator}'fff",
+            MillisecondsDisplay.Full => $"ss'{decimalSeparator}'FFFFFFF",
+            _ => throw new NotImplementedException()
+        };
+
+        return timeFormat switch
+        {
+            TimeFormat.TwelveHour => $"h'{timeSeparator}'mm'{timeSeparator}'{secondsPattern} tt",
+            TimeFormat.TwentyFourHour => $"H'{timeSeparator}'mm'{timeSeparator}'{secondsPattern}",
+            _ => throw new NotImplementedException()
+        };
     }
 }

@@ -549,4 +549,16 @@
   <data name="ManageDataResource" xml:space="preserve">
     <value>Resource</value>
   </data>
+  <data name="SettingsDialogTimeFormat" xml:space="preserve">
+    <value>Time Format</value>
+  </data>
+  <data name="SettingsDialogTimeFormatSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="SettingsDialogTimeFormatTwelveHour" xml:space="preserve">
+    <value>12-Hour</value>
+  </data>
+  <data name="SettingsDialogTimeFormatTwentyFourHour" xml:space="preserve">
+    <value>24-Hour</value>
+  </data>
 </root>
