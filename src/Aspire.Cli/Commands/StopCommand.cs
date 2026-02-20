@@ -68,6 +68,13 @@ internal sealed class StopCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var stopAll = parseResult.GetValue(s_allOption);
 
+        // Validate mutual exclusivity of --all and --project
+        if (stopAll && passedAppHostProjectFile is not null)
+        {
+            _interactionService.DisplayError("The --all and --project options cannot be used together.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
         // Handle --all: stop all running AppHosts
         if (stopAll)
         {
@@ -83,6 +90,10 @@ internal sealed class StopCommand : BaseCommand
         return await ExecuteInteractiveAsync(passedAppHostProjectFile, resourceName, cancellationToken);
     }
 
+    /// <summary>
+    /// Handles the stop command in non-interactive mode by auto-resolving a single AppHost
+    /// or returning an error when multiple AppHosts are running.
+    /// </summary>
     private async Task<int> ExecuteNonInteractiveAsync(FileInfo? passedAppHostProjectFile, string? resourceName, CancellationToken cancellationToken)
     {
         // If --project is specified, use the standard resolver (no prompting needed)
@@ -110,7 +121,7 @@ internal sealed class StopCommand : BaseCommand
             {
                 return await StopResourceAsync(connection, resourceName, cancellationToken);
             }
-            return await StopAppHostAsync(connection);
+            return await StopAppHostAsync(connection, cancellationToken);
         }
 
         // Multiple AppHosts: error with guidance
@@ -118,6 +129,9 @@ internal sealed class StopCommand : BaseCommand
         return ExitCodeConstants.FailedToFindProject;
     }
 
+    /// <summary>
+    /// Handles the stop command in interactive mode, prompting the user to select an AppHost if multiple are running.
+    /// </summary>
     private async Task<int> ExecuteInteractiveAsync(FileInfo? passedAppHostProjectFile, string? resourceName, CancellationToken cancellationToken)
     {
         var result = await _connectionResolver.ResolveConnectionAsync(
@@ -141,9 +155,12 @@ internal sealed class StopCommand : BaseCommand
             return await StopResourceAsync(selectedConnection, resourceName, cancellationToken);
         }
 
-        return await StopAppHostAsync(selectedConnection);
+        return await StopAppHostAsync(selectedConnection, cancellationToken);
     }
 
+    /// <summary>
+    /// Stops all running AppHosts discovered via socket scanning.
+    /// </summary>
     private async Task<int> StopAllAppHostsAsync(CancellationToken cancellationToken)
     {
         var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
@@ -160,7 +177,7 @@ internal sealed class StopCommand : BaseCommand
         foreach (var connectionResult in allConnections)
         {
             var connection = connectionResult.Connection!;
-            var exitCode = await StopAppHostAsync(connection);
+            var exitCode = await StopAppHostAsync(connection, cancellationToken);
             if (exitCode != ExitCodeConstants.Success)
             {
                 allStopped = false;
@@ -170,7 +187,10 @@ internal sealed class StopCommand : BaseCommand
         return allStopped ? ExitCodeConstants.Success : ExitCodeConstants.FailedToDotnetRunAppHost;
     }
 
-    private async Task<int> StopAppHostAsync(IAppHostAuxiliaryBackchannel connection)
+    /// <summary>
+    /// Stops a single AppHost by sending a stop signal to its CLI process or falling back to RPC.
+    /// </summary>
+    private async Task<int> StopAppHostAsync(IAppHostAuxiliaryBackchannel connection, CancellationToken cancellationToken)
     {
         // Stop the selected AppHost
         var appHostPath = connection.AppHostInfo?.AppHostPath ?? "Unknown";
@@ -210,7 +230,7 @@ internal sealed class StopCommand : BaseCommand
             var rpcSucceeded = false;
             try
             {
-                rpcSucceeded = await connection.StopAppHostAsync(default).ConfigureAwait(false);
+                rpcSucceeded = await connection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -250,7 +270,7 @@ internal sealed class StopCommand : BaseCommand
 
                     if (appHostInfo is not null)
                     {
-                        return await manager.MonitorProcessesForTerminationAsync(appHostInfo, default).ConfigureAwait(false);
+                        return await manager.MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
                     }
 
                     return true;
