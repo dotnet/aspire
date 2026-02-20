@@ -31,6 +31,7 @@ internal static class KnownFeatures
     public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+    public static string MonitorCommandEnabled => "monitorCommandEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
     {
@@ -112,7 +113,12 @@ internal static class KnownFeatures
         [RunningInstanceDetectionEnabled] = new(
             RunningInstanceDetectionEnabled,
             "Enable or disable detection of already running Aspire instances to prevent conflicts",
-            DefaultValue: true)
+            DefaultValue: true),
+
+        [MonitorCommandEnabled] = new(
+            MonitorCommandEnabled,
+            "Enable or disable the 'aspire atop' command for launching a TUI to monitor running AppHosts and resources",
+            DefaultValue: false)
     };
 
     /// <summary>

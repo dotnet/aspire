@@ -131,6 +131,8 @@ internal sealed class RootCommand : BaseRootCommand
         DocsCommand docsCommand,
         SdkCommand sdkCommand,
         SetupCommand setupCommand,
+        MonitorCommand monitorCommand,
+        AtopCommand atopCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
         IFeatures featureFlags,
@@ -224,6 +226,11 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.MonitorCommandEnabled, false))
+        {
+            Subcommands.Add(atopCommand);
         }
 
     }

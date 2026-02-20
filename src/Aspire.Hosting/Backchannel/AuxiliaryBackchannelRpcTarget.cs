@@ -58,6 +58,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         _ = request;
 
         var legacyInfo = await GetAppHostInformationAsync(cancellationToken).ConfigureAwait(false);
+        var repoRoot = DiscoverRepositoryRoot(legacyInfo.AppHostPath);
 
         return new GetAppHostInfoResponse
         {
@@ -65,7 +66,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             AspireHostVersion = typeof(AuxiliaryBackchannelRpcTarget).Assembly.GetName().Version?.ToString() ?? "unknown",
             AppHostPath = legacyInfo.AppHostPath,
             CliProcessId = legacyInfo.CliProcessId,
-            StartedAt = legacyInfo.StartedAt
+            StartedAt = legacyInfo.StartedAt,
+            RepositoryRoot = repoRoot
         };
     }
 
@@ -989,6 +991,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     #endregion
 
     /// <summary>
+    /// Streams AppHost log entries from the hosting process.
+    /// Delegates to <see cref="AppHostRpcTarget.GetAppHostLogEntriesAsync"/>.
+    /// </summary>
+    public IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken = default)
+    {
+        var rpcTarget = serviceProvider.GetRequiredService<AppHostRpcTarget>();
+        return rpcTarget.GetAppHostLogEntriesAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Converts a JsonElement to its underlying CLR type for proper serialization.
     /// </summary>
     private static object? ConvertJsonElementToObject(JsonElement element)
@@ -1021,5 +1033,45 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         // Fall back to double for floating point
         return element.GetDouble();
+    }
+
+    /// <summary>
+    /// Walks up from the AppHost project path looking for a .git directory to find the repository root.
+    /// </summary>
+    private string? DiscoverRepositoryRoot(string appHostPath)
+    {
+        try
+        {
+            // Resolve to absolute path
+            var fullPath = Path.GetFullPath(appHostPath);
+
+            var directory = Directory.Exists(fullPath)
+                ? new DirectoryInfo(fullPath)
+                : new FileInfo(fullPath).Directory;
+
+            // If the path didn't yield a directory, fall back to current directory
+            directory ??= new DirectoryInfo(Environment.CurrentDirectory);
+
+            while (directory is not null)
+            {
+                var gitPath = Path.Combine(directory.FullName, ".git");
+
+                // Standard repo: .git is a directory
+                // Worktree: .git is a file containing "gitdir: ..."
+                if (Directory.Exists(gitPath) || File.Exists(gitPath))
+                {
+                    logger.LogDebug("Found git root at {Dir} (worktree={IsWorktree})", directory.FullName, File.Exists(gitPath));
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to discover repository root from {Path}", appHostPath);
+        }
+
+        return null;
     }
 }

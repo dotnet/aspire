@@ -35,6 +35,16 @@ internal class AppHostRpcTarget(
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
         var linkedToken = linkedCts.Token;
 
+        // Replay buffered entries first so late-connecting clients see history
+        var loggerProvider = serviceProvider.GetService<BackchannelLoggerProvider>();
+        if (loggerProvider is not null)
+        {
+            foreach (var entry in loggerProvider.GetReplaySnapshot())
+            {
+                yield return entry;
+            }
+        }
+
         Channel<BackchannelLogEntry>? channel = null;
         
         try
