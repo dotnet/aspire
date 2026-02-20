@@ -5,7 +5,7 @@ FROM ${SOURCE1_IMAGENAME} AS source1_stage
 
 FROM ${SOURCE2_IMAGENAME} AS source2_stage
 
-FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.5
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3-preview
 WORKDIR /app
 COPY --from=source1_stage /app/dist /app/wwwroot
 COPY --from=source1_stage /app/assets /app/wwwroot
