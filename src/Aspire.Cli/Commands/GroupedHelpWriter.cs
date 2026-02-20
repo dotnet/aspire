@@ -34,7 +34,6 @@ internal static class GroupedHelpWriter
             new("ps"),
         ]),
         new("Resource Management:", [
-            new("run"),
             new("stop"),
             new("start"),
             new("restart"),
