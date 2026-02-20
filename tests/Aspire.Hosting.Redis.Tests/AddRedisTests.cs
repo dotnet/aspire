@@ -301,8 +301,21 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
-        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
+        redis1.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001);
+            e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "myredis1.dev.internal", 5001, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+        });
+        redis2.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002);
+            e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "myredis2.dev.internal", 5002, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+        });
+        redis3.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5003);
+            e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "myredis3.dev.internal", 5003, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+        });
 
         var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
         var envs = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsight);
@@ -367,7 +380,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("RI_REDIS_ALIAS3", item.Key);
                 Assert.Equal(redis3.Resource.Name, item.Value);
             });
-
     }
 
     [Fact]
@@ -713,7 +725,11 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = appBuilder.AddRedis("redis")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
+            .WithEndpoint("tcp", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379);
+                e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "redis.dev.internal", 6379, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            })
             .WithRedisInsight();
 
         using var app = appBuilder.Build();

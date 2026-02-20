@@ -37,6 +37,11 @@
         <target state="translated">AppHost 进程已退出，代码为 {0}。</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">已成功启动 AppHost。</target>
@@ -55,6 +60,11 @@
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">正在连接到应用主机...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="translated">正在复制用户机密以使用独立模式...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -92,6 +102,11 @@
         <target state="translated">在不提示的情况下停止任何正在运行的 AppHost 实例。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="translated">--format 选项只能与 --detach 一起使用。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">资源的运行状况，例如“正常”</target>
@@ -102,9 +117,34 @@
         <target state="translated">IsCompatibleAppHost 为 null</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="translated">以 JSON 格式输出结果(仅在使用 --detach 时有效)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">使用随机端口和独立的用户机密以独立模式运行，支持多个实例同时运行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="translated">已发现此 AppHost 有正在运行的实例，并且该实例将停止。若要同时运行多个独立实例，请从不同目录(如 Git 工作树目录)运行。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">日志</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="new">Do not build or restore the project before running.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -123,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">无法运行该项目。有关详细信息，请使用 --debug 开关运行。</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="new">The project could not be run. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

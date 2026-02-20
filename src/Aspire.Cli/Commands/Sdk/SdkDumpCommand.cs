@@ -7,11 +7,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
-using Spectre.Console;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands.Sdk;
 
@@ -29,51 +30,49 @@ internal sealed class SdkDumpCommand : BaseCommand
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkDumpCommand> _logger;
 
+    private static readonly Argument<FileInfo?> s_integrationArgument = new("integration")
+    {
+        Description = "Path to the integration project (.csproj). If not specified, dumps core Aspire.Hosting capabilities.",
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_outputOption = new("--output", "-o")
+    {
+        Description = "Output file. If not specified, outputs to stdout."
+    };
+    private static readonly Option<bool> s_jsonOption = new("--json")
+    {
+        Description = "Output as JSON for machine consumption."
+    };
+    private static readonly Option<bool> s_ciOption = new("--ci")
+    {
+        Description = "Output stable text format for CI/CD diffing."
+    };
+
     public SdkDumpCommand(
         IAppHostServerProjectFactory appHostServerProjectFactory,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IInteractionService interactionService,
-        ILogger<SdkDumpCommand> logger)
-        : base("dump", "Dump ATS capabilities from Aspire integration libraries.", features, updateNotifier, executionContext, interactionService)
+        ILogger<SdkDumpCommand> logger,
+        AspireCliTelemetry telemetry)
+        : base("dump", "Dump ATS capabilities from Aspire integration libraries.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
 
-        // The integration project is the main input (optional - defaults to core Aspire.Hosting)
-        var integrationArgument = new Argument<FileInfo?>("integration")
-        {
-            Description = "Path to the integration project (.csproj). If not specified, dumps core Aspire.Hosting capabilities.",
-            Arity = ArgumentArity.ZeroOrOne
-        };
-        Arguments.Add(integrationArgument);
-
-        var outputOption = new Option<FileInfo?>("--output", "-o")
-        {
-            Description = "Output file. If not specified, outputs to stdout."
-        };
-        Options.Add(outputOption);
-
-        var jsonOption = new Option<bool>("--json")
-        {
-            Description = "Output as JSON for machine consumption."
-        };
-        Options.Add(jsonOption);
-
-        var ciOption = new Option<bool>("--ci")
-        {
-            Description = "Output stable text format for CI/CD diffing."
-        };
-        Options.Add(ciOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_outputOption);
+        Options.Add(s_jsonOption);
+        Options.Add(s_ciOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var integrationProject = parseResult.GetValue<FileInfo?>("integration");
-        var outputFile = parseResult.GetValue<FileInfo?>("--output");
-        var jsonFormat = parseResult.GetValue<bool>("--json");
-        var ciFormat = parseResult.GetValue<bool>("--ci");
+        var integrationProject = parseResult.GetValue(s_integrationArgument);
+        var outputFile = parseResult.GetValue(s_outputOption);
+        var jsonFormat = parseResult.GetValue(s_jsonOption);
+        var ciFormat = parseResult.GetValue(s_ciOption);
 
         // Validate the integration project if specified
         if (integrationProject is not null)
@@ -122,8 +121,15 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         try
         {
-            var appHostServerProject = _appHostServerProjectFactory.Create(tempDir);
-            var socketPath = appHostServerProject.GetSocketPath();
+            // TODO: Support bundle mode by using DLL references instead of project references.
+            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
+            // using additionalProjectReferences. For now, SDK dump only works with .NET SDK.
+            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
+            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
+            {
+                InteractionService.DisplayError("SDK dump is only available with .NET SDK installed.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
 
             // Build packages list - empty since we only need core capabilities + optional integration
             var packages = new List<(string Name, string Version)>();
@@ -136,7 +142,6 @@ internal sealed class SdkDumpCommand : BaseCommand
                 : null;
 
             await appHostServerProject.CreateProjectFilesAsync(
-                AppHostServerProject.DefaultSdkVersion,
                 packages,
                 cancellationToken,
                 additionalProjectReferences: additionalProjectRefs);
@@ -155,7 +160,7 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
 
             try
             {

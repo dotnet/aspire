@@ -37,6 +37,11 @@
         <target state="translated">AppHost プロセスが終了し、コード {0} を返しました。</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="new">AppHost failed to build.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost が正常に起動しました。</target>
@@ -55,6 +60,11 @@
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">AppHost に接続しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="translated">ユーザー シークレットを分離モード用にコピーしています...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -92,6 +102,11 @@
         <target state="translated">プロンプトを表示せずに AppHost の実行中のインスタンスを停止します。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="translated">--format オプションは、--detach との組み合わせでのみ使用できます。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">リソースの正常性 (正常など)</target>
@@ -102,9 +117,34 @@
         <target state="translated">IsCompatibleAppHost が null です</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="translated">結果を JSON 形式で出力します (--detach オプション指定時のみ有効)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">ランダムなポートと分離されたユーザー シークレットを使って分離モードで実行し、複数のインスタンスを同時に実行できるようにします。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="translated">この AppHost の実行中のインスタンスが見つかったため、停止します。複数の分離したインスタンスを同時に実行するには、異なるディレクトリ (git worktree ディレクトリなど) から実行してください。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">ログ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="new">Do not build or restore the project before running.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -123,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">プロジェクトを実行できませんでした。詳細情報については、--debug スイッチを使用し実行してください。</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="new">The project could not be run. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

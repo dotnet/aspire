@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -99,7 +99,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) =>
+                runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) =>
                 {
                     return 1; // Simulate a build failure
                 };
@@ -132,10 +132,10 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
 
                 // Simulate a successful build
-                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+                runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0;
 
                 // Simulate apphost starting but crashing before backchannel is established
-                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                 {
                     // Simulate a delay to mimic apphost starting
                     await Task.Delay(100, cancellationToken);
@@ -175,7 +175,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
 
                 // Simulate a successful build
-                runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+                runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0;
 
                 // Simulate a successful app host information retrieval
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -184,7 +184,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 };
 
                 // Simulate apphost running successfully and establishing a backchannel
-                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
                 {
                     Assert.True(options.NoLaunchProfile);
 
@@ -194,7 +194,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                         var backchannel = new TestAppHostBackchannel();
                         backchannel.RequestStopAsyncCalled = inspectModeCompleted;
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await inspectModeCompleted.Task;
+                        await inspectModeCompleted.Task.DefaultTimeout();
                         return 0;
                     }
                     else
@@ -203,7 +203,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                         var backchannel = new TestAppHostBackchannel();
                         backchannel.RequestStopAsyncCalled = publishModeCompleted;
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await publishModeCompleted.Task;
+                        await publishModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };

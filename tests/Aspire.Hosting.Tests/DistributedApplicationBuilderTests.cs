@@ -45,7 +45,8 @@ public class DistributedApplicationBuilderTests
         Assert.Collection(
             eventingSubscribers,
             s => Assert.IsType<DashboardEventHandlers>(s),
-            s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
+            s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s),
+            s => Assert.IsType<RequiredCommandValidationLifecycleHook>(s)
         );
 
         var options = app.Services.GetRequiredService<IOptions<PipelineOptions>>();

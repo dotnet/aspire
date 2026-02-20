@@ -28,10 +28,13 @@ internal sealed class EnsureCertificatesTrustedResult
 
 internal interface ICertificateService
 {
-    Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
+    Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken);
 }
 
-internal sealed partial class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
+internal sealed partial class CertificateService(
+    ICertificateToolRunner certificateToolRunner,
+    IInteractionService interactionService,
+    AspireCliTelemetry telemetry) : ICertificateService
 {
     private const string SslCertDirEnvVar = "SSL_CERT_DIR";
     private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
@@ -50,16 +53,16 @@ internal sealed partial class CertificateService(IInteractionService interaction
         return !string.IsNullOrEmpty(overridePath) ? overridePath : s_defaultDevCertsTrustPath;
     }
 
-    public async Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+    public async Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
+        using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
 
         var environmentVariables = new Dictionary<string, string>();
         var ensureCertificateCollector = new OutputCollector();
 
         // Use the machine-readable check (available in .NET 10 SDK which is the minimum required)
-        var trustResult = await CheckMachineReadableAsync(runner, ensureCertificateCollector, cancellationToken);
-        await HandleMachineReadableTrustAsync(runner, trustResult, ensureCertificateCollector, environmentVariables, cancellationToken);
+        var trustResult = await CheckMachineReadableAsync(ensureCertificateCollector, cancellationToken);
+        await HandleMachineReadableTrustAsync(trustResult, ensureCertificateCollector, environmentVariables, cancellationToken);
 
         return new EnsureCertificatesTrustedResult
         {
@@ -68,7 +71,6 @@ internal sealed partial class CertificateService(IInteractionService interaction
     }
 
     private async Task<CertificateTrustResult> CheckMachineReadableAsync(
-        IDotNetCliRunner runner,
         OutputCollector collector,
         CancellationToken cancellationToken)
     {
@@ -80,7 +82,7 @@ internal sealed partial class CertificateService(IInteractionService interaction
 
         var (_, result) = await interactionService.ShowStatusAsync(
             $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
-            async () => await runner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken));
+            async () => await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken));
 
         // Return the result or a default "no certificates" result
         return result ?? new CertificateTrustResult
@@ -92,7 +94,6 @@ internal sealed partial class CertificateService(IInteractionService interaction
     }
 
     private async Task HandleMachineReadableTrustAsync(
-        IDotNetCliRunner runner,
         CertificateTrustResult trustResult,
         OutputCollector collector,
         Dictionary<string, string> environmentVariables,
@@ -115,7 +116,7 @@ internal sealed partial class CertificateService(IInteractionService interaction
 
             var trustExitCode = await interactionService.ShowStatusAsync(
                 $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
-                () => runner.TrustHttpCertificateAsync(options, cancellationToken));
+                () => certificateToolRunner.TrustHttpCertificateAsync(options, cancellationToken));
 
             if (trustExitCode != 0)
             {
@@ -130,7 +131,7 @@ internal sealed partial class CertificateService(IInteractionService interaction
                 StandardErrorCallback = collector.AppendError,
             };
 
-            var (_, recheckResult) = await runner.CheckHttpCertificateMachineReadableAsync(recheckOptions, cancellationToken);
+            var (_, recheckResult) = await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(recheckOptions, cancellationToken);
             if (recheckResult is not null)
             {
                 trustResult = recheckResult;

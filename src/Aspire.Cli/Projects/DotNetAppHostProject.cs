@@ -5,11 +5,13 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -27,7 +29,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly ILogger<DotNetAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly IProjectUpdater _projectUpdater;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly RunningInstanceManager _runningInstanceManager;
+    private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
     private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
@@ -39,7 +43,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         AspireCliTelemetry telemetry,
         IFeatures features,
         IProjectUpdater projectUpdater,
+        IDotNetSdkInstaller sdkInstaller,
         ILogger<DotNetAppHostProject> logger,
+        Diagnostics.FileLoggerProvider fileLoggerProvider,
         TimeProvider? timeProvider = null)
     {
         _runner = runner;
@@ -48,7 +54,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _telemetry = telemetry;
         _features = features;
         _projectUpdater = projectUpdater;
+        _sdkInstaller = sdkInstaller;
         _logger = logger;
+        _fileLoggerProvider = fileLoggerProvider;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
@@ -131,6 +139,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => "apphost.cs";
 
+    /// <inheritdoc />
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return false;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
     // ═══════════════════════════════════════════════════════════════
@@ -176,18 +190,34 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
-        var effectiveAppHostFile = context.AppHostFile;
-        var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+        // .NET projects require the SDK to be installed
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        {
+            // Signal build failure so RunCommand doesn't wait forever
+            context.BuildCompletionSource?.TrySetResult(false);
+            return ExitCodeConstants.SdkNotInstalled;
+        }
 
-        var buildOutputCollector = new OutputCollector();
+        var effectiveAppHostFile = context.AppHostFile;
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel);
+
+        var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
 
-        using var activity = _telemetry.ActivitySource.StartActivity("run");
+        using var activity = _telemetry.StartDiagnosticActivity("run");
 
         var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
+
+        // Handle isolated mode - randomize ports and isolate user secrets
+        string? isolatedUserSecretsId = null;
+        if (context.Isolated)
+        {
+            isolatedUserSecretsId = await ConfigureIsolatedModeAsync(effectiveAppHostFile, env, cancellationToken);
+            _logger.LogInformation("Aspire run isolated. Isolated UserSecretsId: {IsolatedUserSecretsId}", isolatedUserSecretsId);
+        }
 
         if (context.WaitForDebugger)
         {
@@ -196,7 +226,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
             foreach (var kvp in certResult.EnvironmentVariables)
@@ -215,9 +245,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            if (!watch)
+            if (!watch && !context.NoBuild)
             {
-                if (!isSingleFileAppHost && !isExtensionHost)
+                // Build in CLI if either not running under extension host, or the extension reports 'build-dotnet-using-cli' capability.
+                var extensionHasBuildCapability = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
+                var shouldBuildInCli = !isExtensionHost || extensionHasBuildCapability;
+                if (shouldBuildInCli)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
@@ -225,7 +258,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                         StandardErrorCallback = buildOutputCollector.AppendError,
                     };
 
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, context.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, context.NoRestore, buildOptions, context.WorkingDirectory, cancellationToken);
 
                     if (buildExitCode != 0)
                     {
@@ -243,7 +276,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             }
             else
             {
-                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, cancellationToken);
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, _fileLoggerProvider.LogFilePath, cancellationToken);
             }
         }
         catch
@@ -261,7 +294,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Create collector and store in context for exception handling
         // This must be set BEFORE signaling build completion to avoid a race condition
-        var runOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector(_fileLoggerProvider, "AppHost");
         context.OutputCollector = runOutputCollector;
 
         // Signal that build/preparation is complete
@@ -285,15 +318,30 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         // Start the apphost - the runner will signal the backchannel when ready
-        return await _runner.RunAsync(
-            effectiveAppHostFile,
-            watch,
-            !watch,
-            context.UnmatchedTokens,
-            env,
-            backchannelCompletionSource,
-            runOptions,
-            cancellationToken);
+        try
+        {
+            // noBuild: true if either watch mode is off (we already built above) or --no-build was passed
+            // noRestore: only relevant when noBuild is false (since --no-build implies --no-restore)
+            var noBuild = !watch || context.NoBuild;
+            return await _runner.RunAsync(
+                effectiveAppHostFile,
+                watch,
+                noBuild,
+                context.NoRestore,
+                context.UnmatchedTokens,
+                env,
+                backchannelCompletionSource,
+                runOptions,
+                cancellationToken);
+        }
+        finally
+        {
+            // Clean up isolated user secrets when the run completes
+            if (!string.IsNullOrEmpty(isolatedUserSecretsId))
+            {
+                IsolatedUserSecretsHelper.CleanupIsolatedUserSecrets(isolatedUserSecretsId);
+            }
+        }
     }
 
     private static void ConfigureSingleFileEnvironment(FileInfo appHostFile, Dictionary<string, string> env)
@@ -313,6 +361,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
+        // .NET projects require the SDK to be installed
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        {
+            // Throw an exception that will be caught by the command and result in SdkNotInstalled exit code
+            // This is cleaner than trying to signal through the backchannel pattern
+            throw new DotNetSdkNotInstalledException();
+        }
+
         var effectiveAppHostFile = context.AppHostFile;
         var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
@@ -326,47 +382,53 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                 effectiveAppHostFile,
                 _telemetry,
                 context.WorkingDirectory,
+                _fileLoggerProvider.LogFilePath,
                 cancellationToken);
 
             if (!compatibilityCheck.IsCompatibleAppHost)
             {
                 var exception = new AppHostIncompatibleException(
                     $"The app host is not compatible. Aspire.Hosting version: {compatibilityCheck.AspireHostingVersion}",
-                    "Aspire.Hosting");
+                    "Aspire.Hosting",
+                    compatibilityCheck.AspireHostingVersion);
                 // Signal the backchannel completion source so the caller doesn't wait forever
                 context.BackchannelCompletionSource?.TrySetException(exception);
                 throw exception;
             }
 
-            // Build the apphost
-            var buildOutputCollector = new OutputCollector();
-            var buildOptions = new DotNetCliRunnerInvocationOptions
+            // Build the apphost (unless --no-build is specified)
+            if (!context.NoBuild)
             {
-                StandardOutputCallback = buildOutputCollector.AppendOutput,
-                StandardErrorCallback = buildOutputCollector.AppendError,
-            };
+                var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
+                var buildOptions = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = buildOutputCollector.AppendOutput,
+                    StandardErrorCallback = buildOutputCollector.AppendError,
+                };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(
-                _runner,
-                _interactionService,
-                effectiveAppHostFile,
-                buildOptions,
-                context.WorkingDirectory,
-                cancellationToken);
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(
+                    _runner,
+                    _interactionService,
+                    effectiveAppHostFile,
+                    noRestore: false,
+                    buildOptions,
+                    context.WorkingDirectory,
+                    cancellationToken);
 
-            if (buildExitCode != 0)
-            {
-                // Set OutputCollector so PipelineCommandBase can display errors
-                context.OutputCollector = buildOutputCollector;
-                // Signal the backchannel completion source so the caller doesn't wait forever
-                context.BackchannelCompletionSource?.TrySetException(
-                    new InvalidOperationException("The app host build failed."));
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                if (buildExitCode != 0)
+                {
+                    // Set OutputCollector so PipelineCommandBase can display errors
+                    context.OutputCollector = buildOutputCollector;
+                    // Signal the backchannel completion source so the caller doesn't wait forever
+                    context.BackchannelCompletionSource?.TrySetException(
+                        new InvalidOperationException("The app host build failed."));
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
         }
 
         // Create collector and store in context for exception handling
-        var runOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector(_fileLoggerProvider, "AppHost");
         context.OutputCollector = runOutputCollector;
 
         var runOptions = new DotNetCliRunnerInvocationOptions
@@ -386,6 +448,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             effectiveAppHostFile,
             watch: false,
             noBuild: true,
+            noRestore: false,
             context.Arguments,
             env,
             context.BackchannelCompletionSource,
@@ -396,7 +459,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var outputCollector = new OutputCollector(_fileLoggerProvider, "Package");
         context.OutputCollector = outputCollector;
 
         var options = new DotNetCliRunnerInvocationOptions
@@ -423,20 +486,87 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 
         // Check if any socket files exist
         if (matchingSockets.Length == 0)
         {
-            return true; // No running instance, continue
+            return RunningInstanceResult.NoRunningInstance;
         }
 
         // Stop all running instances
         var stopTasks = matchingSockets.Select(socketPath => 
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
-        return results.All(r => r);
+        return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
+    }
+
+    /// <summary>
+    /// Gets the UserSecretsId from a project file.
+    /// </summary>
+    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (exitCode, jsonDocument) = await _runner.GetProjectItemsAndPropertiesAsync(
+                projectFile,
+                items: [],
+                properties: ["UserSecretsId"],
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (exitCode != 0 || jsonDocument is null)
+            {
+                return null;
+            }
+
+            var rootElement = jsonDocument.RootElement;
+            if (rootElement.TryGetProperty("Properties", out var properties) &&
+                properties.TryGetProperty("UserSecretsId", out var userSecretsIdElement))
+            {
+                return userSecretsIdElement.GetString();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to get UserSecretsId from project file");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Configures isolated mode by enabling port randomization and isolating user secrets.
+    /// </summary>
+    /// <param name="appHostFile">The app host project file.</param>
+    /// <param name="env">The environment variables dictionary to modify.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The isolated user secrets ID if created, or null if no isolation was needed.</returns>
+    private async Task<string?> ConfigureIsolatedModeAsync(
+        FileInfo appHostFile,
+        Dictionary<string, string> env,
+        CancellationToken cancellationToken)
+    {
+        // Enable port randomization for isolated mode
+        env["DcpPublisher__RandomizePorts"] = "true";
+
+        // Get the UserSecretsId from the project and create isolated copy
+        var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+        if (!string.IsNullOrEmpty(userSecretsId))
+        {
+            _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+            var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
+            if (!string.IsNullOrEmpty(isolatedUserSecretsId))
+            {
+                // Override the user secrets ID for this run
+                env["DOTNET_USER_SECRETS_ID"] = isolatedUserSecretsId;
+                return isolatedUserSecretsId;
+            }
+        }
+
+        return null;
     }
 }

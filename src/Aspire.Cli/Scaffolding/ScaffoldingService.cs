@@ -5,7 +5,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Semver;
 
@@ -56,36 +55,38 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var directory = context.TargetDirectory;
         var language = context.Language;
 
-        // Step 1: Resolve SDK version from channel (if configured) or use default
+        // Step 1: Resolve SDK and package strategy
         var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
-        
-        // Load or create config with resolved SDK version
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, sdkVersion);
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
-        var packages = config.GetAllPackages().ToList();
+        var packages = config.GetAllPackages(sdkVersion).ToList();
         if (codeGenPackage is not null)
         {
-            packages.Add((codeGenPackage, config.SdkVersion!));
+            var codeGenVersion = config.GetEffectiveSdkVersion(sdkVersion);
+            packages.Add((codeGenPackage, codeGenVersion));
         }
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-        var socketPath = appHostServerProject.GetSocketPath();
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
+        var prepareSdkVersion = config.GetEffectiveSdkVersion(sdkVersion);
 
-        var (buildSuccess, buildOutput, channelName) = await _interactionService.ShowStatusAsync(
+        var prepareResult = await _interactionService.ShowStatusAsync(
             ":gear:  Preparing Aspire server...",
-            () => BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken));
-        if (!buildSuccess)
+            () => appHostServerProject.PrepareAsync(prepareSdkVersion, packages, cancellationToken));
+        if (!prepareResult.Success)
         {
-            _interactionService.DisplayLines(buildOutput.GetLines());
+            if (prepareResult.Output is not null)
+            {
+                _interactionService.DisplayLines(prepareResult.Output.GetLines());
+            }
             _interactionService.DisplayError("Failed to build AppHost server.");
             return;
         }
 
         // Step 2: Start the server temporarily for scaffolding and code generation
         var currentPid = Environment.ProcessId;
-        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
 
         try
         {
@@ -129,10 +130,11 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 cancellationToken);
 
             // Save channel and language to settings.json
-            if (channelName is not null)
+            if (prepareResult.ChannelName is not null)
             {
-                config.Channel = channelName;
+                config.Channel = prepareResult.ChannelName;
             }
+
             config.Language = language.LanguageId;
             config.Save(directory.FullName);
         }
@@ -151,27 +153,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 }
             }
         }
-    }
-
-    private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
-        AppHostServerProject appHostServerProject,
-        string sdkVersion,
-        List<(string Name, string Version)> packages,
-        CancellationToken cancellationToken)
-    {
-        var outputCollector = new OutputCollector();
-
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
-        var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
-        if (!buildSuccess)
-        {
-            foreach (var (_, line) in buildOutput.GetLines())
-            {
-                outputCollector.AppendOutput(line);
-            }
-        }
-
-        return (buildSuccess, outputCollector, channelName);
     }
 
     private async Task<int> InstallDependenciesAsync(
@@ -231,7 +212,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         if (string.IsNullOrEmpty(channelName))
         {
-            return AppHostServerProject.DefaultSdkVersion;
+            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
         }
 
         // Find the matching channel
@@ -240,7 +221,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         if (channel is null)
         {
             _logger.LogWarning("Configured channel '{Channel}' not found, using default SDK version", channelName);
-            return AppHostServerProject.DefaultSdkVersion;
+            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
         }
 
         // Get template packages from the channel to determine SDK version
@@ -252,7 +233,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         if (latestPackage is null)
         {
             _logger.LogWarning("No packages found in channel '{Channel}', using default SDK version", channelName);
-            return AppHostServerProject.DefaultSdkVersion;
+            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
         }
 
         _logger.LogDebug("Resolved SDK version {Version} from channel {Channel}", latestPackage.Version, channelName);

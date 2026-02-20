@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../LogsCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Display logs from resources in a running Aspire apphost.</source>
+        <target state="translated">Çalışan bir Aspire apphost'taki kaynakların günlüklerini görüntüle.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Stream logs in real-time as they are written.</source>
+        <target state="translated">Günlükleri yazıldıkça gerçek zamanlı olarak akışla aktar.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output logs in JSON format (NDJSON).</source>
+        <target state="translated">Günlükleri JSON biçiminde (NDJSON) çıkar.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
+        <target state="translated">Geçerli dizinde AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResourcesFound">
+        <source>No resources found.</source>
+        <target state="translated">Kaynak bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>The name of the resource to get logs for. If not specified, logs from all resources are shown.</source>
+        <target state="translated">Günlükleri alınacak kaynağın adı. Belirtilmezse tüm kaynakların günlükleri gösterilir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceRequiredWithoutFollow">
+        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
+        <target state="translated">--follow kullanılmadığında kaynak adı gereklidir. Tüm kaynaklardan günlük akışı yapmak için --follow kullanın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">AppHost seçin:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailMustBePositive">
+        <source>The --tail value must be a positive number.</source>
+        <target state="translated">--tail değeri, pozitif bir sayı olmalıdır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailOptionDescription">
+        <source>Number of lines to show from the end of logs (default: all).</source>
+        <target state="translated">Günlüklerin sonundan gösterilecek satır sayısı (varsayılan: tümü).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailRequiresResource">
+        <source>The --tail option requires a resource name to be specified.</source>
+        <target state="translated">--tail seçeneği için bir kaynak adı belirtilmelidir.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

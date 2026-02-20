@@ -129,6 +129,9 @@
   <data name="DetachArgumentDescription" xml:space="preserve">
     <value>Run the AppHost in the background and exit after it starts.</value>
   </data>
+  <data name="JsonArgumentDescription" xml:space="preserve">
+    <value>Output result as JSON (only valid with --detach).</value>
+  </data>
   <data name="WatchArgumentDescription" xml:space="preserve">
     <value>Start project resources in watch mode.</value>
   </data>
@@ -167,7 +170,7 @@
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
-    <value>The project could not be run. For more information run with --debug switch.</value>
+    <value>The project could not be run. See logs at {0}</value>
   </data>
   <data name="Dashboard" xml:space="preserve">
     <value>Dashboard</value>
@@ -223,6 +226,9 @@
   <data name="AppHostExitedWithCode" xml:space="preserve">
     <value>AppHost process exited with code {0}.</value>
   </data>
+  <data name="AppHostFailedToBuild" xml:space="preserve">
+    <value>AppHost failed to build.</value>
+  </data>
   <data name="TimeoutWaitingForAppHost" xml:space="preserve">
     <value>Timeout waiting for AppHost to start.</value>
   </data>
@@ -231,5 +237,23 @@
   </data>
   <data name="ProcessId" xml:space="preserve">
     <value>PID</value>
+  </data>
+  <data name="FormatRequiresDetach" xml:space="preserve">
+    <value>The --format option can only be used together with --detach.</value>
+  </data>
+  <data name="IsolatedArgumentDescription" xml:space="preserve">
+    <value>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</value>
+  </data>
+  <data name="CopyingUserSecrets" xml:space="preserve">
+    <value>Copying user secrets for isolated mode...</value>
+  </data>
+  <data name="IsolatedModeRunningInstanceWarning" xml:space="preserve">
+    <value>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</value>
+  </data>
+  <data name="NoBuildArgumentDescription" xml:space="preserve">
+    <value>Do not build or restore the project before running.</value>
+  </data>
+  <data name="NoBuildNotSupportedWithWatchMode" xml:space="preserve">
+    <value>The --no-build option cannot be used when watch mode is enabled.</value>
   </data>
 </root>

@@ -6,6 +6,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 
 namespace Aspire.Cli.Utils;
 
@@ -21,6 +22,7 @@ internal static class SdkInstallHelper
     /// <param name="sdkInstaller">The SDK installer service.</param>
     /// <param name="interactionService">The interaction service for user communication.</param>
     /// <param name="features">The features service for checking if SDK installation is enabled.</param>
+    /// <param name="telemetry">The telemetry service for tracking SDK installation operations.</param>
     /// <param name="hostEnvironment">The CLI host environment for detecting interactive capabilities.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if the SDK is available, false if it's missing.</returns>
@@ -28,25 +30,46 @@ internal static class SdkInstallHelper
         IDotNetSdkInstaller sdkInstaller,
         IInteractionService interactionService,
         IFeatures features,
+        AspireCliTelemetry telemetry,
         ICliHostEnvironment? hostEnvironment = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(telemetry);
 
-        var (success, highestVersion, minimumRequiredVersion, forceInstall) = await sdkInstaller.CheckAsync(cancellationToken);
+        using var activity = telemetry.StartReportedActivity(name: TelemetryConstants.Activities.EnsureSdkInstalled);
+
+        var (success, highestInstalledVersion, minimumRequiredVersion, forceInstall) = await sdkInstaller.CheckAsync(cancellationToken);
+
+        var detectedVersion = highestInstalledVersion ?? "(not found)";
+
+        // Determine and record check result immediately
+        var checkResult = (success, forceInstall) switch
+        {
+            (true, false) => SdkCheckResult.AlreadyInstalled,
+            (true, true) => SdkCheckResult.ForceInstalled,
+            _ => SdkCheckResult.NotInstalled
+        };
+
+        activity?.SetTag(TelemetryConstants.Tags.SdkDetectedVersion, detectedVersion);
+        activity?.SetTag(TelemetryConstants.Tags.SdkMinimumRequiredVersion, minimumRequiredVersion.ToString());
+        activity?.SetTag(TelemetryConstants.Tags.SdkCheckResult, ToTelemetryString(checkResult));
+
+        // Track installation outcome state
+        var installResult = SdkInstallResult.AlreadyInstalled;
+        var result = success;
 
         if (!success || forceInstall)
         {
-            var detectedVersion = highestVersion ?? "(not found)";
-            
+            // SDK is not available (or force install is requested)
             // Only display error if SDK is actually missing
             if (!success)
             {
-                var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
-                    ErrorStrings.MinimumSdkVersionNotMet, 
-                    minimumRequiredVersion, 
+                var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture,
+                    ErrorStrings.MinimumSdkVersionNotMet,
+                    minimumRequiredVersion,
                     detectedVersion);
                 interactionService.DisplayError(sdkErrorMessage);
             }
@@ -54,16 +77,18 @@ internal static class SdkInstallHelper
             // Only offer to install if:
             // 1. The feature is enabled (default: false)
             // 2. We support interactive input OR forceInstall is true (for testing)
-            if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: false) &&
-                (hostEnvironment?.SupportsInteractiveInput == true || forceInstall))
+            var isFeatureEnabled = features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: false);
+            var isInteractive = hostEnvironment?.SupportsInteractiveInput == true;
+
+            if (isFeatureEnabled && (isInteractive || forceInstall))
             {
                 bool shouldInstall;
-                
+
                 if (forceInstall)
                 {
                     // When alwaysInstallSdk is true, skip the prompt and install directly
                     shouldInstall = true;
-                    interactionService.DisplayMessage("information", 
+                    interactionService.DisplayMessage("information",
                         "alwaysInstallSdk is enabled - forcing SDK installation for testing purposes.");
                 }
                 else
@@ -96,7 +121,8 @@ internal static class SdkInstallHelper
                                 ".NET SDK {0} has been installed successfully.",
                                 minimumRequiredVersion));
 
-                        return true;
+                        installResult = SdkInstallResult.Installed;
+                        result = true;
                     }
                     catch (Exception ex)
                     {
@@ -104,15 +130,48 @@ internal static class SdkInstallHelper
                             string.Format(CultureInfo.InvariantCulture,
                                 "Failed to install .NET SDK: {0}",
                                 ex.Message));
-                        return false;
+
+                        installResult = SdkInstallResult.InstallError;
+                        result = false;
                     }
                 }
+                else
+                {
+                    // User declined the installation
+                    installResult = SdkInstallResult.UserDeclined;
+                }
             }
-
-            // If we didn't install and SDK check failed, return false
-            return success;
+            else
+            {
+                // Installation not offered
+                installResult = !isFeatureEnabled
+                    ? SdkInstallResult.FeatureNotEnabled
+                    : SdkInstallResult.NotInteractive;
+            }
         }
 
-        return true;
+        // Record final telemetry
+        activity?.SetTag(TelemetryConstants.Tags.SdkInstallResult, ToTelemetryString(installResult));
+
+        return result;
     }
+
+    private static string ToTelemetryString(SdkInstallResult result) => result switch
+    {
+        SdkInstallResult.AlreadyInstalled => "already_installed",
+        SdkInstallResult.Installed => "installed",
+        SdkInstallResult.FeatureNotEnabled => "feature_not_enabled",
+        SdkInstallResult.NotInteractive => "not_interactive",
+        SdkInstallResult.UserDeclined => "user_declined",
+        SdkInstallResult.InstallError => "install_error",
+        _ => result.ToString().ToLowerInvariant()
+    };
+
+    private static string ToTelemetryString(SdkCheckResult result) => result switch
+    {
+        SdkCheckResult.AlreadyInstalled => "already_installed",
+        SdkCheckResult.ForceInstalled => "force_installed",
+        SdkCheckResult.NotInstalled => "not_installed",
+        _ => result.ToString().ToLowerInvariant()
+    };
 }

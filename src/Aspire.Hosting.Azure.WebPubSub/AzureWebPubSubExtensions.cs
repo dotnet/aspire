@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -38,6 +40,11 @@ public static class AzureWebPubSubExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureWebPubSubResource)infrastructure.AspireResource;
+
+            // Check if this Web PubSub service has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var service = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -61,7 +68,7 @@ public static class AzureWebPubSubExtensions
                     };
                     infrastructure.Add(capacityParameter);
 
-                    var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
+                    var svc = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
                     {
                         IsLocalAuthDisabled = true,
                         Sku = new BillingInfoSku()
@@ -71,7 +78,14 @@ public static class AzureWebPubSubExtensions
                         },
                         Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                     };
-                    return service;
+
+                    // When using private endpoints, disable public network access.
+                    if (hasPrivateEndpoint)
+                    {
+                        svc.PublicNetworkAccess = "Disabled";
+                    }
+
+                    return svc;
                 }
             );
 
@@ -79,6 +93,9 @@ public static class AzureWebPubSubExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name.ToBicepExpression() });
+
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = service.Id.ToBicepExpression() });
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)

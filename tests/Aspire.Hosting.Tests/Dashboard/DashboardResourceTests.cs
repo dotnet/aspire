@@ -144,6 +144,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             },
             e =>
             {
+                Assert.Equal("DASHBOARD__API__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
                 Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },

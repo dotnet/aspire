@@ -18,8 +18,8 @@ internal sealed class DeployCommand : PipelineCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
 
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DeployCommand> logger, IAnsiConsole ansiConsole)
-        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DeployCommand> logger, IAnsiConsole ansiConsole)
+        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
     {
         _clearCacheOption = new Option<bool>("--clear-cache")
         {
@@ -48,20 +48,20 @@ internal sealed class DeployCommand : PipelineCommandBase
         }
 
         // Add --log-level and --envionment flags if specified
-        var logLevel = parseResult.GetValue(_logLevelOption);
+        var logLevel = parseResult.GetValue(s_logLevelOption);
 
         if (!string.IsNullOrEmpty(logLevel))
         {
             baseArgs.AddRange(["--log-level", logLevel!]);
         }
 
-        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        var includeExceptionDetails = parseResult.GetValue(s_includeExceptionDetailsOption);
         if (includeExceptionDetails)
         {
             baseArgs.AddRange(["--include-exception-details", "true"]);
         }
 
-        var environment = parseResult.GetValue(_environmentOption);
+        var environment = parseResult.GetValue(s_environmentOption);
         if (!string.IsNullOrEmpty(environment))
         {
             baseArgs.AddRange(["--environment", environment!]);

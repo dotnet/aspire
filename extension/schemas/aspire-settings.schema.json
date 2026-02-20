@@ -1,0 +1,325 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://json.schemastore.org/aspire-settings.json",
+  "type": "object",
+  "title": "Aspire Local Settings",
+  "description": "Configuration file for .NET Aspire application host (.aspire/settings.json)",
+  "properties": {
+    "appHostPath": {
+      "description": "The path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing .aspire/settings.json.",
+      "type": "string"
+    },
+    "channel": {
+      "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\"). Used by aspire add to determine which NuGet feed to use.",
+      "type": "string"
+    },
+    "features": {
+      "description": "Feature flags for enabling/disabling experimental or optional features. Key is feature name, value is enabled (true) or disabled (false).",
+      "type": "object",
+      "properties": {
+        "defaultWatchEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
+          "default": false
+        },
+        "dotnetSdkInstallationEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
+          "default": true
+        },
+        "execCommandEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable the 'aspire exec' command for executing commands inside running resources",
+          "default": false
+        },
+        "minimumSdkCheckEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable minimum .NET SDK version checking before running Aspire applications",
+          "default": true
+        },
+        "orphanDetectionWithTimestampEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable timestamp-based orphan process detection to clean up stale Aspire processes",
+          "default": true
+        },
+        "packageSearchDiskCachingEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable disk caching for package search results to improve performance",
+          "default": true
+        },
+        "polyglotSupportEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot": {
+          "description": "Per-language feature flags for experimental polyglot languages (requires polyglotSupportEnabled).",
+          "type": "object",
+          "properties": {
+            "go": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              ],
+              "description": "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+              "default": false
+            },
+            "java": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              ],
+              "description": "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+              "default": false
+            },
+            "python": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              ],
+              "description": "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+              "default": false
+            },
+            "rust": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              ],
+              "description": "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "runningInstanceDetectionEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable detection of already running Aspire instances to prevent conflicts",
+          "default": true
+        },
+        "showAllTemplates": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Show all available templates including experimental ones in 'aspire new' and 'aspire init' commands",
+          "default": false
+        },
+        "showDeprecatedPackages": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Show or hide deprecated packages in 'aspire add' search results",
+          "default": false
+        },
+        "stagingChannelEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable access to the staging channel for early access to preview features and packages",
+          "default": false
+        },
+        "updateNotificationsEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Check if update notifications are disabled and set version check environment variable",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "language": {
+      "description": "The language identifier for this AppHost (e.g., \"typescript\", \"python\"). Used to determine which runtime to use for execution.",
+      "type": "string"
+    },
+    "packages": {
+      "description": "Package name to version mapping",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Package version"
+      }
+    },
+    "sdkVersion": {
+      "description": "The Aspire SDK version used for this polyglot AppHost project. Determines the version of Aspire.Hosting packages to use.",
+      "type": "string"
+    },
+    "overrideStagingFeed": {
+      "description": "[Internal] Override the NuGet feed URL used by the staging channel. When set, this URL is used instead of the default SHA-based build-specific feed.",
+      "type": "string"
+    },
+    "overrideStagingQuality": {
+      "description": "[Internal] Override the package quality filter for the staging channel. Set to \"Prerelease\" when staging builds are not yet marked as stable to use the shared daily feed instead of the SHA-based feed. Valid values: \"Stable\", \"Prerelease\", \"Both\".",
+      "type": "string",
+      "enum": [
+        "Stable",
+        "Prerelease",
+        "Both"
+      ]
+    },
+    "stagingPinToCliVersion": {
+      "description": "[Internal] When set to \"true\" and using the staging channel with Prerelease quality on the shared feed, all template and integration packages are pinned to the exact version of the installed CLI. This bypasses NuGet search entirely, ensuring version consistency.",
+      "type": "string",
+      "enum": [
+        "true",
+        "false"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

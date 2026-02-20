@@ -198,4 +198,22 @@
   <data name="NoGlobalConfigurationFound" xml:space="preserve">
     <value>No global configuration found.</value>
   </data>
+  <data name="InfoCommand_Description" xml:space="preserve">
+    <value>Display configuration file paths and available features.</value>
+  </data>
+  <data name="InfoCommand_JsonOptionDescription" xml:space="preserve">
+    <value>Output information in JSON format.</value>
+  </data>
+  <data name="InfoCommand_LocalSettingsPath" xml:space="preserve">
+    <value>Local settings path</value>
+  </data>
+  <data name="InfoCommand_GlobalSettingsPath" xml:space="preserve">
+    <value>Global settings path</value>
+  </data>
+  <data name="InfoCommand_AvailableFeatures" xml:space="preserve">
+    <value>Available features</value>
+  </data>
+  <data name="InfoCommand_SettingsProperties" xml:space="preserve">
+    <value>Settings file properties</value>
+  </data>
 </root>
