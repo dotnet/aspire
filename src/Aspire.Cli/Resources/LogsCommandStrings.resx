@@ -130,7 +130,7 @@
     <value>Stream logs in real-time as they are written.</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
-    <value>Output logs in JSON format (NDJSON).</value>
+    <value>Output format (Table or Json).</value>
   </data>
   <data name="AppHostNotRunning" xml:space="preserve">
     <value>No running AppHost found. Use 'aspire run' to start one first.</value>

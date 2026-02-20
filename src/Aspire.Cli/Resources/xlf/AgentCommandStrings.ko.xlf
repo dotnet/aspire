@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage AI agent integrations.</source>
-        <target state="translated">AI 에이전트 통합을 관리합니다.</target>
+        <source>Manage AI agent specific setup.</source>
+        <target state="needs-review-translation">AI 에이전트 통합을 관리합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">

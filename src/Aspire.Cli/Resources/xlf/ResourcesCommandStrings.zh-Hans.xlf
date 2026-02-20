@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">显示正在运行的 Aspire 应用主机中的资源快照。</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">显示正在运行的 Aspire 应用主机中的资源快照。</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">以 JSON 格式输出，供计算机使用。</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">以 JSON 格式输出，供计算机使用。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">

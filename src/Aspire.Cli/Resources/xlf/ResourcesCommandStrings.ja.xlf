@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">機械処理用の JSON 形式で出力します。</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">機械処理用の JSON 形式で出力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">

@@ -62,7 +62,7 @@
     <value>Diagnose Aspire environment issues and verify setup</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
-    <value>Output results as JSON for tooling integration</value>
+    <value>Output format (Table or Json).</value>
   </data>
   <data name="EnvironmentCheckHeader" xml:space="preserve">
     <value>Aspire Environment Check</value>

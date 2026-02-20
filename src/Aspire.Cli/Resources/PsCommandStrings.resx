@@ -121,7 +121,7 @@
     <value>List running apphosts.</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
-    <value>Output in JSON format.</value>
+    <value>Output format (Table or Json).</value>
   </data>
   <data name="ScanningForRunningAppHosts" xml:space="preserve">
     <value>Scanning for running AppHosts...</value>

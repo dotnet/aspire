@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output results as JSON for tooling integration</source>
-        <target state="translated">Araç tümleştirmesi için sonuçları JSON olarak çıktı</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Araç tümleştirmesi için sonuçları JSON olarak çıktı</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">

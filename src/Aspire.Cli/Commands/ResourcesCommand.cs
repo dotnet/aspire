@@ -100,7 +100,6 @@ internal sealed class ResourcesCommand : BaseCommand
         : base("describe", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         Aliases.Add("resources");
-        Aliases.Add("status");
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 

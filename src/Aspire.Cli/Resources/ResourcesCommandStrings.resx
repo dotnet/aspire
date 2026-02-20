@@ -127,7 +127,7 @@
     <value>Stream resource snapshots as they change (NDJSON format when used with --json).</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
-    <value>Output in JSON format for machine consumption.</value>
+    <value>Output format (Table or Json).</value>
   </data>
   <data name="NoAppHostFound" xml:space="preserve">
     <value>No AppHost project found.</value>

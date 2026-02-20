@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">Çalışan bir Aspire apphost'tan kaynak anlık görüntülerini göster.</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">Çalışan bir Aspire apphost'tan kaynak anlık görüntülerini göster.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">Makine tarafından kullanılmak üzere JSON biçiminde çıktı ver.</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Makine tarafından kullanılmak üzere JSON biçiminde çıktı ver.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">

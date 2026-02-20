@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">실행 중인 Aspire AppHost의 리소스 스냅샷을 표시합니다.</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">실행 중인 Aspire AppHost의 리소스 스냅샷을 표시합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">컴퓨터 사용량에 대한 JSON형식의 출력입니다.</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">컴퓨터 사용량에 대한 JSON형식의 출력입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">

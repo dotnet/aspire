@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
-        <target state="translated">Inizializzare il supporto Aspire in una soluzione esistente o creare un AppHost a file singolo.</target>
+        <source>Initialize Aspire in an existing codebase.</source>
+        <target state="needs-review-translation">Inizializzare il supporto Aspire in una soluzione esistente o creare un AppHost a file singolo.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
