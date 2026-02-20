@@ -106,6 +106,27 @@ internal static class GroupedHelpWriter
             }
         }
 
+        // Include any ungrouped commands in the column width calculation.
+        var allGroupedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in s_groups)
+        {
+            foreach (var entry in group.Commands)
+            {
+                allGroupedNames.Add(entry.Name);
+            }
+        }
+        foreach (var name in subcommandLookup.Keys)
+        {
+            if (!allGroupedNames.Contains(name))
+            {
+                var label = FormatCommandLabel(subcommandLookup[name], usageOverride: null);
+                if (label.Length > columnWidth)
+                {
+                    columnWidth = label.Length;
+                }
+            }
+        }
+
         // Padding: 2 spaces indent + label + at least 2 spaces gap before description
         columnWidth += 4;
 
@@ -136,6 +157,34 @@ internal static class GroupedHelpWriter
             {
                 writer.WriteLine();
             }
+        }
+
+        // Catch-all: show any registered commands not listed in any group.
+        var groupedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in s_groups)
+        {
+            foreach (var entry in group.Commands)
+            {
+                groupedNames.Add(entry.Name);
+            }
+        }
+
+        var ungrouped = subcommandLookup.Keys
+            .Where(name => !groupedNames.Contains(name))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (ungrouped.Count > 0)
+        {
+            writer.WriteLine("Other Commands:");
+            foreach (var name in ungrouped)
+            {
+                var cmd = subcommandLookup[name];
+                var label = FormatCommandLabel(cmd, usageOverride: null);
+                var description = cmd.Description ?? string.Empty;
+                WriteTwoColumnRow(writer, label, description, columnWidth, maxWidth);
+            }
+            writer.WriteLine();
         }
 
         // Options
