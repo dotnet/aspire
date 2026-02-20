@@ -145,8 +145,11 @@ builder.Build().Run();
             // Step 6: Set environment variables with an INVALID Azure location to induce failure.
             // 'invalidlocation' is not a real Azure region, so provisioning will fail with
             // LocationNotAvailableForResourceType or similar error.
+            // Note: Unset both Azure__Location and AZURE__LOCATION because the CI workflow
+            // sets Azure__Location=westus3 at the job level, and on Linux env vars are
+            // case-sensitive. Then set the invalid location with both casings to be safe.
             output.WriteLine("Step 6: Setting invalid Azure location to induce failure...");
-            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=invalidlocation && export AZURE__RESOURCEGROUP={resourceGroupName}")
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && unset Azure__Location && export AZURE__LOCATION=invalidlocation && export Azure__Location=invalidlocation && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
