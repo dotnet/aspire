@@ -61,6 +61,7 @@ internal class ExecCommand : BaseCommand
         CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        this.Hidden = true;
         _runner = runner;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
