@@ -54,7 +54,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
                     await taskFunction.Invoke();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not ExtensionOperationCanceledException)
                 {
                     await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
                     _consoleInteractionService.DisplayError(ex.Message);
@@ -148,7 +148,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -177,7 +180,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -206,7 +212,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
