@@ -106,7 +106,7 @@ public static class KeycloakResourceBuilderExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            builder.OnBeforeStart((@event, cancellationToken) =>
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 

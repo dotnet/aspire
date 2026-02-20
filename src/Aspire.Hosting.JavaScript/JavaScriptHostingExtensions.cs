@@ -260,7 +260,7 @@ public static class JavaScriptHostingExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            builder.OnBeforeStart((_, _) =>
             {
                 // set the command to the package manager executable if the JavaScriptRunScriptAnnotation is present
                 if (resourceBuilder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _) &&
@@ -463,7 +463,7 @@ public static class JavaScriptHostingExtensions
         // ensure the package manager command is set before starting the resource
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            builder.OnBeforeStart((_, _) =>
             {
                 if (resourceBuilder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                 {
@@ -631,7 +631,7 @@ public static class JavaScriptHostingExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, _) =>
+            builder.OnBeforeStart((@event, _) =>
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
@@ -985,7 +985,7 @@ public static class JavaScriptHostingExtensions
                 .ExcludeFromManifest()
                 .WithCertificateTrustScope(CertificateTrustScope.None);
 
-            resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            resource.ApplicationBuilder.OnBeforeStart((_, _) =>
             {
                 // set the installer's working directory to match the resource's working directory
                 // and set the install command and args based on the resource's annotations
