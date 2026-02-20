@@ -34,11 +34,11 @@ internal static class GroupedHelpWriter
             new("ps"),
         ]),
         new("Resource Management:", [
-            new("stop"),
             new("start"),
+            new("stop"),
             new("restart"),
-            new("command"),
             new("wait"),
+            new("command"),
             new("resources"),
             new("logs"),
             new("telemetry"),
