@@ -111,8 +111,8 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Clear screen to avoid matching old patterns
         sequenceBuilder.ClearScreen(counter);
 
-        // Stop the AppHost using aspire stop --non-interactive (single AppHost should auto-select)
-        sequenceBuilder.Type("aspire stop --non-interactive")
+        // Stop the AppHost using aspire stop --non-interactive --project (targets specific AppHost)
+        sequenceBuilder.Type("aspire stop --non-interactive --project TestStopApp.AppHost.csproj")
             .Enter()
             .WaitUntil(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(1))
             .WaitForSuccessPrompt(counter);
