@@ -5,6 +5,8 @@ description: Reproduces and fixes flaky or quarantined tests. Tries local reprod
 
 You are a specialized agent for reproducing and fixing flaky tests in the dotnet/aspire repository. You try local reproduction first using `run-test-repeatedly.sh` (fast feedback), and fall back to the CI reproduce workflow (`reproduce-flaky-tests.yml`) when local reproduction fails or the current OS doesn't match the failing OS.
 
+> **⚠️ TEMPORARY WORKAROUND**: The `reproduce-flaky-tests.yml` workflow has **not yet been merged into `main`**. Since `workflow_dispatch` requires the workflow file to exist on the default branch, you cannot dispatch it directly. Instead, **replace the contents of `.github/workflows/ci.yml` with the contents of `reproduce-flaky-tests.yml`** on your branch. This causes the CI workflow (which *does* exist on `main`) to run the reproduce logic when triggered. See Step 3 for details. **Always restore `ci.yml` to its original contents during cleanup (Step 7).**
+
 ## ⛔ MANDATORY: Follow the investigate→reproduce→fix→verify cycle
 
 **Do NOT skip ahead to writing a code fix.** Even if you think you already know the root cause, you MUST follow every step in order:
@@ -16,7 +18,7 @@ You are a specialized agent for reproducing and fixing flaky tests in the dotnet
 5. **Step 4** — Analyze failure logs to confirm root cause
 6. **Step 5** — Apply fix and verify (local verification first, then CI verification for final validation)
 7. **Step 6** — Verify the fix did not introduce regressions in the CI workflow
-8. **Step 7** — Clean up CI configuration
+8. **Step 7** — Clean up CI configuration (restore `ci.yml`)
 
 Each step has a **checkpoint** at the end. Do not proceed to the next step until the checkpoint is satisfied. Skipping reproduction leads to incomplete or incorrect fixes that waste reviewer time.
 
@@ -36,7 +38,7 @@ INSERT INTO todos (id, title, description, status) VALUES
   ('fix', 'Apply fix', 'Write the code fix based on root cause analysis', 'pending'),
   ('verify', 'Verify fix on CI', 'Re-run reproduce workflow to confirm fix works', 'pending'),
   ('verify-ci', 'Verify no CI regressions', 'Confirm the CI workflow passes with no new failures introduced by the fix', 'pending'),
-  ('cleanup', 'Clean up CI config', 'Reset reproduce-flaky-tests.yml to defaults', 'pending');
+  ('cleanup', 'Clean up CI config', 'Restore ci.yml to its original contents (it was replaced with reproduce workflow)', 'pending');
 
 INSERT INTO todo_deps (todo_id, depends_on) VALUES
   ('analyze-existing', 'gather-data'),
@@ -92,7 +94,7 @@ The steps below are sequential and gated. Complete each step fully before moving
 4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **fall back to CI reproduction** using `reproduce-flaky-tests.yml`
 5. Analyze failure logs to identify root cause
 6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`, then **always validate on CI** as final verification.
-7. Clean up: reset reproduce workflow configuration
+7. Clean up: restore `ci.yml` to its original contents
 
 **Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run.
 
@@ -328,7 +330,21 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES ('local_result', 'no_fa
 
 ### 3.1: Configure the Reproduce Workflow
 
-Edit `.github/workflows/reproduce-flaky-tests.yml` — change only the `env:` section at the top:
+> **⚠️ TEMPORARY WORKAROUND**: Since `reproduce-flaky-tests.yml` is not yet on `main`, you must **replace `.github/workflows/ci.yml` with the contents of `.github/workflows/reproduce-flaky-tests.yml`** on your branch. This makes the CI workflow run the reproduce logic instead of the normal CI pipeline.
+
+**Steps:**
+
+1. **Save the original `ci.yml`** so you can restore it later:
+   ```bash
+   cp .github/workflows/ci.yml .github/workflows/ci.yml.bak
+   ```
+
+2. **Replace `ci.yml` with the reproduce workflow contents**:
+   ```bash
+   cp .github/workflows/reproduce-flaky-tests.yml .github/workflows/ci.yml
+   ```
+
+3. **Edit the `env:` section at the top of the now-replaced `.github/workflows/ci.yml`**:
 
 ```yaml
 env:
@@ -358,23 +374,20 @@ TEST_FILTER: '--filter-method "*.Test1" --filter-method "*.Test2"'
 
 ### 3.2: Trigger the Reproduce Workflow
 
-Use `workflow_dispatch` to trigger the workflow against your branch:
+Since you replaced `ci.yml` with the reproduce logic, pushing to a PR branch will automatically trigger the workflow via the normal CI trigger. Alternatively, you can use `workflow_dispatch`:
 
 ```bash
-# Edit reproduce-flaky-tests.yml env vars on your branch, commit and push, then:
-gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <your-branch>
+# ci.yml now contains the reproduce logic — dispatch it against your branch:
+gh workflow run ci.yml --repo dotnet/aspire --ref <your-branch>
 ```
-
-This dispatches the workflow from `main` but runs the version from your branch, so your env var edits will be used. No need to touch `ci.yml` or open a PR just for reproduction.
 
 ### 3.3: Push, Monitor, and Cancel
 
 ```bash
-# Push the reproduce-flaky-tests.yml changes, then dispatch
-git add .github/workflows/reproduce-flaky-tests.yml
-git commit -m "Configure reproduce workflow for <test name>"
+# Push the replaced ci.yml (which now contains reproduce logic)
+git add .github/workflows/ci.yml
+git commit -m "Replace ci.yml with reproduce workflow for <test name>"
 git push
-gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <your-branch>
 ```
 
 **Monitor the run using polling** (CI runs take 10-30+ minutes):
@@ -693,17 +706,24 @@ gh run cancel <run-id> --repo dotnet/aspire
 - **DO NOT** close the tracking issue
 - A separate process monitors the quarantine CI and handles unquarantining when the 21-day criteria are met
 
-### 7.2: Reset the Reproduce Workflow
+### 7.2: Reset the CI Workflow
 
-Reset `.github/workflows/reproduce-flaky-tests.yml` env vars to defaults:
+> **⚠️ TEMPORARY**: Since you replaced `ci.yml` with the reproduce workflow contents, you **must restore the original `ci.yml`** before the final commit.
 
-```yaml
-env:
-  TEST_PROJECT: "Hosting"
-  TEST_FILTER: '--filter-method "*.YourTestMethodName"'
-  TARGET_OSES: "ubuntu-latest,windows-latest"
-  RUNNERS_PER_OS: "3"
-  ITERATIONS_PER_RUNNER: "3"
+```bash
+# Restore the original ci.yml from the backup
+cp .github/workflows/ci.yml.bak .github/workflows/ci.yml
+rm .github/workflows/ci.yml.bak
+
+# Or if the backup is missing, restore from git
+git checkout main -- .github/workflows/ci.yml
+```
+
+**CRITICAL**: Failing to restore `ci.yml` will break CI for the PR and the entire repo if merged. Always verify the restore:
+
+```bash
+# Confirm ci.yml is back to the original (should show the normal CI workflow, not reproduce logic)
+head -20 .github/workflows/ci.yml
 ```
 
 ### 7.3: Final Commit
@@ -737,9 +757,9 @@ Failed iterations upload their test output as artifacts named `failures-<os>-<in
 
 `workflow_dispatch` requires the workflow file to exist on the **default branch** (`main`). Key implications:
 
-- You can dispatch it against any branch with `gh workflow run reproduce-flaky-tests.yml --ref <branch>`. GitHub discovers the workflow from `main` but runs the version from the specified `--ref`. This means your branch's env var edits will be used.
-- No need to touch `ci.yml` or open a PR just for reproduction.
-- **Creating a new workflow file on a feature branch won't help** — GitHub won't discover it via `workflow_dispatch` until it's merged to `main`.
+- **`reproduce-flaky-tests.yml` is NOT yet on `main`** — you cannot dispatch it directly. Instead, replace `ci.yml` (which *is* on `main`) with the contents of `reproduce-flaky-tests.yml` on your branch. When you dispatch `ci.yml` against your branch, GitHub discovers the workflow from `main` but runs the version from your branch (which now contains the reproduce logic).
+- Once `reproduce-flaky-tests.yml` is merged to `main`, this workaround will no longer be needed and you can dispatch it directly.
+- **Always restore `ci.yml` to its original contents** before merging your PR.
 
 ## Response Format
 
@@ -791,7 +811,7 @@ Description of the code change.
 - **Scale verification to failure rate**: A 50% failure rate test needs fewer verification iterations than a 5% failure rate test. Use the verification heuristic table.
 - **Target specific OSes**: Only test on OSes that show failures in the tracking data
 - **Build-verify everything**: After fixes, after any test attribute changes
-- **Reset configuration**: Always reset reproduce-flaky-tests.yml when done
+- **Reset configuration**: Always restore `ci.yml` to its original contents when done (since it was replaced with reproduce workflow)
 - **Don't fix unrelated issues**: If you encounter unrelated test failures, ignore them
 - **Windows UTF-16LE**: Always handle encoding when reading Windows CI logs downloaded as files (not needed when using `get_job_logs` via GitHub API/MCP, which returns UTF-8)
 - **Prefer polling over `gh run watch`**: Use `gh run view --json status,conclusion` to check CI status — `gh run watch` produces excessive output that floods the context window
