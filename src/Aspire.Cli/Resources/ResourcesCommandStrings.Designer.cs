@@ -57,9 +57,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string WatchOptionDescription {
+        public static string FollowOptionDescription {
             get {
-                return ResourceManager.GetString("WatchOptionDescription", resourceCulture);
+                return ResourceManager.GetString("FollowOptionDescription", resourceCulture);
             }
         }
 

@@ -80,9 +80,9 @@ internal sealed class ResourcesCommand : BaseCommand
     {
         Description = ResourcesCommandStrings.ProjectOptionDescription
     };
-    private static readonly Option<bool> s_watchOption = new("--watch")
+    private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
-        Description = ResourcesCommandStrings.WatchOptionDescription
+        Description = ResourcesCommandStrings.FollowOptionDescription
     };
     private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
@@ -105,7 +105,7 @@ internal sealed class ResourcesCommand : BaseCommand
 
         Arguments.Add(s_resourceArgument);
         Options.Add(s_projectOption);
-        Options.Add(s_watchOption);
+        Options.Add(s_followOption);
         Options.Add(s_formatOption);
     }
 
@@ -115,7 +115,7 @@ internal sealed class ResourcesCommand : BaseCommand
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
-        var watch = parseResult.GetValue(s_watchOption);
+        var follow = parseResult.GetValue(s_followOption);
         var format = parseResult.GetValue(s_formatOption);
 
         // When outputting JSON, suppress status messages to keep output machine-readable
@@ -135,7 +135,7 @@ internal sealed class ResourcesCommand : BaseCommand
             return ExitCodeConstants.Success;
         }
 
-        if (watch)
+        if (follow)
         {
             return await ExecuteWatchAsync(result.Connection!, resourceName, format, cancellationToken);
         }

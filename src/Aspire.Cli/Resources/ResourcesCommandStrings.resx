@@ -123,8 +123,8 @@
   <data name="ProjectOptionDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
-  <data name="WatchOptionDescription" xml:space="preserve">
-    <value>Stream resource snapshots as they change (NDJSON format when used with --json).</value>
+  <data name="FollowOptionDescription" xml:space="preserve">
+    <value>Continuously stream resource state changes.</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
     <value>Output format (Table or Json).</value>

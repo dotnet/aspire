@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../ResourcesCommandStrings.resx">
     <body>
@@ -10,6 +10,11 @@
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
         <target state="needs-review-translation">Consente di visualizzare gli snapshot delle risorse da un apphost Aspire in esecuzione.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Continuously stream resource state changes.</source>
+        <target state="new">Continuously stream resource state changes.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
@@ -50,11 +55,6 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
         <target state="translated">Selezionare un AppHost:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchOptionDescription">
-        <source>Stream resource snapshots as they change (NDJSON format when used with --json).</source>
-        <target state="translated">Consente di trasmettere gli snapshot delle risorse man mano che cambiano (formato NDJSON se usato con --json).</target>
         <note />
       </trans-unit>
     </body>
