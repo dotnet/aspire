@@ -14,6 +14,11 @@ namespace Aspire.Hosting;
 public static class OtlpConfigurationExtensions
 {
     /// <summary>
+    /// The name of the environment variable for configuring the OTLP exporter ingestion URL. This is used by OpenTelemetry SDKs to determine where to send telemetry data.
+    /// </summary>
+    public static readonly string OtlpEndpointEnvironmentVariableName = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
+    /// <summary>
     /// Configures OpenTelemetry in projects using environment variables.
     /// </summary>
     /// <param name="resource">The resource to add annotations to.</param>
@@ -68,7 +73,9 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            SetOtel(context, configuration, otlpExporterAnnotation.RequiredProtocol);
+            var (url, protocol) = OtlpEndpointResolver.ResolveOtlpEndpoint(configuration, otlpExporterAnnotation.RequiredProtocol);
+            context.EnvironmentVariables[OtlpEndpointEnvironmentVariableName] = new HostUrl(url);
+            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
@@ -102,18 +109,6 @@ public static class OtlpConfigurationExtensions
                 context.EnvironmentVariables["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] = "true";
             }
         }));
-    }
-
-    private static void SetOtel(EnvironmentCallbackContext context, IConfiguration configuration, OtlpProtocol? requiredProtocol)
-    {
-        var (url, protocol) = OtlpEndpointResolver.ResolveOtlpEndpoint(configuration, requiredProtocol);
-        SetOtelEndpointAndProtocol(context.EnvironmentVariables, url, protocol);
-    }
-
-    private static void SetOtelEndpointAndProtocol(Dictionary<string, object> environmentVariables, string url, string protocol)
-    {
-        environmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
-        environmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
     }
 
     /// <summary>

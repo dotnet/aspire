@@ -109,7 +109,7 @@ internal sealed class DcpOptions
     /// <summary>
     /// Enables Aspire container tunnel for container-to-host connectivity across all container orchestrators.
     /// </summary>
-    public bool EnableAspireContainerTunnel { get; set; }
+    public bool EnableAspireContainerTunnel { get; set; } = true;
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>

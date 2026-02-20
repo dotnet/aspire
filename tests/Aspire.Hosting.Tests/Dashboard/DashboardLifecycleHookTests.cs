@@ -139,7 +139,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         var httpEndpoint = new EndpointReference(dashboardResource, "http");
         httpEndpoint.EndpointAnnotation.AllocatedEndpoint = new(httpEndpoint.EndpointAnnotation, "localhost", 8080);
-        var otlpGrpcEndpoint = new EndpointReference(dashboardResource, DashboardEventHandlers.OtlpGrpcEndpointName);
+        var otlpGrpcEndpoint = new EndpointReference(dashboardResource, KnownEndpointNames.OtlpGrpcEndpointName);
         otlpGrpcEndpoint.EndpointAnnotation.AllocatedEndpoint = new(otlpGrpcEndpoint.EndpointAnnotation, "localhost", 4317);
 
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });

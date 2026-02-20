@@ -2189,12 +2189,16 @@ public class DcpExecutorTests
 
         var container = builder.AddContainer("aContainer", "image")
             .WithEndpoint(name: "proxied", port: 15678, targetPort: 11234, isProxied: true)
-            .WithEndpoint(name: "notProxied", port: 18765, isProxied: false);
+            .WithEndpoint(name: "notProxied", port: 18765, isProxied: false)
+            .WithEnvironment("EXE_PROXIED_PORT", executable.GetEndpoint("proxied").Property(EndpointProperty.Port))
+            .WithEnvironment("EXE_NOTPROXIED_PORT", executable.GetEndpoint("notProxied").Property(EndpointProperty.Port));
 
         var containerWithAlias = builder.AddContainer("containerWithAlias", "image")
             .WithEndpoint(name: "proxied", port: 25678, targetPort: 21234, isProxied: true)
             .WithEndpoint(name: "notProxied", port: 28765, isProxied: false)
-            .WithContainerNetworkAlias("custom.alias");
+            .WithContainerNetworkAlias("custom.alias")
+            .WithEnvironment("EXE_PROXIED_PORT", executable.GetEndpoint("proxied").Property(EndpointProperty.Port))
+            .WithEnvironment("EXE_NOTPROXIED_PORT", executable.GetEndpoint("notProxied").Property(EndpointProperty.Port));
 
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
@@ -2220,10 +2224,10 @@ public class DcpExecutorTests
 
         if (useTunnel)
         {
-            await AssertTunneledPort(executable.Resource, "proxied");
-            await AssertTunneledPort(executable.Resource, "notProxied");
+            await AssertTunneledPort(executable.Resource, "proxied", 5678);
+            await AssertTunneledPort(executable.Resource, "notProxied", 8765);
 
-            async ValueTask AssertTunneledPort(IResourceWithEndpoints resource, string endpointName)
+            async ValueTask AssertTunneledPort(IResourceWithEndpoints resource, string endpointName, int hostPort)
             {
                 var svcs = kubernetesService.CreatedResources
                     .OfType<Service>()
@@ -2236,10 +2240,21 @@ public class DcpExecutorTests
 
                 int port = svc.AllocatedPort!.Value;
                 await AssertEndpoint(executable.Resource, endpointName, KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, port);
+
+                await AssertEndpoint(executable.Resource, endpointName, KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, hostPort);
+
+                var dcpContainer = kubernetesService.CreatedResources
+                    .OfType<Container>()
+                    .Where(c => c.AppModelResourceName == container.Resource.Name)
+                    .Single();
+                var exePortEnvVal = dcpContainer.Spec?.Env?.Where(e => e.Name == $"EXE_{endpointName.ToUpper()}_PORT").Single().Value;
+                Assert.Equal(port.ToString(), exePortEnvVal);
             }
         }
         else
         {
+            await AssertEndpoint(executable.Resource, "proxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 5678);
+            await AssertEndpoint(executable.Resource, "notProxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 8765);
             await AssertEndpoint(executable.Resource, "proxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, 5678);
             await AssertEndpoint(executable.Resource, "notProxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, 8765);
         }
