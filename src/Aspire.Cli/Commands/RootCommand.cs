@@ -34,9 +34,17 @@ internal sealed class RootCommand : BaseRootCommand
         Recursive = true
     };
 
+    // Hidden backward-compat alias for --log-level (was the original name)
+    private static readonly Option<LogLevel?> s_legacyDebugLevelOption = new("--debug-level")
+    {
+        Description = RootCommandStrings.DebugLevelArgumentDescription,
+        Recursive = true,
+        Hidden = true
+    };
+
     public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
-        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
+        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners.",
         Recursive = true
     };
 
@@ -164,6 +172,7 @@ internal sealed class RootCommand : BaseRootCommand
 
         Options.Add(DebugOption);
         Options.Add(DebugLevelOption);
+        Options.Add(s_legacyDebugLevelOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
         Options.Add(BannerOption);

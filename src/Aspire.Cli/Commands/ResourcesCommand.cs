@@ -84,6 +84,12 @@ internal sealed class ResourcesCommand : BaseCommand
     {
         Description = ResourcesCommandStrings.FollowOptionDescription
     };
+    // Hidden backward-compat alias for --follow (was --watch before 13.2)
+    private static readonly Option<bool> s_legacyWatchOption = new("--watch")
+    {
+        Description = ResourcesCommandStrings.FollowOptionDescription,
+        Hidden = true
+    };
     private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
         Description = ResourcesCommandStrings.JsonOptionDescription
@@ -106,6 +112,7 @@ internal sealed class ResourcesCommand : BaseCommand
         Arguments.Add(s_resourceArgument);
         Options.Add(s_projectOption);
         Options.Add(s_followOption);
+        Options.Add(s_legacyWatchOption);
         Options.Add(s_formatOption);
     }
 
@@ -115,7 +122,7 @@ internal sealed class ResourcesCommand : BaseCommand
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
-        var follow = parseResult.GetValue(s_followOption);
+        var follow = parseResult.GetValue(s_followOption) || parseResult.GetValue(s_legacyWatchOption);
         var format = parseResult.GetValue(s_formatOption);
 
         // When outputting JSON, suppress status messages to keep output machine-readable

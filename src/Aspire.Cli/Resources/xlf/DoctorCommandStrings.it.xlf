@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Diagnose Aspire environment issues and verify setup</source>
-        <target state="translated">Diagnostica i problemi dell'ambiente Aspire e verifica la configurazione</target>
+        <source>Diagnose Aspire environment issues and verify setup.</source>
+        <target state="needs-review-translation">Diagnostica i problemi dell'ambiente Aspire e verifica la configurazione</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">

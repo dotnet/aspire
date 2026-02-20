@@ -90,6 +90,36 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ResourcesCommand_LegacyWatchOption_StillWorks()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --watch --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task ResourcesCommand_LegacyResourcesAlias_StillWorks()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("resources --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
     public async Task ResourcesCommand_FollowAndFormat_CanBeCombined()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
