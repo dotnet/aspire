@@ -28,6 +28,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzureSqlDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureSqlServerResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureSqlDatabaseResource(string name, string databaseName, AzureSqlServerResource parent) : base(default!) { }
@@ -50,7 +51,7 @@ namespace Aspire.Hosting.Azure
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
-    public partial class AzureSqlServerResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureSqlServerResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IAzurePrivateEndpointTarget
     {
         [System.Obsolete("This method is obsolete and will be removed in a future version. Use AddAzureSqlServer instead to add an Azure SQL server resource.")]
         public AzureSqlServerResource(ApplicationModel.SqlServerServerResource innerResource, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
@@ -58,6 +59,8 @@ namespace Aspire.Hosting.Azure
         public AzureSqlServerResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
+
+        BicepOutputReference IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public System.Collections.Generic.IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases { get { throw null; } }
 
@@ -68,6 +71,8 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference FullyQualifiedDomainName { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "InnerResource")]
         public bool IsContainer { get { throw null; } }
@@ -85,5 +90,9 @@ namespace Aspire.Hosting.Azure
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }

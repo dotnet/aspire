@@ -34,18 +34,26 @@ namespace Aspire.Hosting.Azure
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
     }
 
-    public partial class AzureAppConfigurationResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints
+    public partial class AzureAppConfigurationResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints, IAzurePrivateEndpointTarget
     {
         public AzureAppConfigurationResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        BicepOutputReference IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference Endpoint { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }

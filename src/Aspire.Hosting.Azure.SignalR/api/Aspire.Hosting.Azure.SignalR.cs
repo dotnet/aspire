@@ -23,13 +23,17 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
-    public partial class AzureSignalRResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, IResourceWithEndpoints
+    public partial class AzureSignalRResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, IResourceWithEndpoints, Azure.IAzurePrivateEndpointTarget
     {
         public AzureSignalRResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        Azure.BicepOutputReference Azure.IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference HostName { get { throw null; } }
+
+        public Azure.BicepOutputReference Id { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
@@ -40,6 +44,10 @@ namespace Aspire.Hosting.ApplicationModel
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string Azure.IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> Azure.IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }
 
