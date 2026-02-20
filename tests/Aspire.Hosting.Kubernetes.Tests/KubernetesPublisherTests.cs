@@ -407,6 +407,47 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
+    [Fact]
+    public async Task KubernetesMapsPortsForBaitAndSwitchResources()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+        builder.AddKubernetesEnvironment("env");
+        var api = builder.AddExecutable("api", "node", ".")
+            .PublishAsDockerFile()
+            .WithHttpEndpoint(env: "PORT");
+        builder.AddContainer("gateway", "nginx")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithReference(api.GetEndpoint("http"));
+        var app = builder.Build();
+        app.Run();
+        // Assert
+        var expectedFiles = new[]
+        {
+            "values.yaml",
+            "templates/api/deployment.yaml",
+            "templates/api/service.yaml",
+            "templates/api/config.yaml",
+            "templates/gateway/deployment.yaml",
+            "templates/gateway/config.yaml"
+        };
+        SettingsTask settingsTask = default!;
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+        await settingsTask;
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
