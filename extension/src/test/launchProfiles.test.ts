@@ -86,8 +86,8 @@ suite('Launch Profile Tests', () => {
 
             const result = determineBaseLaunchProfile(launchConfig, sampleLaunchSettings);
 
-            assert.strictEqual(result.profile, null);
-            assert.strictEqual(result.profileName, null);
+                assert.strictEqual(result.profile, null);
+                assert.strictEqual(result.profileName, null);
         });
 
         test('returns first profile with commandName=Project when no explicit profile specified', () => {
@@ -441,17 +441,22 @@ suite('Launch Profile Tests', () => {
     });
 
     suite('determineWorkingDirectory', () => {
-        const projectPath = path.join('C:', 'project', 'MyApp.csproj');
+        // Keep these tests cross-platform by deriving the platform's root from the current process.
+        // On Windows this is typically something like "C:\\" (drive-dependent), and on POSIX it's "/".
+        const systemRoot = path.parse(process.cwd()).root;
+        const projectPath = path.join(systemRoot, 'project', 'MyApp.csproj');
+        const projectDir = path.dirname(projectPath);
+        const absoluteWorkingDir = path.join(systemRoot, 'custom', 'working', 'dir');
 
         test('uses absolute working directory from launch profile', () => {
             const baseProfile: LaunchProfile = {
                 commandName: 'Project',
-                workingDirectory: path.join('C:', 'custom', 'working', 'dir')
+                workingDirectory: absoluteWorkingDir
             };
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, path.join('C:', 'custom', 'working', 'dir'));
+            assert.strictEqual(result, absoluteWorkingDir);
         });
 
         test('resolves relative working directory from launch profile', () => {
@@ -462,7 +467,7 @@ suite('Launch Profile Tests', () => {
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, path.join('C:', 'project', 'custom'));
+            assert.strictEqual(result, path.join(projectDir, 'custom'));
         });
 
         test('uses project directory when no working directory specified', () => {
@@ -472,13 +477,13 @@ suite('Launch Profile Tests', () => {
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, path.join('C:', 'project'));
+            assert.strictEqual(result, projectDir);
         });
 
         test('uses project directory when base profile is null', () => {
             const result = determineWorkingDirectory(projectPath, null);
 
-            assert.strictEqual(result, path.join('C:', 'project'));
+            assert.strictEqual(result, projectDir);
         });
     });
 
@@ -488,8 +493,34 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(result, undefined);
         });
 
-        test('returns undefined when applicationUrl is undefined', () => {
-            const result = determineServerReadyAction(true, undefined);
+        test('returns undefined when applicationUrl is undefined and no launch config serverReadyAction', () => {
+            const result = determineServerReadyAction(true, undefined, undefined);
+            assert.strictEqual(result, undefined);
+        });
+
+        test('returns existing when launchBrowser is undefined, applicationUrl is undefined and existing launch config serverReadyAction', () => {
+            const result = determineServerReadyAction(undefined, undefined, { action: 'openExternally', uriFormat: 'https://localhost:5001', pattern: '\\bNow listening on:\\s+(https?://\\S+)' });
+            assert.notStrictEqual(result, undefined);
+            assert.strictEqual(result?.action, 'openExternally');
+            assert.strictEqual(result?.uriFormat, 'https://localhost:5001');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+(https?://\\S+)');
+        });
+
+        test('returns existing when launchBrowser is true, applicationUrl is undefined and existing launch config serverReadyAction', () => {
+            const result = determineServerReadyAction(true, undefined, { action: 'openExternally', uriFormat: 'https://localhost:5001', pattern: '\\bNow listening on:\\s+(https?://\\S+)' });
+            assert.notStrictEqual(result, undefined);
+            assert.strictEqual(result?.action, 'openExternally');
+            assert.strictEqual(result?.uriFormat, 'https://localhost:5001');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+(https?://\\S+)');
+        });
+
+        test('returns undefined when launchBrowser is false, applicationUrl is undefined and existing launch config serverReadyAction', () => {
+            const result = determineServerReadyAction(false, undefined, { action: 'openExternally', uriFormat: 'https://localhost:5001', pattern: '\\bNow listening on:\\s+(https?://\\S+)' });
+            assert.strictEqual(result, undefined);
+        });
+
+        test('returns undefined when launchBrowser is false, applicationUrl is not undefined and existing launch config serverReadyAction', () => {
+            const result = determineServerReadyAction(false, 'https://localhost:5001', { action: 'openExternally', uriFormat: 'https://localhost:5001', pattern: '\\bNow listening on:\\s+(https?://\\S+)' });
             assert.strictEqual(result, undefined);
         });
 
@@ -500,7 +531,7 @@ suite('Launch Profile Tests', () => {
             assert.notStrictEqual(result, undefined);
             assert.strictEqual(result?.action, 'openExternally');
             assert.strictEqual(result?.uriFormat, applicationUrl);
-            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+(https?://\\S+)');
         });
 
         test('returns serverReadyAction with first URL when multiple URLs separated by semicolon', () => {
@@ -510,7 +541,7 @@ suite('Launch Profile Tests', () => {
             assert.notStrictEqual(result, undefined);
             assert.strictEqual(result?.action, 'openExternally');
             assert.strictEqual(result?.uriFormat, 'https://localhost:5001');
-            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+https?://\\S+');
+            assert.strictEqual(result?.pattern, '\\bNow listening on:\\s+(https?://\\S+)');
         });
     });
 
