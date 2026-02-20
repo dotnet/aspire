@@ -31,7 +31,6 @@ internal static class GroupedHelpWriter
             new("update"),
             new("run"),
             new("stop", UsageOverride: ""),
-            new("start", UsageOverride: ""),
         ]),
         new("Resource Management:", [
             new("run"),
