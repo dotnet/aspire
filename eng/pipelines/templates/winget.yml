@@ -44,13 +44,23 @@ steps:
 
       $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
       if (-not $wingetPath) {
-        Write-Error "winget is not available on this agent. Expected it to be pre-installed."
-        exit 1
+        Write-Host "winget not found, installing..."
+        & "$(Build.SourcesDirectory)/eng/install-winget.ps1"
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "install-winget.ps1 failed with exit code $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+
+        $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
+        if (-not $wingetPath) {
+          Write-Error "winget is still not available after running install-winget.ps1"
+          exit 1
+        }
       }
 
       Write-Host "winget found at: $($wingetPath.Source)"
       winget --version
-    displayName: 🟣Verify winget CLI
+    displayName: 🟣Install/Verify winget CLI
 
   - pwsh: |
       $ErrorActionPreference = 'Stop'
