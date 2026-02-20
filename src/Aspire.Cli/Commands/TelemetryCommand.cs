@@ -25,8 +25,9 @@ internal sealed class TelemetryCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry)
-        : base("telemetry", TelemetryCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("otel", TelemetryCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        Aliases.Add("telemetry");
         ArgumentNullException.ThrowIfNull(logsCommand);
         ArgumentNullException.ThrowIfNull(spansCommand);
         ArgumentNullException.ThrowIfNull(tracesCommand);

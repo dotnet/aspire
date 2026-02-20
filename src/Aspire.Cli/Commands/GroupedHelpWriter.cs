@@ -41,9 +41,9 @@ internal static class GroupedHelpWriter
             new("command"),
         ]),
         new("Monitoring:", [
-            new("status"),
+            new("describe"),
             new("logs"),
-            new("telemetry"),
+            new("otel"),
         ]),
         new("Deployment:", [
             new("publish"),
