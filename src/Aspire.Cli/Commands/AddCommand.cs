@@ -211,10 +211,19 @@ internal sealed class AddCommand : BaseCommand
             // Stop any running AppHost instance before adding the package.
             // A running AppHost (especially in detach mode) locks project files,
             // which prevents 'dotnet add package' from modifying the project.
-            await project.CheckAndHandleRunningInstanceAsync(
-                effectiveAppHostProjectFile,
-                ExecutionContext.HomeDirectory,
-                cancellationToken);
+            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
+            {
+                var runningInstanceResult = await project.CheckAndHandleRunningInstanceAsync(
+                    effectiveAppHostProjectFile,
+                    ExecutionContext.HomeDirectory,
+                    cancellationToken);
+
+                if (runningInstanceResult == RunningInstanceResult.StopFailed)
+                {
+                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+            }
 
             var success = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,

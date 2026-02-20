@@ -172,4 +172,7 @@
   <data name="UsePrereleasePackages" xml:space="preserve">
     <value>Use pre-release packages</value>
   </data>
+  <data name="UnableToStopRunningInstances" xml:space="preserve">
+    <value>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</value>
+  </data>
 </root>
