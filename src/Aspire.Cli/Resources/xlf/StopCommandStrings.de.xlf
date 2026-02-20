@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">Beenden Sie einen aktiven Aspire-AppHost.</target>
+        <target state="translated">Beendet einen laufenden Apphost oder die angegebene Ressource.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">

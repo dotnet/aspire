@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
         <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <target state="translated">设置控制台输出的最小日志级别(跟踪、调试、信息、警告、错误、严重)。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
