@@ -56,7 +56,6 @@ internal static class GroupedHelpWriter
             new("doctor"),
             new("docs"),
             new("agent"),
-            new("setup"),
         ]),
     ];
 

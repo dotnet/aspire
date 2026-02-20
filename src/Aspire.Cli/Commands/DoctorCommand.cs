@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -16,6 +17,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class DoctorCommand : BaseCommand
 {
     private readonly IEnvironmentChecker _environmentChecker;
+    private readonly IBundleService _bundleService;
     private readonly IAnsiConsole _ansiConsole;
     private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
@@ -24,6 +26,7 @@ internal sealed class DoctorCommand : BaseCommand
 
     public DoctorCommand(
         IEnvironmentChecker environmentChecker,
+        IBundleService bundleService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
@@ -33,6 +36,7 @@ internal sealed class DoctorCommand : BaseCommand
         : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _environmentChecker = environmentChecker;
+        _bundleService = bundleService;
         _ansiConsole = ansiConsole;
 
         Options.Add(s_formatOption);
@@ -41,6 +45,19 @@ internal sealed class DoctorCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var format = parseResult.GetValue(s_formatOption);
+
+        // If we're running from a bundle, ensure the bundle is extracted before checking the environment.
+        if (_bundleService.IsBundle)
+        {
+            var extractMessage = format == OutputFormat.Json ? string.Empty : ":package:  Extracting Aspire bundle...";
+            var result = await InteractionService.ShowStatusAsync(
+                extractMessage,
+                async () =>
+                {
+                    await _bundleService.EnsureExtractedAsync(cancellationToken);
+                    return ExitCodeConstants.Success;
+                });
+        }
 
         // When outputting JSON, suppress status messages to keep output machine-readable
         var statusMessage = format == OutputFormat.Json ? string.Empty : DoctorCommandStrings.CheckingPrerequisites;

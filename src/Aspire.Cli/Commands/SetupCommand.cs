@@ -36,6 +36,8 @@ internal sealed class SetupCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("setup", "Extract the embedded bundle to set up the Aspire CLI runtime.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        // Hidden: bundle extraction is now handled automatically by the doctor command.
+        this.Hidden = true;
         _bundleService = bundleService;
 
         Options.Add(s_installPathOption);
