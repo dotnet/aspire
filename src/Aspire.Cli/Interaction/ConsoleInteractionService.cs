@@ -22,18 +22,13 @@ internal class ConsoleInteractionService : IInteractionService
     private readonly CliExecutionContext _executionContext;
     private readonly ICliHostEnvironment _hostEnvironment;
     private int _inStatus;
-    private bool _useStderrForMessages;
 
     /// <summary>
-    /// Console used for human-readable messages; routes to stderr when structured output mode is active.
+    /// Console used for human-readable messages; routes to stderr when <see cref="DefaultConsole"/> is set to <see cref="ConsoleOutput.Error"/>.
     /// </summary>
-    private IAnsiConsole MessageConsole => _useStderrForMessages ? _errorConsole : _outConsole;
+    private IAnsiConsole MessageConsole => DefaultConsole == ConsoleOutput.Error ? _errorConsole : _outConsole;
 
-    public bool UseStderrForMessages
-    {
-        get => _useStderrForMessages;
-        set => _useStderrForMessages = value;
-    }
+    public ConsoleOutput DefaultConsole { get; set; }
 
     public ConsoleInteractionService(ConsoleEnvironment consoleEnvironment, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
@@ -230,10 +225,11 @@ internal class ConsoleInteractionService : IInteractionService
         MessageConsole.Profile.Out.Writer.WriteLine(message);
     }
 
-    public void DisplayRawText(string text)
+    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard)
     {
         // Write raw text directly to avoid console wrapping
-        _outConsole.Profile.Out.Writer.WriteLine(text);
+        var target = console == ConsoleOutput.Error ? _errorConsole : _outConsole;
+        target.Profile.Out.Writer.WriteLine(text);
     }
 
     public void DisplayMarkdown(string markdown)

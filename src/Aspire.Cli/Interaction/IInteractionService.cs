@@ -18,7 +18,7 @@ internal interface IInteractionService
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
     void DisplayPlainText(string text);
-    void DisplayRawText(string text);
+    void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard);
     void DisplayMarkdown(string markdown);
     void DisplayMarkupLine(string markup);
     void DisplaySuccess(string message);
@@ -28,10 +28,11 @@ internal interface IInteractionService
     void DisplayEmptyLine();
 
     /// <summary>
-    /// When true, routes human-readable messages to stderr instead of stdout
+    /// Gets or sets the default console output stream for human-readable messages.
+    /// When set to <see cref="ConsoleOutput.Error"/>, display methods route output to stderr
     /// so that structured output (e.g., JSON) on stdout remains parseable.
     /// </summary>
-    bool UseStderrForMessages { get => false; set { } }
+    ConsoleOutput DefaultConsole { get; set; }
 
     void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);

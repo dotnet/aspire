@@ -628,7 +628,7 @@ internal sealed class RunCommand : BaseCommand
         // so that only the JSON result appears on stdout.
         if (format == OutputFormat.Json)
         {
-            _interactionService.UseStderrForMessages = true;
+            _interactionService.DefaultConsole = ConsoleOutput.Error;
         }
 
         // Failure mode 1: Project not found
