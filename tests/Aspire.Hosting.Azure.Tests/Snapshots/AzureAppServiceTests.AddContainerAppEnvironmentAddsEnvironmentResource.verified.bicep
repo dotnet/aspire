@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param userPrincipalId string = ''
@@ -143,4 +143,4 @@ output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID string = env_contributor_mi
 
 output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_contributor_mi.properties.principalId
 
-output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${dashboard.properties.defaultHostName}'
