@@ -228,6 +228,8 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
     - Instead they are run in the `Quarantine` workflow (`tests-quarantine.yml`).
 - A github issue url is used with the attribute
+- To **reproduce or fix** a flaky/quarantined test, use the `fix-flaky-test` skill (`.github/skills/fix-flaky-test/SKILL.md`).
+- To **quarantine or unquarantine** a test, use the `test-management` skill (`.github/skills/test-management/SKILL.md`).
 
 Example: `[QuarantinedTest("..issue url..")]`
 
@@ -352,6 +354,7 @@ For most development tasks, following these instructions should be sufficient to
 The following specialized skills are available in `.github/skills/`:
 
 - **cli-e2e-testing**: Guide for writing Aspire CLI end-to-end tests using Hex1b terminal automation
+- **fix-flaky-test**: Reproduces and fixes flaky/quarantined tests using the CI reproduce workflow (`tests-reproduce.yml`). Use this when investigating, reproducing, or fixing a flaky or quarantined test.
 - **test-management**: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
 - **connection-properties**: Expert for creating and improving Connection Properties in Aspire resources
 - **dependency-update**: Guides dependency version updates by checking nuget.org, triggering the dotnet-migrate-package Azure DevOps pipeline, and monitoring runs
