@@ -97,8 +97,9 @@ internal sealed class ResourcesCommand : BaseCommand
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
         ILogger<ResourcesCommand> logger)
-        : base("resources", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("status", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        Aliases.Add("resources");
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 

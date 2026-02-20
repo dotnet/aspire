@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Display resource snapshots from a running apphost.</value>
+    <value>Show status of resources in a running apphost.</value>
   </data>
   <data name="ProjectOptionDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>

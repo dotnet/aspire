@@ -39,7 +39,9 @@ internal static class GroupedHelpWriter
             new("restart"),
             new("wait"),
             new("command"),
-            new("resources"),
+        ]),
+        new("Monitoring:", [
+            new("status"),
             new("logs"),
             new("telemetry"),
         ]),
