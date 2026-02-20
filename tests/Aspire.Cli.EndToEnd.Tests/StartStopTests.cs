@@ -275,9 +275,19 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Clean up: stop if still running (the add command may have stopped it)
+        // aspire stop may return a non-zero exit code if no instances are found
+        // (already stopped by aspire add), so wait for any prompt pattern.
         sequenceBuilder.Type("aspire stop")
             .Enter()
-            .WaitForSuccessPrompt(counter);
+            .WaitUntil(s =>
+            {
+                // Match any prompt (OK or ERR) for the current counter value
+                var promptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText("] $ ");
+                return promptSearcher.Search(s).Count > 0;
+            }, TimeSpan.FromMinutes(1))
+            .IncrementSequence(counter);
 
         // Exit the shell
         sequenceBuilder.Type("exit")
@@ -397,9 +407,19 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Clean up: stop if still running
+        // aspire stop may return a non-zero exit code if no instances are found
+        // (already stopped by aspire add), so wait for any prompt pattern.
         sequenceBuilder.Type("aspire stop")
             .Enter()
-            .WaitForSuccessPrompt(counter);
+            .WaitUntil(s =>
+            {
+                // Match any prompt (OK or ERR) for the current counter value
+                var promptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText("] $ ");
+                return promptSearcher.Search(s).Count > 0;
+            }, TimeSpan.FromMinutes(1))
+            .IncrementSequence(counter);
 
         // Exit the shell
         sequenceBuilder.Type("exit")
