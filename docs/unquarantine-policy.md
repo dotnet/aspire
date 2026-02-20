@@ -15,7 +15,7 @@ The quarantine CI workflow (`tests-quarantine.yml`) runs every 6 hours. The fail
 When you fix a quarantined test:
 
 1. **DO** apply your fix and push it
-2. **DO** verify the fix via the reproduce workflow (`tests-reproduce.yml`)
+2. **DO** verify the fix via the reproduce workflow (`reproduce-flaky-tests.yml`)
 3. **DO NOT** unquarantine the test in the same PR — leave the `[QuarantinedTest]` attribute in place
 4. **DO NOT** close the tracking issue — a separate process monitors the 21-day window and closes issues when the criteria are met
 
