@@ -37,6 +37,11 @@
         <target state="translated">缺少命令</target>
         <note />
       </trans-unit>
+      <trans-unit id="PersistentContainerWithoutUserSecrets">
+        <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'dotnet user-secrets init' in the AppHost directory to configure user secrets.</source>
+        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'dotnet user-secrets init' in the AppHost directory to configure user secrets.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RequiredCommandNotFound">
         <source>Required command '{0}' was not found on PATH or at the specified location.</source>
         <target state="translated">在 PATH 或指定位置找不到所需命令 "{0}"。</target>
