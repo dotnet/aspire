@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">실행하기 전에 프로젝트를 빌드하거나 복원하지 마세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
