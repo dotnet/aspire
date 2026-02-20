@@ -94,6 +94,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Install winget
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./eng/install-winget.ps1
+
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         # Used for running tests outside the repo
