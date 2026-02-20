@@ -201,6 +201,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsHostingPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftExtensionsConfigurationAbstractionsPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftExtensionsConfigurationBinderPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="$(MicrosoftExtensionsCachingMemoryPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsLoggingAbstractionsPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MicrosoftExtensionsOptionsPreviewVersion)" />
@@ -208,7 +209,6 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpPreviewVersion)" />
     <PackageVersion Include="System.Formats.Asn1" Version="$(SystemFormatsAsn1PreviewVersion)" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonPreviewVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="$(MicrosoftExtensionsCachingMemoryPreviewVersion)" />
   </ItemGroup>
 
   <!-- The following groups are for packages that need to switch based on the .NET TFM being used.
