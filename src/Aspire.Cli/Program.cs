@@ -69,11 +69,11 @@ public class Program
         // Check for --debug or -d (backward compatibility)
         var debugMode = args.Any(a => a == "--debug" || a == "-d");
 
-        // Check for --debug-level or -v
+        // Check for --log-level or -l (also accept legacy --debug-level and -v)
         LogLevel? logLevel = null;
         for (var i = 0; i < args.Length; i++)
         {
-            if ((args[i] == "--debug-level" || args[i] == "-v") && i + 1 < args.Length)
+            if ((args[i] == "--log-level" || args[i] == "-l" || args[i] == "--debug-level" || args[i] == "-v") && i + 1 < args.Length)
             {
                 if (Enum.TryParse<LogLevel>(args[i + 1], ignoreCase: true, out var parsedLevel))
                 {

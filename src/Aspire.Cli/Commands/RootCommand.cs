@@ -28,7 +28,7 @@ internal sealed class RootCommand : BaseRootCommand
         Hidden = true // Hidden for backward compatibility, use --debug-level instead
     };
 
-    public static readonly Option<LogLevel?> DebugLevelOption = new("--debug-level", "-v")
+    public static readonly Option<LogLevel?> DebugLevelOption = new("--log-level", "-l")
     {
         Description = RootCommandStrings.DebugLevelArgumentDescription,
         Recursive = true
@@ -77,7 +77,7 @@ internal sealed class RootCommand : BaseRootCommand
         (DebugLevelOption, pr =>
         {
             var level = pr.GetValue(DebugLevelOption);
-            return level.HasValue ? ["--debug-level", level.Value.ToString()] : null;
+            return level.HasValue ? ["--log-level", level.Value.ToString()] : null;
         }),
         (WaitForDebuggerOption, pr => pr.GetValue(WaitForDebuggerOption) ? ["--wait-for-debugger"] : null),
     ];

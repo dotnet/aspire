@@ -259,13 +259,17 @@ internal static class GroupedHelpWriter
 
     private static string FormatOptionLabel(Option option)
     {
-        var aliases = option.Aliases.OrderBy(a => a.Length).ToList();
-        if (aliases.Count > 1)
+        // Collect all identifiers: Name may not be in Aliases in System.CommandLine 2.0.
+        var allNames = new HashSet<string>(option.Aliases, StringComparer.Ordinal);
+        if (!string.IsNullOrEmpty(option.Name))
         {
-            return $"{aliases[0]}, {aliases[1]}";
+            allNames.Add(option.Name);
         }
 
-        return aliases.Count > 0 ? aliases[0] : option.Name;
+        var sorted = allNames.OrderBy(a => a.Length).ToList();
+        return sorted.Count > 1
+            ? $"{sorted[0]}, {sorted[1]}"
+            : sorted.Count > 0 ? sorted[0] : option.Name;
     }
 
     private static int GetConsoleWidth()
