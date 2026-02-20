@@ -75,7 +75,7 @@ internal static class GroupedHelpWriter
 
         // Usage
         writer.WriteLine("Usage:");
-        writer.WriteLine("  aspire [command] [options]");
+        writer.WriteLine("  aspire <command> [options]");
         writer.WriteLine();
 
         // Build a lookup from command name to the Command object (visible subcommands only).
