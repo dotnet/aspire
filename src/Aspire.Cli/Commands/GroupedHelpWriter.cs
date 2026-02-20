@@ -166,7 +166,7 @@ internal static class GroupedHelpWriter
         }
 
         // Help hint
-        writer.WriteLine("Use \"aspire [command] --help\" for more information about a command.");
+        writer.WriteLine("Use \"aspire <command> --help\" for more information about a command.");
     }
 
     /// <summary>
