@@ -188,5 +188,13 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UsePrereleasePackages", resourceCulture);
             }
         }
+
+        public static string UnableToStopRunningInstances
+        {
+            get
+            {
+                return ResourceManager.GetString("UnableToStopRunningInstances", resourceCulture);
+            }
+        }
     }
 }
