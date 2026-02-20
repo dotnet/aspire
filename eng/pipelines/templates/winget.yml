@@ -47,6 +47,7 @@ steps:
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     inputs:
+      pwsh: true
       targetType: 'inline'
       script: |
         Write-Host "Installing Microsoft.WinGet.Client using Azure Artifacts feed..."
