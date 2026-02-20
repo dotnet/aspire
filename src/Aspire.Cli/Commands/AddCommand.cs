@@ -213,7 +213,7 @@ internal sealed class AddCommand : BaseCommand
             // which prevents 'dotnet add package' from modifying the project.
             if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
             {
-                var runningInstanceResult = await project.CheckAndHandleRunningInstanceAsync(
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
                     effectiveAppHostProjectFile,
                     ExecutionContext.HomeDirectory,
                     cancellationToken);
