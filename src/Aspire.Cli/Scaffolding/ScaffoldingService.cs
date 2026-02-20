@@ -173,8 +173,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
         return result;
     }
 
-    private const string GeneratedFolderName = ".modules";
-
     private async Task GenerateCodeViaRpcAsync(
         string directoryPath,
         IAppHostRpcClient rpcClient,
@@ -184,7 +182,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(directoryPath, GeneratedFolderName);
+        var outputPath = Path.Combine(directoryPath, language.GeneratedFolderName ?? string.Empty);
         Directory.CreateDirectory(outputPath);
 
         foreach (var (fileName, content) in generatedFiles)

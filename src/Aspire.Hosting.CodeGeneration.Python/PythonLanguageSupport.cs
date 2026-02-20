@@ -38,19 +38,13 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             # Aspire Python AppHost
             # For more information, see: https://aspire.dev
 
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent / ".modules"))
+            from aspyre import create_builder
 
-            from aspire import create_builder
-
-            builder = create_builder()
-
-            # Add your resources here, for example:
-            # redis = builder.add_redis("cache")
-            # postgres = builder.add_postgres("db")
-
-            builder.build().run()
+            with create_builder() as builder:
+                # Add your resources here, for example:
+                # redis = builder.add_container("cache", "redis:latest")
+                # postgres = builder.add_postgres("db")
+                builder.run()
             """;
 
         // Create requirements.txt
