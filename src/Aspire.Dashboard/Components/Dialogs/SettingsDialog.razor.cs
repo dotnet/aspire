@@ -27,9 +27,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
 
-    [Inject]
-    public required DashboardDialogService DialogService { get; init; }
-
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -86,17 +83,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
     }
 
-    private async Task LaunchManageDataAsync()
+    private async void NavigateToManageData()
     {
-        var parameters = new DialogParameters
-        {
-            Title = Loc[nameof(Dashboard.Resources.Dialogs.ManageDataDialogTitle)],
-            PrimaryAction = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
-            SecondaryAction = string.Empty,
-            Width = "800px",
-            Height = "auto"
-        };
-        await DialogService.ShowDialogAsync<ManageDataDialog>(parameters);
+        NavigationManager.NavigateTo(DashboardUrls.ManageDataUrl());
     }
 
     public void Dispose()

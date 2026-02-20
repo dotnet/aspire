@@ -14,17 +14,15 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using DialogsRes = Aspire.Dashboard.Resources.Dialogs;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
-namespace Aspire.Dashboard.Components.Dialogs;
+namespace Aspire.Dashboard.Components.Pages;
 
-public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposable
+public partial class ManageData : IAsyncDisposable
 {
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
-
-    [Inject]
-    public required IDialogService DialogService { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -48,7 +46,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
+    public required IStringLocalizer<DialogsRes> Loc { get; init; }
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
@@ -345,11 +343,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private string GetDataTypeDisplayName(AspireDataType dataType) => dataType switch
     {
-        AspireDataType.ResourceDetails => Loc[nameof(Resources.Dialogs.ManageDataResource)],
-        AspireDataType.ConsoleLogs => Loc[nameof(Resources.Dialogs.ManageDataConsoleLogs)],
-        AspireDataType.StructuredLogs => Loc[nameof(Resources.Dialogs.ManageDataStructuredLogs)],
-        AspireDataType.Traces => Loc[nameof(Resources.Dialogs.ManageDataTraces)],
-        AspireDataType.Metrics => Loc[nameof(Resources.Dialogs.ManageDataMetrics)],
+        AspireDataType.ResourceDetails => Loc[nameof(DialogsRes.ManageDataResource)],
+        AspireDataType.ConsoleLogs => Loc[nameof(DialogsRes.ManageDataConsoleLogs)],
+        AspireDataType.StructuredLogs => Loc[nameof(DialogsRes.ManageDataStructuredLogs)],
+        AspireDataType.Traces => Loc[nameof(DialogsRes.ManageDataTraces)],
+        AspireDataType.Metrics => Loc[nameof(DialogsRes.ManageDataMetrics)],
         _ => dataType.ToString()
     };
 
@@ -412,9 +410,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private bool IsDataRowSelected(string resourceName, AspireDataType dataType) => _selectedRows.Contains((resourceName, dataType));
 
-    /// <summary>
-    /// Returns true if all resource rows and their data rows are selected.
-    /// </summary>
     private bool AreAllSelected()
     {
         foreach (var row in _resourceDataRows.Values)
@@ -430,17 +425,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         return _resourceDataRows.Count > 0;
     }
 
-    /// <summary>
-    /// Returns true if no resource rows or data rows are selected.
-    /// </summary>
     private bool AreNoneSelected()
     {
         return _selectedRows.Count == 0;
     }
 
-    /// <summary>
-    /// Returns true if all data rows for a resource are selected.
-    /// </summary>
     private bool AreAllDataRowsSelected(ResourceDataRow row)
     {
         foreach (var dataRow in row.TelemetryData)
@@ -453,9 +442,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         return row.TelemetryData.Count > 0;
     }
 
-    /// <summary>
-    /// Returns true if no data rows for a resource are selected.
-    /// </summary>
     private bool AreNoDataRowsSelected(ResourceDataRow row)
     {
         foreach (var dataRow in row.TelemetryData)
@@ -540,7 +526,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
         catch (Exception ex)
         {
-            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataRemoveErrorMessage)]}: {ex.Message}";
+            _errorMessage = $"{Loc[nameof(DialogsRes.ManageDataRemoveErrorMessage)]}: {ex.Message}";
             ErrorRecorder.RecordError("Failed to remove data", ex, writeToLogging: true);
         }
         finally
@@ -576,7 +562,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
         catch (Exception ex)
         {
-            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataImportErrorMessage)]}: {ex.Message}";
+            _errorMessage = $"{Loc[nameof(DialogsRes.ManageDataImportErrorMessage)]}: {ex.Message}";
             ErrorRecorder.RecordError("Failed to import data", ex, writeToLogging: true);
         }
         finally
@@ -607,7 +593,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
         catch (Exception ex)
         {
-            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataExportErrorMessage)]}: {ex.Message}";
+            _errorMessage = $"{Loc[nameof(DialogsRes.ManageDataExportErrorMessage)]}: {ex.Message}";
             ErrorRecorder.RecordError("Failed to export data", ex, writeToLogging: true);
         }
         finally
