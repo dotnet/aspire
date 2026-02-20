@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -436,6 +437,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpGrpcEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpGrpcEndpointUrl);
+
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
             {
                 TargetHost = address.Host
@@ -445,6 +447,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpHttpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpHttpEndpointUrl);
+
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
@@ -454,10 +457,40 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (mcpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(mcpEndpointUrl);
+
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: McpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
             });
+        }
+
+        // Determine whether any HTTPS endpoints are configured
+        var hasHttpsEndpoint = dashboardResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints) && endpoints.Any(e => e.UriScheme is "https");
+
+        if (hasHttpsEndpoint &&
+            !dashboardResource.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>())
+        {
+            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+            var trustDeveloperCertificate = developerCertificateService.TrustCertificate;
+            if (dashboardResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certificateAuthorityAnnotation))
+            {
+                trustDeveloperCertificate = certificateAuthorityAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDeveloperCertificate);
+            }
+
+            if (trustDeveloperCertificate)
+            {
+                dashboardResource.Annotations.Add(new HttpsCertificateConfigurationCallbackAnnotation(ctx =>
+                {
+                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
+                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                    if (ctx.Password is not null)
+                    {
+                        ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                    }
+
+                    return Task.CompletedTask;
+                }));
+            }
         }
 
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
