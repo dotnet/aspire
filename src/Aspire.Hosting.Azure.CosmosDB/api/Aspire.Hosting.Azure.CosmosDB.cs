@@ -8,11 +8,13 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    public partial class AzureCosmosDBResource : Azure.AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints, Azure.IResourceWithAzureFunctionsConfig
+    public partial class AzureCosmosDBResource : Azure.AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints, Azure.IResourceWithAzureFunctionsConfig, Azure.IAzurePrivateEndpointTarget
     {
         public AzureCosmosDBResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public ApplicationModel.ReferenceExpression? AccountKey { get { throw null; } }
+
+        Azure.BicepOutputReference Azure.IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         [System.Obsolete("BicepSecretOutputReference is no longer supported. Use ConnectionStringOutput instead.")]
         public Azure.BicepSecretOutputReference ConnectionString { get { throw null; } }
@@ -20,6 +22,8 @@ namespace Aspire.Hosting
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference ConnectionStringOutput { get { throw null; } }
+
+        public Azure.BicepOutputReference Id { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
@@ -36,6 +40,10 @@ namespace Aspire.Hosting
         public override void AddRoleAssignments(Azure.IAddRoleAssignmentsContext roleAssignmentContext) { }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string Azure.IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> Azure.IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
 
         void Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -77,6 +85,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Container = {ContainerName}")]
     public partial class AzureCosmosDBContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBDatabaseResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureCosmosDBContainerResource(string name, string containerName, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(default!) { }
@@ -100,6 +109,7 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzureCosmosDBDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent) : base(default!) { }

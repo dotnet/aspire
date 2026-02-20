@@ -24,6 +24,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.OpenAI
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Model = {Model}")]
     public partial class OpenAIModelResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<OpenAIResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public OpenAIModelResource(string name, string model, OpenAIResource parent) : base(default!) { }
