@@ -195,6 +195,35 @@ internal static class DeploymentE2ETestHelpers
     }
 
     /// <summary>
+    /// Waits for any command prompt (success or error) with the expected sequence number.
+    /// Use this after commands that are expected to fail (non-zero exit code).
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForAnyPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var expectedCount = counter.Value.ToString();
+
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(expectedCount)
+                    .RightText(" OK] $ ");
+
+                var errorSearcher = new CellPatternSearcher()
+                    .FindPattern(expectedCount)
+                    .RightText(" ERR:");
+
+                return successSearcher.Search(snapshot).Count > 0
+                    || errorSearcher.Search(snapshot).Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    /// <summary>
     /// Increments the sequence counter.
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
