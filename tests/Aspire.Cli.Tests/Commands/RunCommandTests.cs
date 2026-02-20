@@ -91,12 +91,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     public async Task RunCommand_WithDetachFlag_DoesNotShowUpdateNotification()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var trackingNotifier = new TrackingCliUpdateNotifier();
+        var testNotifier = new TestCliUpdateNotifier();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
-            options.CliUpdateNotifierFactory = _ => trackingNotifier;
+            options.CliUpdateNotifierFactory = _ => testNotifier;
         });
         var provider = services.BuildServiceProvider();
 
@@ -105,19 +105,19 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         await result.InvokeAsync().DefaultTimeout();
 
-        Assert.False(trackingNotifier.NotifyWasCalled, "Update notification should not be shown when --detach is used");
+        Assert.False(testNotifier.NotifyWasCalled, "Update notification should not be shown when --detach is used");
     }
 
     [Fact]
     public async Task RunCommand_WithoutDetachFlag_ShowsUpdateNotification()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var trackingNotifier = new TrackingCliUpdateNotifier();
+        var testNotifier = new TestCliUpdateNotifier();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
-            options.CliUpdateNotifierFactory = _ => trackingNotifier;
+            options.CliUpdateNotifierFactory = _ => testNotifier;
         });
         var provider = services.BuildServiceProvider();
 
@@ -126,7 +126,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         await result.InvokeAsync().DefaultTimeout();
 
-        Assert.True(trackingNotifier.NotifyWasCalled, "Update notification should be shown when --detach is not used");
+        Assert.True(testNotifier.NotifyWasCalled, "Update notification should be shown when --detach is not used");
     }
 
     [Fact]
@@ -1495,23 +1495,4 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         }
     }
 
-    private sealed class TrackingCliUpdateNotifier : ICliUpdateNotifier
-    {
-        public bool NotifyWasCalled { get; private set; }
-
-        public Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void NotifyIfUpdateAvailable()
-        {
-            NotifyWasCalled = true;
-        }
-
-        public bool IsUpdateAvailable()
-        {
-            return false;
-        }
-    }
 }
