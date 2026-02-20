@@ -1,0 +1,10 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python 入门版应用",
+  "description": "用于使用 Vite 和 React 结合 Python 后端 API 服务和 JavaScript 前端创建 Aspire 应用的项目模板。",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent.",
+  "symbols/AddFoundryRandomSuffix/description": "If true, a random suffix will be added to the Agent name when creating the Foundry resource to ensure global uniqueness."
+}

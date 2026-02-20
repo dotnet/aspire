@@ -76,8 +76,14 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public string SkuName { get; set; } = DefaultSkuName;
 
     /// <summary>
-    /// Gets or sets the capacity of the SKU.
+    /// Gets or sets the capacity of the SKU, in thousands of tokens per minute (TPM).
     /// </summary>
+    /// <remarks>
+    /// For example, a value of 10 means 10,000 tokens per minute. Exceeding this rate
+    /// limit results in HTTP 429 responses. See
+    /// <a href="https://learn.microsoft.com/azure/ai-foundry/openai/how-to/quota">Azure AI quota management</a>
+    /// for more information.
+    /// </remarks>
     /// <value>
     /// The default value is <inheritdoc cref="DefaultSkuCapacity"/>.
     /// </value>
