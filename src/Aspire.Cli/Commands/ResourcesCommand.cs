@@ -195,6 +195,9 @@ internal sealed class ResourcesCommand : BaseCommand
         // Maintain a dictionary of all resources seen so far for relationship resolution
         var allResources = new Dictionary<string, ResourceSnapshot>(StringComparer.OrdinalIgnoreCase);
 
+        // Track last displayed output per resource to suppress duplicates
+        var lastDisplayedOutput = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         // Stream resource snapshots
         await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -207,19 +210,19 @@ internal sealed class ResourcesCommand : BaseCommand
                 continue;
             }
 
-            var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources.Values.ToList(), dashboardBaseUrl);
-
-            if (format == OutputFormat.Json)
-            {
+            var output = format == OutputFormat.Json
                 // NDJSON output - compact, one object per line for streaming
-                var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.Ndjson.ResourceJson);
-                _interactionService.DisplayRawText(json);
-            }
-            else
+                ? JsonSerializer.Serialize(ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources.Values.ToList(), dashboardBaseUrl), ResourcesCommandJsonContext.Ndjson.ResourceJson)
+                : FormatResourceUpdate(snapshot, allResources);
+
+            // Suppress duplicate output
+            if (lastDisplayedOutput.TryGetValue(snapshot.Name, out var lastOutput) && string.Equals(lastOutput, output, StringComparison.OrdinalIgnoreCase))
             {
-                // Human-readable update
-                DisplayResourceUpdate(snapshot, allResources);
+                continue;
             }
+
+            lastDisplayedOutput[snapshot.Name] = output;
+            _interactionService.DisplayRawText(output);
         }
 
         return ExitCodeConstants.Success;
@@ -280,7 +283,7 @@ internal sealed class ResourcesCommand : BaseCommand
         AnsiConsole.Write(table);
     }
 
-    private void DisplayResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)
+    private static string FormatResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)
     {
         var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, allResources);
 
@@ -291,6 +294,6 @@ internal sealed class ResourcesCommand : BaseCommand
         var health = !string.IsNullOrEmpty(snapshot.HealthStatus) ? $" ({snapshot.HealthStatus})" : "";
         var endpointsStr = !string.IsNullOrEmpty(endpoints) ? $" - {endpoints}" : "";
 
-        _interactionService.DisplayPlainText($"[{displayName}] {snapshot.State ?? "Unknown"}{health}{endpointsStr}");
+        return $"[{displayName}] {snapshot.State ?? "Unknown"}{health}{endpointsStr}";
     }
 }
