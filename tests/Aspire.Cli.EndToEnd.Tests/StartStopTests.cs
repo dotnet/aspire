@@ -276,17 +276,15 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         // Clean up: stop if still running (the add command may have stopped it)
         // aspire stop may return a non-zero exit code if no instances are found
-        // (already stopped by aspire add), so wait for any prompt pattern.
+        // (already stopped by aspire add), so wait for known output patterns.
+        var waitForStopResult = new CellPatternSearcher()
+            .Find("No running AppHosts found");
+        var waitForStoppedSuccessfully = new CellPatternSearcher()
+            .Find("AppHost stopped successfully.");
+
         sequenceBuilder.Type("aspire stop")
             .Enter()
-            .WaitUntil(s =>
-            {
-                // Match any prompt (OK or ERR) for the current counter value
-                var promptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText("] $ ");
-                return promptSearcher.Search(s).Count > 0;
-            }, TimeSpan.FromMinutes(1))
+            .WaitUntil(s => waitForStopResult.Search(s).Count > 0 || waitForStoppedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(1))
             .IncrementSequence(counter);
 
         // Exit the shell
@@ -408,17 +406,15 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         // Clean up: stop if still running
         // aspire stop may return a non-zero exit code if no instances are found
-        // (already stopped by aspire add), so wait for any prompt pattern.
+        // (already stopped by aspire add), so wait for known output patterns.
+        var waitForStopResult2 = new CellPatternSearcher()
+            .Find("No running AppHosts found");
+        var waitForStoppedSuccessfully2 = new CellPatternSearcher()
+            .Find("AppHost stopped successfully.");
+
         sequenceBuilder.Type("aspire stop")
             .Enter()
-            .WaitUntil(s =>
-            {
-                // Match any prompt (OK or ERR) for the current counter value
-                var promptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText("] $ ");
-                return promptSearcher.Search(s).Count > 0;
-            }, TimeSpan.FromMinutes(1))
+            .WaitUntil(s => waitForStopResult2.Search(s).Count > 0 || waitForStoppedSuccessfully2.Search(s).Count > 0, TimeSpan.FromMinutes(1))
             .IncrementSequence(counter);
 
         // Exit the shell
