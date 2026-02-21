@@ -51,8 +51,23 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
         var endpoint = yarp.Resource.GetEndpoint("http");
         var httpClient = new HttpClient() { BaseAddress = new Uri(endpoint.Url) };
 
-        using var response200 = await httpClient.GetAsync("/aspnetapp");
+        // Retry to allow time for Docker network convergence between containers.
+        // YARP may return BadGateway briefly after being healthy if the backend
+        // container is not yet connected to the shared network.
+        HttpResponseMessage response200;
+        var retries = 10;
+        while (true)
+        {
+            response200 = await httpClient.GetAsync("/aspnetapp");
+            if (response200.StatusCode == System.Net.HttpStatusCode.OK || --retries <= 0)
+            {
+                break;
+            }
+            response200.Dispose();
+            await Task.Delay(TimeSpan.FromSeconds(2));
+        }
         Assert.Equal(System.Net.HttpStatusCode.OK, response200.StatusCode);
+        response200.Dispose();
 
         using var response404 = await httpClient.GetAsync("/another");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response404.StatusCode);
