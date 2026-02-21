@@ -50,17 +50,25 @@ steps:
       pwsh: true
       targetType: 'inline'
       script: |
+        Write-Host "=== Diagnostic: PowerShell version ==="
+        $PSVersionTable | Format-Table
+        Write-Host "=== Diagnostic: PSResourceGet availability ==="
+        Get-Module -ListAvailable Microsoft.PowerShell.PSResourceGet | Select-Object Name, Version | Format-Table
+        Write-Host "=== Diagnostic: NuGet credential provider ==="
+        Get-ChildItem -Path "$env:USERPROFILE\.nuget\plugins" -Recurse -Filter "CredentialProvider*" -ErrorAction SilentlyContinue | Select-Object FullName | Format-Table
+
         Write-Host "Installing Microsoft.WinGet.Client using Azure Artifacts feed..."
         $MachineAccessTokenSecureString = $env:SYSTEM_ACCESSTOKEN | ConvertTo-SecureString -AsPlainText -Force
         $myCredentialsObject = [pscredential]::new("username", $MachineAccessTokenSecureString)
-        Register-PSRepository -Name "PSGalleryUpstream" -SourceLocation `
-          "https://pkgs.dev.azure.com/dnceng/_packaging/ps-gallery-for-aspire/nuget/v2" -InstallationPolicy Trusted `
-          -Credential $myCredentialsObject
+
+        Register-PSResourceRepository -Name "PSGalleryUpstream" `
+          -Uri "https://pkgs.dev.azure.com/dnceng/internal/_packaging/ps-gallery-for-aspire/nuget/v3/index.json" `
+          -Trusted
 
         Write-Host "Listing registered repositories..."
-        Get-PSRepository
+        Get-PSResourceRepository
 
-        Install-Module -Name Microsoft.WinGet.Client -Repository "PSGalleryUpstream" -Credential $myCredentialsObject -Force
+        Install-PSResource -Name Microsoft.WinGet.Client -Repository "PSGalleryUpstream" -Credential $myCredentialsObject
 
         Write-Host "Microsoft.WinGet.Client installed. Listing installed version:"
         Get-Module -ListAvailable Microsoft.WinGet.Client | Select-Object Name, Version | Format-Table
