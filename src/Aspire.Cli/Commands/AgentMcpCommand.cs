@@ -181,7 +181,9 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         if (KnownTools.TryGetValue(toolName, out var tool))
         {
-            var args = request.Params?.Arguments;
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
             var context = new CallToolContext
             {
                 Notifier = new McpServerNotifier(_server!),
@@ -217,7 +219,9 @@ internal sealed class AgentMcpCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            var args = request.Params?.Arguments;
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {

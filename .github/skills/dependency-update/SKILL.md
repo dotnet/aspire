@@ -63,6 +63,8 @@ For each package, extract:
 - Package ID (the `Include` attribute)
 - Current version (the `Version` attribute)
 
+**Important:** Some external dependencies have their versions defined as MSBuild properties in `eng/Versions.props` rather than inline in `Directory.Packages.props`. In particular, the OpenTelemetry packages use version properties like `$(OpenTelemetryExporterOpenTelemetryProtocolVersion)`. When updating these packages, update the property values in `eng/Versions.props` directly. Check both files when looking for a package version.
+
 ### 2. Look Up Latest Versions on nuget.org
 
 For each package, query the nuget.org API to find available versions:
@@ -232,9 +234,11 @@ Provide a final summary:
 
 Some packages should be updated together. Common families in this repo:
 
-- **Hex1b**: `Hex1b`, `Hex1b.McpServer`
+- **Hex1b**: `Hex1b`, `Hex1b.McpServer`, `Hex1b.Tool`
 - **Azure.Provisioning**: `Azure.Provisioning`, `Azure.Provisioning.*`
-- **OpenTelemetry**: `OpenTelemetry.*` (versions often defined as MSBuild properties in `eng/Versions.props`)
+- **OpenTelemetry**: `OpenTelemetry.*` — versions are split across two locations:
+  - `Directory.Packages.props` (external deps section): `OpenTelemetry.Exporter.Console`, `OpenTelemetry.Exporter.InMemory`, `OpenTelemetry.Instrumentation.GrpcNetClient` — these have hardcoded versions and should be updated directly.
+  - `eng/Versions.props` (OTel section): `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`, `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Instrumentation.Runtime`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `Azure.Monitor.OpenTelemetry.Exporter` — these use MSBuild version properties and must be updated in `eng/Versions.props`. **All OTel packages should be kept in sync at the same version when possible.**
 - **AspNetCore.HealthChecks**: `AspNetCore.HealthChecks.*`
 - **Grpc**: `Grpc.AspNetCore`, `Grpc.Net.ClientFactory`, `Grpc.Tools`
 - **Polly**: `Polly.Core`, `Polly.Extensions`
@@ -243,12 +247,105 @@ Some packages should be updated together. Common families in this repo:
 
 When updating one member of a family, check if other members also have updates available and suggest updating them together.
 
+## Bulk Update Workflow
+
+When updating many packages at once (e.g., "update all external dependencies"), use this optimized workflow instead of updating one at a time:
+
+### 1. Update versions first, mirror later
+
+Update all package versions in `Directory.Packages.props` before triggering any mirror pipelines. This lets you verify the full set of changes compiles correctly before investing time in mirroring.
+
+### 2. Temporarily add nuget.org to verify restore
+
+To test whether the updated versions work together, temporarily add nuget.org as a package source:
+
+```xml
+<!-- In NuGet.config <packageSources> -->
+<add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+
+<!-- In NuGet.config <packageSourceMapping> -->
+<packageSource key="nuget.org">
+  <package pattern="*" />
+</packageSource>
+```
+
+Then run `build.cmd -restore` (Windows) or `./build.sh --restore` (Linux/macOS) to verify all packages resolve. **Remove nuget.org from NuGet.config before committing.**
+
+### 3. Watch for transitive pinning conflicts (NU1109)
+
+This repo uses Central Package Management with transitive pinning. When a package update pulls in a transitive dependency at a higher version than what's centrally pinned, NuGet will report **NU1109** (package downgrade detected).
+
+This is especially common with:
+- **`Microsoft.Extensions.*`** packages (e.g., `Microsoft.Extensions.Caching.Memory`)
+- **`System.*`** packages (e.g., `System.Text.Json`)
+- Any package that depends on ASP.NET Core or EF Core framework packages
+
+**Important:** Do NOT blindly bump transitive pinned versions of `Microsoft.Extensions.*` or `System.*` packages. These affect the shared framework surface area and could force customers onto versions that break their applications. Always flag these for human review.
+
+**Example:** Updating `Pomelo.EntityFrameworkCore.MySql` from 8.x to 9.x pulls in `Microsoft.EntityFrameworkCore.Relational 9.0.0`, which transitively requires `Microsoft.Extensions.Caching.Memory >= 9.0.0`. But the net8.0 TFM pins it to `8.0.x`, causing NU1109. This requires careful analysis of whether the pinned version can be safely bumped.
+
+### 4. Watch for broken transitive dependency metadata (NU1603)
+
+Some packages have transitive dependencies that reference exact versions that don't exist on any feed. NuGet resolves a nearby version instead and emits **NU1603**. Since this repo treats warnings as errors, this becomes a build failure.
+
+When you encounter NU1603, it's usually a package authoring issue upstream. Report it to the user and suggest holding off on that particular update until the upstream package is fixed.
+
+### 5. Discover which packages need mirroring
+
+After verifying restore works with nuget.org, remove nuget.org from NuGet.config, clear the NuGet cache (`dotnet nuget locals all -c`), and run restore again. Any **NU1102** (unable to find package) errors indicate packages that need to be mirrored via the `dotnet-migrate-package` pipeline.
+
+This is more efficient than pre-mirroring all packages upfront, because many updated versions may already exist on the internal feeds (dotnet-public mirrors most of nuget.org). Only the missing ones need explicit pipeline runs.
+
+### 6. Trigger mirror pipelines for missing packages
+
+For each missing package, trigger the pipeline (see Step 6 above). Pipelines typically take **5–10 minutes** to complete but can sometimes take longer. You can trigger multiple pipelines in parallel if they're for different packages.
+
+After all pipelines complete, clear the NuGet cache again and re-run restore to confirm everything resolves. Repeat if additional transitive packages were also missing.
+
+## Packages Known to Require Special Handling
+
+Some external dependencies have known constraints:
+
+- **`Pomelo.EntityFrameworkCore.MySql`** — Major version bumps lift `Microsoft.EntityFrameworkCore` and its transitive `Microsoft.Extensions.*` dependencies, which conflict with net8.0 LTS pinning. Always verify compatibility across all target frameworks.
+- **`Microsoft.AI.Foundry.Local`** — Has historically had broken transitive dependency metadata (NU1603). Check if the issue is resolved before updating.
+- **`Spectre.Console`** — Currently on pre-release. Always update to the latest pre-release, not the latest stable. Verify hyperlink rendering behavior hasn't changed (test: `ConsoleActivityLoggerTests`).
+- **`Milvus.Client`** — No stable release exists. Always stays on pre-release.
+- **`Humanizer.Core`** — Version 3.x ships a Roslyn analyzer that requires `System.Collections.Immutable` 9.0.0, which is incompatible with the .NET 8 SDK. Cannot update until the upstream issue is fixed ([Humanizr/Humanizer#1672](https://github.com/Humanizr/Humanizer/issues/1672)).
+- **`StreamJsonRpc`** — Version 2.24.x ships a Roslyn analyzer targeting Roslyn 4.14.0, incompatible with the .NET 8 SDK. Cannot update until the upstream issue is fixed ([microsoft/vs-streamjsonrpc#1399](https://github.com/microsoft/vs-streamjsonrpc/issues/1399)).
+- **`Azure.Monitor.OpenTelemetry.Exporter`** — Version 1.6.0 introduced AOT warnings. Hold at 1.5.0 until resolved. Version is in `eng/Versions.props`.
+
 ## Important Constraints
 
 - **One package per pipeline run** — The script processes one dependency at a time
 - **Wait for completion** — Don't start the next pipeline run until the current one finishes (the pipeline queue is aggressive)
 - **Always check nuget.org** — The mirroring pipeline pulls from nuget.org
 - **Verify versions exist** — Before triggering the pipeline, confirm the version exists on nuget.org
-- **Don't modify NuGet.config** — Package sources are managed separately; this skill only handles version updates
+- **Don't modify NuGet.config** — Package sources are managed separately; this skill only handles version updates. Temporary nuget.org additions for verification must be reverted before committing.
 - **Don't modify eng/Version.Details.xml** — That file is managed by Dependency Flow automation (Maestro/Darc)
 - **Ask before proceeding** — Always present the version summary and get user confirmation before triggering pipelines
+
+## Fallback: Triggering Pipelines via Azure CLI Directly
+
+If the `MigratePackage.cs` companion script fails (e.g., it cannot find the `az` executable — on Windows it may be `az.cmd` rather than `az`), you can trigger the pipeline directly using the Azure CLI:
+
+```powershell
+# Ensure the azure-devops extension is installed
+az extension add --name azure-devops
+
+# Trigger the pipeline
+az pipelines run `
+  --organization "https://dev.azure.com/dnceng" `
+  --project "internal" `
+  --id 931 `
+  --parameters "PackageNames=<PackageName>" "PackageVersion=<Version>" "MigrationType=New or non-Microsoft"
+
+# Poll for completion
+az pipelines runs show `
+  --organization "https://dev.azure.com/dnceng" `
+  --project "internal" `
+  --id <RunId> `
+  --query "{status: status, result: result}" `
+  --output json
+```
+
+On Windows, use `az.cmd` instead of `az` if `az` is not found. Check with `Get-Command az.cmd`.

@@ -10,7 +10,6 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using Microsoft.AspNetCore.InternalTesting;
@@ -979,27 +978,6 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
         => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
-}
-
-// Test implementation of ICliUpdateNotifier
-internal sealed class TestCliUpdateNotifier : ICliUpdateNotifier
-{
-    public Func<bool>? IsUpdateAvailableCallback { get; set; }
-
-    public Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
-    public void NotifyIfUpdateAvailable()
-    {
-        // No-op for tests
-    }
-
-    public bool IsUpdateAvailable()
-    {
-        return IsUpdateAvailableCallback?.Invoke() ?? false;
-    }
 }
 
 // Test implementation of IProjectUpdater

@@ -88,6 +88,48 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunCommand_WithDetachFlag_DoesNotShowUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var testNotifier = new TestCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => testNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --detach");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.False(testNotifier.NotifyWasCalled, "Update notification should not be shown when --detach is used");
+    }
+
+    [Fact]
+    public async Task RunCommand_WithoutDetachFlag_ShowsUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var testNotifier = new TestCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => testNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.True(testNotifier.NotifyWasCalled, "Update notification should be shown when --detach is not used");
+    }
+
+    [Fact]
     public void GetDetachedFailureMessage_ReturnsBuildSpecificMessage_ForBuildFailureExitCode()
     {
         var message = RunCommand.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
@@ -1452,4 +1494,5 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
         }
     }
+
 }
