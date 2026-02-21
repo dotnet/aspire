@@ -29,15 +29,8 @@ public class OpenAIFunctionalTests
             return healthCheckTcs.Task;
         });
 
-        var openai = builder.AddOpenAI("resource");
-
-        // Remove the default status page health check that depends on the external OpenAI API.
-        // The model resource inherits health checks from its parent, and this check can return
-        // Degraded when the OpenAI status page reports minor issues, causing the test to fail.
-        var statusPageHealthCheck = openai.Resource.Annotations.Single(x => x is HealthCheckAnnotation hca && hca.Key == "resource_check");
-        openai.Resource.Annotations.Remove(statusPageHealthCheck);
-
-        var resource = openai.AddModel("chat", "gpt-4o-mini")
+        var resource = builder.AddOpenAI("resource")
+                      .AddModel("chat", "gpt-4o-mini")
                       .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
