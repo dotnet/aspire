@@ -106,7 +106,7 @@ The steps below are sequential and gated. Complete each step fully before moving
 6. Apply a fix. Try local verification first with `run-test-repeatedly.sh` for fast iteration, then **always run CI verification** as the final gate.
 7. Clean up: restore `ci.yml` to its original contents
 
-**Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run. However, you must still run CI reproduction to validate your understanding before applying a fix.
+**Prefer analyzing existing data first.** The quarantine CI runs every 2 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run. However, you must still run CI reproduction to validate your understanding before applying a fix.
 
 ## Step 1: Gather Failure Data
 
@@ -185,7 +185,7 @@ Before proceeding to Step 1.5, confirm you have:
 
 ## Step 1.5: Analyze Existing Quarantine Failure Logs
 
-Before running a separate reproduction, check if existing quarantine CI logs already contain the information you need. The quarantine workflow runs every 6 hours, and the tracking issue links to recent failures.
+Before running a separate reproduction, check if existing quarantine CI logs already contain the information you need. The quarantine workflow runs every 2 hours, and the tracking issue links to recent failures.
 
 ### Finding Failure Logs from Quarantine Runs
 
@@ -442,29 +442,39 @@ git commit -m "Replace ci.yml with reproduce workflow for <test name>"
 git push
 ```
 
-**Monitor the run using polling** (CI runs take 10-30+ minutes):
-
+Find and store the run ID:
 ```bash
-# Find the run ID
 gh run list --repo dotnet/aspire --branch <branch> --limit 1 --json databaseId,status
 ```
-
-Store the run ID, then poll periodically for completion:
 ```sql
 INSERT OR REPLACE INTO session_state (key, value) VALUES ('reproduce_run_id', '<run-id>');
 ```
 
+**Delegate CI monitoring to a sub-agent** to avoid burning main context with polling:
+
+```
+Use a task agent (general-purpose) to monitor the CI run and report results:
+
+Prompt: "Monitor GitHub Actions run <run-id> in dotnet/aspire until it completes.
+Poll every 3 minutes using: gh run view <run-id> --repo dotnet/aspire --json status,conclusion
+When complete, download artifacts: gh run download <run-id> --repo dotnet/aspire --dir /tmp/failure-logs --pattern 'failures-*'
+Then parse .trx files for test failures: find /tmp/failure-logs -name '*.trx' -exec grep -l 'outcome=\"Failed\"' {} \;
+For each failed .trx, extract the test name and error message.
+Return a structured summary: overall status, failure count per OS, and the first 20 lines of each failure's error message."
+```
+
+This keeps the main context clean while the CI run takes 10-30+ minutes. The main agent can do code analysis or other investigation while waiting.
+
+**Fallback (manual polling)** — if sub-agent delegation is not available:
+
 ```bash
-# Poll for completion (use bash mode="async", then read_bash with increasing delays)
-# Avoid `gh run watch` — it produces excessive output that floods the context window.
+# Poll for completion (avoid `gh run watch` — it produces excessive output)
 gh run view <run-id> --repo dotnet/aspire --json status,conclusion --jq '{status, conclusion}'
 
 # Check individual job results as they complete
 gh run view <run-id> --repo dotnet/aspire --json jobs \
   --jq '.jobs[] | select(.status == "completed") | {name: .name, conclusion: .conclusion}'
 ```
-
-**Tip**: Use `gh run watch` with bash `mode="async"` only as a background blocker. Don't read its output — instead use the targeted `gh run view` queries above to check progress.
 
 **Cancel old runs** when starting new ones to avoid wasting CI resources:
 
@@ -715,7 +725,7 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES ('verify_run_id', '<run
 INSERT OR REPLACE INTO session_state (key, value) VALUES ('fix_attempt', '1');
 ```
 
-Wait for CI to complete. Monitor with polling (`gh run view --json status,conclusion`), not `gh run watch`.
+Wait for CI to complete. **Delegate monitoring to a sub-agent** (same pattern as Step 3.3) to avoid burning context on polling. If using manual polling, use `gh run view --json status,conclusion`, not `gh run watch`.
 
 ### 5.5: Handle Verification Results
 
@@ -755,7 +765,7 @@ If no CI run exists (e.g., working without a PR), trigger one manually by openin
 
 ### 6.2: Wait for CI to Complete
 
-Poll the CI run until it completes. Use `gh run view`, not `gh run watch`:
+**Delegate monitoring to a sub-agent** (same pattern as Step 3.3) to keep main context clean. If using manual polling:
 
 ```bash
 gh run view <ci-run-id> --repo dotnet/aspire --json status,conclusion
