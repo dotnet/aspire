@@ -13,6 +13,8 @@ name: Reproduce Flaky Tests
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: ['flaky-tests0']
 
 # ============================================================
 # CONFIGURATION — Edit these values to customize the test run
