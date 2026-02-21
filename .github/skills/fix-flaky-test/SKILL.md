@@ -189,29 +189,71 @@ Before running a separate reproduction, check if existing quarantine CI logs alr
 
 ### Finding Failure Logs from Quarantine Runs
 
-The tracking issue contains ❌ links to failed quarantine runs. Use those run IDs to find the specific job that failed:
+> **⚠️ IMPORTANT**: The quarantine workflow uses `ignoreTestFailures: true`, so **all jobs succeed even when individual tests fail**. Do NOT look for failed jobs (`select(.conclusion == "failure")`) — this will never match quarantine jobs. Instead, download the `.trx` test result artifacts and parse them for individual test failures.
+
+**Prioritize the most recent failures.** Start from the newest ❌ runs in the tracking issue and work backwards. Recent failures have the most reliable artifacts and are most representative of the current failure mode.
+
+#### Step 1: Find quarantine runs with test failures for your test
+
+List recent quarantine workflow runs:
 
 ```bash
-# Find the failed job for your test project in a quarantine run
+# List recent quarantine runs (look for runs from the last 7-14 days first)
+gh run list --repo dotnet/aspire --workflow "Quarantined Tests" --limit 10 \
+  --json databaseId,createdAt,conclusion \
+  --jq '.[] | "\(.databaseId) \(.createdAt) \(.conclusion)"'
+```
+
+#### Step 2: Download .trx artifacts from a quarantine run
+
+Each quarantine run uploads test result artifacts named `logs-<ProjectShortname>-<os>`. Download the artifacts for your test's project:
+
+```bash
+# Download all artifacts from a quarantine run
+gh run download <run_id> --repo dotnet/aspire --dir /tmp/quarantine-logs \
+  --pattern "logs-<ProjectShortname>-*"
+```
+
+#### Step 3: Parse .trx files for test failures
+
+The `.trx` files are XML test results that contain pass/fail status for each individual test:
+
+```bash
+# Find .trx files with failed tests
+find /tmp/quarantine-logs -name "*.trx" -exec grep -l 'outcome="Failed"' {} \;
+
+# Extract the specific failing test names and error messages
+grep -A 5 'outcome="Failed"' /tmp/quarantine-logs/**/*.trx | head -50
+
+# Search for your specific test method
+grep -B 2 -A 10 "TestMethodName" /tmp/quarantine-logs/**/*.trx
+```
+
+You can also use the `xmllint` or a task agent to parse `.trx` files more precisely:
+
+```bash
+# Find all failed test results with error messages (using grep for portability)
+find /tmp/quarantine-logs -name "*.trx" -exec grep -l 'testName=".*TestMethodName.*"' {} \;
+```
+
+#### Step 4 (fallback): Download job logs for additional context
+
+If `.trx` artifacts are expired or don't contain enough detail, fall back to job logs. First find the job for your test project (note: the job will show as "success" even if tests failed):
+
+```bash
+# Find the job for your test project (do NOT filter by conclusion)
 gh api "repos/dotnet/aspire/actions/runs/<run_id>/jobs?per_page=100&filter=latest" \
-  --jq '.jobs[] | select(.name | contains("<ProjectShortname>")) | select(.conclusion == "failure") | {id: .id, name: .name}'
+  --jq '.jobs[] | select(.name | contains("<ProjectShortname>")) | {id: .id, name: .name, conclusion: .conclusion}'
 ```
 
-Then download the logs for that job:
+Then download the job logs:
 
 ```bash
-# Get logs via the GitHub MCP tool (preferred — handles encoding automatically)
-# Use get_job_logs with the job_id, return_content: true, tail_lines: 300
-
-# Or via CLI
 gh api "repos/dotnet/aspire/actions/jobs/<job_id>/logs" > quarantine-failure.log
-```
-
-Search the logs for the test name, error message, and stack trace:
-
-```bash
 grep -i "TestMethodName\|TaskCanceled\|Assert\|Exception\|FAIL" quarantine-failure.log | head -30
 ```
+
+> **Note**: Job logs expire after ~90 days. Artifacts (`.trx` files) are retained for 30 days. Always try artifacts first.
 
 ### Identifying Contention-Sensitive Tests
 

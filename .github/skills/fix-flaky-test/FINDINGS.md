@@ -23,13 +23,15 @@ This document captures observations from using the `fix-flaky-test` skill to inv
   MCP server 'github-mcp-server': failed to get job logs for job 48148497418:
   unexpected status code: 410 Gone
   ```
-- **Feb 18 failure run (22147848990):** The issue's ❌ link pointed to this run. The agent iterated through all 24 jobs to find the OpenAI failure, but discovered the OpenAI jobs all *passed* — the ❌ was caused by `Hosting.Azure (windows-latest)` failing, not the OpenAI test. This wasted multiple API calls and context.
-- **Feb 13 failure run (21979527885):** Same pattern — the agent checked all jobs and found the OpenAI test passed on all three OSes. The run was marked ❌ due to `Hosting.Azure (windows-latest)` and `Hosting (windows-latest)` failures.
-- **Earlier failure runs (21954725767, 21950312313, 21946082059):** The agent checked three more ❌ runs. None had OpenAI test failures — the failures were in unrelated test projects.
+- **Feb 18 failure run (22147848990):** The issue's ❌ link pointed to this run. The agent iterated through all 24 jobs to find the OpenAI failure, but discovered the OpenAI jobs all showed a "success" conclusion. However, this was a **misdiagnosis**: the quarantine workflow uses `ignoreTestFailures: true`, so jobs succeed even when individual tests fail. The agent should have downloaded the `.trx` artifact files to check for individual test failures instead of relying on job-level conclusion status. The ❌ on the run was likely caused by a different job failing, but the OpenAI test may still have failed within its successful job.
+- **Feb 13 failure run (21979527885):** Same pattern — the agent checked job conclusions and found them all "success", but this does not mean the OpenAI test passed. The `.trx` files in the uploaded artifacts would contain the actual per-test pass/fail results.
+- **Earlier failure runs (21954725767, 21950312313, 21946082059):** The agent checked three more ❌ runs using the same flawed methodology (job conclusion filtering). The actual test-level results were not verified.
 
-In total, the agent checked **6 different ❌ runs** from the issue and found **zero** where the OpenAI test actually failed. The issue's failure tracking is at run-level, not test-level, making most ❌ entries misleading for this specific test.
+In total, the agent checked **6 different ❌ runs** from the issue but used job-level conclusion status to determine test outcomes. Since the quarantine workflow uses `ignoreTestFailures: true`, all test jobs show "success" regardless of individual test failures. The agent should have downloaded `.trx` artifacts to check per-test results. The issue's run-level ❌ tracking is also misleading — it tracks whether the *run* failed, not whether a *specific test* failed.
 
 **Suggestions:**
+- ✅ **FIXED**: The skill now instructs the agent to download `.trx` artifacts and parse them for per-test results, instead of relying on job conclusion status
+- ✅ **FIXED**: Added `retention-days: 30` to test result artifact upload in `run-tests.yml`
 - The quarantine bot should include **job IDs** for the specific failed jobs in the issue body
 - Include a **10-20 line error snippet** from the failing test directly in the issue
 - Distinguish between "this specific test failed" vs "the run failed but this test passed"

@@ -525,6 +525,7 @@ jobs:
             testresults/**
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
+          retention-days: 30
 
       - name: Copy CLI E2E recordings for upload
         if: always()
