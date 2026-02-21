@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>AppHost failed to build.</source>
-        <target state="new">AppHost failed to build.</target>
+        <target state="translated">無法建置 AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
@@ -139,12 +139,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">請勿在執行之前組建或還原專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">啟用監看模式時，無法使用 --no-build 選項。</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">

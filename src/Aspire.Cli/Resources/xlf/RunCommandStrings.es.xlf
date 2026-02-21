@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>AppHost failed to build.</source>
-        <target state="new">AppHost failed to build.</target>
+        <target state="translated">Error al compilar AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
