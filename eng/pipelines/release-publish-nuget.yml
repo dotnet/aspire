@@ -36,11 +36,18 @@ parameters:
     type: boolean
     default: false
 
+  - name: SkipWinGetPublish
+    displayName: 'Skip WinGet Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
   # Variable group containing NuGetApiKey
   - group: Aspire-Release-Secrets
+  # Variable group containing aspire-winget-bot-pat for WinGet publishing
+  - group: Aspire-Secrets
 
 resources:
   repositories:
@@ -89,6 +96,7 @@ extends:
                   Write-Host "GA Channel: ${{ parameters.GaChannelName }}"
                   Write-Host "Dry Run: ${{ parameters.DryRun }}"
                   Write-Host "Skip NuGet Publish: ${{ parameters.SkipNuGetPublish }}"
+                  Write-Host "Skip WinGet Publish: ${{ parameters.SkipWinGetPublish }}"
                   Write-Host "Skip Channel Promotion: ${{ parameters.SkipChannelPromotion }}"
                   Write-Host "==================================="
 
@@ -350,15 +358,55 @@ extends:
                 env:
                   NuGetApiKey: $(NuGetApiKey)
 
+      - stage: PublishWinGet
+        displayName: 'Publish to WinGet (Microsoft.Aspire)'
+        dependsOn:
+          - PublishNuGet
+        condition: |
+          and(
+            or(succeeded('PublishNuGet'), eq('${{ parameters.SkipNuGetPublish }}', 'true')),
+            eq('${{ parameters.SkipWinGetPublish }}', 'false')
+          )
+        jobs:
+          - template: /eng/common/templates-official/jobs/jobs.yml@self
+            parameters:
+              enableMicrobuild: false
+              enablePublishUsingPipelines: false
+              enablePublishBuildAssets: false
+              enablePublishBuildArtifacts: true
+              enableTelemetry: true
+              workspace:
+                clean: all
+              jobs:
+              - job: WinGet_Publish
+                timeoutInMinutes: 30
+                pool:
+                  name: NetCore1ESPool-Internal
+                  image: 1es-windows-2022
+                  os: windows
+                steps:
+                - checkout: self
+                  fetchDepth: 1
+                - template: /eng/pipelines/templates/winget.yml@self
+                  parameters:
+                    publishToWinGet: ${{ not(parameters.DryRun) }}
+                    wingetToken: $(aspire-winget-bot-pat)
+                    buildConfig: Release
+                    version: ${{ parameters.ReleaseVersion }}
+                    templateDir: microsoft.aspire
+                    packageIdentifier: Microsoft.Aspire
+
       - stage: PromoteToChannel
         displayName: 'Promote to GA Channel'
         dependsOn:
           - ExtractBarBuildId
           - PublishNuGet
+          - PublishWinGet
         condition: |
           and(
             succeeded('ExtractBarBuildId'),
             or(succeeded('PublishNuGet'), eq('${{ parameters.SkipNuGetPublish }}', 'true')),
+            or(succeeded('PublishWinGet'), eq('${{ parameters.SkipWinGetPublish }}', 'true')),
             eq('${{ parameters.SkipChannelPromotion }}', 'false')
           )
         variables:
@@ -430,6 +478,7 @@ extends:
         dependsOn:
           - ExtractBarBuildId
           - PublishNuGet
+          - PublishWinGet
           - PromoteToChannel
         condition: always()
         variables:
@@ -458,6 +507,12 @@ extends:
                   Write-Host "╠═══════════════════════════════════════════════════════════════╣"
                   Write-Host "║ NuGet Publish:  ${{ parameters.SkipNuGetPublish }}" -NoNewline
                   if ("${{ parameters.SkipNuGetPublish }}" -eq "true") {
+                    Write-Host " (SKIPPED)"
+                  } else {
+                    Write-Host " (EXECUTED)"
+                  }
+                  Write-Host "║ WinGet Publish: ${{ parameters.SkipWinGetPublish }}" -NoNewline
+                  if ("${{ parameters.SkipWinGetPublish }}" -eq "true") {
                     Write-Host " (SKIPPED)"
                   } else {
                     Write-Host " (EXECUTED)"
