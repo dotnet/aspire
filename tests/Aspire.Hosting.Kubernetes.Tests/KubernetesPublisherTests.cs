@@ -424,6 +424,7 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
+            "Chart.yaml",
             "values.yaml",
             "templates/api/deployment.yaml",
             "templates/api/service.yaml",
