@@ -60,16 +60,22 @@ internal static class MauiPlatformHelper
         // Check if the project has the platform TFM and get the actual TFM value
         var platformTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, platformName);
 
-        // Set the command line arguments with the detected TFM if available
+        // Override the default DCP launch command from 'dotnet run' to 'dotnet build /t:Run'.
+        // This gives better build output in the dashboard and is the standard way MAUI apps
+        // are launched (equivalent to what VS does internally).
+        resourceBuilder.WithAnnotation(new ProjectLaunchArgsOverrideAnnotation(["build", "/t:Run"]));
+
+        // Set the command line arguments with the detected TFM and platform-specific args.
+        // These are appended AFTER the DCP-generated project args.
         resourceBuilder.WithArgs(context =>
         {
-            context.Args.Add("run");
             if (!string.IsNullOrEmpty(platformTfm))
             {
                 context.Args.Add("-f");
                 context.Args.Add(platformTfm);
             }
-            // Add any additional platform-specific arguments
+
+            // Add any additional platform-specific arguments (e.g., -p:AdbTarget=...)
             foreach (var arg in additionalArgs)
             {
                 context.Args.Add(arg);

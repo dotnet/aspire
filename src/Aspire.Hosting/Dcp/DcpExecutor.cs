@@ -1483,8 +1483,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
+                    // Check if the resource has a custom launch args override (e.g., MAUI projects using 'dotnet build /t:Run')
+                    if (project.TryGetLastAnnotation<ProjectLaunchArgsOverrideAnnotation>(out var launchOverride))
+                    {
+                        projectArgs.AddRange(launchOverride.Args);
+                        // dotnet build takes the project path as a positional argument (not --project)
+                        projectArgs.Add(projectMetadata.ProjectPath);
+
+                        if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                        {
+                            projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
+                        }
+                    }
                     // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
+                    else if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
                         projectArgs.Add("run");
                         projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
@@ -1509,7 +1521,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         ]);
                     }
 
-                    if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                    if (launchOverride is null && !string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
                         projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
                     }
@@ -1519,7 +1531,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // (the ambient environment settings for service processes come from the application model
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
-                    projectArgs.Add("--no-launch-profile");
+                    if (launchOverride is null)
+                    {
+                        projectArgs.Add("--no-launch-profile");
+                    }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
