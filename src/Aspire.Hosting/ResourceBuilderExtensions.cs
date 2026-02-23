@@ -3293,39 +3293,4 @@ public static class ResourceBuilderExtensions
         });
     }
 
-    /// <summary>
-    /// Marks the resource as hosting a Model Context Protocol (MCP) server on the specified endpoint.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="endpointName">The name of the endpoint that hosts the MCP server (e.g. <c>"https"</c> or <c>"http"</c>).</param>
-    /// <param name="path">An optional path to append to the endpoint URL when forming the MCP server address. Defaults to <c>"/mcp"</c>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
-    /// <remarks>
-    /// This method adds a <see cref="McpServerEndpointAnnotation"/> to the resource, enabling the Aspire tooling
-    /// to discover and proxy the MCP server exposed by the resource.
-    /// </remarks>
-    /// <example>
-    /// Mark a resource as hosting an MCP server on its HTTPS endpoint:
-    /// <code>
-    /// var api = builder.AddProject&lt;Projects.MyApi&gt;("api")
-    ///     .WithMcpServer("https");
-    /// </code>
-    /// Mark a resource as hosting an MCP server with a custom path:
-    /// <code>
-    /// var api = builder.AddProject&lt;Projects.MyApi&gt;("api")
-    ///     .WithMcpServer("https", "/sse");
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithMcpServer<T>(
-        this IResourceBuilder<T> builder,
-        string endpointName,
-        string? path = "/mcp")
-        where T : IResourceWithEndpoints
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
-
-        return builder.WithAnnotation(McpServerEndpointAnnotation.FromEndpoint(endpointName, path));
-    }
 }
