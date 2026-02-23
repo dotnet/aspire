@@ -35,13 +35,31 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
+        // aspire new prompts
+        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
+            .FindPattern("> Starter App");
+
+        var waitingForProjectNamePrompt = new CellPatternSearcher()
+            .Find("Enter the project name (");
+
+        var waitingForOutputPathPrompt = new CellPatternSearcher()
+            .Find("Enter the output path:");
+
+        var waitingForUrlsPrompt = new CellPatternSearcher()
+            .Find("Use *.dev.localhost URLs");
+
+        var waitingForRedisPrompt = new CellPatternSearcher()
+            .Find("Use Redis Cache");
+
+        var waitingForTestPrompt = new CellPatternSearcher()
+            .Find("Do you want to create a test project?");
+
         // Pattern searcher for the apphost selection prompt
         var waitingForAppHostSelectionPrompt = new CellPatternSearcher()
             .Find("Select an apphost to use:");
 
-        // After selecting, `aspire run` will try to build the single-file apphost.
-        // We expect it to fail since these are minimal stubs, but that's fine —
-        // we only need to verify the selection prompt appears.
+        var waitForCtrlCMessage = new CellPatternSearcher()
+            .Find("Press CTRL+C to stop the apphost and exit.");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -55,47 +73,102 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Create two single-file AppHost directories so the CLI detects multiple apphosts.
-        // A single-file apphost is a .cs file with "#:sdk Aspire.AppHost.Sdk" and no sibling .csproj.
-        var appHost1Dir = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost1");
-        var appHost2Dir = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost2");
+        // Create the first project using aspire new
+        sequenceBuilder.Type("aspire new")
+            .Enter()
+            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Enter() // select Starter App
+            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Type("FirstApp")
+            .Enter()
+            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitForSuccessPrompt(counter);
 
-        sequenceBuilder.ExecuteCallback(() =>
-        {
-            Directory.CreateDirectory(appHost1Dir);
-            File.WriteAllText(Path.Combine(appHost1Dir, "apphost.cs"),
-                """
-                #:sdk Aspire.AppHost.Sdk
-                var builder = DistributedApplication.CreateBuilder(args);
-                builder.Build().Run();
-                """);
+        // Clear screen to avoid pattern interference from the first aspire new
+        sequenceBuilder.ClearScreen(counter);
 
-            Directory.CreateDirectory(appHost2Dir);
-            File.WriteAllText(Path.Combine(appHost2Dir, "apphost.cs"),
-                """
-                #:sdk Aspire.AppHost.Sdk
-                var builder = DistributedApplication.CreateBuilder(args);
-                builder.Build().Run();
-                """);
-        });
+        // Create the second project using aspire new
+        sequenceBuilder.Type("aspire new")
+            .Enter()
+            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Enter() // select Starter App
+            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Type("SecondApp")
+            .Enter()
+            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Clear screen before running aspire run
+        sequenceBuilder.ClearScreen(counter);
+
+        // Searcher for error messages that indicate the apphost failed to build/resolve
+        var sdkResolutionError = new CellPatternSearcher()
+            .Find("Could not resolve SDK");
+
+        var noAppHostFound = new CellPatternSearcher()
+            .Find("No project file found");
 
         // Run aspire run from the workspace root — should find both apphosts and prompt
         sequenceBuilder.Type("aspire run")
             .Enter()
-            .WaitUntil(s => waitingForAppHostSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitUntil(s =>
+            {
+                // Assert we see the selection prompt
+                if (waitingForAppHostSelectionPrompt.Search(s).Count > 0)
+                {
+                    return true;
+                }
+
+                // Fail fast with descriptive message if something went wrong instead
+                if (sdkResolutionError.Search(s).Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        "AppHost SDK resolution failed. The test requires real buildable AppHost projects.");
+                }
+
+                if (noAppHostFound.Search(s).Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        "No AppHost projects were found. Expected two AppHost projects to trigger selection prompt.");
+                }
+
+                return false;
+            }, TimeSpan.FromSeconds(60))
             // Select the first apphost by pressing Enter
             .Enter()
-            // The selected apphost will attempt to build/run; it may fail since these
-            // are minimal stubs. Wait for the shell prompt (success or error) either way.
-            .WaitUntil(snapshot =>
+            // The selected apphost should build and start successfully
+            .WaitUntil(s =>
             {
-                var promptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText("] $ ");
+                if (waitForCtrlCMessage.Search(s).Count > 0)
+                {
+                    return true;
+                }
 
-                return promptSearcher.Search(snapshot).Count > 0;
+                // Fail fast if the apphost failed to build
+                if (sdkResolutionError.Search(s).Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        "Selected AppHost failed to build due to SDK resolution error.");
+                }
+
+                return false;
             }, TimeSpan.FromMinutes(2))
-            .IncrementSequence(counter)
+            .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
+            .WaitForSuccessPrompt(counter)
             .Type("exit")
             .Enter();
 
