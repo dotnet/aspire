@@ -93,4 +93,7 @@
   <data name="AddingServiceDefaultsProjectToSolution" xml:space="preserve">
     <value>Adding ServiceDefaults project to solution...</value>
   </data>
+  <data name="PromptRunAgentInit" xml:space="preserve">
+    <value>Would you like to configure AI agent environments? (aspire agent init)</value>
+  </data>
 </root>

@@ -47,6 +47,11 @@
         <target state="translated">Çözüm dosyası bulunamadı. Tek dosyalı AppHost oluşturuluyor...</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptRunAgentInit">
+        <source>Would you like to configure AI agent environments? (aspire agent init)</source>
+        <target state="new">Would you like to configure AI agent environments? (aspire agent init)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Çözüm algılandı: {0}</target>

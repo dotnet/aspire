@@ -110,5 +110,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AddingServiceDefaultsProjectToSolution", resourceCulture);
             }
         }
+        
+        internal static string PromptRunAgentInit {
+            get {
+                return ResourceManager.GetString("PromptRunAgentInit", resourceCulture);
+            }
+        }
     }
 }
