@@ -218,9 +218,6 @@ public sealed class StartStopTests(ITestOutputHelper output)
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
 
-        var waitForVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("Select a version of Aspire.Hosting.MongoDB:");
-
         var waitForPackageAddedSuccessfully = new CellPatternSearcher()
             .Find("was added successfully.");
 
@@ -266,12 +263,11 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Add a package while the AppHost is running - this should auto-stop the
-        // running instance before modifying the project, then succeed
+        // running instance before modifying the project, then succeed.
+        // --non-interactive skips the version selection prompt.
         sequenceBuilder.Type("aspire add mongodb --non-interactive")
             .Enter()
-            .WaitUntil(s => waitForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromMinutes(1))
-            .Enter() // Accept the default version
-            .WaitUntil(s => waitForPackageAddedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitUntil(s => waitForPackageAddedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
         // Clean up: stop if still running (the add command may have stopped it)
