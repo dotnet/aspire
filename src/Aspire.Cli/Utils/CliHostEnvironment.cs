@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
+using static Microsoft.VisualStudio.Threading.AsyncReaderWriterLock;
 
 namespace Aspire.Cli.Utils;
 
@@ -102,7 +103,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
             // Update this to use AnsiCapabilities once it's available in Spectre.Console 0.60+ instead of creating a full AnsiConsole instance.
             var ansiConsole = AnsiConsole.Create(new AnsiConsoleSettings
             {
-                Out = new AnsiConsoleOutput(new StringWriter()),
+                Out = new AspireAnsiConsoleOutput(Console.Out, configuration),
                 Ansi = AnsiSupport.Detect,
                 ColorSystem = ColorSystemSupport.Detect
             });
