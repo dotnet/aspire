@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">
         <source>No running AppHosts found.</source>
-        <target state="translated">Nenhum AppHosts em execução encontrado.</target>
+        <target state="new">No running AppHosts found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
+        <target state="new">The path to the Aspire AppHost project file.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="translated">Verificando se há AppHosts em execução...</target>
+        <target state="new">Scanning for running AppHosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">

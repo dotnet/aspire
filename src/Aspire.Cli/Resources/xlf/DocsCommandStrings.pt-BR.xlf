@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="translated">Formato de saída (Tabela ou Json).</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="FoundDocumentationPages">

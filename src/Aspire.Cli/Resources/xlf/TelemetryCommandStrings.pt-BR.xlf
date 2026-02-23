@@ -4,112 +4,112 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Nenhum AppHost em execução encontrado. Use "aspire run" para iniciar um primeiro.</target>
+        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
-        <target state="translated">A API do painel não está disponível. Verifique se o AppHost está em execução com o Painel habilitado.</target>
+        <target state="new">Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">Veja os dados de telemetria (logs, spans, rastreamentos) de um aplicativo Aspire em execução.</target>
+        <target state="new">View telemetry data (logs, spans, traces) from a running Aspire application.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
         <source>Failed to fetch telemetry: {0}</source>
-        <target state="translated">Falha ao buscar telemetria: {0}</target>
+        <target state="new">Failed to fetch telemetry: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives.</source>
-        <target state="translated">Transmita telemetria em tempo real conforme ela chega.</target>
+        <target state="new">Stream telemetry in real-time as it arrives.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="translated">Formato de saída (Tabela ou Json).</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors).</source>
-        <target state="translated">Filtrar por status de erro (true para mostrar apenas erros, false para excluir erros).</target>
+        <target state="new">Filter by error status (true to show only errors, false to exclude errors).</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitMustBePositive">
         <source>The --limit value must be a positive number.</source>
-        <target state="translated">O valor --limit deve ser um número positivo.</target>
+        <target state="new">The --limit value must be a positive number.</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return.</source>
-        <target state="translated">Número máximo de itens a serem retornados.</target>
+        <target state="new">Maximum number of items to return.</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API.</source>
-        <target state="translated">Veja os logs estruturados da API de telemetria do Painel.</target>
+        <target state="new">View structured logs from the Dashboard telemetry API.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Nenhum AppHosts encontrado no diretório atual. Mostrando todos os AppHosts em execução.</target>
+        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
+        <target state="new">The path to the Aspire AppHost project file.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
-        <target state="translated">Filtre por nome de recurso.</target>
+        <target state="new">Filter by resource name.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="translated">Verificando se há AppHosts em execução...</target>
+        <target state="new">Scanning for running AppHosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="translated">Selecione um AppHost:</target>
+        <target state="new">Select an AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="translated">Filtre os logs por severidade mínima (Rastreamento, Depuração, Informações, Aviso, Erro, Crítico).</target>
+        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
-        <target state="translated">Veja os spans da API de telemetria do Painel.</target>
+        <target state="new">View spans from the Dashboard telemetry API.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
         <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">A ID de rastreamento a ser visualizada. Se não for especificado, listará todos os rastreamentos.</target>
+        <target state="new">The trace ID to view. If not specified, lists all traces.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
-        <target state="translated">Filtrar por ID de rastreamento.</target>
+        <target state="new">Filter by trace ID.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
         <source>Trace with ID '{0}' was not found.</source>
-        <target state="translated">O rastreamento com a ID ''{0}'' não foi encontrado.</target>
+        <target state="new">Trace with ID '{0}' was not found.</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API.</source>
-        <target state="translated">Veja os rastreamentos da API de telemetria do Painel.</target>
+        <target state="new">View traces from the Dashboard telemetry API.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">
         <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
-        <target state="translated">A API do painel retornou um tipo de conteúdo inesperado. Resposta JSON esperada.</target>
+        <target state="new">Dashboard API returned unexpected content type. Expected JSON response.</target>
         <note />
       </trans-unit>
     </body>
