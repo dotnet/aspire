@@ -167,13 +167,26 @@ internal static class CommonAgentApplicators
         Agent environments may terminate foreground processes when a command finishes. Use detached mode:
 
         ```bash
-        aspire run --detach --isolated
+        aspire run --detach
         ```
 
         This starts the AppHost in the background and returns immediately. The CLI will:
         - Automatically stop any existing running instance before starting a new one
         - Display a summary with the Dashboard URL and resource endpoints
 
+        ### Running with isolation
+
+        The `--isolated` flag starts the AppHost with randomized port numbers and its own copy of user secrets.
+
+        ```bash
+        aspire run --detach --isolated
+        ```
+
+        Isolation should be used when:
+        - AppHosts started by background agents
+        - Agents using source code from a work tree
+        - There were port conflicts when starting the AppHost without isolation
+        
         ### Stopping the application
 
         To stop a running AppHost:
