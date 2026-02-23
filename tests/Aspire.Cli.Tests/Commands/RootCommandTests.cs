@@ -373,4 +373,50 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         Assert.True(hasSetupCommand);
     }
 
+    [Fact]
+    public void AllVisibleCommands_HaveHelpGroup()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.BundleServiceFactory = _ => new TestBundleService(isBundle: true);
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        var missingGroup = command.Subcommands
+            .Where(sub => !sub.Hidden)
+            .OfType<BaseCommand>()
+            .Where(cmd => cmd.HelpGroup is null)
+            .Select(cmd => cmd.Name)
+            .ToList();
+
+        Assert.True(missingGroup.Count == 0,
+            $"The following visible commands are missing a HelpGroup: {string.Join(", ", missingGroup)}. " +
+            "Add 'internal override string? HelpGroup => HelpGroups.XXX;' to each command class.");
+    }
+
+    [Fact]
+    public void GroupedHelp_ContainsAllVisibleCommands()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.BundleServiceFactory = _ => new TestBundleService(isBundle: true);
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var helpWriter = new StringWriter();
+        GroupedHelpWriter.WriteHelp(command, helpWriter, 120);
+
+        var helpOutput = helpWriter.ToString();
+        var visibleCommands = command.Subcommands.Where(sub => !sub.Hidden).ToList();
+
+        foreach (var sub in visibleCommands)
+        {
+            Assert.Contains(sub.Name, helpOutput);
+        }
+    }
 }

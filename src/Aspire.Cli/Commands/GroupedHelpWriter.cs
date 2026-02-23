@@ -7,64 +7,31 @@ namespace Aspire.Cli.Commands;
 
 /// <summary>
 /// Writes grouped help output for the root command, organizing subcommands into logical categories.
+/// Groups are determined by each command's <see cref="BaseCommand.HelpGroup"/> property.
 /// </summary>
 internal static class GroupedHelpWriter
 {
     /// <summary>
-    /// A command entry within a group, with an optional usage override.
+    /// The well-known group ordering. Groups not listed here appear after these, in alphabetical order.
     /// </summary>
-    /// <param name="Name">The command name.</param>
-    /// <param name="UsageOverride">
-    /// When set, replaces the auto-generated argument syntax for this entry.
-    /// Use an empty string to suppress arguments entirely.
-    /// </param>
-    private sealed record CommandEntry(string Name, string? UsageOverride = null);
-
-    private sealed record CommandGroup(string Heading, CommandEntry[] Commands);
-
-    private static readonly CommandGroup[] s_groups =
+    private static readonly string[] s_groupOrder =
     [
-        new("App Commands:", [
-            new("new"),
-            new("init"),
-            new("add"),
-            new("update"),
-            new("run"),
-            new("stop", UsageOverride: ""),
-            new("ps"),
-        ]),
-        new("Resource Management:", [
-            new("start"),
-            new("stop"),
-            new("restart"),
-            new("wait"),
-            new("command"),
-        ]),
-        new("Monitoring:", [
-            new("describe"),
-            new("logs"),
-            new("otel"),
-        ]),
-        new("Deployment:", [
-            new("publish"),
-            new("deploy"),
-            new("do"),
-        ]),
-        new("Tools & Configuration:", [
-            new("config"),
-            new("cache"),
-            new("doctor"),
-            new("docs"),
-            new("agent"),
-        ]),
+        HelpGroups.AppCommands,
+        HelpGroups.ResourceManagement,
+        HelpGroups.Monitoring,
+        HelpGroups.Deployment,
+        HelpGroups.ToolsAndConfiguration,
     ];
 
     /// <summary>
     /// Writes grouped help output for the given root command.
     /// </summary>
-    public static void WriteHelp(Command command, TextWriter writer)
+    /// <param name="command">The root command to generate help for.</param>
+    /// <param name="writer">The text writer to write help output to.</param>
+    /// <param name="maxWidth">The maximum console width. When null, defaults to 80.</param>
+    public static void WriteHelp(Command command, TextWriter writer, int? maxWidth = null)
     {
-        var maxWidth = GetConsoleWidth();
+        var width = maxWidth ?? 80;
 
         // Description
         if (!string.IsNullOrEmpty(command.Description))
@@ -78,47 +45,46 @@ internal static class GroupedHelpWriter
         writer.WriteLine("  aspire <command> [options]");
         writer.WriteLine();
 
-        // Build a lookup from command name to the Command object (visible subcommands only).
-        var subcommandLookup = new Dictionary<string, Command>(StringComparer.OrdinalIgnoreCase);
+        // Collect visible subcommands and organize by group.
+        var grouped = new Dictionary<string, List<(BaseCommand Cmd, int Order)>>(StringComparer.Ordinal);
+        var ungroupedCommands = new List<Command>();
+
         foreach (var sub in command.Subcommands)
         {
-            if (!sub.Hidden)
+            if (sub.Hidden)
             {
-                subcommandLookup[sub.Name] = sub;
+                continue;
             }
-        }
 
-        // Compute the first-column width across all groups for consistent alignment.
-        var columnWidth = 0;
-        foreach (var group in s_groups)
-        {
-            foreach (var entry in group.Commands)
+            if (sub is BaseCommand baseCmd && baseCmd.HelpGroup is not null)
             {
-                if (subcommandLookup.TryGetValue(entry.Name, out var cmd))
+                if (!grouped.TryGetValue(baseCmd.HelpGroup, out var list))
                 {
-                    var label = FormatCommandLabel(cmd, entry.UsageOverride);
-                    if (label.Length > columnWidth)
-                    {
-                        columnWidth = label.Length;
-                    }
+                    list = [];
+                    grouped[baseCmd.HelpGroup] = list;
                 }
+
+                list.Add((baseCmd, baseCmd.HelpGroupOrder));
+            }
+            else
+            {
+                ungroupedCommands.Add(sub);
             }
         }
 
-        // Include any ungrouped commands in the column width calculation.
-        var allGroupedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var group in s_groups)
+        // Sort commands within each group by order.
+        foreach (var list in grouped.Values)
         {
-            foreach (var entry in group.Commands)
-            {
-                allGroupedNames.Add(entry.Name);
-            }
+            list.Sort((a, b) => a.Order.CompareTo(b.Order));
         }
-        foreach (var name in subcommandLookup.Keys)
+
+        // Compute the first-column width across all commands for consistent alignment.
+        var columnWidth = 0;
+        foreach (var list in grouped.Values)
         {
-            if (!allGroupedNames.Contains(name))
+            foreach (var (cmd, _) in list)
             {
-                var label = FormatCommandLabel(subcommandLookup[name], usageOverride: null);
+                var label = FormatCommandLabel(cmd);
                 if (label.Length > columnWidth)
                 {
                     columnWidth = label.Length;
@@ -126,62 +92,48 @@ internal static class GroupedHelpWriter
             }
         }
 
+        foreach (var cmd in ungroupedCommands)
+        {
+            var label = FormatCommandLabel(cmd);
+            if (label.Length > columnWidth)
+            {
+                columnWidth = label.Length;
+            }
+        }
+
         // Padding: 2 spaces indent + label + at least 2 spaces gap before description
         columnWidth += 4;
 
-        // Write each group.
-        foreach (var group in s_groups)
+        // Write groups in the defined order, then any additional groups alphabetically.
+        var writtenGroups = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var groupName in s_groupOrder)
         {
-            var hasAny = false;
-
-            foreach (var entry in group.Commands)
+            if (grouped.TryGetValue(groupName, out var commands))
             {
-                if (!subcommandLookup.TryGetValue(entry.Name, out var cmd))
-                {
-                    continue;
-                }
-
-                if (!hasAny)
-                {
-                    writer.WriteLine(group.Heading);
-                    hasAny = true;
-                }
-
-                var label = FormatCommandLabel(cmd, entry.UsageOverride);
-                var description = cmd.Description ?? string.Empty;
-                WriteTwoColumnRow(writer, label, description, columnWidth, maxWidth);
-            }
-
-            if (hasAny)
-            {
-                writer.WriteLine();
+                WriteGroup(writer, groupName, commands, columnWidth, width);
+                writtenGroups.Add(groupName);
             }
         }
 
-        // Catch-all: show any registered commands not listed in any group.
-        var groupedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var group in s_groups)
+        // Write any groups not in the well-known order (future-proofing).
+        foreach (var (groupName, commands) in grouped.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
         {
-            foreach (var entry in group.Commands)
+            if (!writtenGroups.Contains(groupName))
             {
-                groupedNames.Add(entry.Name);
+                WriteGroup(writer, groupName, commands, columnWidth, width);
             }
         }
 
-        var ungrouped = subcommandLookup.Keys
-            .Where(name => !groupedNames.Contains(name))
-            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (ungrouped.Count > 0)
+        // Catch-all: show any registered commands not assigned to a group.
+        if (ungroupedCommands.Count > 0)
         {
             writer.WriteLine("Other Commands:");
-            foreach (var name in ungrouped)
+            foreach (var cmd in ungroupedCommands.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var cmd = subcommandLookup[name];
-                var label = FormatCommandLabel(cmd, usageOverride: null);
+                var label = FormatCommandLabel(cmd);
                 var description = cmd.Description ?? string.Empty;
-                WriteTwoColumnRow(writer, label, description, columnWidth, maxWidth);
+                WriteTwoColumnRow(writer, label, description, columnWidth, width);
             }
             writer.WriteLine();
         }
@@ -208,7 +160,7 @@ internal static class GroupedHelpWriter
             {
                 var label = FormatOptionLabel(opt);
                 var desc = opt.Description ?? string.Empty;
-                WriteTwoColumnRow(writer, label, desc, optionColumnWidth, maxWidth);
+                WriteTwoColumnRow(writer, label, desc, optionColumnWidth, width);
             }
 
             writer.WriteLine();
@@ -216,6 +168,18 @@ internal static class GroupedHelpWriter
 
         // Help hint
         writer.WriteLine("Use \"aspire <command> --help\" for more information about a command.");
+    }
+
+    private static void WriteGroup(TextWriter writer, string heading, List<(BaseCommand Cmd, int Order)> commands, int columnWidth, int width)
+    {
+        writer.WriteLine(heading);
+        foreach (var (cmd, _) in commands)
+        {
+            var label = FormatCommandLabel(cmd);
+            var description = cmd.Description ?? string.Empty;
+            WriteTwoColumnRow(writer, label, description, columnWidth, width);
+        }
+        writer.WriteLine();
     }
 
     /// <summary>
@@ -271,9 +235,9 @@ internal static class GroupedHelpWriter
         }
     }
 
-    private static string FormatCommandLabel(Command cmd, string? usageOverride)
+    private static string FormatCommandLabel(Command cmd)
     {
-        var args = usageOverride ?? GetArgumentSyntax(cmd);
+        var args = GetArgumentSyntax(cmd);
         return string.IsNullOrEmpty(args) ? cmd.Name : $"{cmd.Name} {args}";
     }
 
@@ -319,18 +283,5 @@ internal static class GroupedHelpWriter
         return sorted.Count > 1
             ? $"{sorted[0]}, {sorted[1]}"
             : sorted.Count > 0 ? sorted[0] : option.Name;
-    }
-
-    private static int GetConsoleWidth()
-    {
-        try
-        {
-            var width = Console.WindowWidth;
-            return width > 0 ? width : 80;
-        }
-        catch
-        {
-            return 80;
-        }
     }
 }

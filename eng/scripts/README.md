@@ -309,7 +309,7 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Aspire"
 | Package size | ~25 MB | ~200 MB compressed | ~210 MB (single file) |
 | Polyglot support | Partial | Full | Full |
 | Components included | CLI only | CLI, Runtime, Dashboard, DCP | CLI, Runtime, Dashboard, DCP |
-| Installation steps | Download + PATH | Download + extract + PATH | Download + `aspire doctor` |
+| Installation steps | Download + PATH | Download + extract + PATH | Download + `aspire setup` |
 | Use case | .NET developers | TypeScript, Python, Go developers | Simplest install path |
 
 ### Self-Extracting Binary
@@ -322,7 +322,7 @@ payload inside the native AOT executable. This is the simplest installation meth
 mkdir -p ~/.aspire/bin
 curl -fsSL <url>/aspire -o ~/.aspire/bin/aspire
 chmod +x ~/.aspire/bin/aspire
-~/.aspire/bin/aspire doctor
+~/.aspire/bin/aspire setup
 
 # Add to PATH
 export PATH="$HOME/.aspire/bin:$PATH"
@@ -335,6 +335,6 @@ Invoke-WebRequest -Uri <url>/aspire.exe -OutFile "$env:LOCALAPPDATA\Aspire\bin\a
 & "$env:LOCALAPPDATA\Aspire\bin\aspire.exe" doctor
 ```
 
-The `aspire doctor` command extracts the embedded payload to the parent directory of the CLI binary.
+The `aspire setup` command extracts the embedded payload to the parent directory of the CLI binary.
 Alternatively, extraction happens lazily on the first command that needs the bundle layout
 (e.g., `aspire run` with a polyglot project).

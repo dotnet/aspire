@@ -13,17 +13,17 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// End-to-end tests for the aspire describe command.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class ResourcesCommandTests(ITestOutputHelper output)
+public sealed class DescribeCommandTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task ResourcesCommandShowsRunningResources()
+    public async Task DescribeCommandShowsRunningResources()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(ResourcesCommandShowsRunningResources));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(DescribeCommandShowsRunningResources));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()

@@ -14,6 +14,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class CacheCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.ToolsAndConfiguration;
+    internal override int HelpGroupOrder => 1;
+
     public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
         : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {

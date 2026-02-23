@@ -16,6 +16,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoCommand : PipelineCommandBase
 {
+    internal override string? HelpGroup => HelpGroups.Deployment;
+    internal override int HelpGroupOrder => 2;
+
     private readonly Argument<string> _stepArgument;
 
     public DoCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DoCommand> logger, IAnsiConsole ansiConsole)

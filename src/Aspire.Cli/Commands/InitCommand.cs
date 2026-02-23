@@ -25,6 +25,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
+    internal override string? HelpGroup => HelpGroups.AppCommands;
+    internal override int HelpGroupOrder => 1;
+
     private readonly IDotNetCliRunner _runner;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;

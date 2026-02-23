@@ -19,6 +19,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.AppCommands;
+    internal override int HelpGroupOrder => 2;
+
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;

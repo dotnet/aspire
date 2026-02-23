@@ -20,6 +20,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class UpdateCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.AppCommands;
+    internal override int HelpGroupOrder => 3;
+
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
     private readonly IAppHostProjectFactory _projectFactory;

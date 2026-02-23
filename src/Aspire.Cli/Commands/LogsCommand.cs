@@ -70,6 +70,9 @@ internal sealed partial class LogsCommandJsonContext : JsonSerializerContext
 
 internal sealed class LogsCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.Monitoring;
+    internal override int HelpGroupOrder => 1;
+
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<LogsCommand> _logger;

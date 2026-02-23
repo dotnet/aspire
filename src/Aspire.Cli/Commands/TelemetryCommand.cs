@@ -16,6 +16,9 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class TelemetryCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.Monitoring;
+    internal override int HelpGroupOrder => 2;
+
     public TelemetryCommand(
         TelemetryLogsCommand logsCommand,
         TelemetrySpansCommand spansCommand,
@@ -27,7 +30,6 @@ internal sealed class TelemetryCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("otel", TelemetryCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        Aliases.Add("telemetry");
         ArgumentNullException.ThrowIfNull(logsCommand);
         ArgumentNullException.ThrowIfNull(spansCommand);
         ArgumentNullException.ThrowIfNull(tracesCommand);

@@ -15,6 +15,19 @@ namespace Aspire.Cli.Commands;
 internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
+
+    /// <summary>
+    /// Gets the help group heading for this command (e.g., "App Commands:").
+    /// When null, the command appears in the "Other Commands:" catch-all section.
+    /// </summary>
+    internal virtual string? HelpGroup { get; }
+
+    /// <summary>
+    /// Gets the display order of this command within its help group.
+    /// Lower values appear first. Defaults to 0.
+    /// </summary>
+    internal virtual int HelpGroupOrder { get; }
+
     private readonly CliExecutionContext _executionContext;
 
     protected CliExecutionContext ExecutionContext => _executionContext;

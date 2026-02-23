@@ -34,6 +34,9 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
 
 internal sealed class PublishCommand : PipelineCommandBase
 {
+    internal override string? HelpGroup => HelpGroups.Deployment;
+    internal override int HelpGroupOrder => 0;
+
     private readonly IPublishCommandPrompter _prompter;
 
     public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<PublishCommand> logger, IAnsiConsole ansiConsole)

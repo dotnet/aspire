@@ -14,6 +14,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class StartCommand : ResourceCommandBase
 {
+    internal override string? HelpGroup => HelpGroups.ResourceManagement;
+    internal override int HelpGroupOrder => 0;
+
     protected override string CommandName => KnownResourceCommands.StartCommand;
     protected override string ProgressVerb => "Starting";
     protected override string BaseVerb => "start";

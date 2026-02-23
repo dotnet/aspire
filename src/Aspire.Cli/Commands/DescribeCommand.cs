@@ -65,44 +65,47 @@ internal sealed partial class ResourcesCommandJsonContext : JsonSerializerContex
     });
 }
 
-internal sealed class ResourcesCommand : BaseCommand
+internal sealed class DescribeCommand : BaseCommand
 {
+    internal override string? HelpGroup => HelpGroups.Monitoring;
+    internal override int HelpGroupOrder => 0;
+
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
 
     private static readonly Argument<string?> s_resourceArgument = new("resource")
     {
-        Description = ResourcesCommandStrings.ResourceArgumentDescription,
+        Description = DescribeCommandStrings.ResourceArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
-        Description = ResourcesCommandStrings.ProjectOptionDescription
+        Description = DescribeCommandStrings.ProjectOptionDescription
     };
     private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
-        Description = ResourcesCommandStrings.FollowOptionDescription
+        Description = DescribeCommandStrings.FollowOptionDescription
     };
     // Hidden backward-compat alias for --follow (was --watch before 13.2)
     private static readonly Option<bool> s_legacyWatchOption = new("--watch")
     {
-        Description = ResourcesCommandStrings.FollowOptionDescription,
+        Description = DescribeCommandStrings.FollowOptionDescription,
         Hidden = true
     };
     private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
-        Description = ResourcesCommandStrings.JsonOptionDescription
+        Description = DescribeCommandStrings.JsonOptionDescription
     };
 
-    public ResourcesCommand(
+    public DescribeCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
-        ILogger<ResourcesCommand> logger)
-        : base("describe", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        ILogger<DescribeCommand> logger)
+        : base("describe", DescribeCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         Aliases.Add("resources");
         _interactionService = interactionService;
@@ -125,14 +128,14 @@ internal sealed class ResourcesCommand : BaseCommand
         var format = parseResult.GetValue(s_formatOption);
 
         // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : ResourcesCommandStrings.ScanningForRunningAppHosts;
+        var scanningMessage = format == OutputFormat.Json ? string.Empty : DescribeCommandStrings.ScanningForRunningAppHosts;
 
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
             scanningMessage,
-            ResourcesCommandStrings.SelectAppHost,
-            ResourcesCommandStrings.NoInScopeAppHostsShowingAll,
-            ResourcesCommandStrings.AppHostNotRunning,
+            DescribeCommandStrings.SelectAppHost,
+            DescribeCommandStrings.NoInScopeAppHostsShowingAll,
+            DescribeCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
@@ -171,7 +174,7 @@ internal sealed class ResourcesCommand : BaseCommand
         // Check if resource was not found
         if (resourceName is not null && snapshots.Count == 0)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ResourcesCommandStrings.ResourceNotFound, resourceName));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DescribeCommandStrings.ResourceNotFound, resourceName));
             return ExitCodeConstants.FailedToFindProject;
         }
 

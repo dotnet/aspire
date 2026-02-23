@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 #if DEBUG
 using System.Globalization;
@@ -25,7 +26,7 @@ internal sealed class RootCommand : BaseRootCommand
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true,
-        Hidden = true // Hidden for backward compatibility, use --debug-level instead
+        Hidden = true // Hidden for backward compatibility, use --log-level instead
     };
 
     public static readonly Option<LogLevel?> DebugLevelOption = new("--log-level", "-l")
@@ -34,17 +35,9 @@ internal sealed class RootCommand : BaseRootCommand
         Recursive = true
     };
 
-    // Hidden backward-compat alias for --log-level (was the original name)
-    private static readonly Option<LogLevel?> s_legacyDebugLevelOption = new("--debug-level")
-    {
-        Description = RootCommandStrings.DebugLevelArgumentDescription,
-        Recursive = true,
-        Hidden = true
-    };
-
     public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
-        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners.",
+        Description = RootCommandStrings.NonInteractiveArgumentDescription,
         Recursive = true
     };
 
@@ -111,6 +104,7 @@ internal sealed class RootCommand : BaseRootCommand
     }
 
     private readonly IInteractionService _interactionService;
+    private readonly IAnsiConsole _ansiConsole;
 
     public RootCommand(
         NewCommand newCommand,
@@ -122,7 +116,7 @@ internal sealed class RootCommand : BaseRootCommand
         WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
-        ResourcesCommand resourcesCommand,
+        DescribeCommand describeCommand,
         LogsCommand logsCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
@@ -142,10 +136,12 @@ internal sealed class RootCommand : BaseRootCommand
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
         IFeatures featureFlags,
-        IInteractionService interactionService)
+        IInteractionService interactionService,
+        IAnsiConsole ansiConsole)
         : base(RootCommandStrings.Description)
     {
         _interactionService = interactionService;
+        _ansiConsole = ansiConsole;
 
 #if DEBUG
         CliWaitForDebuggerOption.Validators.Add((result) =>
@@ -172,7 +168,6 @@ internal sealed class RootCommand : BaseRootCommand
 
         Options.Add(DebugOption);
         Options.Add(DebugLevelOption);
-        Options.Add(s_legacyDebugLevelOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
         Options.Add(BannerOption);
@@ -190,7 +185,9 @@ internal sealed class RootCommand : BaseRootCommand
             }
 
             // No subcommand provided - show grouped help but return InvalidCommand to signal usage error
-            GroupedHelpWriter.WriteHelp(this, Console.Out);
+            var writer = _ansiConsole.Profile.Out.Writer;
+            var consoleWidth = _ansiConsole.Profile.Width;
+            GroupedHelpWriter.WriteHelp(this, writer, consoleWidth);
             return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
@@ -203,7 +200,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
-        Subcommands.Add(resourcesCommand);
+        Subcommands.Add(describeCommand);
         Subcommands.Add(logsCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
@@ -240,7 +237,7 @@ internal sealed class RootCommand : BaseRootCommand
         {
             if (option is HelpOption helpOption)
             {
-                helpOption.Action = new GroupedHelpAction(this);
+                helpOption.Action = new GroupedHelpAction(this, _ansiConsole);
             }
             else if (option is VersionOption versionOption)
             {

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ru" original="../ResourcesCommandStrings.resx">
+  <file datatype="xml" source-language="en" target-language="ja" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Запущенные хосты приложений не найдены. Сначала запустите один из них с помощью команды "aspire run".</target>
+        <target state="translated">実行中の AppHost は見つかりません。最初に 'aspire run' を使って起動してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="needs-review-translation">Отображать моментальные снимки ресурсов из запущенного хоста приложений Aspire.</target>
+        <target state="needs-review-translation">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -19,42 +19,42 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Вывод в формате JSON для потребления компьютером.</target>
+        <target state="needs-review-translation">機械処理用の JSON 形式で出力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="translated">Проект хоста приложений не найден.</target>
+        <target state="translated">AppHost プロジェクトは見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Хосты приложений не найдены в текущем каталоге. Отображаются все запущенные хосты приложений.</target>
+        <target state="translated">現在のディレクトリ内に AppHost が見つかりません。実行中のすべての AppHost を表示しています。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
+        <target state="translated">Aspire AppHost プロジェクト ファイルへのパス。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="translated">Имя ресурса для отображения. Если не указано, отображаются все ресурсы.</target>
+        <target state="translated">表示するリソースの名前。指定しない場合は、すべてのリソースが表示されます。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="translated">Ресурс "{0}" не найден.</target>
+        <target state="translated">リソース '{0}' が見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="translated">Выполняется сканирование на наличие запущенных хостов приложений...</target>
+        <target state="translated">実行中の AppHost をスキャンしています...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="translated">Выберите хост приложения:</target>
+        <target state="translated">AppHost を選択:</target>
         <note />
       </trans-unit>
     </body>

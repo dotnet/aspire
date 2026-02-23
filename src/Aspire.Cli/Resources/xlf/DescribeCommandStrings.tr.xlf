@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="de" original="../ResourcesCommandStrings.resx">
+  <file datatype="xml" source-language="en" target-language="tr" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Es wurde kein ausgeführter AppHost gefunden. Verwenden Sie zuerst „aspire run“, um einen zu starten.</target>
+        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="needs-review-translation">Zeigen Sie Ressourcenmomentaufnahmen von einem laufenden Aspire-AppHost an.</target>
+        <target state="needs-review-translation">Çalışan bir Aspire apphost'tan kaynak anlık görüntülerini göster.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -19,42 +19,42 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Ausgabe im JSON-Format zur maschinellen Verarbeitung.</target>
+        <target state="needs-review-translation">Makine tarafından kullanılmak üzere JSON biçiminde çıktı ver.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="translated">Kein AppHost-Projekt gefunden.</target>
+        <target state="translated">AppHost projesi bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Im aktuellen Verzeichnis wurden keine AppHosts gefunden. Es werden alle aktiven AppHosts angezeigt.</target>
+        <target state="translated">Geçerli dizinde AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="translated">Der Name der anzuzeigenden Ressource. Wenn keine Angabe erfolgt, werden alle Ressourcen angezeigt.</target>
+        <target state="translated">Görüntülenecek kaynağın adı. Belirtilmezse tüm kaynaklar gösterilir.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="translated">Die Ressource "{0}" wurde nicht gefunden.</target>
+        <target state="translated">'{0}' kaynağı bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="translated">Suche nach aktiven AppHosts …</target>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="translated">AppHost auswählen:</target>
+        <target state="translated">AppHost seçin:</target>
         <note />
       </trans-unit>
     </body>
