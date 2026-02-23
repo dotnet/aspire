@@ -218,6 +218,31 @@ internal static class CliE2ETestHelpers
             .IncrementSequence(counter);
     }
 
+    /// <summary>
+    /// Waits for any prompt (success or error) matching the current sequence counter.
+    /// Use this when the command is expected to return a non-zero exit code.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForAnyPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+                var errorSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" ERR:");
+
+                return successSearcher.Search(snapshot).Count > 0 || errorSearcher.Search(snapshot).Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
     internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
