@@ -95,6 +95,9 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
     {
         if (!TryDetectAnsiSupportConfiguration(configuration, out var supportsAnsi))
         {
+            // If there is no explicit configuration to enable or disable ANSI support, attempt to detect it.
+            // This is required because some terminals don't support ANSI output, e.g. https://github.com/dotnet/aspire/issues/13737
+
             // TODO: Creating a fake console here is a hack to run ANSI detection logic.
             // Update this to use AnsiCapabilities once it's available in Spectre.Console 0.60+ instead of creating a full AnsiConsole instance.
             var ansiConsole = AnsiConsole.Create(new AnsiConsoleSettings
