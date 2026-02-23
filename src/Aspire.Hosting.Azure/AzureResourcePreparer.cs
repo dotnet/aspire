@@ -203,6 +203,11 @@ internal sealed class AzureResourcePreparer(
                         {
                             appModel.Resources.Add(roleAssignmentResource);
                         }
+
+                        // Annotate the compute resource so downstream resources (e.g. container apps, web sites)
+                        // can discover its role assignment resources without string matching.
+                        resource.Annotations.Add(new ComputedRoleAssignmentsAnnotation(roleAssignmentResources));
+
                     }
                 }
             }

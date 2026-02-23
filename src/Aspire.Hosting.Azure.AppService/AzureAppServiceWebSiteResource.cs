@@ -91,13 +91,15 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             // The app deployment should depend on role assignment and identity provisioning for the target resource
             // This ensures role assignments and private endpoints are ready before the app is deployed
-            var roleAssignmentPrefix = $"{targetResource.Name}-roles-";
-            foreach (var resource in context.Model.Resources)
+            if (targetResource.TryGetAnnotationsOfType<ComputedRoleAssignmentsAnnotation>(out var roleAnnotations))
             {
-                if (resource.Name.StartsWith(roleAssignmentPrefix, StringComparison.Ordinal))
+                foreach (var annotation in roleAnnotations)
                 {
-                    var roleSteps = context.GetSteps(resource, WellKnownPipelineTags.ProvisionInfrastructure);
-                    provisionSteps.DependsOn(roleSteps);
+                    foreach (var roleResource in annotation.RoleAssignmentResources)
+                    {
+                        var roleSteps = context.GetSteps(roleResource, WellKnownPipelineTags.ProvisionInfrastructure);
+                        provisionSteps.DependsOn(roleSteps);
+                    }
                 }
             }
 
