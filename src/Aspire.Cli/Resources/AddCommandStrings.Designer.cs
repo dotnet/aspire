@@ -189,6 +189,14 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        public static string StoppedRunningInstance
+        {
+            get
+            {
+                return ResourceManager.GetString("StoppedRunningInstance", resourceCulture);
+            }
+        }
+
         public static string UnableToStopRunningInstances
         {
             get

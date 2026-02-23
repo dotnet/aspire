@@ -218,7 +218,11 @@ internal sealed class AddCommand : BaseCommand
                     ExecutionContext.HomeDirectory,
                     cancellationToken);
 
-                if (runningInstanceResult == RunningInstanceResult.StopFailed)
+                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+                {
+                    InteractionService.DisplayMessage("info", AddCommandStrings.StoppedRunningInstance);
+                }
+                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
                 {
                     InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
                     return ExitCodeConstants.FailedToAddPackage;
