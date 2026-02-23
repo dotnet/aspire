@@ -36,7 +36,7 @@ internal static class ResourceSnapshotMapper
         var urls = (snapshot.Urls ?? [])
             .Select(u => new ResourceUrlJson
             {
-                Name = u.Name,
+                EndpointName = u.Name,
                 DisplayName = u.DisplayProperties?.DisplayName,
                 Url = u.Url,
                 IsInternal = u.IsInternal
@@ -53,32 +53,25 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var healthReports = (snapshot.HealthReports ?? [])
-            .Select(h => new ResourceHealthReportJson
+        var healthReports = (snapshot.HealthReports ?? []).OrderBy(h => h.Name).ToDictionary(
+            h => h.Name,
+            h => new ResourceHealthReportJson
             {
-                Name = h.Name,
                 Status = h.Status,
                 Description = h.Description,
                 ExceptionMessage = h.ExceptionText
-            })
-            .ToArray();
+            });
 
         var environment = (snapshot.EnvironmentVariables ?? [])
             .Where(e => e.IsFromSpec)
-            .Select(e => new ResourceEnvironmentVariableJson
-            {
-                Name = e.Name,
-                Value = includeEnvironmentVariableValues ? e.Value : null
-            })
-            .ToArray();
+            .OrderBy(e => e.Name)
+            .ToDictionary(
+                e => e.Name,
+                e => includeEnvironmentVariableValues ? e.Value : null);
 
-        var properties = (snapshot.Properties ?? [])
-            .Select(p => new ResourcePropertyJson
-            {
-                Name = p.Key,
-                Value = p.Value
-            })
-            .ToArray();
+        var properties = (snapshot.Properties ?? []).OrderBy(p => p.Key).ToDictionary(
+            p => p.Key,
+            p => p.Value);
 
         // Build relationships by matching DisplayName
         var relationships = new List<ResourceRelationshipJson>();
@@ -101,12 +94,13 @@ internal static class ResourceSnapshotMapper
         // Only include enabled commands
         var commands = (snapshot.Commands ?? [])
             .Where(c => string.Equals(c.State, "Enabled", StringComparison.OrdinalIgnoreCase))
-            .Select(c => new ResourceCommandJson
-            {
-                Name = c.Name,
-                Description = c.Description
-            })
-            .ToArray();
+            .OrderBy(c => c.Name)
+            .ToDictionary(
+                c => c.Name ?? string.Empty,
+                c => new ResourceCommandJson
+                {
+                    Description = c.Description
+                });
 
         // Get source information using the shared ResourceSourceViewModel
         var sourceViewModel = snapshot.Properties is not null

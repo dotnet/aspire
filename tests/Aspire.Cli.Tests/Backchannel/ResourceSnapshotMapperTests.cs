@@ -80,11 +80,11 @@ public class ResourceSnapshotMapperTests
 
         // Only enabled commands should be included
         Assert.Single(result.Commands!);
-        Assert.Equal("resource-stop", result.Commands![0].Name);
+        Assert.True(result.Commands!.ContainsKey("resource-stop"));
 
         // Only IsFromSpec environment variables should be included
         Assert.Single(result.Environment!);
-        Assert.Equal("ASPNETCORE_ENVIRONMENT", result.Environment![0].Name);
+        Assert.Equal("Development", result.Environment!["ASPNETCORE_ENVIRONMENT"]);
 
         // Dashboard URL should be generated
         Assert.NotNull(result.DashboardUrl);
