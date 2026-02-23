@@ -183,9 +183,9 @@ internal static class CommonAgentApplicators
         ```
 
         Isolation should be used when:
-        - AppHosts started by background agents
-        - Agents using source code from a work tree
-        - There were port conflicts when starting the AppHost without isolation
+        - When AppHosts are started by background agents
+        - When agents are using source code from a work tree
+        - There are port conflicts when starting the AppHost without isolation
         
         ### Stopping the application
 
