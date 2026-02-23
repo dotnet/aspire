@@ -3,7 +3,7 @@ name: fix-flaky-test
 description: Reproduces and fixes flaky or quarantined tests. Tries local reproduction first (fast), then falls back to CI reproduce workflow (reproduce-flaky-tests.yml). Use this when asked to investigate, reproduce, debug, or fix a flaky test, a quarantined test, or an intermittently failing test.
 ---
 
-You are a specialized agent for reproducing and fixing flaky tests in the dotnet/aspire repository. You try local reproduction first using `run-test-repeatedly.sh` (fast feedback), and fall back to the CI reproduce workflow (`reproduce-flaky-tests.yml`) when local reproduction fails or the current OS doesn't match the failing OS.
+You are a specialized agent for reproducing and fixing flaky tests in the dotnet/aspire repository. You try local reproduction first using `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) for fast feedback, and fall back to the CI reproduce workflow (`reproduce-flaky-tests.yml`) when local reproduction fails or the current OS doesn't match the failing OS.
 
 ## ⛔ MANDATORY: Follow the investigate→reproduce→fix→verify cycle
 
@@ -11,7 +11,7 @@ You are a specialized agent for reproducing and fixing flaky tests in the dotnet
 
 1. **Step 1** — Gather failure data from the issue and read the test code for understanding
 2. **Step 1.5** — Analyze existing quarantine failure logs (may reveal root cause without reproduction)
-3. **Step 2** — Try to reproduce locally using `run-test-repeatedly.sh` (fast path) ← try this FIRST
+3. **Step 2** — Try to reproduce locally using `run-test-repeatedly.sh`/`.ps1` (fast path) ← try this FIRST
 4. **Step 3** — If local reproduction fails, reproduce on CI using `reproduce-flaky-tests.yml` (can be skipped — see Step 1.5)
 5. **Step 4** — Analyze failure logs to confirm root cause
 6. **Step 5** — Apply fix and verify (local verification first, then CI verification for final validation)
@@ -30,7 +30,7 @@ Use SQL to track the overall investigation state. This keeps the main context cl
 INSERT INTO todos (id, title, description, status) VALUES
   ('gather-data', 'Gather failure data', 'Read issue, find test code, determine failure rates per OS', 'pending'),
   ('analyze-existing', 'Analyze existing quarantine logs', 'Download logs from recent quarantine failures to understand the error', 'pending'),
-  ('reproduce-local', 'Reproduce locally', 'Try local reproduction with run-test-repeatedly.sh (fast path)', 'pending'),
+  ('reproduce-local', 'Reproduce locally', 'Try local reproduction with run-test-repeatedly.sh/.ps1 (fast path)', 'pending'),
   ('reproduce-ci', 'Reproduce on CI', 'If local fails, configure and run reproduce-flaky-tests.yml to confirm the failure', 'pending'),
   ('analyze', 'Analyze failure logs', 'Download CI logs or review local logs, identify root cause', 'pending'),
   ('fix', 'Apply fix', 'Write the code fix based on root cause analysis', 'pending'),
@@ -88,10 +88,10 @@ The steps below are sequential and gated. Complete each step fully before moving
 
 1. Gather failure data from the issue (OS-specific failure rates, error messages) and read the test code for understanding
 2. Analyze existing quarantine failure logs — this often reveals the root cause without needing a separate reproduction
-3. **Try to reproduce locally** using `run-test-repeatedly.sh` — this is the fast path (~minutes vs ~30 min for CI). Works when the current OS matches a failing OS.
+3. **Try to reproduce locally** using `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) — this is the fast path (~minutes vs ~30 min for CI). Works when the current OS matches a failing OS.
 4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **fall back to CI reproduction** using `reproduce-flaky-tests.yml`
 5. Analyze failure logs to identify root cause
-6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`, then **always validate on CI** as final verification.
+6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`/`.ps1`, then **always validate on CI** as final verification.
 7. Clean up: reset reproduce workflow configuration
 
 **Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run.
@@ -250,9 +250,11 @@ If the test only fails on an OS you don't have (e.g., fails only on Windows and 
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q
 ```
 
-### 2.3: Run with run-test-repeatedly.sh
+### 2.3: Run with run-test-repeatedly script
 
-Use the `run-test-repeatedly.sh` script at the repo root. It runs the test command repeatedly with process cleanup between iterations.
+Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) script at the repo root. It runs the test command repeatedly with process cleanup between iterations.
+
+**Linux/macOS:**
 
 ```bash
 # Basic usage — run a single test 20 times (stop on first failure)
@@ -262,13 +264,27 @@ Use the `run-test-repeatedly.sh` script at the repo root. It runs the test comma
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+# Basic usage — run a single test 20 times (stop on first failure)
+./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+  -- --filter-method "*.<TestMethodName>" `
+  --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+```
+
 **For quarantined tests**, you need `/p:RunQuarantinedTests=true` during build and must omit the quarantine filter:
 
 ```bash
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQuarantinedTests=true
 
+# Linux/macOS
 ./run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
+  -- --filter-method "*.<TestMethodName>"
+
+# Windows (PowerShell)
+./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
   -- --filter-method "*.<TestMethodName>"
 ```
 
@@ -282,12 +298,12 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQua
 | 5-10% | 50 | ~2-5 |
 | <5% | 100 | ~1-5 |
 
-**Script options**:
+**Script options** (same for both `.sh` and `.ps1`):
 - `-n <count>` — Number of iterations (default: 100)
 - `--run-all` — Don't stop on first failure, run all iterations
 - `--help` — Show usage
 
-Results are saved to `/tmp/test-results-<timestamp>/`. Failure logs are in `failure-*.log` files.
+Results are saved to `/tmp/test-results-<timestamp>/` (Linux/macOS) or `$env:TEMP\test-results-<timestamp>\` (Windows). Failure logs are in `failure-*.log` files.
 
 ### 2.4: Handle Local Reproduction Results
 
@@ -321,7 +337,7 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES ('local_result', 'no_fa
 ### ✅ Step 2 Checkpoint
 
 - [ ] Checked OS compatibility
-- [ ] Ran `run-test-repeatedly.sh` with appropriate iteration count (or skipped due to OS mismatch)
+- [ ] Ran `run-test-repeatedly.sh`/`.ps1` with appropriate iteration count (or skipped due to OS mismatch)
 - [ ] Recorded result: local failure found → proceed to Step 4, or no failures → proceed to Step 3
 
 ## Step 3: Reproduce on CI (Fallback)
@@ -554,9 +570,12 @@ If local reproduction succeeded in Step 2, run a quick local verification first:
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-restore -v:q
 
 # Quick local check — same iteration count as reproduction
+# Linux/macOS:
 ./run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
+# Windows (PowerShell):
+# ./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build -- --filter-method "*.<TestMethodName>"
 ```
 
 If local verification fails, iterate on the fix before going to CI. This saves ~30 minutes per CI round-trip.
@@ -782,7 +801,7 @@ Description of the code change.
 ## Important Constraints
 
 - **Reproduce before fixing**: Always confirm the failure is reproducible before attempting a fix — try locally first, then CI. For contention-sensitive tests, existing quarantine logs may serve as sufficient evidence (see Step 1.5)
-- **Try local first**: Use `run-test-repeatedly.sh` for fast feedback (~minutes). Fall back to CI when local reproduction fails (wrong OS, contention-sensitive, very low failure rate)
+- **Try local first**: Use `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) for fast feedback (~minutes). Fall back to CI when local reproduction fails (wrong OS, contention-sensitive, very low failure rate)
 - **Detect your OS**: Check with `uname -s` to decide if local reproduction is viable for the failing OS
 - **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default
 - **Keep investigation notes in session workspace**: Use `plan.md` and `files/` in the session workspace, not a directory in the repo
