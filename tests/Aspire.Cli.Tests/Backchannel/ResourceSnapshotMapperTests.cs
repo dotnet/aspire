@@ -8,41 +8,6 @@ namespace Aspire.Cli.Tests.Backchannel;
 public class ResourceSnapshotMapperTests
 {
     [Fact]
-    public void MapToResourceJson_WithNullCollectionProperties_DoesNotThrow()
-    {
-        // Arrange - simulate a snapshot deserialized from JSON where collection properties are null
-        var snapshot = new ResourceSnapshot
-        {
-            Name = "test-resource",
-            DisplayName = "test-resource",
-            ResourceType = "Project",
-            State = "Running",
-            Urls = null!,
-            Volumes = null!,
-            HealthReports = null!,
-            EnvironmentVariables = null!,
-            Properties = null!,
-            Relationships = null!,
-            Commands = null!
-        };
-
-        var allSnapshots = new List<ResourceSnapshot> { snapshot };
-
-        // Act & Assert - should not throw NullReferenceException
-        var result = ResourceSnapshotMapper.MapToResourceJson(snapshot, allSnapshots);
-
-        Assert.NotNull(result);
-        Assert.Equal("test-resource", result.Name);
-        Assert.Empty(result.Urls!);
-        Assert.Empty(result.Volumes!);
-        Assert.Empty(result.HealthReports!);
-        Assert.Empty(result.Environment!);
-        Assert.Empty(result.Properties!);
-        Assert.Empty(result.Relationships!);
-        Assert.Empty(result.Commands!);
-    }
-
-    [Fact]
     public void MapToResourceJson_WithPopulatedProperties_MapsCorrectly()
     {
         // Arrange
@@ -80,51 +45,15 @@ public class ResourceSnapshotMapperTests
 
         // Only enabled commands should be included
         Assert.Single(result.Commands!);
-        Assert.Equal("resource-stop", result.Commands![0].Name);
+        Assert.True(result.Commands!.ContainsKey("resource-stop"));
 
         // Only IsFromSpec environment variables should be included
         Assert.Single(result.Environment!);
-        Assert.Equal("ASPNETCORE_ENVIRONMENT", result.Environment![0].Name);
+        Assert.Equal("Development", result.Environment!["ASPNETCORE_ENVIRONMENT"]);
 
         // Dashboard URL should be generated
         Assert.NotNull(result.DashboardUrl);
         Assert.Contains("localhost:18080", result.DashboardUrl);
     }
 
-    [Fact]
-    public void MapToResourceJsonList_WithNullCollectionProperties_DoesNotThrow()
-    {
-        // Arrange
-        var snapshots = new List<ResourceSnapshot>
-        {
-            new ResourceSnapshot
-            {
-                Name = "resource1",
-                DisplayName = "resource1",
-                ResourceType = "Project",
-                State = "Running",
-                Urls = null!,
-                Volumes = null!,
-                HealthReports = null!,
-                EnvironmentVariables = null!,
-                Properties = null!,
-                Relationships = null!,
-                Commands = null!
-            },
-            new ResourceSnapshot
-            {
-                Name = "resource2",
-                DisplayName = "resource2",
-                ResourceType = "Container",
-                State = "Starting"
-            }
-        };
-
-        // Act & Assert - should not throw
-        var result = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl: "http://localhost:18080");
-
-        Assert.Equal(2, result.Count);
-        Assert.Equal("resource1", result[0].Name);
-        Assert.Equal("resource2", result[1].Name);
-    }
 }

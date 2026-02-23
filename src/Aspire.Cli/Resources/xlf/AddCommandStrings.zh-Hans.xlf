@@ -72,6 +72,15 @@
         <target state="translated">用于集成的 NuGet 源。</target>
         <note />
       </trans-unit>
+      <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
+          <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
+          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+        </trans-unit>
+      <trans-unit id="UnableToStopRunningInstances">
+        <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
+        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">找到意外数量的包。</target>

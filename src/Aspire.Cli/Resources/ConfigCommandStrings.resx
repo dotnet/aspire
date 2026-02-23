@@ -216,4 +216,7 @@
   <data name="InfoCommand_SettingsProperties" xml:space="preserve">
     <value>Settings file properties</value>
   </data>
+  <data name="SetFeatureHint" xml:space="preserve">
+    <value>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</value>
+  </data>
 </root>
