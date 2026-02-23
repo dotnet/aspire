@@ -21,6 +21,8 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndDeployToDockerCompose()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Docker Compose deployment tests use Linux-specific shell commands.");
+
         using var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -32,7 +34,7 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -198,6 +200,8 @@ builder.Build().Run();
     [Fact]
     public async Task CreateAndDeployToDockerComposeInteractive()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Docker Compose deployment tests use Linux-specific shell commands.");
+
         using var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -209,7 +213,7 @@ builder.Build().Run();
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 

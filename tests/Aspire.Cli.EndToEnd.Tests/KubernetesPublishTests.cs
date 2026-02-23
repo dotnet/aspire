@@ -29,6 +29,8 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndPublishToKubernetes()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Kubernetes publish tests install Linux-specific binaries (KinD, Helm) and use Linux shell commands.");
+
         using var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -45,7 +47,7 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 

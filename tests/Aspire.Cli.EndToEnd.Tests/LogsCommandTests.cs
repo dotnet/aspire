@@ -29,7 +29,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -115,9 +115,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Wait for resources to fully start and produce logs
-        sequenceBuilder.Type("sleep 15")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.TypeSleep(15, counter);
 
         // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits
         sequenceBuilder.Type("aspire logs apiservice > logs.txt 2>&1")
@@ -125,12 +123,12 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Debug: show file size and first few lines
-        sequenceBuilder.Type("wc -l logs.txt && head -5 logs.txt")
+        sequenceBuilder.TypeFileInfo("logs.txt")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Verify the log file contains expected output
-        sequenceBuilder.Type("cat logs.txt | grep -E '\\[apiservice\\]' | head -3")
+        sequenceBuilder.TypeCatGrep("logs.txt", "\\[apiservice\\]")
             .Enter()
             .WaitUntil(s => waitForApiserviceLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -141,7 +139,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Verify the JSON log file contains expected output
-        sequenceBuilder.Type("cat logs_json.txt | grep '\"resourceName\"' | head -3")
+        sequenceBuilder.TypeCatGrep("logs_json.txt", "resourceName")
             .Enter()
             .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);

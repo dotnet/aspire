@@ -29,7 +29,7 @@ public sealed class BannerTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -99,7 +99,7 @@ public sealed class BannerTests(ITestOutputHelper output)
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -165,7 +165,7 @@ public sealed class BannerTests(ITestOutputHelper output)
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 

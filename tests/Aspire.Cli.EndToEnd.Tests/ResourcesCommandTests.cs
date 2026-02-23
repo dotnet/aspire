@@ -29,7 +29,7 @@ public sealed class ResourcesCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -118,9 +118,7 @@ public sealed class ResourcesCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Wait a bit for resources to stabilize
-        sequenceBuilder.Type("sleep 5")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.TypeSleep(5, counter);
 
         // Now verify aspire resources shows the running resources (human-readable table)
         sequenceBuilder.Type("aspire resources")
@@ -136,7 +134,7 @@ public sealed class ResourcesCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Verify the JSON file contains expected resources
-        sequenceBuilder.Type("cat resources.json | grep webfrontend")
+        sequenceBuilder.TypeCatGrep("resources.json", "webfrontend")
             .Enter()
             .WaitUntil(s => waitForJsonFileWritten.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);

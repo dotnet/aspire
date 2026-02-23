@@ -38,7 +38,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -143,7 +143,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -189,7 +189,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Debug: Show that the file exists and where we are
         var fileExistsPattern = new CellPatternSearcher().Find(".mcp.json");
         sequenceBuilder
-            .Type($"ls -la {configPath} && pwd")
+            .TypeListFiles(configPath, additionalCommand: "pwd")
             .Enter()
             .WaitUntil(s => fileExistsPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -221,7 +221,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var debugLogPath = Path.Combine(Path.GetTempPath(), "aspire-deprecated-scan.log");
         var debugLogPattern = new CellPatternSearcher().Find("Scanning context");
         sequenceBuilder
-            .Type($"cat {debugLogPath} 2>/dev/null || echo 'No debug log found'")
+            .TypeCatOrFallback(debugLogPath, "No debug log found")
             .Enter()
             .WaitUntil(s => debugLogPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -262,7 +262,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 

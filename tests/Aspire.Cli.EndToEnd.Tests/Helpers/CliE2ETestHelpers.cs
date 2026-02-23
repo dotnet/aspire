@@ -3,6 +3,7 @@
 
 #pragma warning disable IDE0005 // Incorrectly flagged as unused due to types spread across namespaces
 using Aspire.Cli.Tests.Utils;
+using Hex1b;
 using Hex1b.Automation;
 #pragma warning restore IDE0005
 using Xunit;
@@ -14,6 +15,22 @@ namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 /// </summary>
 internal static class CliE2ETestHelpers
 {
+    /// <summary>
+    /// Configures the terminal builder with the appropriate shell for the current OS.
+    /// Uses PowerShell (pwsh) on Windows and bash on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The terminal builder to configure.</param>
+    /// <returns>The configured builder for chaining.</returns>
+    internal static Hex1bTerminalBuilder WithPlatformShell(this Hex1bTerminalBuilder builder)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return builder.WithPtyProcess("pwsh", ["-NoProfile", "-NoLogo"]);
+        }
+
+        return builder.WithPtyProcess("/bin/bash", ["--norc"]);
+    }
+
     /// <summary>
     /// Gets whether the tests are running in CI (GitHub Actions) vs locally.
     /// When running locally, some commands are replaced with echo stubs.
@@ -90,20 +107,28 @@ internal static class CliE2ETestHelpers
     internal static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder, TemporaryWorkspace workspace, SequenceCounter counter)
     {
-        var waitingForInputPattern = new CellPatternSearcher()
-            .Find("b").RightUntil("$").Right(' ').Right(' ');
-
-        builder.WaitUntil(s => waitingForInputPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Wait(500); // Small delay to ensure terminal is ready.
-
         if (OperatingSystem.IsWindows())
         {
-            // PowerShell prompt setup
-            const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'OK'}else{\"ERR:$LASTEXITCODE\"})] PS> \" }";
+            // On Windows (PowerShell), wait for the PS prompt
+            var waitingForInputPattern = new CellPatternSearcher()
+                .Find("PS");
+
+            builder.WaitUntil(s => waitingForInputPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Wait(500); // Small delay to ensure terminal is ready.
+
+            // PowerShell prompt setup - use "$ " suffix to match the same WaitForSuccessPrompt pattern as bash
+            const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'OK'}else{\"ERR:$LASTEXITCODE\"})] `$ \" }";
             builder.Type(promptSetup).Enter();
         }
         else
         {
+            // On Linux/macOS (bash), wait for the bash prompt
+            var waitingForInputPattern = new CellPatternSearcher()
+                .Find("b").RightUntil("$").Right(' ').Right(' ');
+
+            builder.WaitUntil(s => waitingForInputPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Wait(500); // Small delay to ensure terminal is ready.
+
             // Bash prompt setup
             const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
             builder.Type(promptSetup).Enter();
@@ -279,6 +304,14 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            return builder
+                .Type("Remove-Item Env:SSL_CERT_DIR -ErrorAction SilentlyContinue")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
         return builder
             .Type("unset SSL_CERT_DIR")
             .Enter()
@@ -297,6 +330,15 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, SSL_CERT_DIR is not typically used; dev-certs trust is handled differently
+            return builder
+                .Type("$env:SSL_CERT_DIR=\"$env:USERPROFILE\\.aspnet\\dev-certs\\trust\"")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
         // Set SSL_CERT_DIR to include both the system certs and the dev-certs trust path
         // Using $HOME instead of ~ for proper expansion in the shell
         return builder
@@ -316,6 +358,14 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            return builder
+                .Type("Clear-Host")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
         return builder
             .Type("clear")
             .Enter()
@@ -334,6 +384,15 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            // Remove the sentinel file on Windows using PowerShell
+            return builder
+                .Type("Remove-Item -Force \"$env:USERPROFILE\\.aspire\\cli\\cli.firstUseSentinel\" -ErrorAction SilentlyContinue")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
         // Remove the sentinel file to trigger first-time use behavior
         return builder
             .Type("rm -f ~/.aspire/cli/cli.firstUseSentinel")
@@ -353,6 +412,15 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            // Verify the sentinel file doesn't exist on Windows
+            return builder
+                .Type("if (Test-Path \"$env:USERPROFILE\\.aspire\\cli\\cli.firstUseSentinel\") { exit 1 }")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
         // Verify the sentinel file doesn't exist - this will return exit code 1 (ERR) if file exists
         // Using test -f which returns 0 if file exists, 1 if not. We negate with ! to fail if exists.
         return builder
@@ -373,7 +441,15 @@ internal static class CliE2ETestHelpers
         string version,
         SequenceCounter counter)
     {
-        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\"";
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            command = $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.ps1) }} --version '{version}'\"";
+        }
+        else
+        {
+            command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\"";
+        }
 
         return builder
             .Type(command)
@@ -528,5 +604,120 @@ internal static class CliE2ETestHelpers
             .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Types a platform-appropriate command to pause execution for the specified number of seconds.
+    /// Uses <c>Start-Sleep</c> on Windows and <c>sleep</c> on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="seconds">The number of seconds to sleep.</param>
+    /// <param name="counter">The sequence counter for prompt tracking.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder TypeSleep(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        int seconds,
+        SequenceCounter counter)
+    {
+        var command = OperatingSystem.IsWindows()
+            ? $"Start-Sleep -Seconds {seconds}"
+            : $"sleep {seconds}";
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Types a platform-appropriate command to display a file and pipe through a text filter.
+    /// Uses <c>Select-String</c> on Windows and <c>grep</c> on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to read.</param>
+    /// <param name="pattern">The pattern to filter for.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder TypeCatGrep(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath,
+        string pattern)
+    {
+        var command = OperatingSystem.IsWindows()
+            ? $"Get-Content {filePath} | Select-String -Pattern '{pattern}' | Select-Object -First 3"
+            : $"cat {filePath} | grep '{pattern}' | head -3";
+
+        return builder.Type(command);
+    }
+
+    /// <summary>
+    /// Types a platform-appropriate command to show file size and first few lines.
+    /// Uses <c>Get-Content</c> on Windows and <c>wc -l</c>/<c>head</c> on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to inspect.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder TypeFileInfo(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath)
+    {
+        var command = OperatingSystem.IsWindows()
+            ? $"(Get-Content {filePath} | Measure-Object -Line).Lines; Get-Content {filePath} -First 5"
+            : $"wc -l {filePath} && head -5 {filePath}";
+
+        return builder.Type(command);
+    }
+
+    /// <summary>
+    /// Types a platform-appropriate command to list file details.
+    /// Uses <c>Get-ChildItem</c> on Windows and <c>ls -la</c> on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="path">The path to list.</param>
+    /// <param name="additionalCommand">An optional additional command to chain (e.g., <c>&amp;&amp; pwd</c> on Linux).</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder TypeListFiles(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string path,
+        string? additionalCommand = null)
+    {
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            command = $"Get-ChildItem {path}";
+            if (additionalCommand is not null)
+            {
+                command += $"; Get-Location";
+            }
+        }
+        else
+        {
+            command = $"ls -la {path}";
+            if (additionalCommand is not null)
+            {
+                command += $" && pwd";
+            }
+        }
+
+        return builder.Type(command);
+    }
+
+    /// <summary>
+    /// Types a platform-appropriate command to display a file with error suppression.
+    /// Uses <c>Get-Content</c> with <c>-ErrorAction</c> on Windows and <c>cat ... 2&gt;/dev/null</c> on Linux/macOS.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to display.</param>
+    /// <param name="fallbackMessage">The message to display if the file doesn't exist.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder TypeCatOrFallback(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath,
+        string fallbackMessage)
+    {
+        var command = OperatingSystem.IsWindows()
+            ? $"if (Test-Path '{filePath}') {{ Get-Content '{filePath}' }} else {{ Write-Output '{fallbackMessage}' }}"
+            : $"cat {filePath} 2>/dev/null || echo '{fallbackMessage}'";
+
+        return builder.Type(command);
     }
 }

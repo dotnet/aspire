@@ -18,6 +18,8 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task DoctorCommand_WithoutSslCertDir_ShowsPartiallyTrusted()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "SSL_CERT_DIR is a Linux-specific concept; certificate trust on Windows uses the Windows certificate store.");
+
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -30,7 +32,7 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
@@ -82,6 +84,8 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task DoctorCommand_WithSslCertDir_ShowsTrusted()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "SSL_CERT_DIR is a Linux-specific concept; certificate trust on Windows uses the Windows certificate store.");
+
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -94,7 +98,7 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             .WithHeadless()
             .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
+            .WithPlatformShell();
 
         using var terminal = builder.Build();
 
