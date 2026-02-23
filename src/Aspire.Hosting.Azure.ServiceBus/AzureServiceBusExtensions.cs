@@ -62,7 +62,7 @@ public static class AzureServiceBusExtensions
                 {
                     var skuParameter = new ProvisioningParameter("sku", typeof(string))
                     {
-                        Value = "Standard"
+                        Value = hasPrivateEndpoint ? "Premium" : "Standard"
                     };
                     infrastructure.Add(skuParameter);
                     var resource = new AzureProvisioning.ServiceBusNamespace(infrastructure.AspireResource.GetBicepIdentifier())

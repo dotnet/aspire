@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Backchannel;
 
@@ -33,6 +34,33 @@ internal sealed class AppHostConnectionResolver(
     CliExecutionContext executionContext,
     ILogger logger)
 {
+    /// <summary>
+    /// Resolves all running AppHost connections using socket-first discovery.
+    /// Used when stopping all running AppHosts (e.g., via --all flag).
+    /// </summary>
+    /// <param name="scanningMessage">Message to display while scanning for AppHosts.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>All resolved connections, or an empty array if none found.</returns>
+    public async Task<AppHostConnectionResult[]> ResolveAllConnectionsAsync(
+        string scanningMessage,
+        CancellationToken cancellationToken)
+    {
+        var connections = await interactionService.ShowStatusAsync(
+            scanningMessage,
+            async () =>
+            {
+                await backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return backchannelMonitor.Connections.ToList();
+            });
+
+        if (connections.Count == 0)
+        {
+            return [];
+        }
+
+        return connections.Select(c => new AppHostConnectionResult { Connection = c }).ToArray();
+    }
+
     /// <summary>
     /// Resolves an AppHost connection using socket-first discovery.
     /// </summary>
@@ -125,7 +153,7 @@ internal sealed class AppHostConnectionResolver(
             var selectedDisplay = await interactionService.PromptForSelectionAsync(
                 selectPrompt,
                 choices.Select(c => c.Display).ToArray(),
-                c => c,
+                c => c.EscapeMarkup(),
                 cancellationToken);
 
             selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
@@ -148,7 +176,7 @@ internal sealed class AppHostConnectionResolver(
             var selectedDisplay = await interactionService.PromptForSelectionAsync(
                 selectPrompt,
                 choices.Select(c => c.Display).ToArray(),
-                c => c,
+                c => c.EscapeMarkup(),
                 cancellationToken);
 
             selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;

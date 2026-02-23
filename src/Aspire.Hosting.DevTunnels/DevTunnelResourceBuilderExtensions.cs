@@ -154,7 +154,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     var exception = new DistributedApplicationException($"Error trying to create the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                         portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(exception);
+#pragma warning restore CS0618 // Type or member is obsolete
                     }
                     throw;
                 }
@@ -209,7 +211,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     catch (Exception ex)
                     {
                         portLogger.LogError(ex, "Error trying to create dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
+#pragma warning disable CS0618 // Type or member is obsolete
                         portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(ex);
+#pragma warning restore CS0618 // Type or member is obsolete
                         throw;
                     }
 

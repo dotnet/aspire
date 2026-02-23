@@ -26,7 +26,7 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
         return await interactionService.PromptForSelectionAsync(
             PublishCommandStrings.SelectAPublisher,
             publishers,
-            p => p,
+            p => p.EscapeMarkup(),
             cancellationToken
         );
     }

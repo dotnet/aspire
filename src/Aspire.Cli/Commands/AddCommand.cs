@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -100,8 +101,13 @@ internal sealed class AddCommand : BaseCommand
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
-                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
-                configuredChannel = settings?.Channel;
+                var appHostDirectory = effectiveAppHostProjectFile.Directory!.FullName;
+                var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
+                if (!isProjectReferenceMode)
+                {
+                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
+                    configuredChannel = settings?.Channel;
+                }
             }
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
@@ -201,6 +207,27 @@ internal sealed class AddCommand : BaseCommand
                 PackageVersion = selectedNuGetPackage.Package.Version,
                 Source = source
             };
+
+            // Stop any running AppHost instance before adding the package.
+            // A running AppHost (especially in detach mode) locks project files,
+            // which prevents 'dotnet add package' from modifying the project.
+            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
+            {
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
+                    effectiveAppHostProjectFile,
+                    ExecutionContext.HomeDirectory,
+                    cancellationToken);
+
+                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+                {
+                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                }
+                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
+                {
+                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+            }
 
             var success = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,
@@ -320,7 +347,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         // Helper to keep labels consistently formatted: "Version (source)"
         static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+            return $"{item.Package.Version.EscapeMarkup()} ({item.Channel.SourceDetails.EscapeMarkup()})";
         }
 
         async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -390,7 +417,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             var item = channelGroup.HighestVersion;
 
             rootChoices.Add((
-                Label: channel.Name,
+                Label: channel.Name.EscapeMarkup(),
                 // For explicit channels, we still show submenu but with only the highest version
                 Action: ct => PromptForChannelPackagesAsync(channel, new[] { item }, ct)
             ));
@@ -437,11 +464,11 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
     {
         if (packageWithFriendlyName.FriendlyName is { } friendlyName)
         {
-            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+            return $"[bold]{friendlyName.EscapeMarkup()}[/] ({packageWithFriendlyName.Package.Id.EscapeMarkup()})";
         }
         else
         {
-            return packageWithFriendlyName.Package.Id;
+            return packageWithFriendlyName.Package.Id.EscapeMarkup();
         }
     }
 }

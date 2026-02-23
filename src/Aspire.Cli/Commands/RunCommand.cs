@@ -66,6 +66,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
+    private bool _isDetachMode;
+
+    protected override bool UpdateNotificationsEnabled => !_isDetachMode;
 
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
@@ -150,6 +153,7 @@ internal sealed class RunCommand : BaseCommand
     {
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var detach = parseResult.GetValue(s_detachOption);
+        _isDetachMode = detach;
         var format = parseResult.GetValue(s_formatOption);
         var isolated = parseResult.GetValue(s_isolatedOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
@@ -224,7 +228,7 @@ internal sealed class RunCommand : BaseCommand
                 // Even if we fail to stop we won't block the apphost starting
                 // to make sure we don't ever break flow. It should mostly stop
                 // just fine though.
-                var runningInstanceResult = await project.CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
 
                 // If in isolated mode and a running instance was stopped, warn the user
                 if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)

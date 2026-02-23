@@ -10,8 +10,13 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- MCPEXP001: The MCP SDK 0.8.0 added experimental types (ToolExecution, ToolTaskSupport) to its default
+         serialization graph. We don't reference these types directly, but the System.Text.Json source generator
+         emits code that touches them when we combine our serializer context with McpJsonUtilities.DefaultOptions
+         in BackchannelJsonSerializerContext.cs. Suppress until MCP graduates these types. -->
+    <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
     <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <OptimizationPreference>Size</OptimizationPreference>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -60,6 +65,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Layout\BundleDiscovery.cs" />
+    <Compile Include="$(SharedDir)EnumerableExtensions.cs" Link="Utils\EnumerableExtensions.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />

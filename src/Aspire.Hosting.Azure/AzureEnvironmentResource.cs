@@ -133,18 +133,19 @@ public sealed class AzureEnvironmentResource : Resource
     /// <param name="provisioningContext">The Azure provisioning context.</param>
     private static void AddToPipelineSummary(PipelineStepContext ctx, ProvisioningContext provisioningContext)
     {
-        // Safely access the nested properties with null checks for reference types
-        // AzureLocation is a struct so it cannot be null
-        var resourceGroupName = provisioningContext.ResourceGroup?.Name ?? "unknown";
-        var subscriptionId = provisioningContext.Subscription?.Id.Name ?? "unknown";
+        var resourceGroupName = provisioningContext.ResourceGroup.Name;
+        var subscriptionId = provisioningContext.Subscription.Id.Name;
         var location = provisioningContext.Location.Name;
 
-#pragma warning disable ASPIREPIPELINES001 // PipelineSummary is experimental
+        var tenantId = provisioningContext.Tenant.TenantId;
+        var tenantSegment = tenantId.HasValue ? $"#@{tenantId.Value}" : "#";
+        var portalUrl = $"https://portal.azure.com/{tenantSegment}/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/overview";
+        var resourceGroupValue = $"[{resourceGroupName}]({portalUrl})";
+
         ctx.Summary.Add("☁️ Target", "Azure");
-        ctx.Summary.Add("📦 Resource Group", resourceGroupName);
+        ctx.Summary.Add("📦 Resource Group", resourceGroupValue);
         ctx.Summary.Add("🔑 Subscription", subscriptionId);
         ctx.Summary.Add("🌐 Location", location);
-#pragma warning restore ASPIREPIPELINES001
     }
 
     private Task PublishAsync(PipelineStepContext context)

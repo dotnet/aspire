@@ -145,7 +145,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         var prompt = new SelectionPrompt<T>()
             .Title(promptText)
-            .UseConverter(item => choiceFormatter(item).EscapeMarkup())
+            .UseConverter(choiceFormatter)
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
@@ -174,7 +174,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
-            .UseConverter(item => choiceFormatter(item).EscapeMarkup())
+            .UseConverter(choiceFormatter)
             .AddChoices(choices)
             .PageSize(10);
 

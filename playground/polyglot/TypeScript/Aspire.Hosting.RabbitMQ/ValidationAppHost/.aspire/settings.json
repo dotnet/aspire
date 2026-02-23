@@ -1,9 +1,7 @@
 {
   "appHostPath": "../apphost.ts",
   "language": "typescript/nodejs",
-  "channel": "local",
-  "sdkVersion": "13.2.0-preview.1.26081.1",
   "packages": {
-    "Aspire.Hosting.RabbitMQ": "13.2.0-preview.1.26081.1"
+    "Aspire.Hosting.RabbitMQ": ""
   }
 }

@@ -139,6 +139,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => "apphost.cs";
 
+    /// <inheritdoc />
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return false;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
     // ═══════════════════════════════════════════════════════════════
@@ -480,7 +486,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 

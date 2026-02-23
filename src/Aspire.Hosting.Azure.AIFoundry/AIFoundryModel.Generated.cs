@@ -44,9 +44,19 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel ClaudeOpus45 = new() { Name = "claude-opus-4-5", Version = "20251101", Format = "Anthropic" };
 
         /// <summary>
+        /// Claude Opus 4.6 is the latest version of Anthropic's most intelligent model, and the world's best model for coding, enterprise agents, and professional work. With a 1M token context window (beta) and 128K max output, Opus 4.6 is ideal for production code,
+        /// </summary>
+        public static readonly AIFoundryModel ClaudeOpus46 = new() { Name = "claude-opus-4-6", Version = "1", Format = "Anthropic" };
+
+        /// <summary>
         /// Claude Sonnet 4.5 is Anthropic's most capable model for complex agents and an industry leader for coding and computer use.
         /// </summary>
         public static readonly AIFoundryModel ClaudeSonnet45 = new() { Name = "claude-sonnet-4-5", Version = "20250929", Format = "Anthropic" };
+
+        /// <summary>
+        /// Claude Sonnet 4.6 delivers frontier intelligence at scale—built for coding, agents, and enterprise workflows. With a 1M token context window (beta) and 128K max output, Sonnet 4.6 is ideal for coding, agents, office tasks, financial analysis, cybersecurity
+        /// </summary>
+        public static readonly AIFoundryModel ClaudeSonnet46 = new() { Name = "claude-sonnet-4-6", Version = "1", Format = "Anthropic" };
     }
 
     /// <summary>
@@ -220,7 +230,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// The Llama 3.1 instruction tuned text only models are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.
         /// </summary>
-        public static readonly AIFoundryModel MetaLlama318BInstruct = new() { Name = "Meta-Llama-3.1-8B-Instruct", Version = "5", Format = "Meta" };
+        public static readonly AIFoundryModel MetaLlama318BInstruct = new() { Name = "Meta-Llama-3.1-8B-Instruct", Version = "6", Format = "Meta" };
     }
 
     /// <summary>
@@ -1394,6 +1404,11 @@ public partial class AIFoundryModel
         /// Document conversion to markdown with interleaved images and text
         /// </summary>
         public static readonly AIFoundryModel MistralDocumentAi2505 = new() { Name = "mistral-document-ai-2505", Version = "1", Format = "Mistral AI" };
+
+        /// <summary>
+        /// Document conversion to markdown with interleaved images and text
+        /// </summary>
+        public static readonly AIFoundryModel MistralDocumentAi2512 = new() { Name = "mistral-document-ai-2512", Version = "1", Format = "Mistral AI" };
 
         /// <summary>
         /// Mistral Large (2407) is an advanced Large Language Model (LLM) with state-of-the-art reasoning, knowledge and coding capabilities.

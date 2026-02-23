@@ -146,17 +146,25 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var project = _projectFactory.GetProject(projectFile);
+            var isProjectReferenceMode = project.IsUsingProjectReferences(projectFile);
 
             // Check if channel or quality option was provided (channel takes precedence)
             var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
             PackageChannel channel;
+
+            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
 
             if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
                 channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
                     ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            else if (isProjectReferenceMode)
+            {
+                channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
+                    ?? allChannels.First();
             }
             else
             {
@@ -170,7 +178,7 @@ internal sealed class UpdateCommand : BaseCommand
                     channel = await InteractionService.PromptForSelectionAsync(
                         UpdateCommandStrings.SelectChannelPrompt,
                         allChannels,
-                        (c) => $"{c.Name} ({c.SourceDetails})",
+                        (c) => $"{c.Name.EscapeMarkup()} ({c.SourceDetails.EscapeMarkup()})",
                         cancellationToken);
                 }
                 else
@@ -181,8 +189,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
 
-            // Get the appropriate project handler and update packages
-            var project = _projectFactory.GetProject(projectFile);
+            // Update packages using the appropriate project handler
             var updateContext = new UpdatePackagesContext
             {
                 AppHostFile = projectFile,

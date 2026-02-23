@@ -362,6 +362,66 @@ public class AzureVirtualNetworkExtensionsTests
     }
 
     [Fact]
+    public void ServiceTags_CanBeUsedAsFromAndToParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer, protocol: SecurityRuleProtocol.Tcp)
+            .DenyInbound(from: AzureServiceTags.Internet)
+            .AllowOutbound(port: "443", to: AzureServiceTags.Storage)
+            .DenyOutbound(to: AzureServiceTags.VirtualNetwork);
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(4, rules.Count);
+
+        Assert.Equal("AzureLoadBalancer", rules[0].SourceAddressPrefix);
+        Assert.Equal("Internet", rules[1].SourceAddressPrefix);
+        Assert.Equal("Storage", rules[2].DestinationAddressPrefix);
+        Assert.Equal("VirtualNetwork", rules[3].DestinationAddressPrefix);
+    }
+
+    [Fact]
+    public void ServiceTags_CanBeUsedInSecurityRuleProperties()
+    {
+        var rule = new AzureSecurityRule
+        {
+            Name = "allow-https-from-lb",
+            Priority = 100,
+            Direction = SecurityRuleDirection.Inbound,
+            Access = SecurityRuleAccess.Allow,
+            Protocol = SecurityRuleProtocol.Tcp,
+            SourceAddressPrefix = AzureServiceTags.AzureLoadBalancer,
+            DestinationAddressPrefix = AzureServiceTags.VirtualNetwork,
+            DestinationPortRange = "443"
+        };
+
+        Assert.Equal("AzureLoadBalancer", rule.SourceAddressPrefix);
+        Assert.Equal("VirtualNetwork", rule.DestinationAddressPrefix);
+    }
+
+    [Fact]
+    public void ServiceTags_HaveExpectedValues()
+    {
+        Assert.Equal("Internet", AzureServiceTags.Internet);
+        Assert.Equal("VirtualNetwork", AzureServiceTags.VirtualNetwork);
+        Assert.Equal("AzureLoadBalancer", AzureServiceTags.AzureLoadBalancer);
+        Assert.Equal("AzureTrafficManager", AzureServiceTags.AzureTrafficManager);
+        Assert.Equal("Storage", AzureServiceTags.Storage);
+        Assert.Equal("Sql", AzureServiceTags.Sql);
+        Assert.Equal("AzureCosmosDB", AzureServiceTags.AzureCosmosDB);
+        Assert.Equal("AzureKeyVault", AzureServiceTags.AzureKeyVault);
+        Assert.Equal("EventHub", AzureServiceTags.EventHub);
+        Assert.Equal("ServiceBus", AzureServiceTags.ServiceBus);
+        Assert.Equal("AzureContainerRegistry", AzureServiceTags.AzureContainerRegistry);
+        Assert.Equal("AppService", AzureServiceTags.AppService);
+        Assert.Equal("AzureActiveDirectory", AzureServiceTags.AzureActiveDirectory);
+        Assert.Equal("AzureMonitor", AzureServiceTags.AzureMonitor);
+        Assert.Equal("GatewayManager", AzureServiceTags.GatewayManager);
+    }
+
+    [Fact]
     public void AllFourDirectionAccessCombos_SetCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

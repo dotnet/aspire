@@ -2546,6 +2546,64 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var updatedContent = await File.ReadAllTextAsync(projectFile);
         await Verify(updatedContent, extension: "xml");
     }
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesPackageVersionFromDirectoryPackagesPropsForCpm()
+    {
+        // Arrange - simulates a CPM project with an old-format AppHost that has
+        // Aspire.Hosting.AppHost in both csproj (as PackageReference) and
+        // Directory.Packages.props (as PackageVersion). After SDK migration, the
+        // PackageReference is removed from csproj but the orphaned PackageVersion
+        // must also be removed to avoid NU1009.
+        // See: https://github.com/dotnet/aspire/issues/14550
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" />
+                    <PackageReference Include="Aspire.Hosting.Redis" />
+                </ItemGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        // Create Directory.Packages.props with CPM enabled and PackageVersion for Aspire.Hosting.AppHost
+        var directoryPackagesPropsFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Packages.props");
+        await File.WriteAllTextAsync(directoryPackagesPropsFile, """
+            <Project>
+                <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+                    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.5.0" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package).DefaultTimeout();
+
+        // Assert - PackageVersion for Aspire.Hosting.AppHost should be removed from Directory.Packages.props
+        var updatedPropsContent = await File.ReadAllTextAsync(directoryPackagesPropsFile);
+        Assert.DoesNotContain("Aspire.Hosting.AppHost", updatedPropsContent);
+        // Other PackageVersion entries should be preserved
+        Assert.Contains("Aspire.Hosting.Redis", updatedPropsContent);
+
+        // Also verify the csproj was updated correctly
+        var updatedCsprojContent = await File.ReadAllTextAsync(projectFile);
+        Assert.DoesNotContain("Aspire.Hosting.AppHost", updatedCsprojContent);
+        Assert.Contains("Aspire.Hosting.Redis", updatedCsprojContent);
+        Assert.Contains("Aspire.AppHost.Sdk/13.0.2", updatedCsprojContent);
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions

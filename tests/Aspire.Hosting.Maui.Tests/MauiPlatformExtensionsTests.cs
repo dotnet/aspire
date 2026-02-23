@@ -636,7 +636,7 @@ public class MauiPlatformExtensionsTests
 
             foreach (var endpointAnnotation in endpointAnnotations)
             {
-                endpointAnnotation.AllocatedEndpointSnapshot.SetValue(new AllocatedEndpoint(endpointAnnotation, "localhost", 1234));
+                endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 1234);
             }
 
             var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
