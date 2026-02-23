@@ -632,9 +632,15 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Failure mode 1: Project not found
+        // When outputting JSON, use Throw instead of Prompt to avoid polluting stdout
+        // with interactive selection UI. The user should specify --project explicitly.
+        var multipleAppHostBehavior = format == OutputFormat.Json
+            ? MultipleAppHostProjectsFoundBehavior.Throw
+            : MultipleAppHostProjectsFoundBehavior.Prompt;
+
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,
-            MultipleAppHostProjectsFoundBehavior.Prompt,
+            multipleAppHostBehavior,
             createSettingsFile: false,
             cancellationToken);
 
