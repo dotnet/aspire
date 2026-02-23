@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Tests.Utils;
+using Hex1b;
 using Hex1b.Automation;
 
 namespace Aspire.Deployment.EndToEnd.Tests.Helpers;
@@ -76,24 +78,24 @@ internal static class DeploymentE2ETestHelpers
     }
 
     /// <summary>
+    /// Creates a headless Hex1b terminal configured for deployment E2E testing with asciinema recording.
+    /// Uses default dimensions of 160x48 unless overridden.
+    /// </summary>
+    /// <param name="testName">The test name used for the recording file path. Defaults to the calling method name.</param>
+    /// <param name="width">The terminal width in columns. Defaults to 160.</param>
+    /// <param name="height">The terminal height in rows. Defaults to 48.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/> instance. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateTestTerminal(int width = 160, int height = 48, [CallerMemberName] string testName = "")
+    {
+        return Hex1bTestHelpers.CreateTestTerminal("aspire-deployment-e2e", width, height, testName);
+    }
+
+    /// <summary>
     /// Gets the path for storing asciinema recordings that will be uploaded as CI artifacts.
     /// </summary>
     internal static string GetTestResultsRecordingPath(string testName)
     {
-        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
-        string recordingsDir;
-
-        if (!string.IsNullOrEmpty(githubWorkspace))
-        {
-            recordingsDir = Path.Combine(githubWorkspace, "testresults", "recordings");
-        }
-        else
-        {
-            recordingsDir = Path.Combine(Path.GetTempPath(), "aspire-deployment-e2e", "recordings");
-        }
-
-        Directory.CreateDirectory(recordingsDir);
-        return Path.Combine(recordingsDir, $"{testName}.cast");
+        return Hex1bTestHelpers.GetTestResultsRecordingPath(testName, "aspire-deployment-e2e");
     }
 
     /// <summary>
@@ -172,82 +174,4 @@ internal static class DeploymentE2ETestHelpers
             .WaitForSuccessPrompt(counter);
     }
 
-    /// <summary>
-    /// Waits for a successful command prompt with the expected sequence number.
-    /// </summary>
-    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter,
-        TimeSpan? timeout = null)
-    {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
-
-        return builder.WaitUntil(snapshot =>
-            {
-                var successPromptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText(" OK] $ ");
-
-                var result = successPromptSearcher.Search(snapshot);
-                return result.Count > 0;
-            }, effectiveTimeout)
-            .IncrementSequence(counter);
-    }
-
-    /// <summary>
-    /// Waits for any command prompt (success or error) with the expected sequence number.
-    /// Use this after commands that are expected to fail (non-zero exit code).
-    /// </summary>
-    internal static Hex1bTerminalInputSequenceBuilder WaitForAnyPrompt(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter,
-        TimeSpan? timeout = null)
-    {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
-
-        return builder.WaitUntil(snapshot =>
-            {
-                var expectedCount = counter.Value.ToString();
-
-                var successSearcher = new CellPatternSearcher()
-                    .FindPattern(expectedCount)
-                    .RightText(" OK] $ ");
-
-                var errorSearcher = new CellPatternSearcher()
-                    .FindPattern(expectedCount)
-                    .RightText(" ERR:");
-
-                return successSearcher.Search(snapshot).Count > 0
-                    || errorSearcher.Search(snapshot).Count > 0;
-            }, effectiveTimeout)
-            .IncrementSequence(counter);
-    }
-
-    /// <summary>
-    /// Increments the sequence counter.
-    /// </summary>
-    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
-    {
-        return builder.WaitUntil(s =>
-        {
-            counter.Increment();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
-
-    /// <summary>
-    /// Executes an arbitrary callback action during the sequence execution.
-    /// </summary>
-    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        Action callback)
-    {
-        return builder.WaitUntil(s =>
-        {
-            callback();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
 }

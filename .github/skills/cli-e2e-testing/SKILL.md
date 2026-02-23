@@ -57,14 +57,8 @@ public sealed class SmokeTests : IAsyncDisposable
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(MyCliTest));
         
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -275,7 +269,6 @@ Use `CliE2ETestHelpers` for CI environment variables:
 var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();   // GITHUB_PR_NUMBER (0 when local)
 var commitSha = CliE2ETestHelpers.GetRequiredCommitSha(); // GITHUB_PR_HEAD_SHA ("local0000" when local)
 var isCI = CliE2ETestHelpers.IsRunningInCI;               // true when both env vars set
-var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath("test-name"); // Appropriate path for CI vs local
 ```
 
 ## DON'T: Use Hard-coded Delays
