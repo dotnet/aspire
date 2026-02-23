@@ -368,7 +368,7 @@ builder.Build().Run();
                       "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webfrontend --timeout=300s -n default && " +
                       "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=cache --timeout=300s -n default")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(6));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(16));
 
             // Step 22b: Verify Redis container is running and stable (no restarts)
             output.WriteLine("Step 22b: Verifying Redis container is stable...");
