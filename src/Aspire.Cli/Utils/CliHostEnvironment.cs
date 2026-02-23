@@ -162,8 +162,8 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
             return true;
         }
 
-        // ANSI codes are supported even in CI environments for colored output
-        // Only disable if explicitly configured
+        // Check for NO_COLOR to explicitly disable ANSI output.
+        // If neither override is set, return false to let the caller fall back to Spectre detection.
         var noColor = configuration["NO_COLOR"];
         if (!string.IsNullOrEmpty(noColor))
         {
