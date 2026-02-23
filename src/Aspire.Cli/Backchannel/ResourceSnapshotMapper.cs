@@ -34,7 +34,7 @@ internal static class ResourceSnapshotMapper
     /// <param name="includeEnvironmentVariableValues">Whether to include environment variable values. Defaults to <c>true</c>. Set to <c>false</c> to exclude values for security reasons.</param>
     public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null, bool includeEnvironmentVariableValues = true)
     {
-        var urls = (snapshot.Urls ?? [])
+        var urls = snapshot.Urls
             .Select(u => new ResourceUrlJson
             {
                 Name = u.Name,
@@ -44,7 +44,7 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var volumes = (snapshot.Volumes ?? [])
+        var volumes = snapshot.Volumes
             .Select(v => new ResourceVolumeJson
             {
                 Source = v.Source,
@@ -54,7 +54,7 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var healthReports = (snapshot.HealthReports ?? []).OrderBy(h => h.Name).ToDistinctDictionary(
+        var healthReports = snapshot.HealthReports.OrderBy(h => h.Name).ToDistinctDictionary(
             h => h.Name,
             h => new ResourceHealthReportJson
             {
@@ -63,20 +63,20 @@ internal static class ResourceSnapshotMapper
                 ExceptionMessage = h.ExceptionText
             });
 
-        var environment = (snapshot.EnvironmentVariables ?? [])
+        var environment = snapshot.EnvironmentVariables
             .Where(e => e.IsFromSpec)
             .OrderBy(e => e.Name)
             .ToDistinctDictionary(
                 e => e.Name,
                 e => includeEnvironmentVariableValues ? e.Value : null);
 
-        var properties = (snapshot.Properties ?? []).OrderBy(p => p.Key).ToDistinctDictionary(
+        var properties = snapshot.Properties.OrderBy(p => p.Key).ToDistinctDictionary(
             p => p.Key,
             p => p.Value);
 
         // Build relationships by matching DisplayName
         var relationships = new List<ResourceRelationshipJson>();
-        foreach (var relationship in snapshot.Relationships ?? [])
+        foreach (var relationship in snapshot.Relationships)
         {
             var matches = allSnapshots
                 .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
@@ -93,7 +93,7 @@ internal static class ResourceSnapshotMapper
         }
 
         // Only include enabled commands
-        var commands = (snapshot.Commands ?? [])
+        var commands = snapshot.Commands
             .Where(c => string.Equals(c.State, "Enabled", StringComparison.OrdinalIgnoreCase))
             .OrderBy(c => c.Name)
             .ToDistinctDictionary(
@@ -104,9 +104,7 @@ internal static class ResourceSnapshotMapper
                 });
 
         // Get source information using the shared ResourceSourceViewModel
-        var sourceViewModel = snapshot.Properties is not null
-            ? ResourceSource.GetSourceModel(snapshot.ResourceType, snapshot.Properties)
-            : null;
+        var sourceViewModel = ResourceSource.GetSourceModel(snapshot.ResourceType, snapshot.Properties);
 
         // Generate dashboard URL for this resource if a base URL is provided
         string? dashboardUrl = null;
