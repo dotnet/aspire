@@ -5,8 +5,10 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
@@ -26,6 +28,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
     private readonly ICliUpdateNotifier _updateNotifier;
+    private readonly IGitRepository _gitRepository;
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
 
@@ -40,6 +43,14 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly Option<string?> _channelOption;
     private readonly Option<string?> _qualityOption;
 
+    private static readonly string[] s_skillFileRelativePaths =
+    [
+        Path.Combine(".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+        Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+        Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+        Path.Combine(".claude", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+    ];
+
     public UpdateCommand(
         IProjectLocator projectLocator,
         IPackagingService packagingService,
@@ -51,6 +62,7 @@ internal sealed class UpdateCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IConfigurationService configurationService,
+        IGitRepository gitRepository,
         AspireCliTelemetry telemetry)
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -62,6 +74,7 @@ internal sealed class UpdateCommand : BaseCommand
         _updateNotifier = updateNotifier;
         _features = features;
         _configurationService = configurationService;
+        _gitRepository = gitRepository;
 
         Options.Add(s_projectOption);
         Options.Add(s_selfOption);
@@ -196,6 +209,9 @@ internal sealed class UpdateCommand : BaseCommand
                 Channel = channel
             };
             await project.UpdatePackagesAsync(updateContext, cancellationToken);
+
+            // Check for outdated skill files and prompt for update
+            await CheckAndUpdateSkillFilesAsync(cancellationToken);
 
             // After successful project update, check if CLI update is available and prompt
             // Only prompt if the channel supports CLI downloads (has a non-null CliDownloadBaseUrl)
@@ -552,5 +568,100 @@ internal sealed class UpdateCommand : BaseCommand
         {
             _logger.LogWarning(ex, "Failed to clean up directory {Directory}", directory);
         }
+    }
+
+    /// <summary>
+    /// Checks for outdated Aspire skill files in the repository and prompts the user to update them.
+    /// Skill files are created by <c>aspire agent init</c> and may become outdated when the CLI is updated.
+    /// </summary>
+    private async Task CheckAndUpdateSkillFilesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Try to discover the git repository root
+            var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
+            if (gitRoot is null)
+            {
+                _logger.LogDebug("Not in a git repository, skipping skill file update check");
+                return;
+            }
+
+            var normalizedExpected = NormalizeLineEndings(CommonAgentApplicators.SkillFileContent);
+
+            foreach (var skillFileRelativePath in s_skillFileRelativePaths)
+            {
+                await CheckAndUpdateSingleSkillFileAsync(
+                    gitRoot,
+                    skillFileRelativePath,
+                    normalizedExpected,
+                    cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Skill file checking is an optional enhancement, so display warning and continue
+            // rather than failing the entire update command
+            _logger.LogWarning(ex, "Failed to check or update Aspire skill files");
+            InteractionService.DisplayMessage("⚠️",
+                string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.SkillFileCheckFailed, ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Checks a single skill file and prompts for update if outdated.
+    /// </summary>
+    private async Task CheckAndUpdateSingleSkillFileAsync(
+        DirectoryInfo gitRoot,
+        string skillFileRelativePath,
+        string normalizedExpected,
+        CancellationToken cancellationToken)
+    {
+        var skillFilePath = Path.Combine(gitRoot.FullName, skillFileRelativePath);
+        
+        if (!File.Exists(skillFilePath))
+        {
+            _logger.LogDebug("No skill file found at {SkillFilePath}, skipping update check", skillFilePath);
+            return;
+        }
+
+        // Read existing content and compare with current expected content
+        var existingContent = await File.ReadAllTextAsync(skillFilePath, cancellationToken);
+        var normalizedExisting = NormalizeLineEndings(existingContent);
+
+        if (string.Equals(normalizedExisting, normalizedExpected, StringComparison.Ordinal))
+        {
+            _logger.LogDebug("Skill file at {SkillFilePath} is up to date", skillFilePath);
+            return;
+        }
+
+        // Skill file is outdated, prompt for update
+        var promptMessage = string.Format(
+            CultureInfo.CurrentCulture,
+            UpdateCommandStrings.SkillFileOutdatedPrompt,
+            skillFileRelativePath);
+
+        var shouldUpdate = await InteractionService.ConfirmAsync(
+            promptMessage,
+            defaultValue: true,
+            cancellationToken);
+
+        if (shouldUpdate)
+        {
+            await File.WriteAllTextAsync(skillFilePath, CommonAgentApplicators.SkillFileContent, cancellationToken);
+            InteractionService.DisplaySuccess(UpdateCommandStrings.SkillFileUpdatedMessage);
+            _logger.LogInformation("Updated skill file at {SkillFilePath}", skillFilePath);
+        }
+    }
+
+    /// <summary>
+    /// Normalizes line endings to LF for consistent comparison across platforms.
+    /// </summary>
+    private static string NormalizeLineEndings(string content)
+    {
+        return content.ReplaceLineEndings("\n");
     }
 }
