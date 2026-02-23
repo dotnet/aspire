@@ -790,7 +790,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each endpoint uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{name}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
