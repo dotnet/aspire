@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREMCP001
+
 using System.Text;
 using System.Text.Json;
 using System.Diagnostics.CodeAnalysis;
@@ -383,7 +385,7 @@ public static class PostgresBuilderExtensions
             {
                 context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
             })
-            .WithAnnotation(McpServerEndpointAnnotation.FromEndpoint(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithMcpServer("/sse", endpointName: PostgresMcpContainerResource.PrimaryEndpointName)
             .WithIconName("BrainCircuit") // Show a BrainCircuit icon for MCP resources in the dashboard
             .WaitFor(builder);
 
