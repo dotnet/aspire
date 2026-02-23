@@ -22,7 +22,7 @@ public static class McpServerResourceBuilderExtensions
     /// <param name="endpointName">An optional name of the endpoint that hosts the MCP server. If not specified, defaults to the first HTTPS or HTTP endpoint.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
     /// <remarks>
-    /// This method adds a <see cref="McpServerEndpointAnnotation"/> to the resource, enabling the Aspire tooling
+    /// This method adds an <see cref="McpServerEndpointAnnotation"/> to the resource, enabling the Aspire tooling
     /// to discover and proxy the MCP server exposed by the resource.
     /// </remarks>
     /// <example>
