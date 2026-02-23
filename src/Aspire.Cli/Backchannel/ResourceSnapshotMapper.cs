@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Utils;
+using Aspire.Shared;
 using Aspire.Shared.Model;
 using Aspire.Shared.Model.Serialization;
 
@@ -36,7 +37,7 @@ internal static class ResourceSnapshotMapper
         var urls = (snapshot.Urls ?? [])
             .Select(u => new ResourceUrlJson
             {
-                EndpointName = u.Name,
+                Name = u.Name,
                 DisplayName = u.DisplayProperties?.DisplayName,
                 Url = u.Url,
                 IsInternal = u.IsInternal
@@ -53,7 +54,7 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        var healthReports = (snapshot.HealthReports ?? []).OrderBy(h => h.Name).ToDictionary(
+        var healthReports = (snapshot.HealthReports ?? []).OrderBy(h => h.Name).ToDistinctDictionary(
             h => h.Name,
             h => new ResourceHealthReportJson
             {
@@ -65,11 +66,11 @@ internal static class ResourceSnapshotMapper
         var environment = (snapshot.EnvironmentVariables ?? [])
             .Where(e => e.IsFromSpec)
             .OrderBy(e => e.Name)
-            .ToDictionary(
+            .ToDistinctDictionary(
                 e => e.Name,
                 e => includeEnvironmentVariableValues ? e.Value : null);
 
-        var properties = (snapshot.Properties ?? []).OrderBy(p => p.Key).ToDictionary(
+        var properties = (snapshot.Properties ?? []).OrderBy(p => p.Key).ToDistinctDictionary(
             p => p.Key,
             p => p.Value);
 
@@ -95,8 +96,8 @@ internal static class ResourceSnapshotMapper
         var commands = (snapshot.Commands ?? [])
             .Where(c => string.Equals(c.State, "Enabled", StringComparison.OrdinalIgnoreCase))
             .OrderBy(c => c.Name)
-            .ToDictionary(
-                c => c.Name ?? string.Empty,
+            .ToDistinctDictionary(
+                c => c.Name,
                 c => new ResourceCommandJson
                 {
                     Description = c.Description

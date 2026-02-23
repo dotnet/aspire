@@ -124,7 +124,7 @@ internal sealed class ResourceUrlJson
     /// <summary>
     /// The name of the endpoint.
     /// </summary>
-    public string? EndpointName { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
     /// The display name of the URL.

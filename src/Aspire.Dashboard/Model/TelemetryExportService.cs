@@ -13,6 +13,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared;
 using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
@@ -751,7 +752,7 @@ public sealed class TelemetryExportService
             Urls = resource.Urls.Length > 0
                 ? resource.Urls.Select(u => new ResourceUrlJson
                 {
-                    EndpointName = u.EndpointName,
+                    Name = u.EndpointName,
                     DisplayName = u.DisplayProperties.DisplayName is { Length: > 0 } n ? n : null,
                     Url = u.Url.ToString()
                 }).ToArray()
@@ -766,10 +767,10 @@ public sealed class TelemetryExportService
                 }).ToArray()
                 : null,
             Environment = resource.Environment.Length > 0
-                ? resource.Environment.Where(e => e.FromSpec).OrderBy(e => e.Name).ToDictionary(e => e.Name, e => e.Value)
+                ? resource.Environment.Where(e => e.FromSpec).OrderBy(e => e.Name).ToDistinctDictionary(e => e.Name, e => e.Value)
                 : null,
             HealthReports = resource.HealthReports.Length > 0
-                ? resource.HealthReports.OrderBy(h => h.Name).ToDictionary(
+                ? resource.HealthReports.OrderBy(h => h.Name).ToDistinctDictionary(
                     h => h.Name,
                     h => new ResourceHealthReportJson
                     {
@@ -779,7 +780,7 @@ public sealed class TelemetryExportService
                     })
                 : null,
             Properties = resource.Properties.Count > 0
-                ? resource.Properties.OrderBy(p => p.Key).ToDictionary(
+                ? resource.Properties.OrderBy(p => p.Key).ToDistinctDictionary(
                     p => p.Key,
                     p => p.Value.Value.TryConvertToString(out var value) ? value : null)
                 : null,
@@ -788,7 +789,7 @@ public sealed class TelemetryExportService
                 ? resource.Commands
                     .Where(c => c.State == CommandViewModelState.Enabled)
                     .OrderBy(c => c.Name)
-                    .ToDictionary(
+                    .ToDistinctDictionary(
                         c => c.Name,
                         c => new ResourceCommandJson
                         {
