@@ -159,6 +159,7 @@ internal sealed class ResourcesCommand : BaseCommand
         if (resourceName is not null)
         {
             snapshots = snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)).ToList();
+            snapshots = snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)).ToList();
         }
 
         // Check if resource was not found
@@ -193,10 +194,10 @@ internal sealed class ResourcesCommand : BaseCommand
         var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
 
         // Maintain a dictionary of all resources seen so far for relationship resolution
-        var allResources = new Dictionary<string, ResourceSnapshot>(StringComparer.OrdinalIgnoreCase);
+        var allResources = new Dictionary<string, ResourceSnapshot>(StringComparers.ResourceName);
 
         // Track last displayed output per resource to suppress duplicates
-        var lastDisplayedOutput = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var lastDisplayedOutput = new Dictionary<string, string>(StringComparers.ResourceName);
 
         // Stream resource snapshots
         await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
@@ -205,7 +206,7 @@ internal sealed class ResourcesCommand : BaseCommand
             allResources[snapshot.Name] = snapshot;
 
             // Filter by resource name if specified
-            if (resourceName is not null && !string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase))
+            if (resourceName is not null && !string.Equals(snapshot.Name, resourceName, StringComparisons.ResourceName))
             {
                 continue;
             }
