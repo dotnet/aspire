@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREUSERSECRETS001
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class PersistentContainerWarningTests(ITestOutputHelper testOutputHelper)
         var testSink = new TestSink();
 
         var services = new ServiceCollection();
-        services.AddSingleton<IUserSecretsManager>(new FakeAvailableUserSecretsManager());
+        services.AddSingleton<IUserSecretsManager>(new MockUserSecretsManager());
         services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
         services.AddLogging(logging => logging.AddXunit(testOutputHelper));
         var serviceProvider = services.BuildServiceProvider();
@@ -80,14 +81,5 @@ public class PersistentContainerWarningTests(ITestOutputHelper testOutputHelper)
         await BuiltInDistributedApplicationEventSubscriptionHandlers.WarnPersistentContainersWithoutUserSecrets(beforeStartEvent, CancellationToken.None);
 
         Assert.DoesNotContain(testSink.Writes, w => w.LogLevel == LogLevel.Warning);
-    }
-
-    private sealed class FakeAvailableUserSecretsManager : IUserSecretsManager
-    {
-        public bool IsAvailable => true;
-        public string FilePath => string.Empty;
-        public bool TrySetSecret(string name, string value) => true;
-        public void GetOrSetSecret(Microsoft.Extensions.Configuration.IConfigurationManager configuration, string name, Func<string> valueGenerator) { }
-        public Task SaveStateAsync(System.Text.Json.Nodes.JsonObject state, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }
