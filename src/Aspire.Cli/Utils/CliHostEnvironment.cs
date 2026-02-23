@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
-using static Microsoft.VisualStudio.Threading.AsyncReaderWriterLock;
 
 namespace Aspire.Cli.Utils;
 
