@@ -42,6 +42,11 @@
         <target state="translated">Name der Ressource, für die Protokolle abgerufen werden sollen. Wenn keine Angabe erfolgt, werden Protokolle von allen Ressourcen angezeigt.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
         <target state="translated">Ein Ressourcenname ist erforderlich, wenn --follow nicht verwendet wird. Verwenden Sie --follow, um Protokolle aller Ressourcen zu streamen.</target>
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">Für die Option --tail muss ein Ressourcenname angegeben werden.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

@@ -68,7 +68,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
     }
 

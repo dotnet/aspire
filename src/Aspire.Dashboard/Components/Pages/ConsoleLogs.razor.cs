@@ -780,7 +780,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName);
 
-                var logParser = new LogParser(ConsoleColor.Black);
+                var logParser = new LogParser(ConsoleColor.Black, encodeForHtml: true);
                 await foreach (var batch in logSubscription.ConfigureAwait(false))
                 {
                     subscription.CancellationToken.ThrowIfCancellationRequested();

@@ -81,15 +81,15 @@ internal sealed class SetupCommand : BaseCommand
         switch (result)
         {
             case BundleExtractResult.NoPayload:
-                InteractionService.DisplayMessage(":information:", "This CLI binary does not contain an embedded bundle. No extraction needed.");
+                InteractionService.DisplayMessage("information", "This CLI binary does not contain an embedded bundle. No extraction needed.");
                 break;
 
             case BundleExtractResult.AlreadyUpToDate:
-                InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted and up to date. Use --force to re-extract.");
+                InteractionService.DisplayMessage("white_check_mark", "Bundle is already extracted and up to date. Use --force to re-extract.");
                 break;
 
             case BundleExtractResult.Extracted:
-                InteractionService.DisplayMessage(":white_check_mark:", $"Bundle extracted to {installPath}");
+                InteractionService.DisplayMessage("white_check_mark", $"Bundle extracted to {installPath}");
                 break;
 
             case BundleExtractResult.ExtractionFailed:

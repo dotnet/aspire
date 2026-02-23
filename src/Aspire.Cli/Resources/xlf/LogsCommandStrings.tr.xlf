@@ -42,6 +42,11 @@
         <target state="translated">Günlükleri alınacak kaynağın adı. Belirtilmezse tüm kaynakların günlükleri gösterilir.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
         <target state="translated">--follow kullanılmadığında kaynak adı gereklidir. Tüm kaynaklardan günlük akışı yapmak için --follow kullanın.</target>
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">--tail seçeneği için bir kaynak adı belirtilmelidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

@@ -434,7 +434,7 @@ public class DotNetTemplateFactoryTests
 
         public void DisplaySuccess(string message) { }
         public void DisplayError(string message) { }
-        public void DisplayMessage(string emoji, string message) { }
+        public void DisplayMessage(string emojiName, string message) { }
         public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
         public void DisplayCancellationMessage() { }
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;

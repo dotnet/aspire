@@ -940,7 +940,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void ShowStatus(string statusText, Action action) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
-    public void DisplayMessage(string emoji, string message) { }
+    public void DisplayMessage(string emojiName, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }

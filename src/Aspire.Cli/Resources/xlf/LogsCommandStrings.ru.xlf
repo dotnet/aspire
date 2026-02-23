@@ -42,6 +42,11 @@
         <target state="translated">Имя ресурса, для которого нужно получить журналы. Если не указано, отображаются журналы из всех ресурсов.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
         <target state="translated">При отсутствии параметра --follow необходимо указать имя ресурса. Используйте --follow для потоковой передачи журналов из всех ресурсов.</target>
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">Параметр --tail требует указания имени ресурса.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>
