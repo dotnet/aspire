@@ -243,6 +243,35 @@ internal static class CliE2ETestHelpers
             .IncrementSequence(counter);
     }
 
+    /// <summary>
+    /// Waits for the shell prompt to show a non-zero exit code pattern: [N ERR:code] $ 
+    /// This is used to verify that a command exited with a failure code.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <param name="exitCode">The expected non-zero exit code.</param>
+    /// <param name="timeout">Optional timeout (defaults to 500 seconds).</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForErrorPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        int exitCode = 1,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var errorPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText($" ERR:{exitCode}] $ ");
+
+                var result = errorPromptSearcher.Search(snapshot);
+                return result.Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
     internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
@@ -419,6 +448,29 @@ internal static class CliE2ETestHelpers
         var deprecatedConfig = """{"mcpServers":{"aspire":{"command":"aspire","args":["mcp","start"]}}}""";
 
         return builder.ExecuteCallback(() => File.WriteAllText(configPath, deprecatedConfig));
+    }
+
+    /// <summary>
+    /// Creates a malformed MCP config file for testing error handling.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="configPath">The path to create the malformed config file.</param>
+    /// <param name="content">The malformed JSON content to write.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder CreateMalformedMcpConfig(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string configPath,
+        string content = "{ invalid json content")
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            var dir = Path.GetDirectoryName(configPath);
+            if (dir is not null && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllText(configPath, content);
+        });
     }
 
     /// <summary>
