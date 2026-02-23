@@ -27,16 +27,6 @@
         <target state="translated">Ukończono konfigurację środowiska agenta.</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Wstępnie skonfigurować serwer MCP Playwright?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">Utworzyć pliki instrukcji specyficzne dla środowiska agenta?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
         <target state="translated">Zainicjuj konfigurację serwera MCP dla wykrytych środowisk agentów. (przestarzałe, użyj polecenia „agent init”)</target>

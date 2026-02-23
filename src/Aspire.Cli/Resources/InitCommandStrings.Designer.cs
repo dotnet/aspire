@@ -57,24 +57,6 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        internal static string CreatingAppHostProject {
-            get {
-                return ResourceManager.GetString("CreatingAppHostProject", resourceCulture);
-            }
-        }
-        
-        internal static string CreatingServiceDefaultsProject {
-            get {
-                return ResourceManager.GetString("CreatingServiceDefaultsProject", resourceCulture);
-            }
-        }
-        
-        internal static string AddingProjectsToSolution {
-            get {
-                return ResourceManager.GetString("AddingProjectsToSolution", resourceCulture);
-            }
-        }
-        
         internal static string NoSolutionFoundCreatingSingleFileAppHost {
             get {
                 return ResourceManager.GetString("NoSolutionFoundCreatingSingleFileAppHost", resourceCulture);
@@ -108,6 +90,84 @@ namespace Aspire.Cli.Resources {
         internal static string AddingServiceDefaultsProjectToSolution {
             get {
                 return ResourceManager.GetString("AddingServiceDefaultsProjectToSolution", resourceCulture);
+            }
+        }
+        
+        internal static string ReadingSolution {
+            get {
+                return ResourceManager.GetString("ReadingSolution", resourceCulture);
+            }
+        }
+        
+        internal static string EvaluatingExistingProjects {
+            get {
+                return ResourceManager.GetString("EvaluatingExistingProjects", resourceCulture);
+            }
+        }
+        
+        internal static string SearchingForAvailableTemplateVersions {
+            get {
+                return ResourceManager.GetString("SearchingForAvailableTemplateVersions", resourceCulture);
+            }
+        }
+        
+        internal static string UnknownLanguage {
+            get {
+                return ResourceManager.GetString("UnknownLanguage", resourceCulture);
+            }
+        }
+        
+        internal static string FailedToGetProjectsFromSolution {
+            get {
+                return ResourceManager.GetString("FailedToGetProjectsFromSolution", resourceCulture);
+            }
+        }
+        
+        internal static string FailedToInstallAspireTemplates {
+            get {
+                return ResourceManager.GetString("FailedToInstallAspireTemplates", resourceCulture);
+            }
+        }
+        
+        internal static string FailedToFindCreatedProjects {
+            get {
+                return ResourceManager.GetString("FailedToFindCreatedProjects", resourceCulture);
+            }
+        }
+        
+        internal static string SingleFileAppHostTemplateNotFound {
+            get {
+                return ResourceManager.GetString("SingleFileAppHostTemplateNotFound", resourceCulture);
+            }
+        }
+        
+        internal static string CreatingLanguageAppHost {
+            get {
+                return ResourceManager.GetString("CreatingLanguageAppHost", resourceCulture);
+            }
+        }
+        
+        internal static string ProjectsToBeAddedToAppHost {
+            get {
+                return ResourceManager.GetString("ProjectsToBeAddedToAppHost", resourceCulture);
+            }
+        }
+        
+        internal static string AppHostFileAlreadyExists {
+            get {
+                return ResourceManager.GetString("AppHostFileAlreadyExists", resourceCulture);
+            }
+        }
+        
+        internal static string RunAspireRunToStartAppHost {
+            get {
+                return ResourceManager.GetString("RunAspireRunToStartAppHost", resourceCulture);
+            }
+        }
+        
+        internal static string LanguageOptionDescription {
+            get {
+                return ResourceManager.GetString("LanguageOptionDescription", resourceCulture);
             }
         }
     }

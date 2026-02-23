@@ -77,15 +77,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("GeneratingArtifacts", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Loading....
-        /// </summary>
-        public static string InputPromptLoading {
-            get {
-                return ResourceManager.GetString("InputPromptLoading", resourceCulture);
-            }
-        }
 
         /// <summary>
         ///   Looks up a localized string similar to Do not build or restore the project before running..

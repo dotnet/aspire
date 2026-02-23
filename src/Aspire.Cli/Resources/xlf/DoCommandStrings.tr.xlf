@@ -7,11 +7,6 @@
         <target state="translated">Belirli bir işlem hattı adımını ve bağımlılıklarını yürütün. (Önizleme)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Executing pipeline...</source>
-        <target state="translated">İşlem hattı yürütülüyor...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
         <target state="translated">İşlem iptal edildi.</target>

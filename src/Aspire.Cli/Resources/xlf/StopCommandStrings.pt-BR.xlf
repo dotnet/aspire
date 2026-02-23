@@ -22,14 +22,14 @@
         <target state="translated">Falha ao parar o AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsNonInteractive">
-        <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
+        <target state="translated">Nenhum AppHost em execução foi encontrado no diretório atual. Mostrando todos os AppHosts em execução:</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="translated">Vários AppHosts estão em execução. Use --apphost para especificar qual parar ou escolha um:</target>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found in scope.</source>
+        <target state="translated">Nenhum AppHosts em execução foi encontrado no escopo.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

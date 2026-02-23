@@ -142,11 +142,6 @@
         <target state="translated">Paket başvurusunda Kimlik yok.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">Paket başvurusunda Sürüm yok.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
         <target state="translated">Güncelleştirmeler uygulansın mı?</target>
@@ -195,11 +190,6 @@
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">Kanal seçin:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
-        <source>Unexpected code path.</source>
-        <target state="translated">Beklenmeyen kod yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">

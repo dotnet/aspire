@@ -22,14 +22,14 @@
         <target state="translated">No se pudo detener AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsNonInteractive">
-        <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
+        <target state="translated">No se encontró ningún AppHosts en ejecución en el directorio actual. Mostrando todos los AppHosts en ejecución:</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="translated">Se están ejecutando varios AppHost. Use --apphost para especificar cuál se va a detener o seleccione uno:</target>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found in scope.</source>
+        <target state="translated">No se encontraron AppHosts en ejecución en el ámbito.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

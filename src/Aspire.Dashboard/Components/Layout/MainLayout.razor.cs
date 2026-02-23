@@ -222,7 +222,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = "Aspire MCP server",
+            Title = Loc[nameof(Resources.Layout.MainLayoutMcpServerDialogTitle)],
             PrimaryAction = null,
             SecondaryAction = null,
             TrapFocus = true,

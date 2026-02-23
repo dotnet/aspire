@@ -24,7 +24,7 @@
                 @FormatMetricValue(context.Value)
             </TemplateColumn>
             <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogDetailsColumnHeader)]">
-                <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">View</FluentButton>
+                <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(Dialogs.ExemplarsDialogViewButton)]</FluentButton>
             </TemplateColumn>
         </ChildContent>
         <EmptyContent>

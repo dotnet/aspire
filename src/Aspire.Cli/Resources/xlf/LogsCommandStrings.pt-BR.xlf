@@ -27,19 +27,14 @@
         <target state="translated">O nome do recurso para o qual obter logs. Se não for especificado, os logs de todos os recursos serão mostrados.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceNotFound">
-        <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Verificando se há AppHosts em execução...</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">Um nome de recurso é necessário ao não usar --follow. Use --follow para transmitir logs de todos os recursos.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHostAction">
-        <source>stream logs from</source>
-        <target state="new">stream logs from</target>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">Selecione um AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -50,21 +45,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Número de linhas a serem mostradas a partir do final dos logs (padrão: todos).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">A opção --tail requer que um nome de recurso seja especificado.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TimestampsOptionDescription">
-        <source>Show timestamps for each log line.</source>
-        <target state="new">Show timestamps for each log line.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="GettingLogs">
-        <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
         <note />
       </trans-unit>
     </body>

@@ -142,11 +142,6 @@
         <target state="translated">Der Paketverweis hat keine Identität.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">Der Paketverweis hat keine Version.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
         <target state="translated">Update ausführen?</target>
@@ -195,11 +190,6 @@
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">Wählen Sie einen Kanal aus.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
-        <source>Unexpected code path.</source>
-        <target state="translated">Unerwarteter Codepfad</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">

@@ -27,11 +27,6 @@
         <target state="translated">Protokolle noch nicht verfügbar</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">Keine Ressource ausgewählt</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">Protokollzeilen nicht umbrechen</target>

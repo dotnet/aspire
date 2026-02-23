@@ -27,11 +27,6 @@
         <target state="translated">Log non ancora disponibili</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">Nessuna risorsa selezionata</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">Non eseguire il wrapping delle righe di log</target>

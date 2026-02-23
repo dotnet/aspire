@@ -7,11 +7,6 @@
         <target state="translated">執行特定管線步驟及其相依性。(預覽)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Executing pipeline...</source>
-        <target state="translated">正在執行管線...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
         <target state="translated">已取消作業。</target>

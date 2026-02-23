@@ -37,6 +37,11 @@
         <target state="translated">Wartość</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExemplarsDialogViewButton">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FieldRequired">
         <source>A value is required.</source>
         <target state="translated">Wymagana wartość.</target>
@@ -136,6 +141,11 @@
         <source>Input tokens: {0}</source>
         <target state="translated">Tokeny wejściowe: {0}</target>
         <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAILlmBadge">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
@@ -492,11 +502,6 @@
         <target state="translated">Ręczne aktualizowanie &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">Aspire MCP można używać z dowolnymi narzędziami AI, które obsługują strumieniowe serwery HTTP MCP.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">Poniżej znajdziesz ważne informacje dotyczące konfigurowania Aspire MCP. Szczegóły dotyczące dodawania serwera MCP znajdziesz w dokumentacji klienta AI.</target>
@@ -641,11 +646,6 @@
         <source>Version: {0}</source>
         <target state="translated">Wersja: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">Eksportuj wszystko</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

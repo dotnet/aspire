@@ -92,11 +92,6 @@
         <target state="translated">Falha ao analisar a versão do modelo de stdout.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">Falha ao recuperar todos os pacotes Aspire pelo cache.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Falha ao recuperar pacotes de modelo por meio do cache.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">O projeto não contém um AppHost do Aspire.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">O recurso AppHost de arquivo único não está habilitado. Para usar arquivos AppHost .cs, habilite o recurso usando a configuração.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

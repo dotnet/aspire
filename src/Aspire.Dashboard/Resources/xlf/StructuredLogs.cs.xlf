@@ -52,11 +52,6 @@
         <target state="translated">Filtr zpráv</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsMinimumLogFilter">
-        <source>Minimum log level filter</source>
-        <target state="translated">Filtr minimální úrovně protokolování</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Nenašly se žádné strukturované protokoly.</target>

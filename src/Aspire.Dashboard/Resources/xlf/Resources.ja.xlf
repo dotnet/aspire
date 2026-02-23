@@ -72,11 +72,6 @@
         <target state="translated">コンソール ログの表示</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsViewConsoleLogs">
-        <source>View console logs</source>
-        <target state="translated">コンソール ログの表示</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
         <target state="translated">子リソースの展開</target>

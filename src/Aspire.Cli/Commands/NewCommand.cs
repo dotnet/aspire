@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -96,10 +98,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<AppHostLanguage?>("--language")
         {
-            Description = NewCommandStrings.LanguageOptionDescription,
-            Recursive = true
-        };
-        Options.Add(_languageOption);
+            _languageOption = new Option<string?>("--language", "-l")
+            {
+                Description = InitCommandStrings.LanguageOptionDescription
+            };
+            Options.Add(_languageOption);
+        }
 
         _templates = templateProvider.GetTemplatesAsync(CancellationToken.None).GetAwaiter().GetResult().ToArray();
 
@@ -301,7 +305,13 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             version = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
             if (string.IsNullOrWhiteSpace(version))
             {
-                return ExitCodeConstants.InvalidCommand;
+                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
+                if (language is null)
+                {
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, explicitLanguage));
+                    return ExitCodeConstants.InvalidCommand;
+                }
+                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
             }
         }
 
@@ -328,10 +338,38 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return template.Runtime is TemplateRuntime.Cli;
     }
 
-    private enum AppHostLanguage
-    {
-        CSharp,
-        TypeScript
+        // Get output directory
+        var outputPath = parseResult.GetValue(s_outputOption);
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
+        }
+        else if (!Path.IsPathRooted(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
+        }
+
+        // Create the output directory
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var directory = new DirectoryInfo(outputPath);
+
+        // Scaffold the apphost files
+        var context = new ScaffoldContext(language, directory, projectName);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
+        InteractionService.DisplayMessage("information", InitCommandStrings.RunAspireRunToStartAppHost);
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return ExitCodeConstants.Success;
     }
 }
 

@@ -142,11 +142,6 @@
         <target state="translated">Odwołanie do pakietu nie ma tożsamości.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">Odwołanie do pakietu nie ma wersji.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
         <target state="translated">Wykonać aktualizacje?</target>
@@ -195,11 +190,6 @@
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">Wybierz kanał:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
-        <source>Unexpected code path.</source>
-        <target state="translated">Nieoczekiwana ścieżka w kodzie.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">

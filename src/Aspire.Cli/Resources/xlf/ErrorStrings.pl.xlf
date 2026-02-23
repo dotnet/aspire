@@ -92,11 +92,6 @@
         <target state="translated">Nie można przeanalizować wersji szablonu z właściwości StdOut.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">Nie można pobrać wszystkich pakietów Aspire za pośrednictwem pamięci podręcznej.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nie można pobrać pakietów szablonów za pośrednictwem pamięci podręcznej.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">Projekt nie zawiera hosta AppHost platformy Aspire.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">Funkcja hosta AppHost z jednym plikiem nie jest włączona. Aby użyć plików .cs hosta AppHost, włącz tę funkcję przy użyciu konfiguracji.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

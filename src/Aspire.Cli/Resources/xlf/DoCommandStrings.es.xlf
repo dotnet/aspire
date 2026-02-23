@@ -7,11 +7,6 @@
         <target state="translated">Ejecute un paso de canalización específico y sus dependencias. (Versión preliminar)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Executing pipeline...</source>
-        <target state="translated">Ejecutando canalización...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
         <target state="translated">Operación cancelada.</target>

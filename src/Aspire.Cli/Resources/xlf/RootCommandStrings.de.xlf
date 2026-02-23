@@ -52,11 +52,6 @@ Die Aspire-CLI sammelt Nutzungsdaten. Sie wird von Microsoft erfasst und verwend
 Weitere Informationen zur Aspire-CLI-Telemetrie finden Sie unter: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">Willkommen bei Aspire! Weitere Informationen zu Aspire finden Sie unter https://aspire.dev</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Unterdrücken Sie das Startupbanner und den Telemetriehinweis.</target>

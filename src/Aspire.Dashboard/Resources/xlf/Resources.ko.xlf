@@ -72,11 +72,6 @@
         <target state="translated">콘솔 로그 보기</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsViewConsoleLogs">
-        <source>View console logs</source>
-        <target state="translated">콘솔 로그 보기</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
         <target state="translated">자식 리소스 확장</target>

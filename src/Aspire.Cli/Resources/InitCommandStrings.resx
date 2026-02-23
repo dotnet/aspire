@@ -66,15 +66,6 @@
   <data name="SolutionDetected" xml:space="preserve">
     <value>Solution detected: {0}</value>
   </data>
-  <data name="CreatingAppHostProject" xml:space="preserve">
-    <value>Creating AppHost project...</value>
-  </data>
-  <data name="CreatingServiceDefaultsProject" xml:space="preserve">
-    <value>Creating ServiceDefaults project...</value>
-  </data>
-  <data name="AddingProjectsToSolution" xml:space="preserve">
-    <value>Adding projects to solution...</value>
-  </data>
   <data name="NoSolutionFoundCreatingSingleFileAppHost" xml:space="preserve">
     <value>No solution file found. Creating single-file AppHost...</value>
   </data>
@@ -92,5 +83,47 @@
   </data>
   <data name="AddingServiceDefaultsProjectToSolution" xml:space="preserve">
     <value>Adding ServiceDefaults project to solution...</value>
+  </data>
+  <data name="ReadingSolution" xml:space="preserve">
+    <value>Reading solution...</value>
+  </data>
+  <data name="EvaluatingExistingProjects" xml:space="preserve">
+    <value>Evaluating existing projects...</value>
+  </data>
+  <data name="SearchingForAvailableTemplateVersions" xml:space="preserve">
+    <value>Searching for available template versions...</value>
+  </data>
+  <data name="UnknownLanguage" xml:space="preserve">
+    <value>Unknown language: '{0}'</value>
+    <comment>{0} is the specified language identifier</comment>
+  </data>
+  <data name="FailedToGetProjectsFromSolution" xml:space="preserve">
+    <value>Failed to get projects from solution.</value>
+  </data>
+  <data name="FailedToInstallAspireTemplates" xml:space="preserve">
+    <value>Failed to install Aspire templates.</value>
+  </data>
+  <data name="FailedToFindCreatedProjects" xml:space="preserve">
+    <value>Failed to find created AppHost or ServiceDefaults projects in template output.</value>
+  </data>
+  <data name="SingleFileAppHostTemplateNotFound" xml:space="preserve">
+    <value>Single-file AppHost template not found.</value>
+  </data>
+  <data name="CreatingLanguageAppHost" xml:space="preserve">
+    <value>Creating {0} AppHost...</value>
+    <comment>{0} is the language display name</comment>
+  </data>
+  <data name="ProjectsToBeAddedToAppHost" xml:space="preserve">
+    <value>The following projects will be added to the AppHost:</value>
+  </data>
+  <data name="AppHostFileAlreadyExists" xml:space="preserve">
+    <value>{0} already exists in this directory.</value>
+    <comment>{0} is the AppHost file name</comment>
+  </data>
+  <data name="RunAspireRunToStartAppHost" xml:space="preserve">
+    <value>Run 'aspire run' to start your AppHost.</value>
+  </data>
+  <data name="LanguageOptionDescription" xml:space="preserve">
+    <value>The programming language for the AppHost (csharp, typescript)</value>
   </data>
 </root>

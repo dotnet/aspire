@@ -1222,24 +1222,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to View logs.
-        /// </summary>
-        public static string ViewLogsLink {
-            get {
-                return ResourceManager.GetString("ViewLogsLink", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to View structured logs.
-        /// </summary>
-        public static string ViewStructuredLogsText {
-            get {
-                return ResourceManager.GetString("ViewStructuredLogsText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Mount type.
         /// </summary>
         public static string VolumeMountTypeColumnHeader {
