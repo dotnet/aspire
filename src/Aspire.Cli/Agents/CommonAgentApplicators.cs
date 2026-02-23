@@ -187,7 +187,7 @@ internal static class CommonAgentApplicators
         - When agents are using source code from a work tree
         - There are port conflicts when starting the AppHost without isolation
 
-       ### Stopping the application
+        ### Stopping the application
 
         To stop a running AppHost:
 
