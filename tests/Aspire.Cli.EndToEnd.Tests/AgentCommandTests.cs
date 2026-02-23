@@ -308,6 +308,10 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var agentInitPrompt = new CellPatternSearcher()
             .Find("configure AI agent environments");
 
+        // Pattern for NuGet.config prompt that may appear during init with PR channel
+        var nugetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
         // Pattern for the workspace path prompt that appears when agent init starts
         var workspacePathPrompt = new CellPatternSearcher()
             .Find("workspace:");
@@ -329,9 +333,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         }
 
         // Run aspire init (no solution file → creates single-file AppHost)
+        // When using a PR channel, a "NuGet.config" prompt may appear during init.
         sequenceBuilder
             .Type("aspire init")
             .Enter()
+            // Wait for the NuGet.config prompt (appears when using PR channel)
+            .WaitUntil(s => nugetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            .Enter() // Accept default (Yes) for NuGet.config creation
             // Wait for the agent init confirmation prompt
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
             .Wait(500)
@@ -378,6 +387,10 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var agentInitPrompt = new CellPatternSearcher()
             .Find("configure AI agent environments");
 
+        // Pattern for NuGet.config prompt that may appear during init with PR channel
+        var nugetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -391,9 +404,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         }
 
         // Run aspire init (no solution file → creates single-file AppHost)
+        // When using a PR channel, a "NuGet.config" prompt may appear during init.
         sequenceBuilder
             .Type("aspire init")
             .Enter()
+            // Wait for the NuGet.config prompt (appears when using PR channel)
+            .WaitUntil(s => nugetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            .Enter() // Accept default (Yes) for NuGet.config creation
             // Wait for the agent init confirmation prompt
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
             .Wait(500)
