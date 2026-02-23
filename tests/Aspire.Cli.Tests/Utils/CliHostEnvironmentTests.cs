@@ -34,19 +34,6 @@ public class CliHostEnvironmentTests
         Assert.True(env.SupportsInteractiveOutput);
     }
 
-    [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenNoConfigSet()
-    {
-        // Arrange
-        var configuration = new ConfigurationBuilder().Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
-    }
-
     [Theory]
     [InlineData("ASPIRE_NON_INTERACTIVE", "true")]
     [InlineData("ASPIRE_NON_INTERACTIVE", "1")]
@@ -132,27 +119,6 @@ public class CliHostEnvironmentTests
         Assert.False(env.SupportsInteractiveOutput);
     }
 
-    [Theory]
-    [InlineData("CI", "true")]
-    [InlineData("CI", "1")]
-    [InlineData("GITHUB_ACTIONS", "true")]
-    public void SupportsAnsi_ReturnsTrue_InCIEnvironment(string envVar, string value)
-    {
-        // Arrange - ANSI should still be supported in CI for colored output
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [envVar] = value
-            })
-            .Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
-    }
-
     [Fact]
     public void SupportsAnsi_ReturnsFalse_WhenNO_COLORSet()
     {
@@ -195,19 +161,6 @@ public class CliHostEnvironmentTests
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
-    }
-
-    [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenNonInteractiveTrue()
-    {
-        // Arrange - ANSI should still be supported even in non-interactive mode
-        var configuration = new ConfigurationBuilder().Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
     }
 
     [Fact]
@@ -379,13 +332,14 @@ public class CliHostEnvironmentTests
     }
 
     [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_WithNonInteractive()
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_WithNonInteractive_AndAnsiPassThru()
     {
-        // Arrange - ASPIRE_PLAYGROUND should enable ANSI even with --non-interactive
+        // Arrange - ASPIRE_ANSI_PASS_THRU explicitly enables ANSI even with --non-interactive
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ASPIRE_PLAYGROUND"] = "true"
+                ["ASPIRE_PLAYGROUND"] = "true",
+                ["ASPIRE_ANSI_PASS_THRU"] = "true"
             })
             .Build();
         
