@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Hosting.Tests;
 
-public class PersistentContainerWarningTests
+public class PersistentContainerWarningTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task PersistentContainerWithoutUserSecrets_LogsWarning()
@@ -20,6 +20,7 @@ public class PersistentContainerWarningTests
         var services = new ServiceCollection();
         services.AddSingleton<IUserSecretsManager>(NoopUserSecretsManager.Instance);
         services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
+        services.AddLogging(logging => logging.AddXunit(testOutputHelper));
         var serviceProvider = services.BuildServiceProvider();
 
         var resources = new ResourceCollection();
@@ -43,6 +44,7 @@ public class PersistentContainerWarningTests
         var services = new ServiceCollection();
         services.AddSingleton<IUserSecretsManager>(new FakeAvailableUserSecretsManager());
         services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
+        services.AddLogging(logging => logging.AddXunit(testOutputHelper));
         var serviceProvider = services.BuildServiceProvider();
 
         var resources = new ResourceCollection();
@@ -66,6 +68,7 @@ public class PersistentContainerWarningTests
         var services = new ServiceCollection();
         services.AddSingleton<IUserSecretsManager>(NoopUserSecretsManager.Instance);
         services.AddLogging(logging => logging.AddProvider(new TestLoggerProvider(testSink)));
+        services.AddLogging(logging => logging.AddXunit(testOutputHelper));
         var serviceProvider = services.BuildServiceProvider();
 
         var resources = new ResourceCollection();
