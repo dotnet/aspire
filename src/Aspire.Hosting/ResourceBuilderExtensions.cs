@@ -3292,5 +3292,4 @@ public static class ResourceBuilderExtensions
             context.Options.RemoteImageTag = remoteImageTag;
         });
     }
-
 }
