@@ -102,7 +102,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
             // Update this to use AnsiCapabilities once it's available in Spectre.Console 0.60+ instead of creating a full AnsiConsole instance.
             var ansiConsole = AnsiConsole.Create(new AnsiConsoleSettings
             {
-                Out = new AspireAnsiConsoleOutput(Console.Out, configuration),
+                Out = new AnsiConsoleOutput(TextWriter.Null),
                 Ansi = AnsiSupport.Detect,
                 ColorSystem = ColorSystemSupport.Detect
             });
