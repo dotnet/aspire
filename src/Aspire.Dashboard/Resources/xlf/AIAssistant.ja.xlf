@@ -62,11 +62,6 @@
         <target state="translated">Copilot サブスクリプションを持つ GitHub アカウントで Visual Studio にサインインします。「&lt;a href="{0}" target="_blank"&gt;GitHub アカウントを Visual Studio キーチェーンに追加する&lt;/a&gt;」の手順に従ってください。</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">申し訳ございません。要求はレート制限されました。後でもう一度お試しください。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">要求を送信できません</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">メッセージの送信</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">ダイアログの縮小</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

@@ -42,11 +42,6 @@
         <target state="translated">要取得其記錄的資源名稱。如果未指定，則顯示所有資源的記錄。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">當未使用 --follow 時，必須指定資源名稱。使用 --follow 從所有資源串流記錄。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">正在掃描執行中的 AppHost...</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">從記錄末端顯示的行數 (預設: 全部)。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">--tail 選項需要指定資源名稱。</target>
         <note />
       </trans-unit>
     </body>

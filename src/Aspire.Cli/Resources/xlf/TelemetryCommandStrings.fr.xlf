@@ -87,11 +87,6 @@
         <target state="translated">Afficher les intervalles à partir de l’API de télémétrie du tableau de bord.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">ID de trace à afficher. Si aucun n’est spécifié, liste toutes les traces.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Filtrer par ID de trace.</target>

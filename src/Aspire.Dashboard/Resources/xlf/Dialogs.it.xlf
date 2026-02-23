@@ -37,6 +37,11 @@
         <target state="translated">Valore</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExemplarsDialogViewButton">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FieldRequired">
         <source>A value is required.</source>
         <target state="translated">È necessario specificare un valore.</target>
@@ -136,6 +141,11 @@
         <source>Input tokens: {0}</source>
         <target state="translated">Token di input: {0}</target>
         <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAILlmBadge">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
@@ -492,11 +502,6 @@
         <target state="translated">Aggiornamento manuale di &lt;code&gt;mcp.json&lt;/code&gt; in corso...</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">Aspire MCP può essere usato con qualsiasi strumento di intelligenza artificiale che supporta server MCP HTTP abilitati per lo streaming.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">Di seguito sono riportati i dettagli importanti per la configurazione di Aspire MCP. Per informazioni su come aggiungere un server MCP, vedere la documentazione del client di intelligenza artificiale.</target>
@@ -641,11 +646,6 @@
         <source>Version: {0}</source>
         <target state="translated">Versione: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">Esporta tutto</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

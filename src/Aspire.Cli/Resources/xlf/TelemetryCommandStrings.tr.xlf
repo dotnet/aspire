@@ -87,11 +87,6 @@
         <target state="translated">Pano telemetri API'sinden yayılmaları görüntüleyin.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">Görüntülenecek izleme kimliği. Belirtilmezse, tüm izlemeler listelenir.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">İzleme kimliğine göre filtreleyin.</target>

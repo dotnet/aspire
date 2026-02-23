@@ -160,15 +160,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to View console logs.
-        /// </summary>
-        public static string ResourceDetailsViewConsoleLogs {
-            get {
-                return ResourceManager.GetString("ResourceDetailsViewConsoleLogs", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Expand child resources.
         /// </summary>
         public static string ResourceExpandAllChildren {

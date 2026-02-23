@@ -87,11 +87,6 @@
         <target state="translated">Ver intervalos de la API de telemetría del panel.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">El id. de rastreo que se desea ver. Si no se especifica, enumera todos los seguimientos.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Filtre por id. de seguimiento.</target>

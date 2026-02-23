@@ -87,11 +87,6 @@
         <target state="translated">查看仪表板遥测 API 中的跨度。</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">要查看的跟踪 ID。如果未指定，则列出所有跟踪。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">按跟踪 ID 筛选。</target>

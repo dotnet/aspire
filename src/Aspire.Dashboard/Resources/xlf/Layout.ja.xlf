@@ -22,6 +22,16 @@
         <target state="translated">設定</target>
         <note />
       </trans-unit>
+      <trans-unit id="MainLayoutMcpServerButton">
+        <source>MCP Server</source>
+        <target state="new">MCP Server</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MainLayoutMcpServerDialogTitle">
+        <source>Aspire MCP server</source>
+        <target state="new">Aspire MCP server</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
         <source>Close</source>
         <target state="translated">閉じる</target>

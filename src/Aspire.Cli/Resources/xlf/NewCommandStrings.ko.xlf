@@ -57,11 +57,6 @@
         <target state="translated">프로젝트 템플릿에 사용할 NuGet 소스입니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(사전 릴리스 템플릿 사용)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">사용할 프로젝트 템플릿의 버전입니다.</target>

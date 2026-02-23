@@ -57,11 +57,6 @@
         <target state="translated">A origem do NuGet a ser usada para os modelos de projeto.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(usar modelos de pré-lançamento)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">A versão dos modelos de projeto a serem usados.</target>

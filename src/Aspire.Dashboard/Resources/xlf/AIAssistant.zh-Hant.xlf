@@ -62,11 +62,6 @@
         <target state="translated">使用具有 Copilot 訂閱的 GitHub 帳戶登入 Visual Studio。請遵循 &lt;a href="{0}" target="_blank"&gt;將 GitHub 帳戶新增到 Visual Studio 金鑰鏈&lt;/a&gt; 中的步驟。</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">很抱歉，已針對您的要求進行速率限制。請稍後再試。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">無法傳送要求</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">傳送訊息</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">縮小對話方塊</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

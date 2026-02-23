@@ -42,11 +42,6 @@
         <target state="translated">로그를 가져올 리소스의 이름입니다. 지정하지 않으면 모든 리소스의 로그가 표시됩니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">--follow를 사용하지 않을 경우 리소스 이름은 필수 항목입니다. --follow를 사용하여 모든 리소스의 로그를 스트리밍합니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">실행 중인 AppHost를 검색하는 중...</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">로그 끝에서 표시할 줄 수입니다(기본값: 모두).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">--tail 옵션을 사용하려면 리소스 이름을 지정해야 합니다.</target>
         <note />
       </trans-unit>
     </body>

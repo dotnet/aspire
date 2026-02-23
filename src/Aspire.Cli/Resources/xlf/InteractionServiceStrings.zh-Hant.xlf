@@ -37,11 +37,6 @@
         <target state="translated">正在檢查專案類型...</target>
         <note />
       </trans-unit>
-      <trans-unit id="CodespacesLink">
-        <source>Codespaces</source>
-        <target state="translated">Codespaces</target>
-        <note>Represents a type of link</note>
-      </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
         <target state="translated">已在 {0} 建立設定檔案。</target>
@@ -56,11 +51,6 @@
         <source>Dashboard</source>
         <target state="translated">儀表板</target>
         <note />
-      </trans-unit>
-      <trans-unit id="DirectLink">
-        <source>Direct</source>
-        <target state="translated">直接</target>
-        <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
         <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>

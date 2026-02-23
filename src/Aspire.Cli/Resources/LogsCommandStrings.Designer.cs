@@ -99,12 +99,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string ResourceRequiredWithoutFollow {
-            get {
-                return ResourceManager.GetString("ResourceRequiredWithoutFollow", resourceCulture);
-            }
-        }
-
         public static string NoResourcesFound {
             get {
                 return ResourceManager.GetString("NoResourcesFound", resourceCulture);

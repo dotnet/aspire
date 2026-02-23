@@ -2,29 +2,9 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../RunCommandStrings.resx">
     <body>
-      <trans-unit id="AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="translated">Quizás más tarde</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationNo">
-        <source>No</source>
-        <target state="translated">No</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationPrompt">
-        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="translated">Aspire ha detectado {0} entornos de codificación de agente que configurar. ¿Desea configurar ahora?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
         <target state="translated">Seleccione los entornos de agente que desea configurar:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationYes">
-        <source>Yes</source>
-        <target state="translated">Sí</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHost">
@@ -50,11 +30,6 @@
       <trans-unit id="CheckLogsForDetails">
         <source>Check logs for details: {0}</source>
         <target state="translated">Compruebe los registros para obtener más información: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Comprobando si hay instancias en ejecución...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
@@ -95,11 +70,6 @@
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the AppHost.</source>
         <target state="translated">Error al iniciar AppHost.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ForceArgumentDescription">
-        <source>Stop any running instance of the AppHost without prompting.</source>
-        <target state="translated">Detenga cualquier instancia en ejecución de AppHost sin pedir confirmación.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
@@ -217,14 +187,9 @@
         <target state="translated">Tipo</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
-      <trans-unit id="WaitingForAppHostToStart">
-        <source>Waiting for apphost to start...</source>
-        <target state="translated">Esperando a que se inicie apphost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Inicie los recursos del proyecto en modo de inspección.</target>
+      <trans-unit id="UnrecognizedAppHostType">
+        <source>Unrecognized app host type.</source>
+        <target state="new">Unrecognized app host type.</target>
         <note />
       </trans-unit>
     </body>

@@ -42,11 +42,6 @@
         <target state="translated">Name der Ressource, für die Protokolle abgerufen werden sollen. Wenn keine Angabe erfolgt, werden Protokolle von allen Ressourcen angezeigt.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">Ein Ressourcenname ist erforderlich, wenn --follow nicht verwendet wird. Verwenden Sie --follow, um Protokolle aller Ressourcen zu streamen.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">Suche nach aktiven AppHosts …</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Anzahl der Zeilen, die vom Ende der Protokolle angezeigt werden sollen (Standard: alle).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">Für die Option --tail muss ein Ressourcenname angegeben werden.</target>
         <note />
       </trans-unit>
     </body>

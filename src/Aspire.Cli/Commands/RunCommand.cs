@@ -218,7 +218,7 @@ internal sealed class RunCommand : BaseCommand
             var project = _projectFactory.TryGetProject(effectiveAppHostFile);
             if (project is null)
             {
-                InteractionService.DisplayError("Unrecognized app host type.");
+                InteractionService.DisplayError(RunCommandStrings.UnrecognizedAppHostType);
                 return ExitCodeConstants.FailedToFindProject;
             }
 

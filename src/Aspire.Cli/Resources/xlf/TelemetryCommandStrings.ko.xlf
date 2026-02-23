@@ -87,11 +87,6 @@
         <target state="translated">대시보드 원격 분석 API에서 범위를 확인합니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">조회할 추적 ID입니다. 지정하지 않으면 모든 추적이 나열됩니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">추적 ID로 필터링합니다.</target>

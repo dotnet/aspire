@@ -87,11 +87,6 @@
         <target state="translated">Wyświetl zakresy z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">Identyfikator śledzenia do wyświetlenia. Jeśli nie zostanie podany, wyświetli listę wszystkich śledzeń.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Filtruj według identyfikatora śledzenia.</target>

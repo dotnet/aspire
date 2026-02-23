@@ -139,9 +139,6 @@
   <data name="ConsoleLogsLoadingResources" xml:space="preserve">
     <value>Loading resources ...</value>
   </data>
-  <data name="ConsoleLogsNoResourceSelected" xml:space="preserve">
-    <value>No resource selected</value>
-  </data>
   <data name="ConsoleLogsUnknownState" xml:space="preserve">
     <value>Unknown state</value>
   </data>

@@ -133,6 +133,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sign out.
+        /// </summary>
+        public static string SignOutButtonText {
+            get {
+                return ResourceManager.GetString("SignOutButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enter token to log in....
         /// </summary>
         public static string TextFieldPlaceholder {

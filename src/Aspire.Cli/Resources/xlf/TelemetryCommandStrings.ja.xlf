@@ -87,11 +87,6 @@
         <target state="translated">ダッシュボード テレメトリ API からスパンを表示します。</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">表示するトレース ID。指定しない場合は、すべてのトレースが一覧表示されます。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">トレース ID でフィルター処理します。</target>

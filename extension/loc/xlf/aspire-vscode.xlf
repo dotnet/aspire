@@ -34,9 +34,6 @@
     <trans-unit id="extension.debug.defaultConfiguration.name">
       <source xml:lang="en">Aspire: Launch default apphost</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
-      <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.authorizationAndDcpHeadersRequired">
       <source xml:lang="en">Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.</source>
     </trans-unit>
@@ -54,9 +51,6 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.csharpDevKitNotInstalled">
       <source xml:lang="en">C# Dev Kit is not installed, building using dotnet CLI...</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
-      <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespaces">
       <source xml:lang="en">Codespaces</source>
@@ -85,17 +79,11 @@
     <trans-unit id="command.deploy">
       <source xml:lang="en">Deploy app</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.directUrl">
-      <source xml:lang="en">Direct: {0}</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.dismissLabel">
       <source xml:lang="en">Dismiss</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
-      <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
       <source xml:lang="en">Do you want to set {0} as the default apphost for this workspace?</source>
@@ -124,9 +112,6 @@
     <trans-unit id="aspire-vscode.strings.errorGettingConfigInfo">
       <source xml:lang="en">Error getting Aspire config info: {0}. Try updating the Aspire CLI with: aspire update</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.errorRetrievingAppHosts">
-      <source xml:lang="en">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.error">
       <source xml:lang="en">Error: {0}</source>
     </trans-unit>
@@ -154,14 +139,8 @@
     <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
       <source xml:lang="en">Failed to show prompt, text was empty.</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.failedToStartPythonProgram">
-      <source xml:lang="en">Failed to start Python program: {0}.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToStartDebugSession">
       <source xml:lang="en">Failed to start debug session.</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.failedToStartProject">
-      <source xml:lang="en">Failed to start project: {0}.</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.enableDebugConfigEnvironmentLogging">
       <source xml:lang="en">Include environment variables when logging debug session configurations. This can help diagnose environment-related issues but may expose sensitive information in logs.</source>
@@ -208,14 +187,8 @@
     <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
       <source xml:lang="en">No apphost found in the Aspire settings file.</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.noCsprojFound">
-      <source xml:lang="en">No apphost found in the current workspace.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
       <source xml:lang="en">No output from msbuild.</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.noWatchTask">
-      <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noWorkspaceFolder">
       <source xml:lang="en">No workspace folder found.</source>
@@ -282,9 +255,6 @@
     </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.watchProject">
-      <source xml:lang="en">Watch {0} ({1})</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yesLabel">
       <source xml:lang="en">Yes</source>

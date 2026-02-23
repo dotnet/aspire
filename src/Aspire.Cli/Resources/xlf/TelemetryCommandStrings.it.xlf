@@ -87,11 +87,6 @@
         <target state="translated">Visualizza gli span dall'API di telemetria del dashboard.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">L'ID traccia da visualizzare. Se non specificato, vengono elencate tutte le tracce.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Filtra per ID traccia.</target>

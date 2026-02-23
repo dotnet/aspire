@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -120,7 +121,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             _languageOption = new Option<string?>("--language", "-l")
             {
-                Description = "The programming language for the AppHost (csharp, typescript)"
+                Description = InitCommandStrings.LanguageOptionDescription
             };
             Options.Add(_languageOption);
         }
@@ -168,7 +169,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 var language = _languageDiscovery.GetLanguageById(explicitLanguage);
                 if (language is null)
                 {
-                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, explicitLanguage));
                     return ExitCodeConstants.InvalidCommand;
                 }
                 return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
@@ -233,7 +234,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
-        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+        InteractionService.DisplayMessage("information", InitCommandStrings.RunAspireRunToStartAppHost);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {

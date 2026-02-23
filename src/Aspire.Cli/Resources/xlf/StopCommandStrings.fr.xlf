@@ -17,11 +17,6 @@
         <target state="translated">Échec de l'arrêt d’AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
-        <target state="translated">Plusieurs AppHosts sont en cours d’exécution. Utilisez --project pour spécifier celui à arrêter ou sélectionnez-en un :</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
         <target state="translated">Désolé, aucun AppHost en cours d’exécution n’a été trouvé dans le répertoire actif. Affichage de tous les AppHosts en cours d’exécution :</target>

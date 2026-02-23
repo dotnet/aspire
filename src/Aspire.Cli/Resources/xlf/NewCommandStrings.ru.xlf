@@ -57,11 +57,6 @@
         <target state="translated">Источник NuGet для использования в шаблонах проекта.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(использовать шаблоны предварительного выпуска)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">Версия шаблонов проекта, которую следует использовать.</target>
