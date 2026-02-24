@@ -83,7 +83,8 @@ internal sealed class DoctorCommand : BaseCommand
 
         var json = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.RelaxedEscaping.DoctorCheckResponse);
         // Use DisplayRawText to write directly to console without any formatting
-        InteractionService.DisplayRawText(json);
+        // Structured output always goes to stdout.
+        InteractionService.DisplayRawText(json, ConsoleOutput.Standard);
     }
 
     private void OutputHumanReadable(IReadOnlyList<EnvironmentCheckResult> results)

@@ -82,7 +82,8 @@ internal sealed class DocsSearchCommand : BaseCommand
         if (format is OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(response.Results.ToArray(), JsonSourceGenerationContext.RelaxedEscaping.SearchResultArray);
-            InteractionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            InteractionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

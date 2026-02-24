@@ -299,17 +299,17 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(text);
     }
 
-    public ConsoleOutput DefaultConsole
+    public ConsoleOutput Console
     {
-        get => _consoleInteractionService.DefaultConsole;
-        set => _consoleInteractionService.DefaultConsole = value;
+        get => _consoleInteractionService.Console;
+        set => _consoleInteractionService.Console = value;
     }
 
-    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard)
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayPlainTextAsync(text, _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayRawText(text, console);
+        _consoleInteractionService.DisplayRawText(text, consoleOverride);
     }
 
     public void DisplayMarkdown(string markdown)
