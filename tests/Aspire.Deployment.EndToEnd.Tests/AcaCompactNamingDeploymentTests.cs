@@ -133,6 +133,10 @@ builder.Build().Run();
 """;
 
                 content = content.Replace(buildRunPattern, replacement);
+
+                // Suppress experimental diagnostic for WithCompactResourceNaming
+                content = "#pragma warning disable ASPIREACANAMING001\n" + content;
+
                 File.WriteAllText(appHostFilePath, content);
 
                 output.WriteLine($"Modified apphost.cs with long env name + compact naming + volume");

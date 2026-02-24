@@ -53,6 +53,8 @@ internal sealed partial class RunCommandJsonContext : JsonSerializerContext
 
 internal sealed class RunCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
@@ -228,7 +230,7 @@ internal sealed class RunCommand : BaseCommand
                 // Even if we fail to stop we won't block the apphost starting
                 // to make sure we don't ever break flow. It should mostly stop
                 // just fine though.
-                var runningInstanceResult = await project.CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
 
                 // If in isolated mode and a running instance was stopped, warn the user
                 if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
@@ -628,10 +630,23 @@ internal sealed class RunCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
+        // When outputting JSON, write all console to stderr by default.
+        // Only content explicitly sent to stdout (JSON results) appears on stdout.
+        if (format == OutputFormat.Json)
+        {
+            _interactionService.Console = ConsoleOutput.Error;
+        }
+
         // Failure mode 1: Project not found
+        // When outputting JSON, use Throw instead of Prompt to avoid polluting stdout
+        // with interactive selection UI. The user should specify --project explicitly.
+        var multipleAppHostBehavior = format == OutputFormat.Json
+            ? MultipleAppHostProjectsFoundBehavior.Throw
+            : MultipleAppHostProjectsFoundBehavior.Prompt;
+
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,
-            MultipleAppHostProjectsFoundBehavior.Prompt,
+            multipleAppHostBehavior,
             createSettingsFile: false,
             cancellationToken);
 
@@ -872,7 +887,8 @@ internal sealed class RunCommand : BaseCommand
                 dashboardUrls?.BaseUrlWithLoginToken,
                 childLogFile);
             var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

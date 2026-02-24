@@ -72,17 +72,17 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     public string AppPath => _appPath;
 
     /// <summary>
-    /// Gets the path to the pre-built AppHost server (exe or DLL).
+    /// Gets the path to the aspire-managed executable (used as the server).
     /// </summary>
     public string GetServerPath()
     {
-        var serverPath = _layout.GetAppHostServerPath();
-        if (serverPath is null || !File.Exists(serverPath))
+        var managedPath = _layout.GetManagedPath();
+        if (managedPath is null || !File.Exists(managedPath))
         {
-            throw new InvalidOperationException("Pre-built AppHost server not found in layout.");
+            throw new InvalidOperationException("aspire-managed not found in layout.");
         }
 
-        return serverPath;
+        return managedPath;
     }
 
     /// <inheritdoc />
@@ -220,11 +220,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     {
         var serverPath = GetServerPath();
 
-        // Get runtime path for DOTNET_ROOT
-        var runtimePath = _layout.GetDotNetExePath();
-        var runtimeDir = runtimePath is not null ? Path.GetDirectoryName(runtimePath) : null;
-
-        // Bundle always uses single-file executables - run directly
+        // aspire-managed is self-contained - run directly
         var startInfo = new ProcessStartInfo(serverPath)
         {
             WorkingDirectory = _workingDirectory,
@@ -233,15 +229,8 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             CreateNoWindow = true
         };
 
-        // Set DOTNET_ROOT so the executable can find the runtime
-        if (runtimeDir is not null)
-        {
-            startInfo.Environment["DOTNET_ROOT"] = runtimeDir;
-            startInfo.Environment["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-        }
-
-        // Add arguments to point to our appsettings.json
-        startInfo.ArgumentList.Add("--");
+        // Insert "server" subcommand, then remaining args
+        startInfo.ArgumentList.Add("server");
         startInfo.ArgumentList.Add("--contentRoot");
         startInfo.ArgumentList.Add(_workingDirectory);
 
@@ -258,12 +247,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = _socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
         startInfo.Environment[KnownConfigNames.CliProcessId] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-        // Also set ASPIRE_RUNTIME_PATH so DashboardEventHandlers knows which dotnet to use
-        if (runtimeDir is not null)
-        {
-            startInfo.Environment[BundleDiscovery.RuntimePathEnvVar] = runtimeDir;
-        }
 
         // Pass the integration libs path so the server can resolve assemblies via AssemblyLoader
         if (_integrationLibsPath is not null)
@@ -283,12 +266,11 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             startInfo.Environment[BundleDiscovery.DcpPathEnvVar] = dcpPath;
         }
 
-        var dashboardPath = _layout.GetDashboardPath();
-        if (dashboardPath is not null)
+        // Set the dashboard path so the AppHost can locate and launch the dashboard binary
+        var managedPath = _layout.GetManagedPath();
+        if (managedPath is not null)
         {
-            // Bundle uses single-file executables
-            var dashboardExe = Path.Combine(dashboardPath, BundleDiscovery.GetExecutableFileName(BundleDiscovery.DashboardExecutableName));
-            startInfo.Environment[BundleDiscovery.DashboardPathEnvVar] = dashboardExe;
+            startInfo.Environment[BundleDiscovery.DashboardPathEnvVar] = managedPath;
         }
 
         // Apply environment variables from apphost.run.json

@@ -36,6 +36,8 @@ internal sealed class SetupCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("setup", "Extract the embedded bundle to set up the Aspire CLI runtime.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        // Hidden: the setup command is an implementation detail used by install scripts.
+        Hidden = true;
         _bundleService = bundleService;
 
         Options.Add(s_installPathOption);
@@ -79,15 +81,15 @@ internal sealed class SetupCommand : BaseCommand
         switch (result)
         {
             case BundleExtractResult.NoPayload:
-                InteractionService.DisplayMessage(":information:", "This CLI binary does not contain an embedded bundle. No extraction needed.");
+                InteractionService.DisplayMessage("information", "This CLI binary does not contain an embedded bundle. No extraction needed.");
                 break;
 
             case BundleExtractResult.AlreadyUpToDate:
-                InteractionService.DisplayMessage(":white_check_mark:", "Bundle is already extracted and up to date. Use --force to re-extract.");
+                InteractionService.DisplayMessage("white_check_mark", "Bundle is already extracted and up to date. Use --force to re-extract.");
                 break;
 
             case BundleExtractResult.Extracted:
-                InteractionService.DisplayMessage(":white_check_mark:", $"Bundle extracted to {installPath}");
+                InteractionService.DisplayMessage("white_check_mark", $"Bundle extracted to {installPath}");
                 break;
 
             case BundleExtractResult.ExtractionFailed:

@@ -19,6 +19,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
@@ -36,7 +38,7 @@ internal sealed class AddCommand : BaseCommand
     {
         Description = AddCommandStrings.ProjectArgumentDescription
     };
-    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription
     };
@@ -207,6 +209,27 @@ internal sealed class AddCommand : BaseCommand
                 PackageVersion = selectedNuGetPackage.Package.Version,
                 Source = source
             };
+
+            // Stop any running AppHost instance before adding the package.
+            // A running AppHost (especially in detach mode) locks project files,
+            // which prevents 'dotnet add package' from modifying the project.
+            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
+            {
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
+                    effectiveAppHostProjectFile,
+                    ExecutionContext.HomeDirectory,
+                    cancellationToken);
+
+                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+                {
+                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                }
+                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
+                {
+                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+            }
 
             var success = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,

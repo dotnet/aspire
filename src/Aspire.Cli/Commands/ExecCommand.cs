@@ -199,7 +199,7 @@ internal class ExecCommand : BaseCommand
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            InteractionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                            InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method

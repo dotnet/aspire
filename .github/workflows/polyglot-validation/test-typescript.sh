@@ -21,7 +21,7 @@ cd "$WORK_DIR"
 
 # Initialize TypeScript AppHost
 echo "Creating TypeScript apphost project..."
-aspire init -l typescript --non-interactive -d
+aspire init --language typescript --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."

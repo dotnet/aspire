@@ -122,5 +122,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("TailMustBePositive", resourceCulture);
             }
         }
+
+        public static string ResourceNotFound {
+            get {
+                return ResourceManager.GetString("ResourceNotFound", resourceCulture);
+            }
+        }
+
+        public static string TimestampsOptionDescription {
+            get {
+                return ResourceManager.GetString("TimestampsOptionDescription", resourceCulture);
+            }
+        }
     }
 }

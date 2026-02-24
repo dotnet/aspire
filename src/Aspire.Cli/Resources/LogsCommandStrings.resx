@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Display logs from resources in a running Aspire apphost.</value>
+    <value>Display logs from resources in a running apphost.</value>
   </data>
   <data name="ResourceArgumentDescription" xml:space="preserve">
     <value>The name of the resource to get logs for. If not specified, logs from all resources are shown.</value>
@@ -130,7 +130,7 @@
     <value>Stream logs in real-time as they are written.</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
-    <value>Output logs in JSON format (NDJSON).</value>
+    <value>Output format (Table or Json).</value>
   </data>
   <data name="AppHostNotRunning" xml:space="preserve">
     <value>No running AppHost found. Use 'aspire run' to start one first.</value>
@@ -158,5 +158,11 @@
   </data>
   <data name="TailMustBePositive" xml:space="preserve">
     <value>The --tail value must be a positive number.</value>
+  </data>
+  <data name="ResourceNotFound" xml:space="preserve">
+    <value>Resource '{0}' was not found.</value>
+  </data>
+  <data name="TimestampsOptionDescription" xml:space="preserve">
+    <value>Show timestamps for each log line.</value>
   </data>
 </root>

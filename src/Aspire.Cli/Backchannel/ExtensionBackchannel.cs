@@ -21,7 +21,7 @@ namespace Aspire.Cli.Backchannel;
 internal interface IExtensionBackchannel
 {
     Task ConnectAsync(CancellationToken cancellationToken);
-    Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken);
+    Task DisplayMessageAsync(string emojiName, string message, CancellationToken cancellationToken);
     Task DisplaySuccessAsync(string message, CancellationToken cancellationToken);
     Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken);
     Task DisplayErrorAsync(string error, CancellationToken cancellationToken);
@@ -246,7 +246,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         }
     }
 
-    public async Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)
+    public async Task DisplayMessageAsync(string emojiName, string message, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -258,7 +258,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         await rpc.InvokeWithCancellationAsync(
             "displayMessage",
-            [_token, emoji, message],
+            [_token, emojiName, message],
             cancellationToken);
     }
 

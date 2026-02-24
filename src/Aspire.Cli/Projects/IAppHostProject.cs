@@ -215,17 +215,17 @@ internal interface IAppHostProject
     Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Checks for and handles any running instance of this AppHost.
+    /// Finds any running instance of this AppHost and stops it.
     /// </summary>
     /// <param name="appHostFile">The AppHost file to check for running instances.</param>
     /// <param name="homeDirectory">The user's home directory for computing socket paths.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The result indicating what happened with the running instance check.</returns>
-    Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken);
+    Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Result of checking for and handling a running instance.
+/// Result of finding and stopping a running instance.
 /// </summary>
 internal enum RunningInstanceResult
 {

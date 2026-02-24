@@ -62,6 +62,11 @@ Další informace o telemetrii rozhraní příkazového řádku Aspire: https://
         <target state="translated">Umožňuje potlačit banner spuštění a oznámení o telemetrii.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Před provedením příkazu počkejte na připojení ladicího programu.</target>
