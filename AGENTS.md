@@ -367,4 +367,3 @@ Additional instructions are automatically applied when editing files matching sp
 | `src/Aspire.Hosting*/README.md` | `.github/instructions/hosting-readme.instructions.md` - Hosting integration READMEs |
 | `src/Components/**/README.md` | `.github/instructions/client-readme.instructions.md` - Client integration READMEs |
 | `tools/QuarantineTools/*` | `.github/instructions/quarantine.instructions.md` - QuarantineTools usage |
-| `tests/agent-scenarios/**/prompt.md` | `.github/instructions/test-scenario-prompt.instructions.md` - Test scenario prompts |
