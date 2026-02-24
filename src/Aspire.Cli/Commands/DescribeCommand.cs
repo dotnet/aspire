@@ -186,7 +186,8 @@ internal sealed class DescribeCommand : BaseCommand
         {
             var output = new ResourcesOutput { Resources = resourceList.ToArray() };
             var json = JsonSerializer.Serialize(output, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
@@ -223,7 +224,8 @@ internal sealed class DescribeCommand : BaseCommand
             {
                 // NDJSON output - compact, one object per line for streaming
                 var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.Ndjson.ResourceJson);
-                _interactionService.DisplayRawText(json);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
             }
             else
             {

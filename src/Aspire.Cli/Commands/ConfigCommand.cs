@@ -432,7 +432,8 @@ internal sealed class ConfigCommand : BaseCommand
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)
                 {
-                    consoleService.DisplayRawText(json);
+                    // Structured output always goes to stdout.
+                    consoleService.DisplayRawText(json, ConsoleOutput.Standard);
                 }
                 else
                 {

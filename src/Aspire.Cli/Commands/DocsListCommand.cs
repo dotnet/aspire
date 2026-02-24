@@ -68,7 +68,8 @@ internal sealed class DocsListCommand : BaseCommand
         if (format is OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(docs.ToArray(), JsonSourceGenerationContext.RelaxedEscaping.DocsListItemArray);
-            InteractionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            InteractionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

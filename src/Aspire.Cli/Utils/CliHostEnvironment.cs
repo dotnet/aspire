@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
+using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
 
@@ -90,6 +91,28 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
     }
 
+    private static bool DetectAnsiSupport(IConfiguration configuration)
+    {
+        if (!TryDetectAnsiSupportConfiguration(configuration, out var supportsAnsi))
+        {
+            // If there is no explicit configuration to enable or disable ANSI support, attempt to detect it.
+            // This is required because some terminals don't support ANSI output, e.g. https://github.com/dotnet/aspire/issues/13737
+
+            // TODO: Creating a fake console here is a hack to run ANSI detection logic.
+            // Update this to use AnsiCapabilities once it's available in Spectre.Console 0.60+ instead of creating a full AnsiConsole instance.
+            var ansiConsole = AnsiConsole.Create(new AnsiConsoleSettings
+            {
+                Out = new AnsiConsoleOutput(TextWriter.Null),
+                Ansi = AnsiSupport.Detect,
+                ColorSystem = ColorSystemSupport.Detect
+            });
+
+            supportsAnsi = ansiConsole.Profile.Capabilities.Ansi;
+        }
+
+        return supportsAnsi;
+    }
+
     private static bool DetectInteractiveInput(IConfiguration configuration)
     {
         // Check if explicitly disabled via configuration
@@ -130,23 +153,26 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return true;
     }
 
-    private static bool DetectAnsiSupport(IConfiguration configuration)
+    private static bool TryDetectAnsiSupportConfiguration(IConfiguration configuration, out bool supportsAnsi)
     {
         // Check for ASPIRE_ANSI_PASS_THRU to force ANSI even when redirected
         if (IsAnsiPassThruEnabled(configuration))
         {
+            supportsAnsi = true;
             return true;
         }
 
-        // ANSI codes are supported even in CI environments for colored output
-        // Only disable if explicitly configured
+        // Check for NO_COLOR to explicitly disable ANSI output.
+        // If neither override is set, return false to let the caller fall back to Spectre detection.
         var noColor = configuration["NO_COLOR"];
         if (!string.IsNullOrEmpty(noColor))
         {
-            return false;
+            supportsAnsi = false;
+            return true;
         }
 
-        return true;
+        supportsAnsi = default;
+        return false;
     }
 
     private static bool IsAnsiPassThruEnabled(IConfiguration configuration)

@@ -631,10 +631,23 @@ internal sealed class RunCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
+        // When outputting JSON, write all console to stderr by default.
+        // Only content explicitly sent to stdout (JSON results) appears on stdout.
+        if (format == OutputFormat.Json)
+        {
+            _interactionService.Console = ConsoleOutput.Error;
+        }
+
         // Failure mode 1: Project not found
+        // When outputting JSON, use Throw instead of Prompt to avoid polluting stdout
+        // with interactive selection UI. The user should specify --project explicitly.
+        var multipleAppHostBehavior = format == OutputFormat.Json
+            ? MultipleAppHostProjectsFoundBehavior.Throw
+            : MultipleAppHostProjectsFoundBehavior.Prompt;
+
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,
-            MultipleAppHostProjectsFoundBehavior.Prompt,
+            multipleAppHostBehavior,
             createSettingsFile: false,
             cancellationToken);
 
@@ -875,7 +888,8 @@ internal sealed class RunCommand : BaseCommand
                 dashboardUrls?.BaseUrlWithLoginToken,
                 childLogFile);
             var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

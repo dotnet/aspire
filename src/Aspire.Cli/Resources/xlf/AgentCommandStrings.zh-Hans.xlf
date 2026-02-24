@@ -32,9 +32,24 @@
         <target state="translated">初始化检测到的智能体的智能体环境配置。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MalformedConfigFileError">
+        <source>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</source>
+        <target state="new">The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">启动 MCP (模型上下文协议)服务器。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedMalformedConfigFile">
+        <source>Skipping update of '{0}'.</source>
+        <target state="new">Skipping update of '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationCompletedWithErrors">
+        <source>Configuration completed with errors. Please fix the reported issues and re-run the command.</source>
+        <target state="new">Configuration completed with errors. Please fix the reported issues and re-run the command.</target>
         <note />
       </trans-unit>
     </body>
