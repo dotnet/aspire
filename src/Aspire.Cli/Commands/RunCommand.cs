@@ -624,8 +624,8 @@ internal sealed class RunCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
-        // When outputting JSON, redirect human-readable messages to stderr
-        // so that only the JSON result appears on stdout.
+        // When outputting JSON, write all console to stderr by default.
+        // Only content explicitly sent to stdout (JSON results) appears on stdout.
         if (format == OutputFormat.Json)
         {
             _interactionService.DefaultConsole = ConsoleOutput.Error;
