@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">Управление параметрами конфигурации.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="needs-review-translation">Управление параметрами конфигурации.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">

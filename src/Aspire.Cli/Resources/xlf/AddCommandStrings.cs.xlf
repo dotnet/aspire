@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="translated">Přidejte do hostitele aplikací Aspire integraci hostování.</target>
+        <source>Add a hosting integration to the apphost.</source>
+        <target state="needs-review-translation">Přidejte do hostitele aplikací Aspire integraci hostování.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">

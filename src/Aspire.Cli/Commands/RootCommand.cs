@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 #if DEBUG
 using System.Globalization;
@@ -25,10 +26,10 @@ internal sealed class RootCommand : BaseRootCommand
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true,
-        Hidden = true // Hidden for backward compatibility, use --debug-level instead
+        Hidden = true // Hidden for backward compatibility, use --log-level instead
     };
 
-    public static readonly Option<LogLevel?> DebugLevelOption = new("--debug-level", "-v")
+    public static readonly Option<LogLevel?> DebugLevelOption = new("--log-level", "-l")
     {
         Description = RootCommandStrings.DebugLevelArgumentDescription,
         Recursive = true
@@ -36,7 +37,7 @@ internal sealed class RootCommand : BaseRootCommand
 
     public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
-        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
+        Description = RootCommandStrings.NonInteractiveArgumentDescription,
         Recursive = true
     };
 
@@ -77,7 +78,7 @@ internal sealed class RootCommand : BaseRootCommand
         (DebugLevelOption, pr =>
         {
             var level = pr.GetValue(DebugLevelOption);
-            return level.HasValue ? ["--debug-level", level.Value.ToString()] : null;
+            return level.HasValue ? ["--log-level", level.Value.ToString()] : null;
         }),
         (WaitForDebuggerOption, pr => pr.GetValue(WaitForDebuggerOption) ? ["--wait-for-debugger"] : null),
     ];
@@ -103,6 +104,7 @@ internal sealed class RootCommand : BaseRootCommand
     }
 
     private readonly IInteractionService _interactionService;
+    private readonly IAnsiConsole _ansiConsole;
 
     public RootCommand(
         NewCommand newCommand,
@@ -114,7 +116,7 @@ internal sealed class RootCommand : BaseRootCommand
         WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
-        ResourcesCommand resourcesCommand,
+        DescribeCommand describeCommand,
         LogsCommand logsCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
@@ -134,10 +136,12 @@ internal sealed class RootCommand : BaseRootCommand
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
         IFeatures featureFlags,
-        IInteractionService interactionService)
+        IInteractionService interactionService,
+        IAnsiConsole ansiConsole)
         : base(RootCommandStrings.Description)
     {
         _interactionService = interactionService;
+        _ansiConsole = ansiConsole;
 
 #if DEBUG
         CliWaitForDebuggerOption.Validators.Add((result) =>
@@ -180,9 +184,10 @@ internal sealed class RootCommand : BaseRootCommand
                 return Task.FromResult(ExitCodeConstants.Success);
             }
 
-            // No subcommand provided - show help but return InvalidCommand to signal usage error
-            // This is consistent with other parent commands (DocsCommand, SdkCommand, etc.)
-            new HelpAction().Invoke(context);
+            // No subcommand provided - show grouped help but return InvalidCommand to signal usage error
+            var writer = _ansiConsole.Profile.Out.Writer;
+            var consoleWidth = _ansiConsole.Profile.Width;
+            GroupedHelpWriter.WriteHelp(this, writer, consoleWidth);
             return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
@@ -195,7 +200,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
-        Subcommands.Add(resourcesCommand);
+        Subcommands.Add(describeCommand);
         Subcommands.Add(logsCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
@@ -224,6 +229,20 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        // Replace the default --help action with grouped help output.
+        // Add -v as a short alias for --version.
+        foreach (var option in Options)
+        {
+            if (option is HelpOption helpOption)
+            {
+                helpOption.Action = new GroupedHelpAction(this, _ansiConsole);
+            }
+            else if (option is VersionOption versionOption)
+            {
+                versionOption.Aliases.Add("-v");
+            }
         }
 
     }

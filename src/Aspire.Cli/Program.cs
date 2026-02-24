@@ -69,11 +69,11 @@ public class Program
         // Check for --debug or -d (backward compatibility)
         var debugMode = args.Any(a => a == "--debug" || a == "-d");
 
-        // Check for --debug-level or -v
+        // Check for --log-level or -l
         LogLevel? logLevel = null;
         for (var i = 0; i < args.Length; i++)
         {
-            if ((args[i] == "--debug-level" || args[i] == "-v") && i + 1 < args.Length)
+            if ((args[i] == "--log-level" || args[i] == "-l") && i + 1 < args.Length)
             {
                 if (Enum.TryParse<LogLevel>(args[i + 1], ignoreCase: true, out var parsedLevel))
                 {
@@ -375,7 +375,7 @@ public class Program
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
-        builder.Services.AddTransient<ResourcesCommand>();
+        builder.Services.AddTransient<DescribeCommand>();
         builder.Services.AddTransient<LogsCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();

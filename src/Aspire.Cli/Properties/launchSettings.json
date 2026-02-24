@@ -56,6 +56,11 @@
       "dotnetRunMessages": true,
       "commandLineArgs": "new -d"
     },
+    "help": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--help"
+    },
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,

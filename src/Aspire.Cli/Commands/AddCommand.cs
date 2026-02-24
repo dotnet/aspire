@@ -19,6 +19,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
@@ -36,7 +38,7 @@ internal sealed class AddCommand : BaseCommand
     {
         Description = AddCommandStrings.ProjectArgumentDescription
     };
-    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription
     };

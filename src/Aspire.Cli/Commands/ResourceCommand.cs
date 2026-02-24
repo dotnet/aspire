@@ -14,6 +14,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class ResourceCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ResourceManagement;
+
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<ResourceCommand> _logger;

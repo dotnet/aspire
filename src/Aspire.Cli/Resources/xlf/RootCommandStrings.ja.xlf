@@ -62,6 +62,11 @@ Aspire CLI テレメトリの詳細情報: https://aka.ms/aspire/cli-telemetry</
         <target state="translated">スタートアップ バナーとテレメトリ通知を非表示にします。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">デバッガーがアタッチされるまで待ってから、コマンドを実行します。</target>

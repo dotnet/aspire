@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="translated">將主機整合新增到 Aspire AppHost。</target>
+        <source>Add a hosting integration to the apphost.</source>
+        <target state="needs-review-translation">將主機整合新增到 Aspire AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">

@@ -1,6 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ja" original="../ResourcesCommandStrings.resx">
+  <file datatype="xml" source-language="en" target-language="ja" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
@@ -8,13 +8,18 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Continuously stream resource state changes.</source>
+        <target state="new">Continuously stream resource state changes.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">機械処理用の JSON 形式で出力します。</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">機械処理用の JSON 形式で出力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
@@ -50,11 +55,6 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
         <target state="translated">AppHost を選択:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchOptionDescription">
-        <source>Stream resource snapshots as they change (NDJSON format when used with --json).</source>
-        <target state="translated">変化が発生したときにリソース スナップショットをストリームします (--json と組み合わせた場合は NDJSON 形式)。</target>
         <note />
       </trans-unit>
     </body>

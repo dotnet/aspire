@@ -272,7 +272,7 @@ The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory
 #### Explicit: `aspire setup`
 
 ```bash
-aspire setup [--install-path <path>] [--force]
+aspire setup [--install-path <path>]
 ```
 
 Best for install scripts — reduces to:
@@ -298,7 +298,7 @@ The file `.aspire-bundle-version` in the layout root contains the assembly infor
 
 - **Skip extraction** when version matches (normal startup is free)
 - **Re-extract** when CLI binary is updated (version changes)
-- **Force re-extract** with `aspire setup --force` (ignores version)
+- **Force re-extract** with `aspire setup --force`
 
 ### Platform Notes
 
@@ -1314,7 +1314,7 @@ This section tracks the implementation progress of the bundle feature.
   - Platform-aware extraction (system `tar` on Unix, .NET `TarReader` on Windows)
   - Version tracking via `.aspire-bundle-version` marker file
 - [x] **Setup command** - `src/Aspire.Cli/Commands/SetupCommand.cs`
-  - `aspire setup [--install-path] [--force]`
+  - `aspire setup [--install-path]`
   - Delegates to `IBundleService.ExtractAsync()`
 - [x] **Self-update simplified** - `src/Aspire.Cli/Commands/UpdateCommand.cs`
   - `aspire update --self` downloads new CLI, swaps binary, extracts via `IBundleService`
@@ -1349,7 +1349,7 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Shared/BundleTrailer.cs` | (Deleted) Previously held trailer read/write logic |
 | `src/Aspire.Cli/Bundles/IBundleService.cs` | Bundle extraction interface + result enum |
 | `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with .NET TarReader |
-| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command |
+| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command for bundle extraction |
 | `src/Aspire.Cli/Utils/ArchiveHelper.cs` | Shared .zip/.tar.gz extraction utility |
 | `tools/CreateLayout/Program.cs` | Bundle build tool (layout assembly + self-extracting binary) |
 | `eng/Bundle.proj` | MSBuild orchestration for bundle creation |

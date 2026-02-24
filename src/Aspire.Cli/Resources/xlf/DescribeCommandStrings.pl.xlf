@@ -1,6 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="pl" original="../ResourcesCommandStrings.resx">
+  <file datatype="xml" source-language="en" target-language="pl" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
@@ -8,13 +8,18 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="translated">Wyświetl migawki zasobów z działającego hosta aplikacji Aspire.</target>
+        <source>Describe resources in a running apphost.</source>
+        <target state="needs-review-translation">Wyświetl migawki zasobów z działającego hosta aplikacji Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Continuously stream resource state changes.</source>
+        <target state="new">Continuously stream resource state changes.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format for machine consumption.</source>
-        <target state="translated">Wynik w formacie JSON do przetwarzania przez maszynę.</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Wynik w formacie JSON do przetwarzania przez maszynę.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
@@ -50,11 +55,6 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
         <target state="translated">Wybierz hosta aplikacji:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchOptionDescription">
-        <source>Stream resource snapshots as they change (NDJSON format when used with --json).</source>
-        <target state="translated">Strumieniuj migawki zasobów w miarę ich zmian (format NDJSON przy użyciu opcji --json).</target>
         <note />
       </trans-unit>
     </body>

@@ -23,6 +23,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
@@ -51,7 +53,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         Description = NewCommandStrings.SourceArgumentDescription,
         Recursive = true
     };
-    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    private static readonly Option<string?> s_versionOption = new("--version")
     {
         Description = NewCommandStrings.VersionArgumentDescription,
         Recursive = true
@@ -118,7 +120,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Only add --language option when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            _languageOption = new Option<string?>("--language", "-l")
+            _languageOption = new Option<string?>("--language")
             {
                 Description = "The programming language for the AppHost (csharp, typescript)"
             };

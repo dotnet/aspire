@@ -15,6 +15,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class WaitCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ResourceManagement;
+
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<WaitCommand> _logger;

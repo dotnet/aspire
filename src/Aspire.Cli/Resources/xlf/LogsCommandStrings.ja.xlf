@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display logs from resources in a running Aspire apphost.</source>
-        <target state="translated">実行中の Aspire apphost のリソースからログを表示します。</target>
+        <source>Display logs from resources in a running apphost.</source>
+        <target state="needs-review-translation">実行中の Aspire apphost のリソースからログを表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output logs in JSON format (NDJSON).</source>
-        <target state="translated">ログを JSON 形式 (NDJSON) で出力します。</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">ログを JSON 形式 (NDJSON) で出力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">

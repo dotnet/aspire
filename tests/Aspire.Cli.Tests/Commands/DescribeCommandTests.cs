@@ -9,10 +9,121 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
-public class ResourcesCommandTests(ITestOutputHelper outputHelper)
+public class DescribeCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task ResourcesCommand_Help_Works()
+    public async Task DescribeCommand_Help_Works()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --help");
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_WhenNoAppHostRunning_ReturnsSuccess()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Should succeed - no running AppHost is not an error (like Unix ps with no processes)
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("Json")]
+    [InlineData("JSON")]
+    public async Task DescribeCommand_FormatOption_IsCaseInsensitive(string format)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"describe --format {format} --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Theory]
+    [InlineData("table")]
+    [InlineData("Table")]
+    [InlineData("TABLE")]
+    public async Task DescribeCommand_FormatOption_AcceptsTable(string format)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"describe --format {format} --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_FormatOption_RejectsInvalidValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --format invalid");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotEqual(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_FollowOption_CanBeParsed()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --follow --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_LegacyWatchOption_StillWorks()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --watch --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_LegacyResourcesAlias_StillWorks()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -27,51 +138,14 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_WhenNoAppHostRunning_ReturnsSuccess()
+    public async Task DescribeCommand_FollowAndFormat_CanBeCombined()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        // Should succeed - no running AppHost is not an error (like Unix ps with no processes)
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Theory]
-    [InlineData("json")]
-    [InlineData("Json")]
-    [InlineData("JSON")]
-    public async Task ResourcesCommand_FormatOption_IsCaseInsensitive(string format)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"resources --format {format} --help");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Theory]
-    [InlineData("table")]
-    [InlineData("Table")]
-    [InlineData("TABLE")]
-    public async Task ResourcesCommand_FormatOption_AcceptsTable(string format)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"resources --format {format} --help");
+        var result = command.Parse("describe --follow --format json --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -79,29 +153,14 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_FormatOption_RejectsInvalidValue()
+    public async Task DescribeCommand_ResourceNameArgument_CanBeParsed()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --format invalid");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.NotEqual(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task ResourcesCommand_WatchOption_CanBeParsed()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --watch --help");
+        var result = command.Parse("describe myresource --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -109,14 +168,14 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_WatchAndFormat_CanBeCombined()
+    public async Task DescribeCommand_AllOptions_CanBeCombined()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources --watch --format json --help");
+        var result = command.Parse("describe myresource --follow --format json --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -124,37 +183,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_ResourceNameArgument_CanBeParsed()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources myresource --help");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task ResourcesCommand_AllOptions_CanBeCombined()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("resources myresource --watch --format json --help");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public void ResourcesCommand_NdjsonFormat_OutputsOneObjectPerLine()
+    public void DescribeCommand_NdjsonFormat_OutputsOneObjectPerLine()
     {
         // Arrange - create resource JSON objects
         var resources = new[]
@@ -164,7 +193,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
             new ResourceJson { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Starting" }
         };
 
-        // Act - serialize each resource separately (simulating NDJSON streaming output for --watch)
+        // Act - serialize each resource separately (simulating NDJSON streaming output for --follow)
         var ndjsonLines = resources
             .Select(r => System.Text.Json.JsonSerializer.Serialize(r, ResourcesCommandJsonContext.Ndjson.ResourceJson))
             .ToList();
@@ -194,7 +223,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void ResourcesCommand_SnapshotFormat_OutputsWrappedJsonArray()
+    public void DescribeCommand_SnapshotFormat_OutputsWrappedJsonArray()
     {
         // Arrange - resources output for snapshot
         var resourcesOutput = new ResourcesOutput

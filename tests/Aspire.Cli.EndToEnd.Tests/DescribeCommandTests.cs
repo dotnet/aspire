@@ -10,20 +10,20 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for the aspire resources command.
+/// End-to-end tests for the aspire describe command.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class ResourcesCommandTests(ITestOutputHelper output)
+public sealed class DescribeCommandTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task ResourcesCommandShowsRunningResources()
+    public async Task DescribeCommandShowsRunningResources()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(ResourcesCommandShowsRunningResources));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(DescribeCommandShowsRunningResources));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -122,16 +122,16 @@ public sealed class ResourcesCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Now verify aspire resources shows the running resources (human-readable table)
-        sequenceBuilder.Type("aspire resources")
+        // Now verify aspire describe shows the running resources (human-readable table)
+        sequenceBuilder.Type("aspire describe")
             .Enter()
             .WaitUntil(s => waitForResourcesTableHeader.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitUntil(s => waitForWebfrontendResource.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .WaitUntil(s => waitForApiserviceResource.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire resources --format json output - pipe to file to avoid terminal buffer issues
-        sequenceBuilder.Type("aspire resources --format json > resources.json")
+        // Test aspire describe --format json output - pipe to file to avoid terminal buffer issues
+        sequenceBuilder.Type("aspire describe --format json > resources.json")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
