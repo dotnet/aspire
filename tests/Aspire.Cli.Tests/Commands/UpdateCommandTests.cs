@@ -941,10 +941,10 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
 {
     private readonly IInteractionService _innerService;
 
-    public ConsoleOutput DefaultConsole
+    public ConsoleOutput Console
     {
-        get => _innerService.DefaultConsole;
-        set => _innerService.DefaultConsole = value;
+        get => _innerService.Console;
+        set => _innerService.Console = value;
     }
 
     public Action? OnCancellationMessageDisplayed { get; set; }
@@ -969,7 +969,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);
     public void DisplayMessage(string emoji, string message) => _innerService.DisplayMessage(emoji, message);
     public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
-    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard) => _innerService.DisplayRawText(text, console);
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) => _innerService.DisplayRawText(text, consoleOverride);
     public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
     public void DisplayMarkupLine(string markup) => _innerService.DisplayMarkupLine(markup);
     public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);

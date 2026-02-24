@@ -628,7 +628,7 @@ internal sealed class RunCommand : BaseCommand
         // Only content explicitly sent to stdout (JSON results) appears on stdout.
         if (format == OutputFormat.Json)
         {
-            _interactionService.DefaultConsole = ConsoleOutput.Error;
+            _interactionService.Console = ConsoleOutput.Error;
         }
 
         // Failure mode 1: Project not found
@@ -881,7 +881,8 @@ internal sealed class RunCommand : BaseCommand
                 dashboardUrls?.BaseUrlWithLoginToken,
                 childLogFile);
             var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

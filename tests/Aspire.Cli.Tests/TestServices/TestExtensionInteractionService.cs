@@ -11,7 +11,7 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestExtensionInteractionService(IServiceProvider serviceProvider) : IExtensionInteractionService
 {
-    public ConsoleOutput DefaultConsole { get; set; }
+    public ConsoleOutput Console { get; set; }
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
@@ -127,7 +127,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
-    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard)
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
     }
 

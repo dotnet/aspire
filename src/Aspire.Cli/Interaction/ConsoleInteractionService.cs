@@ -24,11 +24,11 @@ internal class ConsoleInteractionService : IInteractionService
     private int _inStatus;
 
     /// <summary>
-    /// Console used for human-readable messages; routes to stderr when <see cref="DefaultConsole"/> is set to <see cref="ConsoleOutput.Error"/>.
+    /// Console used for human-readable messages; routes to stderr when <see cref="Console"/> is set to <see cref="ConsoleOutput.Error"/>.
     /// </summary>
-    private IAnsiConsole MessageConsole => DefaultConsole == ConsoleOutput.Error ? _errorConsole : _outConsole;
+    private IAnsiConsole MessageConsole => Console == ConsoleOutput.Error ? _errorConsole : _outConsole;
 
-    public ConsoleOutput DefaultConsole { get; set; }
+    public ConsoleOutput Console { get; set; }
 
     public ConsoleInteractionService(ConsoleEnvironment consoleEnvironment, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
@@ -225,10 +225,12 @@ internal class ConsoleInteractionService : IInteractionService
         MessageConsole.Profile.Out.Writer.WriteLine(message);
     }
 
-    public void DisplayRawText(string text, ConsoleOutput console = ConsoleOutput.Standard)
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
-        // Write raw text directly to avoid console wrapping
-        var target = console == ConsoleOutput.Error ? _errorConsole : _outConsole;
+        // Write raw text directly to avoid console wrapping.
+        // When consoleOverride is null, respect the Console setting.
+        var effectiveConsole = consoleOverride ?? Console;
+        var target = effectiveConsole == ConsoleOutput.Error ? _errorConsole : _outConsole;
         target.Profile.Out.Writer.WriteLine(text);
     }
 
