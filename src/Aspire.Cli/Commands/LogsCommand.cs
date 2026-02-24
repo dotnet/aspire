@@ -220,7 +220,8 @@ internal sealed class LogsCommand : BaseCommand
                 }).ToArray()
             };
             var json = JsonSerializer.Serialize(logsOutput, LogsCommandJsonContext.Snapshot.LogsOutput);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
@@ -327,7 +328,8 @@ internal sealed class LogsCommand : BaseCommand
                 IsError = logLine.IsError
             };
             var output = JsonSerializer.Serialize(logLineJson, LogsCommandJsonContext.Ndjson.LogLineJson);
-            _interactionService.DisplayRawText(output);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(output, ConsoleOutput.Standard);
         }
         else if (_hostEnvironment.SupportsAnsi)
         {
