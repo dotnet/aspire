@@ -1234,20 +1234,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         Assert.NotEmpty(allMessages);
 
-        // Verify that NO error message contains verbose HTTP details from RequestFailedException
-        foreach (var message in allMessages)
-        {
-            Assert.DoesNotContain("Headers:", message);
-            Assert.DoesNotContain("Cache-Control:", message);
-            Assert.DoesNotContain("x-ms-failure-cause:", message);
-            Assert.DoesNotContain("x-ms-request-id:", message);
-            Assert.DoesNotContain("Content-Type: application/json", message);
-            Assert.DoesNotContain("Status: 400 (Bad Request)", message);
-        }
-
-        // Verify the clean extracted error message IS present somewhere
-        var hasCleanError = allMessages.Any(m => m.Contains("LocationNotAvailableForResourceType"));
-        Assert.True(hasCleanError, "Expected the clean error code 'LocationNotAvailableForResourceType' to appear in error output");
+        await Verify(allMessages);
     }
 
     private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,

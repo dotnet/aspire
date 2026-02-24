@@ -26,8 +26,6 @@ internal sealed class FailedToApplyEnvironmentException : DistributedApplication
 
 internal sealed class ProvisioningFailedException : DistributedApplicationException
 {
-    public ProvisioningFailedException() { }
-    public ProvisioningFailedException(string message) : base(message) { }
     public ProvisioningFailedException(string message, Exception inner) : base(message, inner) { }
 }
 

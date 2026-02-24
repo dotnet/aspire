@@ -401,7 +401,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                                     }
                                 }
 
-                                return $"{code}: {message}";
+                                return $"Error code = {code}, Message = {message}";
                             }
                         }
 
@@ -412,7 +412,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 
                             if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message))
                             {
-                                return $"{code}: {message}";
+                                return $"Error code = {code}, Message = {message}";
                             }
                         }
                     }
@@ -444,7 +444,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 
                 if (!string.IsNullOrEmpty(detailCode) && !string.IsNullOrEmpty(detailMessage))
                 {
-                    return $"{detailCode}: {detailMessage}";
+                    return $"Error code = {detailCode}, Message = {detailMessage}";
                 }
             }
         }
