@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { cliNotAvailable, cliFoundAtDefaultPath, dismissLabel, dontShowAgainLabel, doYouWantToSetDefaultApphost, noLabel, noWorkspaceOpen, openCliInstallInstructions, selectDefaultLaunchApphost, yesLabel } from '../loc/strings';
+import { cliNotAvailable, dismissLabel, dontShowAgainLabel, doYouWantToSetDefaultApphost, noLabel, noWorkspaceOpen, openCliInstallInstructions, selectDefaultLaunchApphost, yesLabel } from '../loc/strings';
 import path from 'path';
 import { spawnCliProcess } from '../debugger/languages/cli';
 import { AspireTerminalProvider } from './AspireTerminalProvider';
-import { ChildProcessWithoutNullStreams } from 'child_process';
+import { ChildProcessWithoutNullStreams, execFile } from 'child_process';
 import { AspireSettingsFile } from './cliTypes';
 import { extensionLogOutputChannel } from './logging';
 import { EnvironmentVariables } from './environment';
-import { resolveCliPath } from './cliPath';
+import { promisify } from 'util';
 
 /**
  * Common file patterns to exclude from workspace file searches.
@@ -158,14 +158,13 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     extensionLogOutputChannel.info('Searching for AppHost projects using CLI command: aspire extension get-apphosts');
 
     let proc: ChildProcessWithoutNullStreams;
-    const cliPath = await terminalProvider.getAspireCliExecutablePath();
     new Promise<AppHostProjectSearchResult>((resolve, reject) => {
         const args = ['extension', 'get-apphosts'];
         if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
             args.push('--cli-wait-for-debugger');
         }
 
-        proc = spawnCliProcess(terminalProvider, cliPath, args, {
+        proc = spawnCliProcess(terminalProvider, terminalProvider.getAspireCliExecutablePath(), args, {
             errorCallback: error => {
                 extensionLogOutputChannel.error(`Error executing get-apphosts command: ${error}`);
                 reject();
@@ -269,38 +268,44 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
     extensionLogOutputChannel.info(`Successfully set appHostPath to: ${appHostToUse} in ${settingsFileLocation.fsPath}`);
 }
 
+const execFileAsync = promisify(execFile);
+
+let cliAvailableOnPath: boolean | undefined = undefined;
+
 /**
- * Checks if the Aspire CLI is available. If not found on PATH, it checks the default
- * installation directory and updates the VS Code setting accordingly.
- *
- * If not available, shows a message prompting to open Aspire CLI installation steps.
- * @returns An object containing the CLI path to use and whether CLI is available
+ * Checks if the Aspire CLI is available. If not, shows a message prompting to open Aspire CLI installation steps on the repo.
+ * @param cliPath The path to the Aspire CLI executable
+ * @returns true if CLI is available, false otherwise
  */
-export async function checkCliAvailableOrRedirect(): Promise<{ cliPath: string; available: boolean }> {
-    // Resolve CLI path fresh each time — settings or PATH may have changed
-    const result = await resolveCliPath();
-
-    if (result.available) {
-        // Show informational message if CLI was found at default path (not on PATH)
-        if (result.source === 'default-install') {
-            extensionLogOutputChannel.info(`Using Aspire CLI from default install location: ${result.cliPath}`);
-            vscode.window.showInformationMessage(cliFoundAtDefaultPath(result.cliPath));
-        }
-
-        return { cliPath: result.cliPath, available: true };
+export async function checkCliAvailableOrRedirect(cliPath: string): Promise<boolean> {
+    if (cliAvailableOnPath === true) {
+        // Assume, for now, that CLI availability does not change during the session if it was previously confirmed
+        return Promise.resolve(true);
     }
 
-    // CLI not found - show error message with install instructions
-    vscode.window.showErrorMessage(
-        cliNotAvailable,
-        openCliInstallInstructions,
-        dismissLabel
-    ).then(selection => {
-        if (selection === openCliInstallInstructions) {
-            // Go to Aspire CLI installation instruction page in external browser
-            vscode.env.openExternal(vscode.Uri.parse('https://aspire.dev/get-started/install-cli/'));
+    try {
+        // Remove surrounding quotes if present (both single and double quotes)
+        let cleanPath = cliPath.trim();
+        if ((cleanPath.startsWith("'") && cleanPath.endsWith("'")) ||
+            (cleanPath.startsWith('"') && cleanPath.endsWith('"'))) {
+            cleanPath = cleanPath.slice(1, -1);
         }
-    });
+        await execFileAsync(cleanPath, ['--version'], { timeout: 5000 });
+        cliAvailableOnPath = true;
+        return true;
+    } catch (error) {
+        cliAvailableOnPath = false;
+        vscode.window.showErrorMessage(
+            cliNotAvailable,
+            openCliInstallInstructions,
+            dismissLabel
+        ).then(selection => {
+            if (selection === openCliInstallInstructions) {
+                // Go to Aspire CLI installation instruction page in external browser
+                vscode.env.openExternal(vscode.Uri.parse('https://aspire.dev/get-started/install-cli/'));
+            }
+        });
 
-    return { cliPath: result.cliPath, available: false };
+        return false;
+    }
 }

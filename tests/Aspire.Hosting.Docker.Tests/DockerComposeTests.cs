@@ -652,6 +652,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13878")]
     public async Task PushImageToRegistry_WithRemoteRegistry_PushesImage()
     {
         using var tempDir = new TestTempDirectory();
