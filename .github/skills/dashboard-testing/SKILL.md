@@ -447,9 +447,6 @@ FluentUISetupHelpers.SetupFluentDataGrid(this);
 ## Running Dashboard Tests
 
 ```bash
-# Build from root first
-./build.sh
-
 # Run non-Blazor dashboard tests
 dotnet test tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 
