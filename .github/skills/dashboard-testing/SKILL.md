@@ -152,7 +152,6 @@ public class ResourceDetailsTests : DashboardTestContext
         var cut = RenderComponent<ResourceDetails>(builder =>
         {
             builder.Add(p => p.Resource, resource);
-            builder.Add(p => p.ResourceByName, resource.Name);
             builder.Add(p => p.ShowSpecOnlyToggle, true);
         });
 
