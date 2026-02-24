@@ -332,7 +332,7 @@ export PATH="$HOME/.aspire/bin:$PATH"
 # Windows - download and extract
 New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\Aspire\bin"
 Invoke-WebRequest -Uri <url>/aspire.exe -OutFile "$env:LOCALAPPDATA\Aspire\bin\aspire.exe"
-& "$env:LOCALAPPDATA\Aspire\bin\aspire.exe" doctor
+& "$env:LOCALAPPDATA\Aspire\bin\aspire.exe" setup
 ```
 
 The `aspire setup` command extracts the embedded payload to the parent directory of the CLI binary.

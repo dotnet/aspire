@@ -5,7 +5,7 @@
 #
 # The bundle artifact contains a self-extracting Aspire CLI binary that embeds all
 # runtime components. The script downloads the binary, places it in the install
-# directory, and runs `aspire doctor` to extract the embedded components.
+# directory, and runs `aspire setup` to extract the embedded components.
 
 set -euo pipefail
 
@@ -48,7 +48,7 @@ DESCRIPTION:
 
     The bundle artifact contains a self-extracting Aspire CLI binary that embeds all runtime
     components. The script downloads the binary, places it in the install directory, and runs
-    `aspire doctor` to extract the embedded components:
+    `aspire setup` to extract the embedded components:
     - Dashboard (web-based monitoring UI)
     - DCP (Developer Control Plane for orchestration)
     - .NET runtime (for running managed components)
