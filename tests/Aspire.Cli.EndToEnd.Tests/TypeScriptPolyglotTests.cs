@@ -77,9 +77,10 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter() // select TypeScript
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            // Handle the agent init confirmation prompt (decline with Enter for default 'n')
+            // Handle the agent init confirmation prompt (decline with 'n' since default is Y)
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .Wait(500)
+            .Type("n")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

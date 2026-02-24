@@ -340,8 +340,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             // Wait for the agent init confirmation prompt
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
             .Wait(500)
-            // Accept the prompt to chain into agent init
-            .Type("y")
+            // Accept the prompt to chain into agent init (Y is the default, just press Enter)
             .Enter()
             // Agent init should skip the workspace prompt (inferred from init context)
             // and proceed directly to scanning for agent environments
@@ -407,7 +406,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             // Wait for the agent init confirmation prompt
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
             .Wait(500)
-            // Decline the prompt (n is the default, just press Enter)
+            // Decline the prompt (default is now Y, so explicitly type 'n')
+            .Type("n")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

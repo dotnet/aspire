@@ -174,4 +174,34 @@ internal static class DeploymentE2ETestHelpers
             .WaitForSuccessPrompt(counter);
     }
 
+    /// <summary>
+    /// Runs <c>aspire init</c> and handles the NuGet.config and agent init prompts.
+    /// The agent init prompt is declined so the command exits cleanly.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder RunAspireInit(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        var waitingForInitComplete = new CellPatternSearcher()
+            .Find("Aspire initialization complete");
+
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
+        return builder
+            .Type("aspire init")
+            .Enter()
+            // NuGet.config prompt may or may not appear depending on environment.
+            // Wait a moment then press Enter to dismiss if present.
+            .Wait(TimeSpan.FromSeconds(5))
+            .Enter()
+            .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            // Handle the agent init confirmation prompt (decline with 'n')
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Type("n")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+    }
+
 }

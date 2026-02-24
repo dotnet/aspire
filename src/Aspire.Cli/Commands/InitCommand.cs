@@ -210,7 +210,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         var runAgentInit = await InteractionService.ConfirmAsync(
             InitCommandStrings.PromptRunAgentInit,
-            defaultValue: false,
+            defaultValue: true,
             cancellationToken: cancellationToken);
 
         if (runAgentInit)

@@ -61,9 +61,6 @@ public sealed class VnetSqlServerInfraDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            var waitingForInitComplete = new CellPatternSearcher()
-                .Find("Aspire initialization complete");
-
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -85,12 +82,7 @@ public sealed class VnetSqlServerInfraDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.Type("aspire init")
-                .Enter()
-                .Wait(TimeSpan.FromSeconds(5))
-                .Enter()
-                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            sequenceBuilder.RunAspireInit(counter);
 
             // Step 4a: Add Aspire.Hosting.Azure.AppContainers
             output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
