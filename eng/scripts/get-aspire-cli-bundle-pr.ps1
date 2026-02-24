@@ -9,7 +9,7 @@
     Automatically detects the current platform (OS and architecture) and downloads the appropriate artifact.
 
     The bundle artifact contains a self-extracting Aspire CLI binary that embeds all runtime components.
-    The script downloads the binary, places it in the install directory, and runs `aspire doctor` to
+    The script downloads the binary, places it in the install directory, and runs `aspire setup` to
     extract the embedded components (Dashboard, DCP, runtime, AppHost Server, NuGet tools).
 
 .PARAMETER PRNumber
