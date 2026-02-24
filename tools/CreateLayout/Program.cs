@@ -38,26 +38,10 @@ public static class Program
             Required = true
         };
 
-        var runtimeOption = new Option<string?>("--runtime", "-r")
-        {
-            Description = "Path to .NET runtime to include (alternative to --download-runtime)"
-        };
-
         var bundleVersionOption = new Option<string>("--bundle-version")
         {
             Description = "Version string for the layout",
             DefaultValueFactory = _ => "0.0.0-dev"
-        };
-
-        var runtimeVersionOption = new Option<string>("--runtime-version")
-        {
-            Description = ".NET SDK version to download",
-            Required = true
-        };
-
-        var downloadRuntimeOption = new Option<bool>("--download-runtime")
-        {
-            Description = "Download .NET and ASP.NET runtimes from Microsoft"
         };
 
         var archiveOption = new Option<bool>("--archive")
@@ -74,10 +58,7 @@ public static class Program
         rootCommand.Options.Add(outputOption);
         rootCommand.Options.Add(artifactsOption);
         rootCommand.Options.Add(ridOption);
-        rootCommand.Options.Add(runtimeOption);
         rootCommand.Options.Add(bundleVersionOption);
-        rootCommand.Options.Add(runtimeVersionOption);
-        rootCommand.Options.Add(downloadRuntimeOption);
         rootCommand.Options.Add(archiveOption);
         rootCommand.Options.Add(verboseOption);
 
@@ -86,16 +67,13 @@ public static class Program
             var outputPath = parseResult.GetValue(outputOption)!;
             var artifactsPath = parseResult.GetValue(artifactsOption)!;
             var rid = parseResult.GetValue(ridOption)!;
-            var runtimePath = parseResult.GetValue(runtimeOption);
             var version = parseResult.GetValue(bundleVersionOption)!;
-            var runtimeVersion = parseResult.GetValue(runtimeVersionOption)!;
-            var downloadRuntime = parseResult.GetValue(downloadRuntimeOption);
             var createArchive = parseResult.GetValue(archiveOption);
             var verbose = parseResult.GetValue(verboseOption);
 
             try
             {
-                using var builder = new LayoutBuilder(outputPath, artifactsPath, runtimePath, rid, version, runtimeVersion, downloadRuntime, verbose);
+                using var builder = new LayoutBuilder(outputPath, artifactsPath, rid, version, verbose);
                 await builder.BuildAsync().ConfigureAwait(false);
 
                 if (createArchive)
@@ -128,29 +106,22 @@ internal sealed class LayoutBuilder : IDisposable
 {
     private readonly string _outputPath;
     private readonly string _artifactsPath;
-    private readonly string? _runtimePath;
     private readonly string _rid;
     private readonly string _version;
-    private readonly string _runtimeVersion;
-    private readonly bool _downloadRuntime;
     private readonly bool _verbose;
-    private readonly HttpClient _httpClient = new();
 
-    public LayoutBuilder(string outputPath, string artifactsPath, string? runtimePath, string rid, string version, string runtimeVersion, bool downloadRuntime, bool verbose)
+    public LayoutBuilder(string outputPath, string artifactsPath, string rid, string version, bool verbose)
     {
         _outputPath = Path.GetFullPath(outputPath);
         _artifactsPath = Path.GetFullPath(artifactsPath);
-        _runtimePath = runtimePath is not null ? Path.GetFullPath(runtimePath) : null;
         _rid = rid;
         _version = version;
-        _runtimeVersion = runtimeVersion;
-        _downloadRuntime = downloadRuntime;
         _verbose = verbose;
     }
 
     public void Dispose()
     {
-        _httpClient.Dispose();
+        // Nothing to dispose
     }
 
     public async Task BuildAsync()
@@ -166,381 +137,48 @@ internal sealed class LayoutBuilder : IDisposable
         }
         Directory.CreateDirectory(_outputPath);
 
-        // Copy components (CLI is not included - the native AOT binary IS the CLI,
-        // and the bundle payload is embedded as a resource inside it)
-        await CopyRuntimeAsync().ConfigureAwait(false);
-        await CopyNuGetHelperAsync().ConfigureAwait(false);
-        await CopyAppHostServerAsync().ConfigureAwait(false);
-        await CopyDashboardAsync().ConfigureAwait(false);
+        // Copy components
+        CopyManaged();
         await CopyDcpAsync().ConfigureAwait(false);
-
-        // Enable rollforward for all managed tools
-        EnableRollForwardForAllTools();
 
         Log("Layout build complete!");
     }
 
-    private async Task CopyRuntimeAsync()
+    private void CopyManaged()
     {
-        Log("Copying .NET runtime...");
+        Log("Copying aspire-managed...");
 
-        var runtimeDir = Path.Combine(_outputPath, "runtime");
-        Directory.CreateDirectory(runtimeDir);
-
-        if (_runtimePath is not null && Directory.Exists(_runtimePath))
+        var managedPublishPath = FindPublishPath("Aspire.Managed");
+        if (managedPublishPath is null)
         {
-            CopyRuntimeFromPath(_runtimePath, runtimeDir);
-            Log($"  Copied runtime from {_runtimePath}");
-        }
-        else if (_downloadRuntime)
-        {
-            // Download runtime from Microsoft
-            await DownloadRuntimeAsync(runtimeDir).ConfigureAwait(false);
-        }
-        else
-        {
-            // Try to find runtime in artifacts or use shared runtime
-            var sharedRuntime = FindSharedRuntime();
-            if (sharedRuntime is not null)
-            {
-                CopyRuntimeFromPath(sharedRuntime, runtimeDir);
-                Log($"  Copied shared runtime from {sharedRuntime}");
-            }
-            else
-            {
-                Log("  WARNING: No runtime found. Layout will require runtime to be downloaded separately.");
-                Log("           Use --download-runtime to download the runtime from Microsoft.");
-                await File.WriteAllTextAsync(
-                    Path.Combine(runtimeDir, "README.txt"),
-                    "Place .NET runtime files here.\n").ConfigureAwait(false);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Copy runtime from a source path, excluding unnecessary frameworks like WindowsDesktop.App.
-    /// </summary>
-    private void CopyRuntimeFromPath(string sourcePath, string destPath)
-    {
-        // Copy everything except the shared/Microsoft.WindowsDesktop.App directory
-        var sharedDir = Path.Combine(sourcePath, "shared");
-        if (Directory.Exists(sharedDir))
-        {
-            var destSharedDir = Path.Combine(destPath, "shared");
-            Directory.CreateDirectory(destSharedDir);
-
-            // Only copy NETCore.App and AspNetCore.App - skip WindowsDesktop.App to save space
-            var frameworksToCopy = new[] { "Microsoft.NETCore.App", "Microsoft.AspNetCore.App" };
-            foreach (var framework in frameworksToCopy)
-            {
-                var srcFrameworkDir = Path.Combine(sharedDir, framework);
-                if (Directory.Exists(srcFrameworkDir))
-                {
-                    CopyDirectory(srcFrameworkDir, Path.Combine(destSharedDir, framework));
-                }
-            }
+            throw new InvalidOperationException("Aspire.Managed publish output not found.");
         }
 
-        // Copy host directory
-        var hostDir = Path.Combine(sourcePath, "host");
-        if (Directory.Exists(hostDir))
-        {
-            CopyDirectory(hostDir, Path.Combine(destPath, "host"));
-        }
+        var managedDir = Path.Combine(_outputPath, "managed");
+        Directory.CreateDirectory(managedDir);
 
-        // Copy dotnet executable and related files
+        // Copy only the aspire-managed executable and required assets (wwwroot for Dashboard).
+        // Skip other .exe files — they are native host stubs from referenced Exe projects
+        // that leak into the publish output but are not needed (everything is in aspire-managed.exe).
         var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
-        var dotnetExe = isWindows ? "dotnet.exe" : "dotnet";
-        var dotnetPath = Path.Combine(sourcePath, dotnetExe);
-        if (File.Exists(dotnetPath))
+        var managedExeName = isWindows ? "aspire-managed.exe" : "aspire-managed";
+
+        var managedExePath = Path.Combine(managedPublishPath, managedExeName);
+        if (!File.Exists(managedExePath))
         {
-            File.Copy(dotnetPath, Path.Combine(destPath, dotnetExe), overwrite: true);
+            throw new InvalidOperationException($"aspire-managed executable not found at {managedExePath}");
         }
 
-        // Copy LICENSE and ThirdPartyNotices if present
-        foreach (var file in new[] { "LICENSE.txt", "ThirdPartyNotices.txt" })
+        File.Copy(managedExePath, Path.Combine(managedDir, managedExeName), overwrite: true);
+
+        // Copy wwwroot (required for Dashboard static web assets)
+        var wwwrootPath = Path.Combine(managedPublishPath, "wwwroot");
+        if (Directory.Exists(wwwrootPath))
         {
-            var srcFile = Path.Combine(sourcePath, file);
-            if (File.Exists(srcFile))
-            {
-                File.Copy(srcFile, Path.Combine(destPath, file), overwrite: true);
-            }
-        }
-    }
-
-    private async Task DownloadRuntimeAsync(string runtimeDir)
-    {
-        Log($"  Downloading .NET SDK {_runtimeVersion} for {_rid}...");
-
-        var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
-        var archiveExt = isWindows ? "zip" : "tar.gz";
-
-        // Download the full SDK - it contains runtime, aspnetcore, and dev-certs tool
-        var sdkUrl = $"https://builds.dotnet.microsoft.com/dotnet/Sdk/{_runtimeVersion}/dotnet-sdk-{_runtimeVersion}-{_rid}.{archiveExt}";
-        await DownloadAndExtractSdkAsync(sdkUrl, runtimeDir).ConfigureAwait(false);
-
-        Log($"  SDK components extracted successfully");
-    }
-
-    private async Task DownloadAndExtractSdkAsync(string url, string runtimeDir)
-    {
-        Log($"    Downloading SDK from {url}...");
-
-        var tempDir = Path.Combine(Path.GetTempPath(), $"aspire-sdk-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
-
-        try
-        {
-            var isWindows = _rid.StartsWith("win", StringComparison.OrdinalIgnoreCase);
-            var archiveExt = isWindows ? "zip" : "tar.gz";
-            var archivePath = Path.Combine(tempDir, $"sdk.{archiveExt}");
-
-            // Download the archive
-            using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-            {
-                response.EnsureSuccessStatusCode();
-                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                using var fileStream = File.Create(archivePath);
-                await stream.CopyToAsync(fileStream).ConfigureAwait(false);
-            }
-
-            Log($"    Extracting SDK...");
-
-            // Extract the archive
-            var extractDir = Path.Combine(tempDir, "extracted");
-            Directory.CreateDirectory(extractDir);
-
-            if (isWindows)
-            {
-                ZipFile.ExtractToDirectory(archivePath, extractDir);
-            }
-            else
-            {
-                // Use tar to extract on Unix
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "tar",
-                    Arguments = $"-xzf \"{archivePath}\" -C \"{extractDir}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false
-                };
-                using var process = Process.Start(psi);
-                await process!.WaitForExitAsync().ConfigureAwait(false);
-                if (process.ExitCode != 0)
-                {
-                    throw new InvalidOperationException($"Failed to extract SDK: tar exited with code {process.ExitCode}");
-                }
-            }
-
-            // Extract runtime components: shared/, host/, dotnet executable
-            Log($"    Extracting runtime components...");
-
-            // Copy only the shared frameworks we need (exclude WindowsDesktop.App to save space)
-            var sharedDir = Path.Combine(extractDir, "shared");
-            if (Directory.Exists(sharedDir))
-            {
-                var destSharedDir = Path.Combine(runtimeDir, "shared");
-                Directory.CreateDirectory(destSharedDir);
-
-                // Only copy NETCore.App and AspNetCore.App - skip WindowsDesktop.App
-                var frameworksToCopy = new[] { "Microsoft.NETCore.App", "Microsoft.AspNetCore.App" };
-                foreach (var framework in frameworksToCopy)
-                {
-                    var srcFrameworkDir = Path.Combine(sharedDir, framework);
-                    if (Directory.Exists(srcFrameworkDir))
-                    {
-                        CopyDirectory(srcFrameworkDir, Path.Combine(destSharedDir, framework));
-                        Log($"      Copied {framework}");
-                    }
-                }
-            }
-
-            // Copy host directory
-            var hostDir = Path.Combine(extractDir, "host");
-            if (Directory.Exists(hostDir))
-            {
-                CopyDirectory(hostDir, Path.Combine(runtimeDir, "host"));
-            }
-
-            // Copy dotnet executable
-            var dotnetExe = isWindows ? "dotnet.exe" : "dotnet";
-            var dotnetPath = Path.Combine(extractDir, dotnetExe);
-            if (File.Exists(dotnetPath))
-            {
-                var destDotnet = Path.Combine(runtimeDir, dotnetExe);
-                File.Copy(dotnetPath, destDotnet, overwrite: true);
-                if (!isWindows)
-                {
-                    await SetExecutableAsync(destDotnet).ConfigureAwait(false);
-                }
-            }
-
-            // Copy LICENSE and ThirdPartyNotices
-            foreach (var file in new[] { "LICENSE.txt", "ThirdPartyNotices.txt" })
-            {
-                var srcFile = Path.Combine(extractDir, file);
-                if (File.Exists(srcFile))
-                {
-                    File.Copy(srcFile, Path.Combine(runtimeDir, file), overwrite: true);
-                }
-            }
-
-            // Extract dev-certs tool from SDK
-            Log($"    Extracting dev-certs tool...");
-            await ExtractDevCertsToolAsync(extractDir).ConfigureAwait(false);
-
-            Log($"    SDK extraction complete");
-        }
-        finally
-        {
-            // Cleanup temp directory
-            try
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-        }
-    }
-
-    private Task ExtractDevCertsToolAsync(string sdkExtractDir)
-    {
-        // Find the dev-certs tool in sdk/<version>/DotnetTools/dotnet-dev-certs/
-        var sdkDir = Path.Combine(sdkExtractDir, "sdk");
-        if (!Directory.Exists(sdkDir))
-        {
-            Log($"    WARNING: SDK directory not found, skipping dev-certs extraction");
-            return Task.CompletedTask;
+            CopyDirectory(wwwrootPath, Path.Combine(managedDir, "wwwroot"));
         }
 
-        // Find the SDK version directory (e.g., "10.0.102")
-        var sdkVersionDirs = Directory.GetDirectories(sdkDir);
-        if (sdkVersionDirs.Length == 0)
-        {
-            Log($"    WARNING: No SDK version directory found, skipping dev-certs extraction");
-            return Task.CompletedTask;
-        }
-
-        // Use the first (should be only) SDK version directory
-        var sdkVersionDir = sdkVersionDirs[0];
-        var dotnetToolsDir = Path.Combine(sdkVersionDir, "DotnetTools", "dotnet-dev-certs");
-
-        if (!Directory.Exists(dotnetToolsDir))
-        {
-            Log($"    WARNING: dotnet-dev-certs not found at {dotnetToolsDir}, skipping");
-            return Task.CompletedTask;
-        }
-
-        // Find the tool version directory (e.g., "10.0.2-servicing.25612.105")
-        var toolVersionDirs = Directory.GetDirectories(dotnetToolsDir);
-        if (toolVersionDirs.Length == 0)
-        {
-            Log($"    WARNING: No dev-certs version directory found, skipping");
-            return Task.CompletedTask;
-        }
-
-        // Find the tools/net10.0/any directory containing the actual DLLs
-        var toolVersionDir = toolVersionDirs[0];
-        var toolsDir = Path.Combine(toolVersionDir, "tools");
-
-        // Look for net10.0/any or similar pattern
-        string? devCertsSourceDir = null;
-        if (Directory.Exists(toolsDir))
-        {
-            foreach (var tfmDir in Directory.GetDirectories(toolsDir))
-            {
-                var anyDir = Path.Combine(tfmDir, "any");
-                if (Directory.Exists(anyDir) && File.Exists(Path.Combine(anyDir, "dotnet-dev-certs.dll")))
-                {
-                    devCertsSourceDir = anyDir;
-                    break;
-                }
-            }
-        }
-
-        if (devCertsSourceDir is null)
-        {
-            Log($"    WARNING: dev-certs DLLs not found, skipping");
-            return Task.CompletedTask;
-        }
-
-        // Copy to tools/dev-certs/ in the layout
-        var devCertsDestDir = Path.Combine(_outputPath, "tools", "dev-certs");
-        Directory.CreateDirectory(devCertsDestDir);
-
-        // Copy the essential files
-        foreach (var file in new[] { "dotnet-dev-certs.dll", "dotnet-dev-certs.deps.json", "dotnet-dev-certs.runtimeconfig.json" })
-        {
-            var srcFile = Path.Combine(devCertsSourceDir, file);
-            if (File.Exists(srcFile))
-            {
-                File.Copy(srcFile, Path.Combine(devCertsDestDir, file), overwrite: true);
-            }
-        }
-
-        Log($"    dev-certs tool extracted to tools/dev-certs/");
-        return Task.CompletedTask;
-    }
-
-    private Task CopyNuGetHelperAsync()
-    {
-        Log("Copying NuGet Helper...");
-
-        var helperPublishPath = FindPublishPath("Aspire.Cli.NuGetHelper");
-        if (helperPublishPath is null)
-        {
-            throw new InvalidOperationException("NuGet Helper publish output not found.");
-        }
-
-        var helperDir = Path.Combine(_outputPath, "tools", "aspire-nuget");
-        Directory.CreateDirectory(helperDir);
-
-        CopyDirectory(helperPublishPath, helperDir);
-        Log($"  Copied NuGet Helper to tools/aspire-nuget");
-
-        return Task.CompletedTask;
-    }
-
-    private Task CopyAppHostServerAsync()
-    {
-        Log("Copying AppHost Server...");
-
-        var serverPublishPath = FindPublishPath("Aspire.Hosting.RemoteHost");
-        if (serverPublishPath is null)
-        {
-            throw new InvalidOperationException("AppHost Server (Aspire.Hosting.RemoteHost) publish output not found.");
-        }
-
-        var serverDir = Path.Combine(_outputPath, "aspire-server");
-        Directory.CreateDirectory(serverDir);
-
-        CopyDirectory(serverPublishPath, serverDir);
-        Log($"  Copied AppHost Server to aspire-server");
-
-        return Task.CompletedTask;
-    }
-
-    private Task CopyDashboardAsync()
-    {
-        Log("Copying Dashboard...");
-
-        var dashboardPublishPath = FindPublishPath("Aspire.Dashboard");
-        if (dashboardPublishPath is null)
-        {
-            Log("  WARNING: Dashboard publish output not found. Skipping.");
-            return Task.CompletedTask;
-        }
-
-        var dashboardDir = Path.Combine(_outputPath, "dashboard");
-        Directory.CreateDirectory(dashboardDir);
-
-        CopyDirectory(dashboardPublishPath, dashboardDir);
-        Log($"  Copied Dashboard to dashboard");
-
-        return Task.CompletedTask;
+        Log($"  Copied aspire-managed to managed/");
     }
 
     private Task CopyDcpAsync()
@@ -634,25 +272,17 @@ internal sealed class LayoutBuilder : IDisposable
     private string? FindPublishPath(string projectName)
     {
         // Look for publish output in standard locations
-        // Order matters - RID-specific single-file publish paths should come first
+        // Order: RID-specific publish paths first (Release then Debug)
         var searchPaths = new[]
         {
-            // Native AOT output (aspire CLI uses this)
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0", _rid, "native"),
-            // RID-specific single-file publish output (preferred)
+            // RID-specific self-contained publish output (preferred for Aspire.Managed)
             Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0", _rid, "publish"),
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net8.0", _rid, "publish"),
-            // Standard publish output
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0", "publish"),
-            // Arcade SDK output
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", _rid),
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0"),
-            // net8.0 for Dashboard (it targets net8.0)
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net8.0", "publish"),
-            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net8.0"),
-            // Debug fallback
-            Path.Combine(_artifactsPath, "bin", projectName, "Debug", "net10.0", _rid, "native"),
             Path.Combine(_artifactsPath, "bin", projectName, "Debug", "net10.0", _rid, "publish"),
+            // Native AOT output
+            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0", _rid, "native"),
+            Path.Combine(_artifactsPath, "bin", projectName, "Debug", "net10.0", _rid, "native"),
+            // Non-RID publish output
+            Path.Combine(_artifactsPath, "bin", projectName, "Release", "net10.0", "publish"),
             Path.Combine(_artifactsPath, "bin", projectName, "Debug", "net10.0", "publish"),
         };
 
@@ -661,29 +291,6 @@ internal sealed class LayoutBuilder : IDisposable
             if (Directory.Exists(path))
             {
                 return path;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? FindSharedRuntime()
-    {
-        // Look for .NET runtime in common locations
-        var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-        if (!string.IsNullOrEmpty(dotnetRoot))
-        {
-            var sharedPath = Path.Combine(dotnetRoot, "shared", "Microsoft.NETCore.App");
-            if (Directory.Exists(sharedPath))
-            {
-                // Find the latest version
-                var versions = Directory.GetDirectories(sharedPath)
-                    .OrderByDescending(d => d)
-                    .FirstOrDefault();
-                if (versions is not null)
-                {
-                    return versions;
-                }
             }
         }
 
@@ -772,57 +379,6 @@ internal sealed class LayoutBuilder : IDisposable
         {
             var destDir = Path.Combine(destination, Path.GetFileName(dir));
             CopyDirectory(dir, destDir);
-        }
-    }
-
-    private static async Task SetExecutableAsync(string path)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "chmod",
-            Arguments = $"+x \"{path}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = Process.Start(psi);
-        if (process is not null)
-        {
-            await process.WaitForExitAsync().ConfigureAwait(false);
-        }
-    }
-
-    private void EnableRollForwardForAllTools()
-    {
-        Log("Enabling RollForward=Major for all tools...");
-
-        // Find all runtimeconfig.json files in the bundle
-        var runtimeConfigFiles = Directory.GetFiles(_outputPath, "*.runtimeconfig.json", SearchOption.AllDirectories);
-
-        foreach (var configFile in runtimeConfigFiles)
-        {
-            try
-            {
-                var json = File.ReadAllText(configFile);
-                using var doc = JsonDocument.Parse(json);
-
-                // Check if rollForward is already set
-                if (doc.RootElement.TryGetProperty("runtimeOptions", out var runtimeOptions) &&
-                    !runtimeOptions.TryGetProperty("rollForward", out _))
-                {
-                    // Add rollForward: Major to the runtimeOptions
-                    var updatedJson = json.Replace(
-                        "\"runtimeOptions\": {",
-                        "\"runtimeOptions\": {\n    \"rollForward\": \"Major\",");
-                    File.WriteAllText(configFile, updatedJson);
-                    Log($"  Updated: {Path.GetRelativePath(_outputPath, configFile)}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"  WARNING: Failed to update {configFile}: {ex.Message}");
-            }
         }
     }
 

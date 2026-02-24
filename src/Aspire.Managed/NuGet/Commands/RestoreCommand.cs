@@ -12,7 +12,7 @@ using NuGet.ProjectModel;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
-namespace Aspire.Cli.NuGetHelper.Commands;
+namespace Aspire.Managed.NuGet.Commands;
 
 /// <summary>
 /// Restore command - restores NuGet packages without requiring a .csproj file.

@@ -550,21 +550,21 @@ internal static class CliE2ETestHelpers
         int prNumber,
         SequenceCounter counter)
     {
-        // The bundle script may not be on main yet, so we need to fetch it from the PR's branch.
+        // The install script may not be on main yet, so we need to fetch it from the PR's branch.
         // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
         // which can serve stale script content for several minutes after a push.
         string command;
         if (OperatingSystem.IsWindows())
         {
-            // PowerShell: Get PR head SHA, then fetch and run bundle script from that SHA
+            // PowerShell: Get PR head SHA, then fetch and run install script from that SHA
             command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
-                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.ps1) }} {prNumber}\"";
+                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\"";
         }
         else
         {
-            // Bash: Get PR head SHA, then fetch and run bundle script from that SHA
+            // Bash: Get PR head SHA, then fetch and run install script from that SHA
             command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
-                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.sh | bash -s -- {prNumber}";
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
         }
 
         return builder

@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <Target Name="PublishToDisk"
-          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;_CheckMaxFileSize;PrepareOutputPathForPublishToDisk" />
+          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;PrepareOutputPathForPublishToDisk" />
 
   <Target Name="PrepareOutputPathForPublishToDisk">
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
@@ -42,6 +42,7 @@
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
       <AdditionalProperties Include="SelfContained=true" />
+      <AdditionalProperties Condition="'$(BundlePayloadPath)' != ''" Include="BundlePayloadPath=$(BundlePayloadPath)" />
       <!-- Pass through version properties so the CLI gets the correct version -->
       <AdditionalProperties Condition="'$(VersionSuffix)' != ''" Include="VersionSuffix=$(VersionSuffix)" />
       <AdditionalProperties Condition="'$(OfficialBuildId)' != ''" Include="OfficialBuildId=$(OfficialBuildId)" />
@@ -93,30 +94,6 @@
            Text="`file` signature for `$(CliRuntime)` did not match the expected regex.
            Got     : $(_FileCommandOutput)
            vs regex: $(FileSignatureRegex)" />
-  </Target>
-
-  <Target Name="_CheckMaxFileSize">
-    <PropertyGroup>
-      <_MaxFileSizeMB Condition="'$(CliRuntime)' == 'win-x86'">75</_MaxFileSizeMB>
-      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">30</_MaxFileSizeMB>
-      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and !$([System.OperatingSystem]::IsWindows())">30</_MaxFileSizeMB>
-
-      <!-- pwsh on windows. Use Ceiling to match `du -m` behavior -->
-      <_GetFileSizeMBCommand Condition="$([System.OperatingSystem]::IsWindows())">pwsh -NoProfile -Command &quot;[Math]::Ceiling((Get-Item '$(_NativeBinaryPath)' -ErrorAction Stop).Length / 1MB)&quot;</_GetFileSizeMBCommand>
-
-      <!-- Using unix tools on Linux/macOS -->
-      <_GetFileSizeMBCommand Condition="!$([System.OperatingSystem]::IsWindows())">du -m '$(_NativeBinaryPath)' | cut -f1</_GetFileSizeMBCommand>
-    </PropertyGroup>
-
-    <Exec Command="$(_GetFileSizeMBCommand)" ConsoleToMSBuild="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="_NativeBinaryFileSizeMB" />
-    </Exec>
-
-    <!-- Using &gt; forces a numerical comparison: https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-conditions?view=vs-2022 -->
-    <Error Condition="$(_NativeBinaryFileSizeMB) &gt; $(_MaxFileSizeMB)"
-           Text="$(_NativeBinaryPath) size ($(_NativeBinaryFileSizeMB) MB) exceeds maximum allowed size of $(_MaxFileSizeMB) MB" />
-
-    <Message Importance="High" Text="✅ $(_NativeBinaryPath) size check passed ($(_NativeBinaryFileSizeMB) MB &lt;= $(_MaxFileSizeMB) MB)" />
   </Target>
 
 </Project>
