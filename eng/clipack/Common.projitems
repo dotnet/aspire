@@ -38,6 +38,17 @@
   </Target>
 
   <Target Name="_PublishProject">
+    <!--
+      Bundle payload flow:
+        1. Bundle.proj runs CreateLayout which produces a tar.gz archive (managed runtime, DCP, etc.)
+        2. Pipeline steps (BuildAndTest.yml, build_sign_native.yml, GitHub Actions) pass BundlePayloadPath to that archive
+        3. Common.projitems forwards BundlePayloadPath to the CLI publish via AdditionalProperties
+        4. Aspire.Cli.csproj embeds it as an EmbeddedResource with LogicalName="bundle.tar.gz"
+        5. BundleService.cs reads the resource at runtime via Assembly.GetManifestResourceStream and extracts with TarReader
+    -->
+    <PropertyGroup>
+      <BundlePayloadPath Condition="'$(BundlePayloadPath)' == ''">$(RepoRoot)artifacts/bundle/aspire-ci-bundlepayload-$(CliRuntime).tar.gz</BundlePayloadPath>
+    </PropertyGroup>
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
