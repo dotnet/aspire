@@ -24,7 +24,7 @@ internal sealed class PlaywrightCliInstaller(
     /// <summary>
     /// The version range to resolve. Updated periodically with Aspire releases.
     /// </summary>
-    internal const string VersionRange = "0.1";
+    internal const string VersionRange = "0.1.1";
 
     /// <summary>
     /// Installs the Playwright CLI with supply chain verification and generates skill files.
