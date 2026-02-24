@@ -34,7 +34,7 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
 
 internal sealed class PublishCommand : PipelineCommandBase
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.Deployment;
+    internal override HelpGroup HelpGroup => HelpGroup.Deployment;
 
     private readonly IPublishCommandPrompter _prompter;
 

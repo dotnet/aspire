@@ -18,7 +18,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class StopCommand : BaseCommand
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.AppCommands;
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;

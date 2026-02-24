@@ -44,7 +44,7 @@ internal sealed partial class PsCommandJsonContext : JsonSerializerContext
 
 internal sealed class PsCommand : BaseCommand
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.AppCommands;
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;

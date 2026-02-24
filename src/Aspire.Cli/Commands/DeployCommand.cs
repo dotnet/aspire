@@ -16,7 +16,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PipelineCommandBase
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.Deployment;
+    internal override HelpGroup HelpGroup => HelpGroup.Deployment;
 
     private readonly Option<bool> _clearCacheOption;
 

@@ -16,7 +16,7 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class AgentCommand : BaseCommand
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.ToolsAndConfiguration;
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
 
     public AgentCommand(
         AgentMcpCommand mcpCommand,

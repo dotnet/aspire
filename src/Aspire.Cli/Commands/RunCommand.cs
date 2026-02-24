@@ -53,7 +53,7 @@ internal sealed partial class RunCommandJsonContext : JsonSerializerContext
 
 internal sealed class RunCommand : BaseCommand
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.AppCommands;
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;

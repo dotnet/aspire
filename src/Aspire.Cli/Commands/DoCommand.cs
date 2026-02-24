@@ -16,7 +16,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoCommand : PipelineCommandBase
 {
-    internal override HelpGroup HelpGroup => Commands.HelpGroup.Deployment;
+    internal override HelpGroup HelpGroup => HelpGroup.Deployment;
 
     private readonly Argument<string> _stepArgument;
 
