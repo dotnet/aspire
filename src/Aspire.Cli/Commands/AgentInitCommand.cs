@@ -61,7 +61,23 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         return ExecuteAsync(parseResult, cancellationToken);
     }
 
+    /// <summary>
+    /// Executes the init command with a pre-determined workspace root, skipping the workspace root prompt.
+    /// Used when chaining from another command (e.g. <c>aspire init</c>) that already knows the workspace location.
+    /// </summary>
+    internal Task<int> ExecuteCommandAsync(ParseResult parseResult, DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    {
+        _ = parseResult; // Unused but kept for API consistency with the other overload.
+        return ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+    }
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var workspaceRoot = await PromptForWorkspaceRootAsync(cancellationToken);
+        return await ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+    }
+
+    private async Task<DirectoryInfo> PromptForWorkspaceRootAsync(CancellationToken cancellationToken)
     {
         // Try to discover the git repository root to use as the default workspace root
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
@@ -87,7 +103,11 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
             },
             cancellationToken: cancellationToken);
 
-        var workspaceRoot = new DirectoryInfo(workspaceRootPath);
+        return new DirectoryInfo(workspaceRootPath);
+    }
+
+    private async Task<int> ExecuteAgentInitAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    {
 
         var context = new AgentEnvironmentScanContext
         {

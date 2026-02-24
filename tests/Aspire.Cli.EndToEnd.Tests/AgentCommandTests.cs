@@ -312,10 +312,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var nugetConfigPrompt = new CellPatternSearcher()
             .Find("NuGet.config");
 
-        // Pattern for the workspace path prompt that appears when agent init starts
-        var workspacePathPrompt = new CellPatternSearcher()
-            .Find("workspace:");
-
         // Pattern for no environments found (expected in empty workspace)
         var noEnvironmentsMessage = new CellPatternSearcher()
             .Find("No agent environments");
@@ -347,12 +343,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             // Accept the prompt to chain into agent init
             .Type("y")
             .Enter()
-            // Wait for agent init's workspace prompt
-            .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Wait(500)
-            // Accept default workspace path
-            .Enter()
-            // Wait for agent init to complete (may show "No agent environments" in empty workspace)
+            // Agent init should skip the workspace prompt (inferred from init context)
+            // and proceed directly to scanning for agent environments
             .WaitUntil(s => noEnvironmentsMessage.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
 
