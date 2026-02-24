@@ -133,4 +133,11 @@ internal interface IAppHostAuxiliaryBackchannel : IDisposable
         string status,
         int timeoutSeconds,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Gets AppHost log entries streamed from the hosting process.
+    /// Returns null if the AppHost does not support log streaming.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of log entries, or null if not supported.</returns>
+    Task<IAsyncEnumerable<BackchannelLogEntry>?> GetAppHostLogEntriesAsync(CancellationToken cancellationToken = default);
 }
