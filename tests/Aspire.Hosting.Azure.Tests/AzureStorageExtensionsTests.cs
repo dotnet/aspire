@@ -925,4 +925,32 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public void WithRoleAssignments_EmptyRoles_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(storage, Array.Empty<StorageBuiltInRole>()));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void WithRoleAssignments_NullRoles_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(storage, (StorageBuiltInRole[]?)null!));
+
+        Assert.Null(exception);
+    }
 }

@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Collections.Frozen;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -686,13 +687,54 @@ public static class AzureStorageExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "StorageBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the string-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureStorageResource> target,
         params StorageBuiltInRole[] roles)
         where T : IResource
     {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, Array.Empty<StorageBuiltInRole>());
+        }
+
         return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Storage account. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Storage account.</param>
+    /// <param name="roles">The built-in storage role names to be assigned (e.g., "StorageBlobDataContributor").</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <exception cref="ArgumentException">Thrown when a role name is not a valid Storage built-in role.</exception>
+    [AspireExport("withRoleAssignments", Description = "Assigns Azure Storage roles to a resource")]
+    internal static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureStorageResource> target,
+        params string[] roles)
+        where T : IResource
+    {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<StorageBuiltInRole>());
+        }
+
+        var builtInRoles = new StorageBuiltInRole[roles.Length];
+        for (var i = 0; i < roles.Length; i++)
+        {
+            if (!s_storageRolesByName.TryGetValue(roles[i], out var role))
+            {
+                throw new ArgumentException($"'{roles[i]}' is not a valid Storage built-in role. Valid roles: {string.Join(", ", s_storageRolesByName.Keys)}.", nameof(roles));
+            }
+
+            builtInRoles[i] = role;
+        }
+
+        return builder.WithRoleAssignments(target, builtInRoles);
     }
 
     private static IResourceBuilder<AzureBlobStorageResource> CreateBlobService(IResourceBuilder<AzureStorageResource> builder, string name)
@@ -758,4 +800,28 @@ public static class AzureStorageExtensions
                 connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });
     }
+
+    private static readonly FrozenDictionary<string, StorageBuiltInRole> s_storageRolesByName = new Dictionary<string, StorageBuiltInRole>()
+    {
+        [nameof(StorageBuiltInRole.ClassicStorageAccountContributor)] = StorageBuiltInRole.ClassicStorageAccountContributor,
+        [nameof(StorageBuiltInRole.ClassicStorageAccountKeyOperatorServiceRole)] = StorageBuiltInRole.ClassicStorageAccountKeyOperatorServiceRole,
+        [nameof(StorageBuiltInRole.StorageAccountBackupContributor)] = StorageBuiltInRole.StorageAccountBackupContributor,
+        [nameof(StorageBuiltInRole.StorageAccountContributor)] = StorageBuiltInRole.StorageAccountContributor,
+        [nameof(StorageBuiltInRole.StorageAccountKeyOperatorServiceRole)] = StorageBuiltInRole.StorageAccountKeyOperatorServiceRole,
+        [nameof(StorageBuiltInRole.StorageBlobDataContributor)] = StorageBuiltInRole.StorageBlobDataContributor,
+        [nameof(StorageBuiltInRole.StorageBlobDataOwner)] = StorageBuiltInRole.StorageBlobDataOwner,
+        [nameof(StorageBuiltInRole.StorageBlobDataReader)] = StorageBuiltInRole.StorageBlobDataReader,
+        [nameof(StorageBuiltInRole.StorageBlobDelegator)] = StorageBuiltInRole.StorageBlobDelegator,
+        [nameof(StorageBuiltInRole.StorageFileDataPrivilegedContributor)] = StorageBuiltInRole.StorageFileDataPrivilegedContributor,
+        [nameof(StorageBuiltInRole.StorageFileDataPrivilegedReader)] = StorageBuiltInRole.StorageFileDataPrivilegedReader,
+        [nameof(StorageBuiltInRole.StorageFileDataSmbShareContributor)] = StorageBuiltInRole.StorageFileDataSmbShareContributor,
+        [nameof(StorageBuiltInRole.StorageFileDataSmbShareReader)] = StorageBuiltInRole.StorageFileDataSmbShareReader,
+        [nameof(StorageBuiltInRole.StorageFileDataSmbShareElevatedContributor)] = StorageBuiltInRole.StorageFileDataSmbShareElevatedContributor,
+        [nameof(StorageBuiltInRole.StorageQueueDataContributor)] = StorageBuiltInRole.StorageQueueDataContributor,
+        [nameof(StorageBuiltInRole.StorageQueueDataReader)] = StorageBuiltInRole.StorageQueueDataReader,
+        [nameof(StorageBuiltInRole.StorageQueueDataMessageSender)] = StorageBuiltInRole.StorageQueueDataMessageSender,
+        [nameof(StorageBuiltInRole.StorageQueueDataMessageProcessor)] = StorageBuiltInRole.StorageQueueDataMessageProcessor,
+        [nameof(StorageBuiltInRole.StorageTableDataContributor)] = StorageBuiltInRole.StorageTableDataContributor,
+        [nameof(StorageBuiltInRole.StorageTableDataReader)] = StorageBuiltInRole.StorageTableDataReader,
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 }

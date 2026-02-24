@@ -194,6 +194,11 @@ public static partial class AzureKeyVaultResourceExtensions
         params string[] roles)
         where T : IResource
     {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<KeyVaultBuiltInRole>());
+        }
+
         var builtInRoles = new KeyVaultBuiltInRole[roles.Length];
         for (var i = 0; i < roles.Length; i++)
         {
@@ -340,7 +345,7 @@ public static partial class AzureKeyVaultResourceExtensions
         return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
     }
 
-    private static readonly FrozenDictionary<string, KeyVaultBuiltInRole> s_keyVaultRolesByName = new Dictionary<string, KeyVaultBuiltInRole>(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, KeyVaultBuiltInRole> s_keyVaultRolesByName = new Dictionary<string, KeyVaultBuiltInRole>()
     {
         [nameof(KeyVaultBuiltInRole.KeyVaultAdministrator)] = KeyVaultBuiltInRole.KeyVaultAdministrator,
         [nameof(KeyVaultBuiltInRole.KeyVaultCertificateUser)] = KeyVaultBuiltInRole.KeyVaultCertificateUser,

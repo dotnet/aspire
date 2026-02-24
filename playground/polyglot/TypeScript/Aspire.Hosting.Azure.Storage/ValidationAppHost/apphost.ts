@@ -4,6 +4,7 @@ const builder = await createBuilder();
 
 const storage = await builder.addAzureStorage("storage");
 await storage.runAsEmulator();
+await storage.withRoleAssignments(storage, ["StorageBlobDataContributor", "StorageQueueDataContributor"]);
 
 // Callbacks are currently not working
 // await storage.runAsEmulator({

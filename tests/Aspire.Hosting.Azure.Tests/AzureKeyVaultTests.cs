@@ -609,4 +609,18 @@ public class AzureKeyVaultTests
 
         Assert.Null(exception);
     }
+
+    [Fact]
+    public void WithRoleAssignments_StringOverload_NullRoles_DoesNotThrow()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var exception = Record.Exception(() =>
+            container.WithRoleAssignments(kv, (string[]?)null!));
+
+        Assert.Null(exception);
+    }
 }
