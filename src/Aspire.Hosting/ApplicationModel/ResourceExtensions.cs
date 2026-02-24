@@ -1349,7 +1349,7 @@ public static class ResourceExtensions
     /// <param name="newDependencies">The set of newly discovered dependencies in this invocation (not present in <paramref name="dependencies"/> at the moment of invocation).</param>
     /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
     /// <param name="cancellationToken">A cancellation token to observe while gathering dependencies.</param>
-    internal static async Task GatherDirectDependenciesAsync(
+    private static async Task GatherDirectDependenciesAsync(
         IResource resource,
         HashSet<IResource> dependencies,
         HashSet<IResource> newDependencies,

@@ -1248,10 +1248,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
 
         // Aspire dashboard is special in the context of Open Telemetry ingestion.
-        // OTLP exporters do not refer to the OTLP ingestion endpooint via EndpointReference when the model is constructed
+        // OTLP exporters do not refer to the OTLP ingestion endpoint via EndpointReference when the model is constructed
         // by the Aspire app host; the endpoint URL is just read from configuration.
         // If there are containers that are OTLP exporters in the model, we need to project dashboard endpoints into container space.
-        if (containers.Where(c => c.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _)).Any())
+        if (containers.Any(c => c.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _)))
         {
             var maybeDashboard = _model.Resources.Where(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard))
                     .Select(AsHostResourceWithEndpoints).FirstOrDefault();
@@ -2987,14 +2987,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// A record grouping container-related resources into sets, dependent on whether they
     /// require network tunnels to host resources.
     /// </returns>
-    private async Task<ContainerCreationSets>
-    GetContainerCreationSetsAsync(CancellationToken cancellationToken)
+    private async Task<ContainerCreationSets> GetContainerCreationSetsAsync(CancellationToken cancellationToken)
     {
         List<RenderedModelResource> regular = new();
         List<RenderedModelResource> tunnelDependent = new();
-
-        HashSet<IResource> dependencies = new();
-        HashSet<IResource> newDependencies = new();
 
         var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
 
@@ -3006,11 +3002,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             foreach (var cr in containers)
             {
-                dependencies.Clear();
-                newDependencies.Clear();
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await ResourceExtensions.GatherDirectDependenciesAsync(cr.ModelResource, dependencies, newDependencies, _executionContext, cancellationToken).ConfigureAwait(false);
+                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(_executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
 
                 if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
                 {
