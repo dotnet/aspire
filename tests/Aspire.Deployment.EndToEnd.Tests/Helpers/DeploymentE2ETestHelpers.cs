@@ -177,31 +177,40 @@ internal static class DeploymentE2ETestHelpers
     /// <summary>
     /// Runs <c>aspire init</c> and handles the NuGet.config and agent init prompts.
     /// The agent init prompt is declined so the command exits cleanly.
+    /// Set <paramref name="hasAgentInitPrompt"/> to <c>false</c> when using an older CLI
+    /// that doesn't have the agent init prompt (e.g. GA release CLI).
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder RunAspireInit(
         this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
+        SequenceCounter counter,
+        bool hasAgentInitPrompt = true)
     {
         var waitingForInitComplete = new CellPatternSearcher()
             .Find("Aspire initialization complete");
 
-        var agentInitPrompt = new CellPatternSearcher()
-            .Find("configure AI agent environments");
-
-        return builder
+        builder
             .Type("aspire init")
             .Enter()
             // NuGet.config prompt may or may not appear depending on environment.
             // Wait a moment then press Enter to dismiss if present.
             .Wait(TimeSpan.FromSeconds(5))
             .Enter()
-            .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2));
+
+        if (hasAgentInitPrompt)
+        {
+            var agentInitPrompt = new CellPatternSearcher()
+                .Find("configure AI agent environments");
+
             // Handle the agent init confirmation prompt (decline with 'n')
-            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Wait(500)
-            .Type("n")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            builder
+                .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+                .Wait(500)
+                .Type("n")
+                .Enter();
+        }
+
+        return builder.WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
     }
 
 }

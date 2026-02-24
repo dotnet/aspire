@@ -111,9 +111,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 5: Create single-file AppHost with GA CLI
+            // Step 5: Create single-file AppHost with GA CLI (no agent init prompt in GA)
             output.WriteLine("Step 5: Creating single-file AppHost with GA CLI...");
-            sequenceBuilder.RunAspireInit(counter);
+            sequenceBuilder.RunAspireInit(counter, hasAgentInitPrompt: false);
 
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");
