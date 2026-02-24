@@ -393,6 +393,27 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task<IAsyncEnumerable<BackchannelLogEntry>?> GetAppHostLogEntriesAsync(CancellationToken cancellationToken = default)
+    {
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Requesting AppHost log entries");
+
+        try
+        {
+            return await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<BackchannelLogEntry>>(
+                "GetAppHostLogEntriesAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger?.LogDebug(ex, "AppHost log streaming is not available. The AppHost may be running an older version.");
+            return null;
+        }
+    }
+
     #region V2 API Methods
 
     /// <summary>
