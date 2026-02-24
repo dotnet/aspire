@@ -26,7 +26,7 @@ internal sealed class SdkCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("sdk", "Commands for generating SDKs for building Aspire integrations in other languages.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        this.Hidden = true;
+        Hidden = true;
         Subcommands.Add(generateCommand);
         Subcommands.Add(dumpCommand);
     }
