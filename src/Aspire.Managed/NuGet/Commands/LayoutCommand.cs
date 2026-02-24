@@ -5,7 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using NuGet.ProjectModel;
 
-namespace Aspire.Cli.NuGetHelper.Commands;
+namespace Aspire.Managed.NuGet.Commands;
 
 /// <summary>
 /// Layout command - creates a flat DLL layout from a project.assets.json file.

@@ -42,6 +42,7 @@
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
       <AdditionalProperties Include="SelfContained=true" />
+      <AdditionalProperties Condition="'$(BundlePayloadPath)' != ''" Include="BundlePayloadPath=$(BundlePayloadPath)" />
       <!-- Pass through version properties so the CLI gets the correct version -->
       <AdditionalProperties Condition="'$(VersionSuffix)' != ''" Include="VersionSuffix=$(VersionSuffix)" />
       <AdditionalProperties Condition="'$(OfficialBuildId)' != ''" Include="OfficialBuildId=$(OfficialBuildId)" />
