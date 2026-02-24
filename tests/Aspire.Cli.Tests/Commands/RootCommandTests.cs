@@ -385,16 +385,16 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<RootCommand>();
 
+        // Either the subcommand isn't a BaseCommand, or it hasn't specified a HelpGroup.
         var missingGroup = command.Subcommands
             .Where(sub => !sub.Hidden)
-            .OfType<BaseCommand>()
-            .Where(cmd => cmd.HelpGroup is null)
+            .Where(cmd => cmd is not BaseCommand baseCmd || baseCmd.HelpGroup is HelpGroup.None)
             .Select(cmd => cmd.Name)
             .ToList();
 
         Assert.True(missingGroup.Count == 0,
             $"The following visible commands are missing a HelpGroup: {string.Join(", ", missingGroup)}. " +
-            "Add 'internal override string? HelpGroup => HelpGroups.XXX;' to each command class.");
+            "Add 'internal override HelpGroup HelpGroup => HelpGroup.XXX;' to each command class.");
     }
 
     [Fact]

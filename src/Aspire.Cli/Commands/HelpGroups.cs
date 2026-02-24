@@ -4,13 +4,37 @@
 namespace Aspire.Cli.Commands;
 
 /// <summary>
-/// Well-known help group headings for CLI commands.
+/// Well-known help group categories for CLI commands.
 /// </summary>
-internal static class HelpGroups
+internal enum HelpGroup
 {
-    public const string AppCommands = "App Commands:";
-    public const string ResourceManagement = "Resource Management:";
-    public const string Monitoring = "Monitoring:";
-    public const string Deployment = "Deployment:";
-    public const string ToolsAndConfiguration = "Tools & Configuration:";
+    /// <summary>
+    /// No help group. The command appears in the "Other Commands:" catch-all section.
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// Commands for creating, running, and managing applications.
+    /// </summary>
+    AppCommands,
+
+    /// <summary>
+    /// Commands for managing individual resources.
+    /// </summary>
+    ResourceManagement,
+
+    /// <summary>
+    /// Commands for monitoring and observability.
+    /// </summary>
+    Monitoring,
+
+    /// <summary>
+    /// Commands for deploying applications.
+    /// </summary>
+    Deployment,
+
+    /// <summary>
+    /// Commands for CLI tools and configuration.
+    /// </summary>
+    ToolsAndConfiguration,
 }

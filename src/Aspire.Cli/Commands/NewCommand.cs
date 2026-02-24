@@ -23,8 +23,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
-    internal override string? HelpGroup => HelpGroups.AppCommands;
-    internal override int HelpGroupOrder => 0;
+    internal override HelpGroup HelpGroup => Commands.HelpGroup.AppCommands;
 
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;

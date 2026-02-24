@@ -18,8 +18,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class ConfigCommand : BaseCommand
 {
-    internal override string? HelpGroup => HelpGroups.ToolsAndConfiguration;
-    internal override int HelpGroupOrder => 0;
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
 
     private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;

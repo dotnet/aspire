@@ -15,8 +15,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoctorCommand : BaseCommand
 {
-    internal override string? HelpGroup => HelpGroups.ToolsAndConfiguration;
-    internal override int HelpGroupOrder => 2;
+    internal override HelpGroup HelpGroup => Commands.HelpGroup.ToolsAndConfiguration;
 
     private readonly IEnvironmentChecker _environmentChecker;
     private readonly IAnsiConsole _ansiConsole;

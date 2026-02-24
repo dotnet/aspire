@@ -16,8 +16,7 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class TelemetryCommand : BaseCommand
 {
-    internal override string? HelpGroup => HelpGroups.Monitoring;
-    internal override int HelpGroupOrder => 2;
+    internal override HelpGroup HelpGroup => Commands.HelpGroup.Monitoring;
 
     public TelemetryCommand(
         TelemetryLogsCommand logsCommand,

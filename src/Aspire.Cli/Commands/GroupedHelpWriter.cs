@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Commands;
 
@@ -14,13 +15,13 @@ internal static class GroupedHelpWriter
     /// <summary>
     /// The well-known group ordering. Groups not listed here appear after these, in alphabetical order.
     /// </summary>
-    private static readonly string[] s_groupOrder =
+    private static readonly HelpGroup[] s_groupOrder =
     [
-        HelpGroups.AppCommands,
-        HelpGroups.ResourceManagement,
-        HelpGroups.Monitoring,
-        HelpGroups.Deployment,
-        HelpGroups.ToolsAndConfiguration,
+        HelpGroup.AppCommands,
+        HelpGroup.ResourceManagement,
+        HelpGroup.Monitoring,
+        HelpGroup.Deployment,
+        HelpGroup.ToolsAndConfiguration,
     ];
 
     /// <summary>
@@ -41,12 +42,12 @@ internal static class GroupedHelpWriter
         }
 
         // Usage
-        writer.WriteLine("Usage:");
-        writer.WriteLine("  aspire <command> [options]");
+        writer.WriteLine(HelpGroupStrings.Usage);
+        writer.WriteLine(GetIndent() + HelpGroupStrings.UsageSyntax);
         writer.WriteLine();
 
         // Collect visible subcommands and organize by group.
-        var grouped = new Dictionary<string, List<(BaseCommand Cmd, int Order)>>(StringComparer.Ordinal);
+        var grouped = new Dictionary<HelpGroup, List<BaseCommand>>();
         var ungroupedCommands = new List<Command>();
 
         foreach (var sub in command.Subcommands)
@@ -56,7 +57,7 @@ internal static class GroupedHelpWriter
                 continue;
             }
 
-            if (sub is BaseCommand baseCmd && baseCmd.HelpGroup is not null)
+            if (sub is BaseCommand baseCmd && baseCmd.HelpGroup is not HelpGroup.None)
             {
                 if (!grouped.TryGetValue(baseCmd.HelpGroup, out var list))
                 {
@@ -64,7 +65,7 @@ internal static class GroupedHelpWriter
                     grouped[baseCmd.HelpGroup] = list;
                 }
 
-                list.Add((baseCmd, baseCmd.HelpGroupOrder));
+                list.Add(baseCmd);
             }
             else
             {
@@ -72,17 +73,17 @@ internal static class GroupedHelpWriter
             }
         }
 
-        // Sort commands within each group by order.
+        // Sort commands within each group by name.
         foreach (var list in grouped.Values)
         {
-            list.Sort((a, b) => a.Order.CompareTo(b.Order));
+            list.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         }
 
         // Compute the first-column width across all commands for consistent alignment.
         var columnWidth = 0;
         foreach (var list in grouped.Values)
         {
-            foreach (var (cmd, _) in list)
+            foreach (var cmd in list)
             {
                 var label = FormatCommandLabel(cmd);
                 if (label.Length > columnWidth)
@@ -105,30 +106,30 @@ internal static class GroupedHelpWriter
         columnWidth += 4;
 
         // Write groups in the defined order, then any additional groups alphabetically.
-        var writtenGroups = new HashSet<string>(StringComparer.Ordinal);
+        var writtenGroups = new HashSet<HelpGroup>();
 
-        foreach (var groupName in s_groupOrder)
+        foreach (var group in s_groupOrder)
         {
-            if (grouped.TryGetValue(groupName, out var commands))
+            if (grouped.TryGetValue(group, out var commands))
             {
-                WriteGroup(writer, groupName, commands, columnWidth, width);
-                writtenGroups.Add(groupName);
+                WriteGroup(writer, GetGroupHeading(group), commands, columnWidth, width);
+                writtenGroups.Add(group);
             }
         }
 
         // Write any groups not in the well-known order (future-proofing).
-        foreach (var (groupName, commands) in grouped.OrderBy(kvp => kvp.Key, StringComparer.Ordinal))
+        foreach (var (group, commands) in grouped.OrderBy(kvp => kvp.Key))
         {
-            if (!writtenGroups.Contains(groupName))
+            if (!writtenGroups.Contains(group))
             {
-                WriteGroup(writer, groupName, commands, columnWidth, width);
+                WriteGroup(writer, GetGroupHeading(group), commands, columnWidth, width);
             }
         }
 
         // Catch-all: show any registered commands not assigned to a group.
         if (ungroupedCommands.Count > 0)
         {
-            writer.WriteLine("Other Commands:");
+            writer.WriteLine(HelpGroupStrings.OtherCommands);
             foreach (var cmd in ungroupedCommands.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
             {
                 var label = FormatCommandLabel(cmd);
@@ -142,7 +143,7 @@ internal static class GroupedHelpWriter
         var visibleOptions = command.Options.Where(o => !o.Hidden).ToList();
         if (visibleOptions.Count > 0)
         {
-            writer.WriteLine("Options:");
+            writer.WriteLine(HelpGroupStrings.Options);
 
             var optionColumnWidth = 0;
             foreach (var opt in visibleOptions)
@@ -167,13 +168,13 @@ internal static class GroupedHelpWriter
         }
 
         // Help hint
-        writer.WriteLine("Use \"aspire <command> --help\" for more information about a command.");
+        writer.WriteLine(HelpGroupStrings.HelpHint);
     }
 
-    private static void WriteGroup(TextWriter writer, string heading, List<(BaseCommand Cmd, int Order)> commands, int columnWidth, int width)
+    private static void WriteGroup(TextWriter writer, string heading, List<BaseCommand> commands, int columnWidth, int width)
     {
         writer.WriteLine(heading);
-        foreach (var (cmd, _) in commands)
+        foreach (var cmd in commands)
         {
             var label = FormatCommandLabel(cmd);
             var description = cmd.Description ?? string.Empty;
@@ -183,19 +184,35 @@ internal static class GroupedHelpWriter
     }
 
     /// <summary>
+    /// Gets the localized heading string for a help group.
+    /// </summary>
+    internal static string GetGroupHeading(HelpGroup group) => group switch
+    {
+        HelpGroup.AppCommands => HelpGroupStrings.AppCommands,
+        HelpGroup.ResourceManagement => HelpGroupStrings.ResourceManagement,
+        HelpGroup.Monitoring => HelpGroupStrings.Monitoring,
+        HelpGroup.Deployment => HelpGroupStrings.Deployment,
+        HelpGroup.ToolsAndConfiguration => HelpGroupStrings.ToolsAndConfiguration,
+        _ => group.ToString(),
+    };
+
+    /// <summary>
     /// Writes a two-column row with word-wrapping on the description column.
     /// Continuation lines are indented to align with the description start.
     /// </summary>
+    private const int IndentWidth = 2;
+
+    private static string GetIndent(int extra = 0) => new(' ', IndentWidth + extra);
+
     private static void WriteTwoColumnRow(TextWriter writer, string label, string description, int columnWidth, int maxWidth)
     {
-        const int indent = 2;
         var paddedLabel = label.PadRight(columnWidth);
-        var descriptionWidth = maxWidth - columnWidth - indent;
+        var descriptionWidth = maxWidth - columnWidth - IndentWidth;
 
         // If the terminal is too narrow to wrap meaningfully, just write it all on one line.
         if (descriptionWidth < 20)
         {
-            writer.WriteLine($"{new string(' ', indent)}{paddedLabel}{description}");
+            writer.WriteLine($"{GetIndent()}{paddedLabel}{description}");
             return;
         }
 
@@ -206,14 +223,14 @@ internal static class GroupedHelpWriter
         {
             if (firstLine)
             {
-                writer.Write(new string(' ', indent));
+                writer.Write(GetIndent());
                 writer.Write(paddedLabel);
                 firstLine = false;
             }
             else
             {
                 // Continuation line: indent to align with description column.
-                writer.Write(new string(' ', indent + columnWidth));
+                writer.Write(GetIndent(columnWidth));
             }
 
             if (remaining.Length <= descriptionWidth)

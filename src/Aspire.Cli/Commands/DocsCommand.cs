@@ -16,8 +16,7 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class DocsCommand : BaseCommand
 {
-    internal override string? HelpGroup => HelpGroups.ToolsAndConfiguration;
-    internal override int HelpGroupOrder => 3;
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
 
     public DocsCommand(
         DocsListCommand listCommand,

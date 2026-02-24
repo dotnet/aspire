@@ -67,8 +67,7 @@ internal sealed partial class ResourcesCommandJsonContext : JsonSerializerContex
 
 internal sealed class DescribeCommand : BaseCommand
 {
-    internal override string? HelpGroup => HelpGroups.Monitoring;
-    internal override int HelpGroupOrder => 0;
+    internal override HelpGroup HelpGroup => Commands.HelpGroup.Monitoring;
 
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;

@@ -14,8 +14,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RestartCommand : ResourceCommandBase
 {
-    internal override string? HelpGroup => HelpGroups.ResourceManagement;
-    internal override int HelpGroupOrder => 2;
+    internal override HelpGroup HelpGroup => Commands.HelpGroup.ResourceManagement;
 
     protected override string CommandName => KnownResourceCommands.RestartCommand;
     protected override string ProgressVerb => "Restarting";
