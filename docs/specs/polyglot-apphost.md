@@ -1469,10 +1469,10 @@ Use `dotnet run` to execute the CLI directly from source:
 
 ```bash
 # Create a new Python app
-dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init -l python
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init --language python
 
 # Create a new TypeScript app
-dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init -l typescript
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init --language typescript
 ```
 
 The `-l` (or `--language`) flag specifies the target language for scaffolding.
@@ -1495,7 +1495,7 @@ The `-d` (or `--debug`) flag enables additional diagnostic output, useful when d
 
 2. **Testing code generators**: Modify your `ICodeGenerator` implementation, then run `aspire run` in a test app—the new generated code will be produced automatically.
 
-3. **Testing language support**: Modify your `ILanguageSupport` implementation, then use `aspire init -l <language>` to test scaffolding or `aspire run` to test detection and execution.
+3. **Testing language support**: Modify your `ILanguageSupport` implementation, then use `aspire init --language <language>` to test scaffolding or `aspire run` to test detection and execution.
 
 4. **Inspecting generated code**: Check the `.modules/` folder in your test app to see the generated SDK files and verify they match your expectations.
 
@@ -1503,8 +1503,8 @@ The `-d` (or `--debug`) flag enables additional diagnostic output, useful when d
 
 | Task | Command |
 |------|---------|
-| Scaffold Python app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init -l python` |
-| Scaffold TypeScript app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init -l typescript` |
+| Scaffold Python app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init --language python` |
+| Scaffold TypeScript app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init --language typescript` |
 | Run app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- run` |
 | Run with debug output | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- run -d` |
 | Add integration | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- add` |
