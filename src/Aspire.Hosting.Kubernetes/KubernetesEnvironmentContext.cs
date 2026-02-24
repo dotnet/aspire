@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Kubernetes;
 
 internal sealed class KubernetesEnvironmentContext(KubernetesEnvironmentResource environment, ILogger logger)
 {
-    private readonly Dictionary<IResource, KubernetesResource> _kubernetesComponents = new(new ResourceNameComparer());
+    private readonly Dictionary<IResource, KubernetesResource> _kubernetesComponents = [];
 
     public ILogger Logger => logger;
 
