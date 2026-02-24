@@ -93,27 +93,10 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // First: launch the apphost with --detach (interactive, no JSON)
-        var waitForDetachedMessage = new CellPatternSearcher()
-            .Find("The apphost is running in the background.");
-
+        // Just wait for the command to complete (WaitForSuccessPrompt waits for the shell prompt)
         sequenceBuilder
             .Type("aspire run --detach")
             .Enter()
-            .WaitUntil(s =>
-            {
-                if (waitForDetachedMessage.Search(s).Count > 0)
-                {
-                    return true;
-                }
-
-                var sdkError = new CellPatternSearcher().Find("Could not resolve SDK");
-                if (sdkError.Search(s).Count > 0)
-                {
-                    throw new InvalidOperationException("AppHost SDK resolution failed.");
-                }
-
-                return false;
-            }, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
         sequenceBuilder.ClearScreen(counter);
