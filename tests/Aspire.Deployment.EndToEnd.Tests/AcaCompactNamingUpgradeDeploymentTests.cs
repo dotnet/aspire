@@ -135,7 +135,7 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
                 .Enter()
-                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 

@@ -116,7 +116,7 @@ public sealed class AzureContainerRegistryDeploymentTests(ITestOutputHelper outp
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter();
             }
 

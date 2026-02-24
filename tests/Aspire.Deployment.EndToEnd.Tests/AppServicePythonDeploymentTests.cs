@@ -159,7 +159,7 @@ public sealed class AppServicePythonDeploymentTests(ITestOutputHelper output)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter(); // select first version (PR build)
             }
 

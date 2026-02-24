@@ -134,16 +134,30 @@ internal sealed class AddCommand : BaseCommand
                     var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
                     var packagesLock = new object();
 
-                    await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
+                    // Use a configurable timeout so one slow NuGet feed can't block the entire search.
+                    // Default is 120 seconds; override via ASPIRE_SEARCH_TIMEOUT_SECONDS environment variable.
+                    var searchTimeout = GetSearchTimeout();
+                    using var searchCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    searchCts.CancelAfter(searchTimeout);
+
+                    try
                     {
-                        var integrationPackages = await channel.GetIntegrationPackagesAsync(
-                            workingDirectory: effectiveAppHostProjectFile.Directory!,
-                            cancellationToken: ct);
-                        lock (packagesLock)
+                        await Parallel.ForEachAsync(channels, searchCts.Token, async (channel, ct) =>
                         {
-                            packages.AddRange(integrationPackages.Select(p => (p, channel)));
-                        }
-                    });
+                            var integrationPackages = await channel.GetIntegrationPackagesAsync(
+                                workingDirectory: effectiveAppHostProjectFile.Directory!,
+                                cancellationToken: ct);
+                            lock (packagesLock)
+                            {
+                                packages.AddRange(integrationPackages.Select(p => (p, channel)));
+                            }
+                        });
+                    }
+                    catch (OperationCanceledException) when (searchCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                    {
+                        // The search timed out but the user didn't cancel. Use whatever partial results
+                        // we collected so far. This prevents one slow NuGet feed from blocking the entire search.
+                    }
 
                     return packages;
 
@@ -329,6 +343,19 @@ internal sealed class AddCommand : BaseCommand
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
 
         return (friendlyName, packageWithChannel.Package, packageWithChannel.Channel);
+    }
+
+    private static TimeSpan GetSearchTimeout()
+    {
+        const int defaultTimeoutSeconds = 120;
+
+        var envValue = Environment.GetEnvironmentVariable("ASPIRE_SEARCH_TIMEOUT_SECONDS");
+        if (!string.IsNullOrEmpty(envValue) && int.TryParse(envValue, CultureInfo.InvariantCulture, out var seconds) && seconds > 0)
+        {
+            return TimeSpan.FromSeconds(seconds);
+        }
+
+        return TimeSpan.FromSeconds(defaultTimeoutSeconds);
     }
 }
 

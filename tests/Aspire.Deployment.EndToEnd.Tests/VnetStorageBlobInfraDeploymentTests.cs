@@ -109,7 +109,7 @@ public sealed class VnetStorageBlobInfraDeploymentTests(ITestOutputHelper output
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter();
             }
 
@@ -123,7 +123,7 @@ public sealed class VnetStorageBlobInfraDeploymentTests(ITestOutputHelper output
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter();
             }
 
@@ -137,7 +137,7 @@ public sealed class VnetStorageBlobInfraDeploymentTests(ITestOutputHelper output
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter();
             }
 

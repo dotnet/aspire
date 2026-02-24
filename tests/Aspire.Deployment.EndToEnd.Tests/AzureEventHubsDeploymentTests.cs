@@ -125,10 +125,10 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             {
                 // First, handle integration selection prompt
                 sequenceBuilder
-                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter()  // Select first integration (azure-appcontainers)
                     // Then, handle version selection prompt
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter();  // Select first version (PR build)
             }
 
@@ -144,7 +144,7 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(180))
                     .Enter(); // Select first version
             }
 
