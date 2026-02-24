@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001 // HTTPS certificate APIs are experimental
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -82,6 +83,8 @@ public static class AzureCosmosExtensions
             return builder;
         }
 
+        builder.Resource.IsPreviewEmulator = useVNextPreview;
+
         // Mark this resource as an emulator for consistent resource identification and tooling support
         builder.WithAnnotation(new EmulatorResourceAnnotation());
 
@@ -133,6 +136,57 @@ public static class AzureCosmosExtensions
             builder.WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 8080)
                 .WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/ready")
                 .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+
+            // Configure the preview emulator to use an Aspire-managed HTTPS certificate.
+            // Use a surrogate builder since AzureCosmosDBResource doesn't implement IResourceWithEnvironment/IResourceWithArgs
+            // but AzureCosmosDBEmulatorResource (which extends ContainerResource) does. The surrogate's Annotations
+            // delegate to the inner resource, so the annotation ends up on the correct resource.
+            var emulatorSurrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
+            var emulatorSurrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorSurrogate);
+            emulatorSurrogateBuilder.WithHttpsCertificateConfiguration(ctx =>
+            {
+                ctx.EnvironmentVariables["PROTOCOL"] = "https";
+                ctx.EnvironmentVariables["CERT_PATH"] = ctx.CertificatePath;
+                ctx.EnvironmentVariables["KEY_FILE"] = ctx.KeyPath;
+                if (ctx.Password is not null)
+                {
+                    ctx.EnvironmentVariables["CERT_SECRET"] = ctx.Password;
+                }
+
+                return Task.CompletedTask;
+            });
+
+            var resource = builder.Resource;
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // Switch the emulator endpoint from HTTP to HTTPS when a certificate is available.
+                    // The connection string and URI expressions use EndpointProperty.Url which will
+                    // automatically reflect the updated scheme.
+                    builder.WithEndpoint("emulator", ep =>
+                    {
+                        ep.UriScheme = "https";
+                    });
+                }
+
+                return Task.CompletedTask;
+            });
         }
         else
         {
