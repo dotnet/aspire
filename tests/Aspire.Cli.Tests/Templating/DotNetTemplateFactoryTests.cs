@@ -510,6 +510,9 @@ public class DotNetTemplateFactoryTests
 
         public Task<ITemplate> PromptForTemplateAsync(ITemplate[] templates, CancellationToken cancellationToken)
             => throw new NotImplementedException();
+
+        public Task<string> PromptForDestinationPathAsync(string defaultPath, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
     }
 
     private sealed class FakeCliHostEnvironment(bool nonInteractive) : ICliHostEnvironment
