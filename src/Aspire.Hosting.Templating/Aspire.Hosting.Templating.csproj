@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);ASPIREINTERACTION001</NoWarn>
+    <PackageTags>aspire hosting templating templates</PackageTags>
+    <Description>Templating support for Aspire, enabling Git repository-based project templates with interactive prompts.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Templating.Tests"/>
+  </ItemGroup>
+
+</Project>
