@@ -114,12 +114,12 @@ internal sealed class StopCommand : BaseCommand
 
         // Scan for all running AppHosts
         var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
-            StopCommandStrings.ScanningForRunningAppHosts,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             cancellationToken);
 
         if (allConnections.Length == 0)
         {
-            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(SharedCommandStrings.AppHostNotRunning);
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -150,15 +150,15 @@ internal sealed class StopCommand : BaseCommand
     {
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            StopCommandStrings.ScanningForRunningAppHosts,
-            StopCommandStrings.SelectAppHostToStop,
-            StopCommandStrings.NoInScopeAppHostsShowingAll,
-            StopCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, StopCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayMessage("information", StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayMessage("information", result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
@@ -178,12 +178,12 @@ internal sealed class StopCommand : BaseCommand
     private async Task<int> StopAllAppHostsAsync(CancellationToken cancellationToken)
     {
         var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
-            StopCommandStrings.ScanningForRunningAppHosts,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             cancellationToken);
 
         if (allConnections.Length == 0)
         {
-            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(SharedCommandStrings.AppHostNotRunning);
             return ExitCodeConstants.FailedToFindProject;
         }
 

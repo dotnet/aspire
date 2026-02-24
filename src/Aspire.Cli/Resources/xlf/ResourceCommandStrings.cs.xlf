@@ -17,21 +17,6 @@
         <target state="translated">Název prostředku, na kterém se má příkaz provést</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">Nebyli nalezeni žádní hostitelé aplikací v daném oboru. Zobrazují se všichni spuštění hostitelé aplikací.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Nebyl nalezen žádný spuštěný hostitel aplikací.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
         <target state="translated">Restartujte spuštěný prostředek.</target>
@@ -42,14 +27,9 @@
         <target state="translated">Název prostředku, který se má restartovat</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Vyhledávání spuštěných hostitelů aplikací...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select which AppHost to connect to:</source>
-        <target state="translated">Vyberte hostitele aplikace, ke kterému se chcete připojit:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>connect to</source>
+        <target state="new">connect to</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

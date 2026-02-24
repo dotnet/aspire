@@ -88,7 +88,7 @@ internal sealed class PsCommand : BaseCommand
         else
         {
             connections = await _interactionService.ShowStatusAsync(
-                PsCommandStrings.ScanningForRunningAppHosts,
+                SharedCommandStrings.ScanningForRunningAppHosts,
                 async () =>
                 {
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
@@ -104,7 +104,7 @@ internal sealed class PsCommand : BaseCommand
             }
             else
             {
-                _interactionService.DisplayMessage("information", PsCommandStrings.NoRunningAppHostsFound);
+                _interactionService.DisplayMessage("information", SharedCommandStrings.AppHostNotRunning);
             }
             return ExitCodeConstants.Success;
         }

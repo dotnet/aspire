@@ -41,7 +41,7 @@ internal static class TelemetryCommandHelpers
     /// </summary>
     internal static Option<FileInfo?> CreateProjectOption() => new("--project")
     {
-        Description = TelemetryCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.ProjectOptionDescription
     };
 
     /// <summary>
@@ -111,18 +111,19 @@ internal static class TelemetryCommandHelpers
         CancellationToken cancellationToken)
     {
         // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : TelemetryCommandStrings.ScanningForRunningAppHosts;
+        var scanningMessage = format == OutputFormat.Json ? string.Empty : SharedCommandStrings.ScanningForRunningAppHosts;
 
         var result = await connectionResolver.ResolveConnectionAsync(
             projectFile,
             scanningMessage,
-            TelemetryCommandStrings.SelectAppHost,
-            TelemetryCommandStrings.NoInScopeAppHostsShowingAll,
-            TelemetryCommandStrings.AppHostNotRunning,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, TelemetryCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
+            interactionService.DisplayMessage("information", result.ErrorMessage);
             return (false, null, null, null, ExitCodeConstants.Success);
         }
 

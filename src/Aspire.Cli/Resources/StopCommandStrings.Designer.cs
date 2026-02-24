@@ -69,12 +69,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string NoRunningAppHostsFound {
-            get {
-                return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
-            }
-        }
-
         public static string MultipleAppHostsRunning {
             get {
                 return ResourceManager.GetString("MultipleAppHostsRunning", resourceCulture);
@@ -87,21 +81,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string SelectAppHostToStop {
+        public static string SelectAppHostAction {
             get {
-                return ResourceManager.GetString("SelectAppHostToStop", resourceCulture);
-            }
-        }
-
-        public static string ScanningForRunningAppHosts {
-            get {
-                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
-            }
-        }
-
-        public static string NoInScopeAppHostsShowingAll {
-            get {
-                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
+                return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
             }
         }
 

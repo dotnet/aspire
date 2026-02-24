@@ -41,7 +41,7 @@ internal sealed class WaitCommand : BaseCommand
 
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
-        Description = WaitCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.ProjectOptionDescription
     };
 
     public WaitCommand(
@@ -92,15 +92,15 @@ internal sealed class WaitCommand : BaseCommand
         // Resolve connection to a running AppHost
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            WaitCommandStrings.ScanningForRunningAppHosts,
-            WaitCommandStrings.SelectAppHost,
-            WaitCommandStrings.NoInScopeAppHostsShowingAll,
-            WaitCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, WaitCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayError(result.ErrorMessage ?? WaitCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(result.ErrorMessage);
             return ExitCodeConstants.FailedToFindProject;
         }
 

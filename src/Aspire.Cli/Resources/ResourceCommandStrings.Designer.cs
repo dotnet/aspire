@@ -45,33 +45,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string ScanningForRunningAppHosts {
+        internal static string SelectAppHostAction {
             get {
-                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
-            }
-        }
-
-        internal static string SelectAppHost {
-            get {
-                return ResourceManager.GetString("SelectAppHost", resourceCulture);
-            }
-        }
-
-        internal static string NoInScopeAppHostsShowingAll {
-            get {
-                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
-            }
-        }
-
-        internal static string NoRunningAppHostsFound {
-            get {
-                return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
-            }
-        }
-
-        internal static string ProjectOptionDescription {
-            get {
-                return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
+                return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
             }
         }
 

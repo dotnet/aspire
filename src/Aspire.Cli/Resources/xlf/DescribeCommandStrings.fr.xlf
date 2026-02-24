@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../DescribeCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Désolé, aucun AppHost en cours d’exécution n’a été trouvé. Utilisez « aspire run » pour en démarrer un.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
         <target state="needs-review-translation">Afficher les instantanés de ressource d’un Apphost Aspire en cours d’exécution.</target>
@@ -27,16 +22,6 @@
         <target state="translated">Désolé, aucun projet AppHost n’a été trouvé.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Désolé, aucun AppHosts n’a été trouvé dans le répertoire actif. Affichage de tous les AppHosts en cours d’exécution.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
         <target state="translated">Le nom de la ressource à afficher. Si aucun nom n’est spécifié, toutes les ressources sont affichées.</target>
@@ -47,14 +32,9 @@
         <target state="translated">Ressource « {0} » introuvable.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Recherche des AppHosts en cours d’exécution...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Sélectionner un AppHost :</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>describe</source>
+        <target state="new">describe</target>
         <note />
       </trans-unit>
     </body>

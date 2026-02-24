@@ -32,29 +32,14 @@
         <target state="translated">Se están ejecutando varios AppHost. Use --project para especificar cuál se va a detener o seleccione uno:</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">No se encontró ningún AppHosts en ejecución en el directorio actual. Mostrando todos los AppHosts en ejecución:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found in scope.</source>
-        <target state="translated">No se encontraron AppHosts en ejecución en el ámbito.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
         <target state="translated">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Buscando AppHosts en ejecución...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHostToStop">
-        <source>Select an AppHost to stop:</source>
-        <target state="translated">Seleccione un AppHost para detener:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stop</source>
+        <target state="new">stop</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

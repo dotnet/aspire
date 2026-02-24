@@ -87,7 +87,7 @@ internal sealed class LogsCommand : BaseCommand
     };
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
-        Description = LogsCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.ProjectOptionDescription
     };
     private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
@@ -166,19 +166,20 @@ internal sealed class LogsCommand : BaseCommand
         }
 
         // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : LogsCommandStrings.ScanningForRunningAppHosts;
+        var scanningMessage = format == OutputFormat.Json ? string.Empty : SharedCommandStrings.ScanningForRunningAppHosts;
 
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
             scanningMessage,
-            LogsCommandStrings.SelectAppHost,
-            LogsCommandStrings.NoInScopeAppHostsShowingAll,
-            LogsCommandStrings.AppHostNotRunning,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, LogsCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
             // No running AppHosts is not an error - similar to Unix 'ps' returning empty
+            _interactionService.DisplayMessage("information", result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 

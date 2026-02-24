@@ -17,21 +17,6 @@
         <target state="translated">要在其上执行命令的资源的名称。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">未找到范围内的 AppHost。显示所有正在运行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">未找到正在运行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 项目文件的路径。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
         <target state="translated">重启正在运行的资源。</target>
@@ -42,14 +27,9 @@
         <target state="translated">要重启的资源的名称。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select which AppHost to connect to:</source>
-        <target state="translated">选择要连接的 AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>connect to</source>
+        <target state="new">connect to</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

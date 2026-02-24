@@ -123,12 +123,6 @@
   <data name="JsonOptionDescription" xml:space="preserve">
     <value>Output format (Table or Json).</value>
   </data>
-  <data name="ScanningForRunningAppHosts" xml:space="preserve">
-    <value>Scanning for running AppHosts...</value>
-  </data>
-  <data name="NoRunningAppHostsFound" xml:space="preserve">
-    <value>No running AppHosts found.</value>
-  </data>
   <data name="HeaderPath" xml:space="preserve">
     <value>PATH</value>
   </data>
