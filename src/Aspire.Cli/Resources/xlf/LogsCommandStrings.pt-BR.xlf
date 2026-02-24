@@ -42,6 +42,11 @@
         <target state="translated">O nome do recurso para o qual obter logs. Se não for especificado, os logs de todos os recursos serão mostrados.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
         <target state="translated">Um nome de recurso é necessário ao não usar --follow. Use --follow para transmitir logs de todos os recursos.</target>
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">A opção --tail requer que um nome de recurso seja especificado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

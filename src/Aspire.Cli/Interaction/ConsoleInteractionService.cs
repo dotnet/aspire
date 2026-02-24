@@ -208,13 +208,13 @@ internal class ConsoleInteractionService : IInteractionService
         DisplayMessage("cross_mark", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
         // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
         // on the same line before writing the message. This ensures that the message starts at the same position regardless
         // of the emoji used. I'm not OCD .. you are!
         var console = MessageConsole;
-        console.Markup($":{emoji}:");
+        console.Markup($":{emojiName}:");
         console.Write("\u001b[4G");
         console.MarkupLine(message);
     }

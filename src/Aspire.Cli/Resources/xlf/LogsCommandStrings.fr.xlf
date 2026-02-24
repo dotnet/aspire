@@ -42,6 +42,11 @@
         <target state="translated">Le nom de la ressource pour laquelle obtenir les journaux. Si aucun nom n’est spécifié, les journaux d’activité de toutes les ressources sont affichées.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
         <target state="translated">Un nom de ressource est requis si vous n’utilisez pas --follow. Utilisez --follow pour diffuser en continu les journaux de toutes les ressources.</target>
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">L’option --tail requiert la spécification d’un nom de ressource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

@@ -233,11 +233,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emoji, message.RemoveSpectreFormatting(), _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emojiName, message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayMessage(emoji, message);
+        _consoleInteractionService.DisplayMessage(emojiName, message);
     }
 
     public void DisplaySuccess(string message)

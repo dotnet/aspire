@@ -80,7 +80,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
     }
 

@@ -16,7 +16,7 @@ internal interface IInteractionService
     Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion);
     void DisplayError(string errorMessage);
-    void DisplayMessage(string emoji, string message);
+    void DisplayMessage(string emojiName, string message);
     void DisplayPlainText(string text);
     void DisplayRawText(string text, ConsoleOutput? consoleOverride = null);
     void DisplayMarkdown(string markdown);
