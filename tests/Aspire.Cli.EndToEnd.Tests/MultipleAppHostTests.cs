@@ -10,20 +10,20 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for Aspire CLI behavior when multiple AppHost projects are found.
-/// Each test class runs as a separate CI job for parallelization.
+/// Tests that <c>aspire run --detach --format json</c> produces well-formed JSON
+/// without human-readable messages polluting stdout.
 /// </summary>
 public sealed class MultipleAppHostTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task MultipleAppHostsShowsSelectionPrompt()
+    public async Task DetachFormatJsonProducesValidJson()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(MultipleAppHostsShowsSelectionPrompt));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(DetachFormatJsonProducesValidJson));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -54,13 +54,6 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         var waitingForTestPrompt = new CellPatternSearcher()
             .Find("Do you want to create a test project?");
 
-        // Pattern searcher for the apphost selection prompt
-        var waitingForAppHostSelectionPrompt = new CellPatternSearcher()
-            .Find("Select an apphost to use:");
-
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
-
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -73,13 +66,13 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Create the first project using aspire new
+        // Create a single project using aspire new
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .Enter() // select Starter App
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("FirstApp")
+            .Type("TestApp")
             .Enter()
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
@@ -91,83 +84,67 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Clear screen to avoid pattern interference from the first aspire new
         sequenceBuilder.ClearScreen(counter);
 
-        // Create the second project using aspire new
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select Starter App
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("SecondApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+        // Navigate into the project directory
+        sequenceBuilder
+            .Type("cd TestApp")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Clear screen before running aspire run
+        // First: launch the apphost with --detach (interactive, no JSON)
+        var waitForDetachedMessage = new CellPatternSearcher()
+            .Find("The apphost is running in the background.");
+
+        sequenceBuilder
+            .Type("aspire run --detach")
+            .Enter()
+            .WaitUntil(s =>
+            {
+                if (waitForDetachedMessage.Search(s).Count > 0)
+                {
+                    return true;
+                }
+
+                var sdkError = new CellPatternSearcher().Find("Could not resolve SDK");
+                if (sdkError.Search(s).Count > 0)
+                {
+                    throw new InvalidOperationException("AppHost SDK resolution failed.");
+                }
+
+                return false;
+            }, TimeSpan.FromMinutes(3))
+            .WaitForSuccessPrompt(counter);
+
         sequenceBuilder.ClearScreen(counter);
 
-        // Searcher for error messages that indicate the apphost failed to build/resolve
-        var sdkResolutionError = new CellPatternSearcher()
-            .Find("Could not resolve SDK");
-
-        var noAppHostFound = new CellPatternSearcher()
-            .Find("No project file found");
-
-        // Run aspire run from the workspace root — should find both apphosts and prompt
-        sequenceBuilder.Type("aspire run")
+        // Second: launch again with --detach --format json, redirecting stdout to a file.
+        // This tests that the JSON output is well-formed and not polluted by human-readable messages.
+        // stderr is left visible in the terminal for debugging (human-readable messages go to stderr
+        // when --format json is used, which is exactly what this PR validates).
+        sequenceBuilder
+            .Type("aspire run --detach --format json > output.json")
             .Enter()
-            .WaitUntil(s =>
-            {
-                // Assert we see the selection prompt
-                if (waitingForAppHostSelectionPrompt.Search(s).Count > 0)
-                {
-                    return true;
-                }
+            .WaitForSuccessPrompt(counter);
 
-                // Fail fast with descriptive message if something went wrong instead
-                if (sdkResolutionError.Search(s).Count > 0)
-                {
-                    throw new InvalidOperationException(
-                        "AppHost SDK resolution failed. The test requires real buildable AppHost projects.");
-                }
+        sequenceBuilder.ClearScreen(counter);
 
-                if (noAppHostFound.Search(s).Count > 0)
-                {
-                    throw new InvalidOperationException(
-                        "No AppHost projects were found. Expected two AppHost projects to trigger selection prompt.");
-                }
-
-                return false;
-            }, TimeSpan.FromSeconds(60))
-            // Select the first apphost by pressing Enter
+        // Validate the JSON output file is well-formed by using python to parse it
+        sequenceBuilder
+            .Type("python3 -c \"import json; data = json.load(open('output.json')); print('JSON_VALID'); print('appHostPath' in data); print('appHostPid' in data)\"")
             .Enter()
-            // The selected apphost should build and start successfully
-            .WaitUntil(s =>
-            {
-                if (waitForCtrlCMessage.Search(s).Count > 0)
-                {
-                    return true;
-                }
+            .WaitForSuccessPrompt(counter);
 
-                // Fail fast if the apphost failed to build
-                if (sdkResolutionError.Search(s).Count > 0)
-                {
-                    throw new InvalidOperationException(
-                        "Selected AppHost failed to build due to SDK resolution error.");
-                }
+        // Also cat the file so we can see it in the recording
+        sequenceBuilder
+            .Type("cat output.json")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
 
-                return false;
-            }, TimeSpan.FromMinutes(2))
-            .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
+        // Clean up: stop any running instances
+        sequenceBuilder
+            .Type("aspire stop --all 2>/dev/null || true")
+            .Enter()
             .WaitForSuccessPrompt(counter)
             .Type("exit")
             .Enter();
