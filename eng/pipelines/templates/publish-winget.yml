@@ -94,6 +94,41 @@ steps:
 
   - powershell: |
       $ErrorActionPreference = 'Stop'
+      $manifestDir = '$(WinGetManifestDir)'
+
+      Write-Host "Validating ReleaseNotesUrl from locale manifest..."
+
+      $localeYaml = Get-ChildItem -Path $manifestDir -Filter "*.locale.*.yaml" | Select-Object -First 1
+      if (-not $localeYaml) {
+        Write-Error "No *.locale.*.yaml found in $manifestDir"
+        exit 1
+      }
+
+      $match = Select-String -Path $localeYaml.FullName -Pattern 'ReleaseNotesUrl:\s*(.+)' | Select-Object -First 1
+      if (-not $match) {
+        Write-Error "No ReleaseNotesUrl found in $($localeYaml.Name)"
+        exit 1
+      }
+
+      $releaseNotesUrl = $match.Matches[0].Groups[1].Value.Trim()
+      Write-Host "  URL: $releaseNotesUrl"
+
+      try {
+        $response = Invoke-WebRequest -Uri $releaseNotesUrl -Method Head -MaximumRedirection 5 -TimeoutSec 15 -UseBasicParsing
+        Write-Host "  OK ($($response.StatusCode))"
+      }
+      catch {
+        $code = $_.Exception.Response.StatusCode.value__
+        if (-not $code) { $code = 'ERR' }
+        Write-Error "ReleaseNotesUrl is not accessible ($code): $releaseNotesUrl"
+        exit 1
+      }
+
+      Write-Host "ReleaseNotesUrl is valid."
+    displayName: '🟣Validate ReleaseNotesUrl'
+
+  - powershell: |
+      $ErrorActionPreference = 'Stop'
       Write-Host "Downloading wingetcreate..."
       Invoke-WebRequest -Uri "https://aka.ms/wingetcreate/latest" -OutFile "$(Build.StagingDirectory)/wingetcreate.exe"
       Write-Host "wingetcreate downloaded successfully"
