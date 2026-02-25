@@ -142,12 +142,6 @@ internal sealed class DcpHost
 
         try
         {
-            // Check if the interaction service is available (dashboard enabled)
-            if (!_interactionService.IsAvailable)
-            {
-                return;
-            }
-
             // Check and warn if the developer certificate is not trusted
             if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !await DeveloperCertificateService.IsCertificateTrustedAsync(_fileSystemService, _developerCertificateService.Certificates.First(), cancellationToken).ConfigureAwait(false))
             {
@@ -162,6 +156,12 @@ internal sealed class DcpHost
                 var message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
 
                 _logger.LogWarning("{Message}", message);
+
+                // Check if the interaction service is available (dashboard enabled)
+                if (!_interactionService.IsAvailable)
+                {
+                    return;
+                }
 
                 // Send notification to the dashboard
                 _ = _interactionService.PromptNotificationAsync(
