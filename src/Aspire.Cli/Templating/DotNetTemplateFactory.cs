@@ -670,7 +670,7 @@ internal class DotNetTemplateFactory(
         {
             // If settings file creation fails, don't fail the entire operation
             // Just continue without creating the settings file
-            interactionService.WriteConsoleLog($"Warning: Failed to create settings file: {ex.Message}", type: "warning");
+            interactionService.DisplayMessage("warning", $"Failed to create settings file: {ex.Message.EscapeMarkup()}. Continuing without settings file.");
         }
     }
 
@@ -706,10 +706,10 @@ internal class DotNetTemplateFactory(
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // If we can't read the file, it's not a valid candidate
-            // This can happen due to permissions, encoding issues, etc.
+            AnsiConsole.MarkupLine($"[grey][[Debug]] Could not read file '{candidateFile.FullName.EscapeMarkup()}': {ex.Message.EscapeMarkup()}[/]");
             return false;
         }
 
