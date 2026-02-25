@@ -45,27 +45,23 @@ internal sealed class SecretStoreResolver(
             return null;
         }
 
-        string? userSecretsId;
+        // Delegate UserSecretsId resolution to the project handler
+        var userSecretsId = await project.GetUserSecretsIdAsync(appHostFile, cancellationToken);
 
-        if (project.LanguageId == "csharp")
+        if (string.IsNullOrEmpty(userSecretsId))
         {
-            // .NET projects: resolve UserSecretsId via the resolver's own logic
-            userSecretsId = await GetDotNetUserSecretsIdAsync(appHostFile, cancellationToken);
-
-            if (string.IsNullOrEmpty(userSecretsId))
+            if (!autoInit)
             {
-                if (!autoInit)
-                {
-                    return null;
-                }
-
-                userSecretsId = await AutoInitUserSecretsAsync(appHostFile, cancellationToken);
+                return null;
             }
-        }
-        else
-        {
-            // Polyglot projects: compute a deterministic synthetic ID
-            userSecretsId = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
+            // Only .NET projects support dotnet user-secrets init
+            if (!project.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            userSecretsId = await AutoInitUserSecretsAsync(appHostFile, project, cancellationToken);
         }
 
         var secretsFilePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
@@ -74,48 +70,9 @@ internal sealed class SecretStoreResolver(
         return new SecretsStoreResult(store, userSecretsId, appHostFile);
     }
 
-    private async Task<string?> GetDotNetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Use the dotnet CLI to evaluate MSBuild properties
-            var psi = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                ArgumentList = { "msbuild", projectFile.FullName, "-getProperty:UserSecretsId", "-nologo" },
-                WorkingDirectory = projectFile.Directory!.FullName,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                return null;
-            }
-
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode != 0)
-            {
-                return null;
-            }
-
-            var userSecretsId = output.Trim();
-            return string.IsNullOrEmpty(userSecretsId) ? null : userSecretsId;
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Failed to get UserSecretsId from project file");
-            return null;
-        }
-    }
-
     private async Task<string> AutoInitUserSecretsAsync(
         FileInfo appHostFile,
+        IAppHostProject project,
         CancellationToken cancellationToken)
     {
         logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", appHostFile.Name);
@@ -148,7 +105,7 @@ internal sealed class SecretStoreResolver(
         }
 
         // Re-query to get the newly created UserSecretsId
-        var userSecretsId = await GetDotNetUserSecretsIdAsync(appHostFile, cancellationToken);
+        var userSecretsId = await project.GetUserSecretsIdAsync(appHostFile, cancellationToken);
 
         if (string.IsNullOrEmpty(userSecretsId))
         {

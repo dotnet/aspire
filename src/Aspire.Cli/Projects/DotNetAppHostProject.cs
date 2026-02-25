@@ -506,7 +506,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <summary>
     /// Gets the UserSecretsId from a project file.
     /// </summary>
-    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {
