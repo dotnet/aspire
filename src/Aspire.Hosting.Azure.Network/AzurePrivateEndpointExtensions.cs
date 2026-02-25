@@ -10,6 +10,18 @@ using Azure.Provisioning.PrivateDns;
 namespace Aspire.Hosting;
 
 /// <summary>
+/// 
+/// </summary>
+public interface IAzurePrivateEndpointTargetNotification
+{
+    /// <summary>
+    /// Handles the event that occurs when a new Azure private endpoint resource is created.
+    /// </summary>
+    /// <param name="privateEndpoint">The Azure private endpoint resource that was created. Cannot be null.</param>
+    void OnPrivateEndpointCreated(IResourceBuilder<AzurePrivateEndpointResource> privateEndpoint);
+}
+
+/// <summary>
 /// Provides extension methods for adding Azure Private Endpoint resources to the application model.
 /// </summary>
 public static class AzurePrivateEndpointExtensions
@@ -80,7 +92,14 @@ public static class AzurePrivateEndpointExtensions
         }
         rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
 
-        return builder.AddResource(resource);
+        var pe = builder.AddResource(resource);
+
+        if (target.Resource is IAzurePrivateEndpointTargetNotification notificationTarget)
+        {
+            notificationTarget.OnPrivateEndpointCreated(pe);
+        }
+
+        return pe;
 
         void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra)
         {

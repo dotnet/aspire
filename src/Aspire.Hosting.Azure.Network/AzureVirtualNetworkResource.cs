@@ -20,7 +20,10 @@ public class AzureVirtualNetworkResource(string name, Action<AzureResourceInfras
     // Backing field holds either string or ParameterResource
     private readonly object _addressPrefix = DefaultAddressPrefix;
 
-    internal List<AzureSubnetResource> Subnets { get; } = [];
+    /// <summary>
+    /// Gets the list of subnets for the virtual network.
+    /// </summary>
+    public List<AzureSubnetResource> Subnets { get; } = [];
 
     /// <summary>
     /// Gets the address prefix for the virtual network (e.g., "10.0.0.0/16"), or <c>null</c> if the address prefix is provided via a <see cref="ParameterResource"/>.

@@ -7,10 +7,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Network;
-using Azure.Provisioning.PrivateDns;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -22,7 +20,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
-public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString, IAzurePrivateEndpointTarget
+public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString, IAzurePrivateEndpointTarget, IAzurePrivateEndpointTargetNotification
 {
     private readonly Dictionary<string, AzureSqlDatabaseResource> _databases = new Dictionary<string, AzureSqlDatabaseResource>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
@@ -64,6 +62,17 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public BicepOutputReference Id => new("id", this);
 
     private BicepOutputReference AdminName => new("sqlServerAdminName", this);
+
+    /// <summary>
+    /// Gets or sets the storage account used for deployment scripts.
+    /// Set during AddAzureSqlServer and potentially swapped by WithAdminDeploymentScriptStorage
+    /// or removed by the preparer if no private endpoint is detected.
+    /// </summary>
+    internal AzureStorageResource? DeploymentScriptStorage { get; set; }
+
+    internal AzureUserAssignedIdentityResource? AdminIdentity { get; set; }
+
+    internal AzureNetworkSecurityGroupResource? DeploymentScriptNetworkSecurityGroup { get; set; }
 
     /// <summary>
     /// Gets the host name for the SQL Server.
@@ -212,13 +221,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         sqlServerAdmin.Name = AdminName.AsProvisioningParameter(infra);
         infra.Add(sqlServerAdmin);
 
-        // Check for deployment script subnet and storage annotations (for private endpoint scenarios)
+        // Check for deployment script subnet and storage (for private endpoint scenarios)
         this.TryGetLastAnnotation<AdminDeploymentScriptSubnetAnnotation>(out var subnetAnnotation);
-        this.TryGetLastAnnotation<AdminDeploymentScriptStorageAnnotation>(out var storageAnnotation);
-        this.TryGetLastAnnotation<AutoDeploymentScriptConfigAnnotation>(out var autoConfigAnnotation);
 
         // Resolve the ACI subnet ID and storage account name for deployment scripts.
-        // These can come from either explicit annotations or auto-created inline infrastructure.
         BicepValue<global::Azure.Core.ResourceIdentifier>? aciSubnetId = null;
         BicepValue<string>? deploymentStorageAccountName = null;
 
@@ -228,37 +234,12 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             aciSubnetId = subnetAnnotation.Subnet.Id.AsProvisioningParameter(infra);
         }
 
-        if (storageAnnotation is not null)
+        if (DeploymentScriptStorage is not null)
         {
-            // Explicit storage provided by user
-            var existingStorageAccount = (StorageAccount)storageAnnotation.Storage.AddAsExistingResource(infra);
-
-            infra.Add(CreateStorageRoleAssignment(
-                existingStorageAccount,
-                StorageBuiltInRole.StorageFileDataPrivilegedContributor,
-                sqlServerAdmin));
+            // Storage reference — either auto-created or user-provided
+            var existingStorageAccount = (StorageAccount)DeploymentScriptStorage.AddAsExistingResource(infra);
 
             deploymentStorageAccountName = existingStorageAccount.Name;
-
-            // Create a files PE so the deployment script (running in a VNet) can reach this storage
-            if (autoConfigAnnotation is not null)
-            {
-                CreateFilesPrivateEndpointInfra(infra, autoConfigAnnotation, existingStorageAccount.Id);
-            }
-        }
-
-        if (autoConfigAnnotation is not null)
-        {
-            // Auto-create only the components that weren't explicitly provided
-            if (aciSubnetId is null && autoConfigAnnotation.HasAutoSubnet)
-            {
-                aciSubnetId = CreateAutoAciSubnet(infra, autoConfigAnnotation);
-            }
-
-            if (deploymentStorageAccountName is null && autoConfigAnnotation.AutoCreateStorage)
-            {
-                deploymentStorageAccountName = CreateAutoDeploymentStorage(infra, autoConfigAnnotation, sqlServerAdmin);
-            }
         }
 
         // When not in Run Mode (F5) we reference the managed identity
@@ -357,186 +338,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
     }
 
-    private static RoleAssignment CreateStorageRoleAssignment(
-        StorageAccount account,
-        StorageBuiltInRole role,
-        UserAssignedIdentity identity)
-    {
-        return new RoleAssignment($"{account.BicepIdentifier}_{identity.BicepIdentifier}_{StorageBuiltInRole.GetBuiltInRoleName(role)}")
-        {
-            Name = BicepFunction.CreateGuid(account.Id, identity.Id, BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString())),
-            Scope = new IdentifierExpression(account.BicepIdentifier),
-            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-            RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-            PrincipalId = identity.PrincipalId
-        };
-    }
-
-    /// <summary>
-    /// Creates an ACI subnet with NSG and delegation inline in the role assignment bicep module.
-    /// </summary>
-    private static BicepValue<global::Azure.Core.ResourceIdentifier> CreateAutoAciSubnet(
-        AzureResourceInfrastructure infra,
-        AutoDeploymentScriptConfigAnnotation config)
-    {
-        // Reference the existing VNet
-        var existingVnet = GetOrAddExistingVnet(infra, config.VNet!);
-
-        // Create NSG for the ACI subnet
-        var nsg = new NetworkSecurityGroup("aciSubnetNsg")
-        {
-            Tags = { { "aspire-resource-name", "aci-subnet-nsg" } }
-        };
-        infra.Add(nsg);
-
-        // Add outbound rules for AAD and SQL access
-        infra.Add(new SecurityRule("allow_outbound_443_AzureActiveDirectory")
-        {
-            Name = "allow-outbound-443-AzureActiveDirectory",
-            Priority = 100,
-            Direction = SecurityRuleDirection.Outbound,
-            Access = SecurityRuleAccess.Allow,
-            Protocol = SecurityRuleProtocol.Asterisk,
-            SourceAddressPrefix = "*",
-            SourcePortRange = "*",
-            DestinationAddressPrefix = "AzureActiveDirectory",
-            DestinationPortRange = "443",
-            Parent = nsg
-        });
-        infra.Add(new SecurityRule("allow_outbound_443_Sql")
-        {
-            Name = "allow-outbound-443-Sql",
-            Priority = 200,
-            Direction = SecurityRuleDirection.Outbound,
-            Access = SecurityRuleAccess.Allow,
-            Protocol = SecurityRuleProtocol.Asterisk,
-            SourceAddressPrefix = "*",
-            SourcePortRange = "*",
-            DestinationAddressPrefix = "Sql",
-            DestinationPortRange = "443",
-            Parent = nsg
-        });
-
-        // Create the ACI subnet as a child of the existing VNet
-        var aciSubnet = new SubnetResource("aciSubnet")
-        {
-            Name = "aci-deployment-script-subnet",
-            Parent = existingVnet,
-            AddressPrefix = config.AciSubnetCidr!,
-            Delegations =
-            {
-                new ServiceDelegation
-                {
-                    Name = "Microsoft.ContainerInstance/containerGroups",
-                    ServiceName = "Microsoft.ContainerInstance/containerGroups"
-                }
-            }
-        };
-        aciSubnet.NetworkSecurityGroup.Id = nsg.Id;
-        infra.Add(aciSubnet);
-
-        return aciSubnet.Id;
-    }
-
-    /// <summary>
-    /// Creates a storage account with files PE, DNS zone, and role assignment inline
-    /// in the role assignment bicep module.
-    /// </summary>
-    private static BicepValue<string> CreateAutoDeploymentStorage(
-        AzureResourceInfrastructure infra,
-        AutoDeploymentScriptConfigAnnotation config,
-        UserAssignedIdentity sqlServerAdmin)
-    {
-        // Create a storage account for deployment scripts
-        var storageAccount = new StorageAccount("depScriptStorage")
-        {
-            Kind = StorageKind.StorageV2,
-            AccessTier = StorageAccountAccessTier.Hot,
-            Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-            MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-            // Deployment scripts require shared key access to mount file shares
-            AllowSharedKeyAccess = true,
-            NetworkRuleSet = new StorageAccountNetworkRuleSet()
-            {
-                DefaultAction = StorageNetworkDefaultAction.Deny
-            },
-            PublicNetworkAccess = StoragePublicNetworkAccess.Disabled,
-            Tags = { { "aspire-resource-name", "dep-script-storage" } }
-        };
-        infra.Add(storageAccount);
-
-        // Create role assignment for SqlServerAdmin to access storage files
-        infra.Add(CreateStorageRoleAssignment(
-            storageAccount,
-            StorageBuiltInRole.StorageFileDataPrivilegedContributor,
-            sqlServerAdmin));
-
-        // Create files PE + DNS for the auto-created storage
-        CreateFilesPrivateEndpointInfra(infra, config, storageAccount.Id);
-
-        return storageAccount.Name;
-    }
-
-    /// <summary>
-    /// Creates a private endpoint for Azure Files, with DNS zone and VNet link,
-    /// so deployment scripts running in a VNet can reach the storage account.
-    /// </summary>
-    private static void CreateFilesPrivateEndpointInfra(
-        AzureResourceInfrastructure infra,
-        AutoDeploymentScriptConfigAnnotation config,
-        BicepValue<global::Azure.Core.ResourceIdentifier> storageAccountId)
-    {
-        var filesPe = new PrivateEndpoint("depStorageFilesPe")
-        {
-            Tags = { { "aspire-resource-name", "dep-storage-files-pe" } }
-        };
-        filesPe.Subnet.Id = config.PeSubnet.Id.AsProvisioningParameter(infra);
-        filesPe.PrivateLinkServiceConnections.Add(
-            new NetworkPrivateLinkServiceConnection
-            {
-                Name = "dep-storage-files-connection",
-                PrivateLinkServiceId = storageAccountId,
-                GroupIds = { "file" }
-            });
-        infra.Add(filesPe);
-
-        // Get or create existing VNet reference for DNS zone link
-        var existingVnet = GetOrAddExistingVnet(infra, config.PeSubnet.Parent);
-
-        // Create private DNS zone for file storage
-        var dnsZone = new PrivateDnsZone("depStorageFilesDnsZone")
-        {
-            Name = "privatelink.file.core.windows.net",
-            Location = new global::Azure.Core.AzureLocation("global")
-        };
-        infra.Add(dnsZone);
-
-        // Link the DNS zone to the VNet
-        infra.Add(new VirtualNetworkLink("depStorageFilesDnsVnetLink")
-        {
-            Name = "dep-storage-files-vnet-link",
-            Parent = dnsZone,
-            Location = new global::Azure.Core.AzureLocation("global"),
-            RegistrationEnabled = false,
-            VirtualNetworkId = existingVnet.Id
-        });
-
-        // Create DNS zone group on the PE
-        infra.Add(new PrivateDnsZoneGroup("depStorageFilesPe_dnsgroup")
-        {
-            Name = "default",
-            Parent = filesPe,
-            PrivateDnsZoneConfigs =
-            {
-                new PrivateDnsZoneConfig
-                {
-                    Name = "depStorageFilesDnsZone",
-                    PrivateDnsZoneId = dnsZone.Id
-                }
-            }
-        });
-    }
-
     /// <summary>
     /// Gets or adds an existing VNet reference to the infrastructure, avoiding duplicates.
     /// </summary>
@@ -607,4 +408,78 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["sqlServer"];
 
     string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() => "privatelink.database.windows.net";
+
+    void IAzurePrivateEndpointTargetNotification.OnPrivateEndpointCreated(IResourceBuilder<AzurePrivateEndpointResource> privateEndpoint)
+    {
+        var builder = privateEndpoint.ApplicationBuilder;
+
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            // Create a deployment script storage account (publish mode only).
+            // The BeforeStartEvent handler will remove the default storage if it's no longer
+            // needed if the user swapped it via WithAdminDeploymentScriptStorage.
+            AzureStorageResource? createdStorage = null;
+            if (DeploymentScriptStorage is null)
+            {
+                DeploymentScriptStorage = AzureSqlExtensions.CreateDeploymentScriptStorage(builder, builder.CreateResourceBuilder(this)).Resource;
+                createdStorage = DeploymentScriptStorage;
+            }
+
+            var admin = builder.AddAzureUserAssignedIdentity($"{Name}-admin-identity")
+               .WithAnnotation(new ExistingAzureResourceAnnotation(AdminName));
+            AdminIdentity = admin.Resource;
+
+            admin.WithRoleAssignments(builder.CreateResourceBuilder(DeploymentScriptStorage), StorageBuiltInRole.StorageFileDataPrivilegedContributor);
+
+            var peSubnet = builder.CreateResourceBuilder(privateEndpoint.Resource.Subnet);
+            peSubnet.AddPrivateEndpoint(builder.CreateResourceBuilder(new StorageFiles(DeploymentScriptStorage)));
+
+            DeploymentScriptNetworkSecurityGroup = builder.AddNetworkSecurityGroup($"{Name}-nsg")
+                .WithSecurityRule(new AzureSecurityRule()
+                {
+                    Name = "allow-outbound-443-AzureActiveDirectory",
+                    Priority = 100,
+                    Direction = SecurityRuleDirection.Outbound,
+                    Access = SecurityRuleAccess.Allow,
+                    Protocol = SecurityRuleProtocol.Tcp,
+                    SourceAddressPrefix = "*",
+                    SourcePortRange = "*",
+                    DestinationAddressPrefix = AzureServiceTags.AzureActiveDirectory,
+                    DestinationPortRange = "443",
+                })
+                .WithSecurityRule(new AzureSecurityRule()
+                {
+                    Name = "allow-outbound-443-Sql",
+                    Priority = 200,
+                    Direction = SecurityRuleDirection.Outbound,
+                    Access = SecurityRuleAccess.Allow,
+                    Protocol = SecurityRuleProtocol.Tcp,
+                    SourceAddressPrefix = "*",
+                    SourcePortRange = "*",
+                    DestinationAddressPrefix = AzureServiceTags.Sql,
+                    DestinationPortRange = "443",
+                }).Resource;
+
+            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            {
+                AzureSqlExtensions.PrepareDeploymentScriptInfrastructure(data.Model, this, createdStorage);
+
+                return Task.CompletedTask;
+            });
+        }
+    }
+
+    private sealed class StorageFiles(AzureStorageResource storage) : Resource("files"), IResourceWithParent, IAzurePrivateEndpointTarget
+    {
+        public BicepOutputReference Id => storage.Id;
+
+        public IResource Parent => storage;
+
+        public string GetPrivateDnsZoneName() => "privatelink.file.core.windows.net";
+
+        public IEnumerable<string> GetPrivateLinkGroupIds()
+        {
+            yield return "file";
+        }
+    }
 }

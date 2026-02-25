@@ -6,14 +6,11 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
@@ -96,8 +93,6 @@ public static class AzureSqlExtensions
         var azureSqlServer = builder.AddResource(resource)
             .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
-
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationEventingSubscriber, AzureSqlDeploymentScriptPreparer>());
 
         return azureSqlServer;
     }
@@ -423,12 +418,20 @@ public static class AzureSqlExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(storage);
 
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder;
         }
 
-        builder.Resource.Annotations.Add(new AdminDeploymentScriptStorageAnnotation(storage.Resource));
+        // Set the user's implicitStorage. The BeforeStartEvent handler will remove the
+        // original default implicitStorage since it no longer matches.
+        builder.Resource.DeploymentScriptStorage = storage.Resource;
+
+        if (builder.Resource.AdminIdentity is { } adminIdentity)
+        {
+            builder.ApplicationBuilder.CreateResourceBuilder(adminIdentity)
+                .WithRoleAssignments(storage, StorageBuiltInRole.StorageFileDataPrivilegedContributor);
+        }
 
         // If the storage is not an existing resource, ensure AllowSharedKeyAccess is enabled
         if (!storage.Resource.IsExisting())
@@ -452,5 +455,95 @@ public static class AzureSqlExtensions
         : Resource("aciDelegatedSubnet"), IAzureDelegatedSubnetResource
     {
         public string DelegatedSubnetServiceName => "Microsoft.ContainerInstance/containerGroups";
+    }
+
+    internal static void PrepareDeploymentScriptInfrastructure(DistributedApplicationModel appModel, AzureSqlServerResource sql, AzureStorageResource? implicitStorage)
+    {
+        var hasPe = sql.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
+        if (implicitStorage is not null)
+        {
+            if (!hasPe)
+            {
+                // No private endpoint — implicitStorage not needed
+                sql.DeploymentScriptStorage = null;
+                appModel.Resources.Remove(implicitStorage);
+
+                if (sql.AdminIdentity is not null)
+                {
+                    appModel.Resources.Remove(sql.AdminIdentity);
+                    sql.AdminIdentity = null;
+                }
+                return;
+            }
+
+            // If the implicitStorage was swapped out by WithAdminDeploymentScriptStorage,
+            // remove the original default from the model.
+            if (sql.DeploymentScriptStorage != implicitStorage)
+            {
+                appModel.Resources.Remove(implicitStorage);
+            }
+        }
+
+        // Find the private endpoint targeting this SQL server to get the VirtualNetwork
+        var pe = appModel.Resources.OfType<AzurePrivateEndpointResource>()
+            .FirstOrDefault(p => ReferenceEquals(p.Target, sql));
+
+        if (pe is null)
+        {
+            return;
+        }
+
+        var peSubnet = pe.Subnet;
+        var vnet = peSubnet.Parent;
+
+        var hasExplicitSubnet = sql.TryGetLastAnnotation<AdminDeploymentScriptSubnetAnnotation>(out _);
+
+        // Only auto-allocate subnet if user didn't provide one
+        if (!hasExplicitSubnet)
+        {
+            var existingSubnets = appModel.Resources.OfType<AzureSubnetResource>()
+                .Where(s => ReferenceEquals(s.Parent, vnet));
+
+            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnet, existingSubnets);
+            var aciSubnet = new FakeBuilder<AzureSubnetResource>(new AzureSubnetResource($"{sql.Name}-aci-subnet", $"{sql.Name}-aci-subnet", aciSubnetCidr, vnet));
+            vnet.Subnets.Add(aciSubnet.Resource);
+
+            aciSubnet.WithNetworkSecurityGroup(new FakeBuilder<AzureNetworkSecurityGroupResource>(sql.DeploymentScriptNetworkSecurityGroup!));
+
+            new FakeBuilder<AciDelegatedSubnetResource>(new AciDelegatedSubnetResource())
+                .WithDelegatedSubnet(aciSubnet);
+
+            sql.Annotations.Add(new AdminDeploymentScriptSubnetAnnotation(aciSubnet.Resource));
+        }
+        else
+        {
+            // TODO: remove the NSG
+        }
+    }
+
+    private sealed class FakeBuilder<T>(T resource) : IResourceBuilder<T> where T : IResource
+    {
+        public IDistributedApplicationBuilder ApplicationBuilder => throw new NotImplementedException();
+        public T Resource => resource;
+        public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
+        {
+            Resource.Annotations.Add(annotation);
+            return this;
+        }
+    }
+
+    internal static IResourceBuilder<AzureStorageResource> CreateDeploymentScriptStorage(IDistributedApplicationBuilder builder, IResourceBuilder<AzureSqlServerResource> azureSqlServer)
+    {
+        var sqlName = azureSqlServer.Resource.Name;
+        var storageName = $"{sqlName.Substring(0, Math.Min(sqlName.Length, 10))}-stor";
+
+        return builder.AddAzureStorage(storageName)
+            .ConfigureInfrastructure(infra =>
+            {
+                var sa = infra.GetProvisionableResources().OfType<StorageAccount>().SingleOrDefault()
+                    ?? throw new InvalidOperationException("Could not find a StorageAccount resource in the infrastructure. Ensure that the implicitStorage builder creates a StorageAccount resource.");
+                sa.AllowSharedKeyAccess = true;
+            });
     }
 }
