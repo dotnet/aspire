@@ -171,7 +171,18 @@ public static class AzureContainerRegistryExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(schedule);
         schedule = schedule.Trim();
-        _ = CrontabSchedule.Parse(schedule, new CrontabSchedule.ParseOptions { IncludingSeconds = false });
+
+        try
+        {
+            _ = CrontabSchedule.Parse(schedule, new CrontabSchedule.ParseOptions { IncludingSeconds = false });
+        }
+        catch (CrontabException ex)
+        {
+            throw new ArgumentException(
+                $"The schedule '{schedule}' is not a valid five-part cron expression (minute hour day-of-month month day-of-week). {ex.Message}",
+                nameof(schedule),
+                ex);
+        }
 
         if (keep < 1)
         {
@@ -264,12 +275,17 @@ public static class AzureContainerRegistryExtensions
             """.ReplaceLineEndings("\n");
     }
 
-    // Formats a TimeSpan into a string representation compatible with the `--ago` parameter of the `az acr purge` command, using the largest appropriate time unit (days, hours, or minutes).
-    // From the docs: https://learn.microsoft.com/azure/container-registry/container-registry-auto-purge#example-scheduled-purge-of-multiple-repositories-in-a-registry
-    //   A Go-style duration string to indicate a duration beyond which images are deleted. The duration consists of a sequence
-    //   of one or more decimal numbers, each with a unit suffix. Valid time units include "d" for days, "h" for hours, and "m"
-    //   for minutes. For example, --ago 2d3h6m selects all filtered images last modified more than two days, 3 hours, and 6 minutes
-    //   ago, and --ago 1.5h selects images last modified more than 1.5 hours ago.
+    /// <summary>
+    /// Formats a <see cref="TimeSpan"/> into a Go-style duration string compatible with <c>acr purge --ago</c>.
+    /// Valid units: <c>d</c> (days), <c>h</c> (hours), <c>m</c> (minutes).
+    /// </summary>
+    /// <remarks>
+    /// From the docs: https://learn.microsoft.com/azure/container-registry/container-registry-auto-purge#example-scheduled-purge-of-multiple-repositories-in-a-registry
+    ///   A Go-style duration string to indicate a duration beyond which images are deleted. The duration consists of a sequence
+    ///   of one or more decimal numbers, each with a unit suffix. Valid time units include "d" for days, "h" for hours, and "m"
+    ///   for minutes. For example, --ago 2d3h6m selects all filtered images last modified more than two days, 3 hours, and 6 minutes
+    ///   ago, and --ago 1.5h selects images last modified more than 1.5 hours ago.
+    /// </remarks>
     private static string FormatAgo(TimeSpan ago)
     {
         if (ago.TotalMinutes < 1 && ago != TimeSpan.Zero)

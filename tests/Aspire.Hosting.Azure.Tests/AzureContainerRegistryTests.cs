@@ -279,7 +279,7 @@ public class AzureContainerRegistryTests
 
         var acr = builder.AddAzureContainerRegistry("acr");
 
-        Assert.ThrowsAny<Exception>(() => acr.WithPurgeTask(schedule));
+        Assert.ThrowsAny<ArgumentException>(() => acr.WithPurgeTask(schedule));
     }
 
     [Fact]
@@ -343,7 +343,7 @@ public class AzureContainerRegistryTests
     }
 
     [Fact]
-    public async Task GetAzureContainerRegistry_ReturnsRegistryFromEnvironment()
+    public void GetAzureContainerRegistry_ReturnsRegistryFromEnvironment()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -357,7 +357,7 @@ public class AzureContainerRegistryTests
     }
 
     [Fact]
-    public async Task GetAzureContainerRegistry_ReturnsDefaultRegistryWhenNoExplicitRegistry()
+    public void GetAzureContainerRegistry_ReturnsDefaultRegistryWhenNoExplicitRegistry()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -370,7 +370,7 @@ public class AzureContainerRegistryTests
     }
 
     [Fact]
-    public async Task GetAzureContainerRegistry_ThrowWhenExplicitNoRegistry()
+    public void GetAzureContainerRegistry_ThrowWhenExplicitNoRegistry()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
