@@ -28,6 +28,6 @@ Tags:
 - microservices
 - containers
 - prerelease
-ReleaseNotesUrl: https://aspire.dev/whats-new/aspire-13-1/
+ReleaseNotesUrl: ${RELEASE_NOTES_URL}
 ManifestType: defaultLocale
 ManifestVersion: 1.10.0

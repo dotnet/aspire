@@ -69,8 +69,7 @@ if (-not $ManifestPath) {
     # Convention: manifests/m/Microsoft/Aspire/{Version}/ or manifests/m/Microsoft/Aspire/Prerelease/{Version}/
     $candidates = Get-ChildItem -Path $ScriptDir -Directory -Recurse -Depth 6 |
         Where-Object {
-            (Test-Path (Join-Path $_.FullName "*.installer.yaml")) -or
-            (Test-Path (Join-Path $_.FullName "*.installer.yaml"))
+            Test-Path (Join-Path $_.FullName "*.installer.yaml")
         } |
         Select-Object -First 1
 

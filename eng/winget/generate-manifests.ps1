@@ -24,6 +24,10 @@
     e.g., "./manifests/m/Microsoft/Aspire/{Version}" for Microsoft.Aspire
     or "./manifests/m/Microsoft/Aspire/Prerelease/{Version}" for Microsoft.Aspire.Prerelease.
 
+.PARAMETER ReleaseNotesUrl
+    URL to the release notes page. If not specified, derived from the version
+    (e.g., "13.2.0" -> "https://aspire.dev/whats-new/aspire-13-2/").
+
 .PARAMETER ValidateUrls
     When specified, verifies that all installer URLs are accessible (HTTP HEAD request)
     before downloading them to compute SHA256 hashes.
@@ -51,6 +55,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$OutputPath,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ReleaseNotesUrl,
 
     [Parameter(Mandatory = $false)]
     [switch]$ValidateUrls
@@ -149,7 +156,7 @@ function Get-RemoteFileSha256 {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -Uri $Url -OutFile $tempFile -UseBasicParsing
+        Invoke-WebRequest -Uri $Url -OutFile $tempFile -UseBasicParsing -TimeoutSec 120
 
         $hash = (Get-FileHash -Path $tempFile -Algorithm SHA256).Hash.ToUpperInvariant()
         Write-Host "  SHA256: $hash"
@@ -203,7 +210,7 @@ if ($ValidateUrls) {
     foreach ($entry in $installerEntries) {
         Write-Host "  Checking: $($entry.Url)"
         try {
-            $response = Invoke-WebRequest -Uri $entry.Url -Method Head -UseBasicParsing
+            $response = Invoke-WebRequest -Uri $entry.Url -Method Head -UseBasicParsing -TimeoutSec 30
             Write-Host "    Status: $($response.StatusCode) OK"
         }
         catch {
@@ -233,11 +240,24 @@ foreach ($entry in $installerEntries) {
 # Define substitutions
 $today = Get-Date -Format "yyyy-MM-dd"
 $year = Get-Date -Format "yyyy"
+# Derive ReleaseNotesUrl from version if not specified
+# Version format: "13.2.0" or "13.3.0-preview.1.26111.5"
+# URL pattern: https://aspire.dev/whats-new/aspire-{major}-{minor}/
+if (-not $ReleaseNotesUrl) {
+    if ($Version -match '^(\d+)\.(\d+)') {
+        $ReleaseNotesUrl = "https://aspire.dev/whats-new/aspire-$($Matches[1])-$($Matches[2])/"
+    } else {
+        $ReleaseNotesUrl = "https://aspire.dev/"
+    }
+    Write-Host "Derived ReleaseNotesUrl: $ReleaseNotesUrl"
+}
+
 $substitutions = @{
-    "VERSION"      = $Version
-    "INSTALLERS"   = $installersYaml
-    "RELEASE_DATE" = $today
-    "YEAR"         = $year
+    "VERSION"           = $Version
+    "INSTALLERS"        = $installersYaml
+    "RELEASE_DATE"      = $today
+    "YEAR"              = $year
+    "RELEASE_NOTES_URL" = $ReleaseNotesUrl
 }
 
 Write-Host ""
