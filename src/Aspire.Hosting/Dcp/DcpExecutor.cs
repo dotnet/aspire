@@ -1787,6 +1787,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 try
                 {
+                    // Clear existing launch configurations before re-annotating.
+                    // On restart, AnnotateAsObjectList deserializes the existing list, but DebugAdapterProperties
+                    // (abstract) deserializes as null, causing old configs to lose their debugger_properties.
+                    // Clearing first ensures only the fresh configuration with correct debugger_properties is used.
+                    exe.Annotate(Executable.LaunchConfigurationsAnnotation, string.Empty);
+
                     supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
                 }
                 catch (Exception ex)
