@@ -73,9 +73,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       const appHostPath = this._session.configuration.program as string;
       const noDebug = !!message.arguments?.noDebug;
+      const aspireCommand = this._session.configuration.aspireCommand ?? 'run';
 
-      const args = ['run'];
-      if (!noDebug) {
+      const args = [aspireCommand];
+      if (aspireCommand === 'run' && !noDebug) {
         args.push('--start-debug-session');
       }
       if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
@@ -141,6 +142,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       }
     });
 
+    const aspireCommand = args[0] ?? 'run';
+
     spawnCliProcess(
       this._terminalProvider,
       this._terminalProvider.getAspireCliExecutablePath(),
@@ -158,7 +161,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         },
         errorCallback: (error) => {
           extensionLogOutputChannel.error(`Error spawning aspire process: ${error}`);
-          vscode.window.showErrorMessage(processExceptionOccurred(error.message, 'aspire run'));
+          vscode.window.showErrorMessage(processExceptionOccurred(error.message, `aspire ${aspireCommand}`));
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", processExitedWithCode(code ?? '?'));
