@@ -124,9 +124,6 @@
   <data name="SelectATemplateVersion" xml:space="preserve">
     <value>Select a template version:</value>
   </data>
-  <data name="UsePrereleaseTemplates" xml:space="preserve">
-    <value>(use pre-release templates)</value>
-  </data>
   <data name="EnterTheOutputPath" xml:space="preserve">
     <value>Enter the output path:</value>
   </data>

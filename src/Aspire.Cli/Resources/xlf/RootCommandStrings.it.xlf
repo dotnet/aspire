@@ -52,11 +52,6 @@ L'interfaccia della riga di comando di Aspire raccoglie i dati di utilizzo. Veng
 Altre informazioni sui dati di telemetria dell'interfaccia della riga di comando di Aspire: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">Vi diamo il benvenuto in Aspire! Per altre informazioni su Aspire, vedere https://aspire.dev</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Consente di disabilitare il banner di avvio e l'avviso di telemetria.</target>

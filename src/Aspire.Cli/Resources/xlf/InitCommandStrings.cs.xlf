@@ -7,34 +7,54 @@
         <target state="translated">Přidává se projekt AppHost do řešení...</target>
         <note />
       </trans-unit>
-      <trans-unit id="AddingProjectsToSolution">
-        <source>Adding projects to solution...</source>
-        <target state="translated">Přidávání projektů do řešení...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AddingServiceDefaultsProjectToSolution">
         <source>Adding ServiceDefaults project to solution...</source>
         <target state="translated">Přidává se projekt ServiceDefaults do řešení...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="AppHostFileAlreadyExists">
+        <source>{0} already exists in this directory.</source>
+        <target state="new">{0} already exists in this directory.</target>
+        <note>{0} is the AppHost file name</note>
       </trans-unit>
       <trans-unit id="AspireInitializationComplete">
         <source>Aspire initialization complete!</source>
         <target state="translated">Inicializace Aspire se dokončila!</target>
         <note />
       </trans-unit>
-      <trans-unit id="CreatingAppHostProject">
-        <source>Creating AppHost project...</source>
-        <target state="translated">Vytváří se projekt AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="CreatingServiceDefaultsProject">
-        <source>Creating ServiceDefaults project...</source>
-        <target state="translated">Vytváří se projekt ServiceDefaults...</target>
-        <note />
+      <trans-unit id="CreatingLanguageAppHost">
+        <source>Creating {0} AppHost...</source>
+        <target state="new">Creating {0} AppHost...</target>
+        <note>{0} is the language display name</note>
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
         <target state="translated">Inicializujte podporu Aspire v existujícím řešení nebo vytvořte AppHost s jedním souborem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EvaluatingExistingProjects">
+        <source>Evaluating existing projects...</source>
+        <target state="new">Evaluating existing projects...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToFindCreatedProjects">
+        <source>Failed to find created AppHost or ServiceDefaults projects in template output.</source>
+        <target state="new">Failed to find created AppHost or ServiceDefaults projects in template output.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToGetProjectsFromSolution">
+        <source>Failed to get projects from solution.</source>
+        <target state="new">Failed to get projects from solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallAspireTemplates">
+        <source>Failed to install Aspire templates.</source>
+        <target state="new">Failed to install Aspire templates.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost (csharp, typescript)</source>
+        <target state="new">The programming language for the AppHost (csharp, typescript)</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -47,6 +67,31 @@
         <target state="translated">Nenašel se žádný soubor řešení. Vytváří se AppHost s jedním souborem...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectsToBeAddedToAppHost">
+        <source>The following projects will be added to the AppHost:</source>
+        <target state="new">The following projects will be added to the AppHost:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReadingSolution">
+        <source>Reading solution...</source>
+        <target state="new">Reading solution...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunAspireRunToStartAppHost">
+        <source>Run 'aspire run' to start your AppHost.</source>
+        <target state="new">Run 'aspire run' to start your AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAvailableTemplateVersions">
+        <source>Searching for available template versions...</source>
+        <target state="new">Searching for available template versions...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostTemplateNotFound">
+        <source>Single-file AppHost template not found.</source>
+        <target state="new">Single-file AppHost template not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Zjištěné řešení: {0}</target>
@@ -56,6 +101,11 @@
         <source>Solution has already been initialized with Aspire.</source>
         <target state="translated">Řešení se už inicializovalo pomocí Aspire.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnknownLanguage">
+        <source>Unknown language: '{0}'</source>
+        <target state="new">Unknown language: {0}</target>
+        <note>{0} is the specified language identifier</note>
       </trans-unit>
     </body>
   </file>

@@ -151,15 +151,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The trace ID to view. If not specified, lists all traces..
-        /// </summary>
-        internal static string TraceIdArgumentDescription {
-            get {
-                return ResourceManager.GetString("TraceIdArgumentDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)..
         /// </summary>
         internal static string SeverityOptionDescription {

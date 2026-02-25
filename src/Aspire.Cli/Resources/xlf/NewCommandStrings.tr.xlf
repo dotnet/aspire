@@ -57,11 +57,6 @@
         <target state="translated">Proje şablonları için kullanılacak NuGet kaynağı.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(ön sürüm şablonlarını kullanın)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">Kullanılacak proje şablonlarının sürümü.</target>

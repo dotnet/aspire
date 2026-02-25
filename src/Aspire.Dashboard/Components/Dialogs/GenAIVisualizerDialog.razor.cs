@@ -234,7 +234,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
             GenAIItemType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
             GenAIItemType.AssistantMessage or GenAIItemType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
             GenAIItemType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
-            GenAIItemType.Error => "Error",
+            GenAIItemType.Error => Loc[nameof(Resources.Dialogs.GenAIMessageTitleError)],
             _ => string.Empty
         };
     }

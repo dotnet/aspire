@@ -57,11 +57,6 @@
         <target state="translated">Źródło NuGet, które ma być używane dla szablonów projektu.</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(użyj szablonów wersji wstępnej)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">Wersja szablonów projektu do użycia.</target>

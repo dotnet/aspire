@@ -92,11 +92,6 @@
         <target state="translated">Не удалось проделать разбор версии шаблона из stdout.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">Не удалось получить все пакеты Aspire через кэш.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Не удалось получить пакеты шаблонов через кэш.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">Проект не содержит хост приложений Aspire.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">Функция одиночного файла AppHost не включена. Чтобы использовать CS-файлы AppHost, включите эту функцию с помощью конфигурации.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

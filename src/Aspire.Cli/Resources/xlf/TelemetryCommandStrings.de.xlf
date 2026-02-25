@@ -87,11 +87,6 @@
         <target state="translated">Zeigen Sie Bereiche aus der Dashboard-Telemetrie-API an.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">Die anzuzeigende Trace-ID. Wenn keine angegeben wird, werden alle Traces aufgelistet.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Nach Ablaufverfolgungs-ID filtern.</target>

@@ -37,11 +37,6 @@
         <target state="translated">プロジェクト タイプを確認しています...</target>
         <note />
       </trans-unit>
-      <trans-unit id="CodespacesLink">
-        <source>Codespaces</source>
-        <target state="translated">Codespaces</target>
-        <note>Represents a type of link</note>
-      </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
         <target state="translated">{0} で設定ファイルを作成しました。</target>
@@ -56,11 +51,6 @@
         <source>Dashboard</source>
         <target state="translated">ダッシュボード</target>
         <note />
-      </trans-unit>
-      <trans-unit id="DirectLink">
-        <source>Direct</source>
-        <target state="translated">ダイレクト</target>
-        <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
         <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>

@@ -87,11 +87,6 @@
         <target state="translated">從儀表板遙測 API 檢視範圍。</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">要檢視的追蹤識別碼。如果未指定，則列出所有追蹤。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">依追蹤識別碼篩選。</target>

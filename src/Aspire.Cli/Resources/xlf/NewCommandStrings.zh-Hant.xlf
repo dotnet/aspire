@@ -57,11 +57,6 @@
         <target state="translated">要用於專案範本的 NuGet 來源。</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(使用發行前版本的範本)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">要使用的專案範本版本。</target>

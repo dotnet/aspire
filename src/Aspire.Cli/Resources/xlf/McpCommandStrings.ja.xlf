@@ -27,16 +27,6 @@
         <target state="translated">エージェント環境の構成が完了しました。</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Playwright MCP サーバーを事前に構成しますか?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">エージェント環境固有の指示ファイルを作成しますか?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
         <target state="translated">検出されたエージェント環境の MCP サーバー構成を初期化します。(非推奨です。'agent init' を使用してください)</target>

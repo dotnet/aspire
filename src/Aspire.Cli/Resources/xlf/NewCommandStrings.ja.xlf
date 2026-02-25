@@ -57,11 +57,6 @@
         <target state="translated">プロジェクト テンプレートに使用する NuGet ソース。</target>
         <note />
       </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(プレリリース テンプレートを使用する)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use.</source>
         <target state="translated">使用するプロジェクト テンプレートのバージョン。</target>

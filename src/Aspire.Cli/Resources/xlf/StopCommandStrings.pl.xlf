@@ -17,11 +17,6 @@
         <target state="translated">Nie można zatrzymać hosta aplikacji.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
-        <target state="translated">Uruchomiono wiele hostów aplikacji. Użyj opcji --project, aby określić, która ma zostać zatrzymana, lub wybierz jedną z nich:</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
         <target state="translated">Nie znaleziono uruchomionych hostów aplikacji w bieżącym katalogu. Wyświetlanie wszystkich uruchomionych hostów aplikacji:</target>

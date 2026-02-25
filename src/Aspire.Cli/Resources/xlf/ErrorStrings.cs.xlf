@@ -92,11 +92,6 @@
         <target state="translated">Nepodařilo se analyzovat verzi šablony ze stdout.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">Nepovedlo se načíst všechny balíčky Aspire prostřednictvím mezipaměti.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nepovedlo se načíst balíčky šablon prostřednictvím mezipaměti.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">Projekt neobsahuje hostitele aplikací Aspire.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">Funkce AppHost pro jednosouborové scénáře není povolená. Chcete-li používat .cs soubory AppHost, povolte tuto funkci v konfiguraci</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

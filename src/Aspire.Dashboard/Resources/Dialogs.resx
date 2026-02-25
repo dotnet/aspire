@@ -271,9 +271,6 @@
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
   </data>
-  <data name="SettingsExportAllButtonText" xml:space="preserve">
-    <value>Export all</value>
-  </data>
   <data name="SettingsImportButtonText" xml:space="preserve">
     <value>Import logs and telemetry</value>
   </data>
@@ -482,9 +479,6 @@
   <data name="McpServerDialogVSCodeWarningMoreInfo" xml:space="preserve">
     <value>More information</value>
   </data>
-  <data name="McpServerDialogOtherDescription" xml:space="preserve">
-    <value>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</value>
-  </data>
   <data name="McpServerDialogOtherInstructions" xml:space="preserve">
     <value>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</value>
   </data>
@@ -548,5 +542,11 @@
   </data>
   <data name="ManageDataResource" xml:space="preserve">
     <value>Resource</value>
+  </data>
+  <data name="ExemplarsDialogViewButton" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="GenAILlmBadge" xml:space="preserve">
+    <value>LLM</value>
   </data>
 </root>

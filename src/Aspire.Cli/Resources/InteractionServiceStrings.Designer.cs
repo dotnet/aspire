@@ -115,15 +115,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Codespaces.
-        /// </summary>
-        public static string CodespacesLink {
-            get {
-                return ResourceManager.GetString("CodespacesLink", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Created settings file at {0}..
         /// </summary>
         public static string CreatedSettingsFile {
@@ -147,15 +138,6 @@ namespace Aspire.Cli.Resources {
         public static string Dashboard {
             get {
                 return ResourceManager.GetString("Dashboard", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Direct.
-        /// </summary>
-        public static string DirectLink {
-            get {
-                return ResourceManager.GetString("DirectLink", resourceCulture);
             }
         }
         

@@ -42,11 +42,6 @@
         <target state="translated">Nazwa zasobu, którego dzienniki mają zostać pobrane. Jeśli nie podasz nazwy, pokażą się dzienniki ze wszystkich zasobów.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">Nazwa zasobu jest wymagana, jeśli nie używasz opcji --follow. Użyj opcji --follow, aby przesyłać strumieniowo dzienniki ze wszystkich zasobów.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">Skanowanie w poszukiwaniu uruchomionych hostów aplikacji...</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Liczba linii wyświetlanych od końca dzienników (domyślnie: wszystkie).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">Opcja --tail wymaga podania nazwy zasobu.</target>
         <note />
       </trans-unit>
     </body>

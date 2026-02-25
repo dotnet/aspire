@@ -62,11 +62,6 @@
         <target state="translated">Copilot 구독이 있는 GitHub 계정으로 Visual Studio에 로그인합니다. &lt;a href="{0}" target="_blank"&gt;Visual Studio 키체인에 GitHub 계정 추가&lt;/a&gt;의 단계를 따릅니다.</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">죄송합니다. 요청의 속도가 제한되었습니다. 나중에 다시 시도하세요.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">요청을 보낼 수 없음</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">메시지 보내기</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">대화 상자 축소</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

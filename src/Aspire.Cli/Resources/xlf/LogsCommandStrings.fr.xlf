@@ -42,11 +42,6 @@
         <target state="translated">Le nom de la ressource pour laquelle obtenir les journaux. Si aucun nom n’est spécifié, les journaux d’activité de toutes les ressources sont affichées.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">Un nom de ressource est requis si vous n’utilisez pas --follow. Utilisez --follow pour diffuser en continu les journaux de toutes les ressources.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">Recherche des AppHosts en cours d’exécution...</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Nombre de lignes à afficher à partir de la fin des journaux (par défaut : toutes).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">L’option --tail requiert la spécification d’un nom de ressource.</target>
         <note />
       </trans-unit>
     </body>

@@ -144,17 +144,11 @@
   <data name="NoInScopeAppHostsShowingAll" xml:space="preserve">
     <value>No AppHosts found in current directory. Showing all running AppHosts.</value>
   </data>
-  <data name="ResourceRequiredWithoutFollow" xml:space="preserve">
-    <value>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</value>
-  </data>
   <data name="NoResourcesFound" xml:space="preserve">
     <value>No resources found.</value>
   </data>
   <data name="TailOptionDescription" xml:space="preserve">
     <value>Number of lines to show from the end of logs (default: all).</value>
-  </data>
-  <data name="TailRequiresResource" xml:space="preserve">
-    <value>The --tail option requires a resource name to be specified.</value>
   </data>
   <data name="TailMustBePositive" xml:space="preserve">
     <value>The --tail value must be a positive number.</value>

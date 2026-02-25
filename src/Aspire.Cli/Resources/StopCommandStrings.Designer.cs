@@ -75,12 +75,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string MultipleAppHostsRunning {
-            get {
-                return ResourceManager.GetString("MultipleAppHostsRunning", resourceCulture);
-            }
-        }
-
         public static string FailedToStopAppHost {
             get {
                 return ResourceManager.GetString("FailedToStopAppHost", resourceCulture);

@@ -87,11 +87,6 @@
         <target state="translated">Veja os spans da API de telemetria do Painel.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">A ID de rastreamento a ser visualizada. Se não for especificado, listará todos os rastreamentos.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
         <target state="translated">Filtrar por ID de rastreamento.</target>

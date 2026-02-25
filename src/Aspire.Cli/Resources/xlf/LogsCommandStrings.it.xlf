@@ -42,11 +42,6 @@
         <target state="translated">Nome della risorsa per cui ottenere i log. Se non specificato, vengono visualizzati i log di tutte le risorse.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">Quando non si usa --follow, è necessario specificare un nome di risorsa. Usare --follow per trasmettere i log da tutte le risorse.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
         <target state="translated">Analisi per l'esecuzione di AppHosts in corso...</target>
@@ -65,11 +60,6 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Numero di righe da visualizzare dalla fine dei log (impostazione predefinita: all).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">L'opzione --tail richiede che venga specificato un nome di risorsa.</target>
         <note />
       </trans-unit>
     </body>

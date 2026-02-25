@@ -632,11 +632,6 @@
         <target state="translated">Просмотр</target>
         <note />
       </trans-unit>
-      <trans-unit id="ViewLogsLink">
-        <source>View logs</source>
-        <target state="translated">Просмотреть журналы</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
         <target state="translated">Закрыть</target>
@@ -650,11 +645,6 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Разделить по вертикали</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ViewStructuredLogsText">
-        <source>View structured logs</source>
-        <target state="translated">Просмотр структурированных журналов</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
