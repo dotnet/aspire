@@ -12,6 +12,8 @@ using Aspire.Hosting.ApplicationModel;
 
 public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning = true) : IContainerRuntime
 {
+    private readonly object _lock = new();
+
     public string Name => "fake-runtime";
     public bool WasHealthCheckCalled { get; private set; }
     public int CheckIfRunningCallCount { get; private set; }
@@ -39,8 +41,11 @@ public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning
 
     public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
     {
-        WasTagImageCalled = true;
-        TagImageCalls.Add((localImageName, targetImageName));
+        lock (_lock)
+        {
+            WasTagImageCalled = true;
+            TagImageCalls.Add((localImageName, targetImageName));
+        }
         if (shouldFail)
         {
             throw new InvalidOperationException("Fake container runtime is configured to fail");
@@ -50,8 +55,11 @@ public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning
 
     public Task RemoveImageAsync(string imageName, CancellationToken cancellationToken)
     {
-        WasRemoveImageCalled = true;
-        RemoveImageCalls.Add(imageName);
+        lock (_lock)
+        {
+            WasRemoveImageCalled = true;
+            RemoveImageCalls.Add(imageName);
+        }
         if (shouldFail)
         {
             throw new InvalidOperationException("Fake container runtime is configured to fail");
@@ -61,8 +69,11 @@ public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning
 
     public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        WasPushImageCalled = true;
-        PushImageCalls.Add(resource);
+        lock (_lock)
+        {
+            WasPushImageCalled = true;
+            PushImageCalls.Add(resource);
+        }
         if (shouldFail)
         {
             throw new InvalidOperationException("Fake container runtime is configured to fail");
@@ -72,12 +83,14 @@ public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning
 
     public async Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerImageBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, BuildImageSecretValue> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
-        // Capture the arguments for verification in tests
-        CapturedBuildArguments = buildArguments;
-        CapturedBuildSecrets = buildSecrets;
-        CapturedStage = stage;
-        WasBuildImageCalled = true;
-        BuildImageCalls.Add((contextPath, dockerfilePath, options));
+        lock (_lock)
+        {
+            CapturedBuildArguments = buildArguments;
+            CapturedBuildSecrets = buildSecrets;
+            CapturedStage = stage;
+            WasBuildImageCalled = true;
+            BuildImageCalls.Add((contextPath, dockerfilePath, options));
+        }
 
         if (shouldFail)
         {
@@ -88,14 +101,15 @@ public sealed class FakeContainerRuntime(bool shouldFail = false, bool isRunning
         {
             await BuildImageAsyncCallback(contextPath, dockerfilePath, options, buildArguments, buildSecrets, stage, cancellationToken);
         }
-
-        // For testing, we don't need to actually build anything
     }
 
     public Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
     {
-        WasLoginToRegistryCalled = true;
-        LoginToRegistryCalls.Add((registryServer, username, password));
+        lock (_lock)
+        {
+            WasLoginToRegistryCalled = true;
+            LoginToRegistryCalls.Add((registryServer, username, password));
+        }
         if (shouldFail)
         {
             throw new InvalidOperationException("Fake container runtime is configured to fail");

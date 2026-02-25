@@ -12,6 +12,8 @@ namespace Aspire.Hosting.Tests;
 /// </summary>
 public sealed class MockImageBuilder : IResourceContainerImageManager
 {
+    private readonly object _lock = new();
+
     public bool BuildImageCalled { get; private set; }
     public bool BuildImagesCalled { get; private set; }
     public bool PushImageCalled { get; private set; }
@@ -21,22 +23,31 @@ public sealed class MockImageBuilder : IResourceContainerImageManager
 
     public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
     {
-        BuildImageCalled = true;
-        BuildImageResources.Add(resource);
+        lock (_lock)
+        {
+            BuildImageCalled = true;
+            BuildImageResources.Add(resource);
+        }
         return Task.CompletedTask;
     }
 
     public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
     {
-        BuildImagesCalled = true;
-        BuildImageResources.AddRange(resources);
+        lock (_lock)
+        {
+            BuildImagesCalled = true;
+            BuildImageResources.AddRange(resources);
+        }
         return Task.CompletedTask;
     }
 
     public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        PushImageCalled = true;
-        PushImageCalls.Add(resource);
+        lock (_lock)
+        {
+            PushImageCalled = true;
+            PushImageCalls.Add(resource);
+        }
         return Task.CompletedTask;
     }
 }
