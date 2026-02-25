@@ -143,15 +143,24 @@ public static class AzureCosmosExtensions
             // delegate to the inner resource, so the annotation ends up on the correct resource.
             var emulatorSurrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
             var emulatorSurrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorSurrogate);
+            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-certificate-passphrase");
+            emulatorSurrogateBuilder.WithHttpsDeveloperCertificate(password: builder.ApplicationBuilder.CreateResourceBuilder(password));
             emulatorSurrogateBuilder.WithHttpsCertificateConfiguration(ctx =>
             {
                 ctx.EnvironmentVariables["PROTOCOL"] = "https";
-                ctx.EnvironmentVariables["CERT_PATH"] = ctx.CertificatePath;
-                ctx.EnvironmentVariables["KEY_FILE"] = ctx.KeyPath;
+                ctx.EnvironmentVariables["EXPLORER_PROTOCOL"] = "https";
+                ctx.EnvironmentVariables["CERT_PATH"] = ctx.PfxPath;
                 if (ctx.Password is not null)
                 {
                     ctx.EnvironmentVariables["CERT_SECRET"] = ctx.Password;
                 }
+
+                return Task.CompletedTask;
+            });
+
+            emulatorSurrogateBuilder.WithCertificateTrustConfiguration(ctx =>
+            {
+                ctx.EnvironmentVariables["NODE_EXTRA_CA_CERTS"] = ctx.CertificateBundlePath;
 
                 return Task.CompletedTask;
             });
@@ -413,8 +422,9 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        return
-            builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
+        var resource = builder.Resource.InnerResource;
+
+        var result = builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
             {
                 endpoint.UriScheme = "http";
                 endpoint.TargetPort = 1234;
@@ -430,6 +440,39 @@ public static class AzureCosmosExtensions
                     url.DisplayText = KnownUrls.DataExplorer.DisplayText;
                 }
             });
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    builder.WithEndpoint(KnownUrls.DataExplorer.EndpointName, ep =>
+                    {
+                        ep.UriScheme = "https";
+                    });
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return result;
     }
 
     /// <summary>

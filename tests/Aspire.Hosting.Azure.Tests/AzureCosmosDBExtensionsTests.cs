@@ -795,6 +795,73 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 #pragma warning restore ASPIRECOSMOSDB001
     }
 
+    [Fact]
+    public async Task WithDataExplorerSwitchesEndpointToHttpsWhenCertificateAvailable()
+    {
+#pragma warning disable ASPIRECOSMOSDB001
+#pragma warning disable ASPIRECERTIFICATES001
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsPreviewEmulator(e => e.WithDataExplorer());
+
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            UseDeveloperCertificate = true,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        Assert.Equal("https", dataExplorerEndpoint.UriScheme);
+#pragma warning restore ASPIRECERTIFICATES001
+#pragma warning restore ASPIRECOSMOSDB001
+    }
+
+    [Fact]
+    public async Task WithDataExplorerKeepsHttpWhenNoCertificateAvailable()
+    {
+#pragma warning disable ASPIRECOSMOSDB001
+#pragma warning disable ASPIRECERTIFICATES001
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: false,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsPreviewEmulator(e => e.WithDataExplorer());
+
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            Certificate = null,
+            UseDeveloperCertificate = false,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        Assert.Equal("http", dataExplorerEndpoint.UriScheme);
+#pragma warning restore ASPIRECERTIFICATES001
+#pragma warning restore ASPIRECOSMOSDB001
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
