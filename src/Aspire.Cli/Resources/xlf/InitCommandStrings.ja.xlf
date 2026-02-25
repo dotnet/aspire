@@ -47,6 +47,11 @@
         <target state="translated">ソリューション ファイルが見つかりません。単一ファイルの AppHost を作成しています...</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptRunAgentInit">
+        <source>Would you like to configure AI agent environments? (aspire agent init)</source>
+        <target state="new">Would you like to configure AI agent environments? (aspire agent init)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">ソリューションが検出されました: {0}</target>

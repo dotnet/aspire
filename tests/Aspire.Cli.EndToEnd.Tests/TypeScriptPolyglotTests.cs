@@ -38,6 +38,10 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForAppHostCreated = new CellPatternSearcher()
             .Find("Created apphost.ts");
 
+        // Pattern for agent init confirmation prompt that appears after init succeeds
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
         // Pattern for aspire add completion
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
@@ -73,6 +77,11 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter() // select TypeScript
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            // Handle the agent init confirmation prompt (decline with 'n' since default is Y)
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Type("n")
+            .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Create a Vite app using npm create vite

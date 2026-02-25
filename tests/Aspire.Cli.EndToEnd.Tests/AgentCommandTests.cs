@@ -287,5 +287,139 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         await pendingRun;
     }
+
+    /// <summary>
+    /// Tests that aspire init prompts to run agent init after successful initialization,
+    /// and chains into agent init when the user accepts.
+    /// </summary>
+    [Fact]
+    public async Task InitCommand_ChainsIntoAgentInit_WhenUserAccepts()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Pattern for the agent init confirmation prompt after aspire init succeeds
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
+        // Pattern for NuGet.config prompt that may appear during init with PR channel
+        var nugetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
+        // Pattern for no environments found (expected in empty workspace)
+        var noEnvironmentsMessage = new CellPatternSearcher()
+            .Find("No agent environments");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Run aspire init (no solution file → creates single-file AppHost)
+        // When using a PR channel, a "NuGet.config" prompt may appear during init.
+        sequenceBuilder
+            .Type("aspire init")
+            .Enter()
+            // Wait for the NuGet.config prompt (appears when using PR channel)
+            .WaitUntil(s => nugetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            .Enter() // Accept default (Yes) for NuGet.config creation
+            // Wait for the agent init confirmation prompt
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            // Accept the prompt to chain into agent init (Y is the default, just press Enter)
+            .Enter()
+            // Agent init should skip the workspace prompt (inferred from init context)
+            // and proceed directly to scanning for agent environments
+            .WaitUntil(s => noEnvironmentsMessage.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Tests that aspire init completes normally when the user declines
+    /// the agent init prompt.
+    /// </summary>
+    [Fact]
+    public async Task InitCommand_SkipsAgentInit_WhenUserDeclines()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Pattern for the agent init confirmation prompt after aspire init succeeds
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
+        // Pattern for NuGet.config prompt that may appear during init with PR channel
+        var nugetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Run aspire init (no solution file → creates single-file AppHost)
+        // When using a PR channel, a "NuGet.config" prompt may appear during init.
+        sequenceBuilder
+            .Type("aspire init")
+            .Enter()
+            // Wait for the NuGet.config prompt (appears when using PR channel)
+            .WaitUntil(s => nugetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            .Enter() // Accept default (Yes) for NuGet.config creation
+            // Wait for the agent init confirmation prompt
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(120))
+            .Wait(500)
+            // Decline the prompt (default is now Y, so explicitly type 'n')
+            .Type("n")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
 }
 

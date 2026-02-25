@@ -40,6 +40,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageService _languageService;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
+    private readonly AgentInitCommand _agentInitCommand;
 
     private static readonly Option<string?> s_sourceOption = new("--source", "-s")
     {
@@ -82,7 +83,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IConfigurationService configurationService,
         ILanguageService languageService,
         ILanguageDiscovery languageDiscovery,
-        IScaffoldingService scaffoldingService)
+        IScaffoldingService scaffoldingService,
+        AgentInitCommand agentInitCommand)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -100,6 +102,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageService = languageService;
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
+        _agentInitCommand = agentInitCommand;
 
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
@@ -152,7 +155,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
                 InteractionService.DisplayEmptyLine();
-                return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+                var polyglotResult = await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+                return await PromptAndRunAgentInitAsync(polyglotResult, _executionContext.WorkingDirectory, parseResult, cancellationToken);
             }
         }
 
@@ -168,20 +172,54 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Use SolutionLocator to find solution files, walking up the directory tree
         initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
 
+        int initResult;
+        DirectoryInfo workspaceRoot;
         if (initContext.SelectedSolutionFile is not null)
         {
             InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
             InteractionService.DisplayEmptyLine();
-            return await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
+            initResult = await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
+            workspaceRoot = initContext.SolutionDirectory;
         }
         else
         {
             InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage("information", InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
             InteractionService.DisplayEmptyLine();
-            return await CreateEmptyAppHostAsync(parseResult, cancellationToken);
+            initResult = await CreateEmptyAppHostAsync(parseResult, cancellationToken);
+            workspaceRoot = _executionContext.WorkingDirectory;
         }
+
+        return await PromptAndRunAgentInitAsync(initResult, workspaceRoot, parseResult, cancellationToken);
+    }
+
+    private async Task<int> PromptAndRunAgentInitAsync(int initResult, DirectoryInfo workspaceRoot, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (initResult != ExitCodeConstants.Success)
+        {
+            return initResult;
+        }
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            return ExitCodeConstants.Success;
+        }
+
+        InteractionService.DisplayEmptyLine();
+
+        var runAgentInit = await InteractionService.ConfirmAsync(
+            InitCommandStrings.PromptRunAgentInit,
+            defaultValue: true,
+            cancellationToken: cancellationToken);
+
+        if (runAgentInit)
+        {
+            InteractionService.DisplayEmptyLine();
+            return await _agentInitCommand.ExecuteCommandAsync(parseResult, workspaceRoot, cancellationToken);
+        }
+
+        return ExitCodeConstants.Success;
     }
 
     private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)

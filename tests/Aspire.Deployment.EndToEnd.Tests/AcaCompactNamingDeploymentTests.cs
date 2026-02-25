@@ -66,9 +66,6 @@ public sealed class AcaCompactNamingDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            var waitingForInitComplete = new CellPatternSearcher()
-                .Find("Aspire initialization complete");
-
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -91,12 +88,7 @@ public sealed class AcaCompactNamingDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost
             output.WriteLine("Step 3: Creating single-file AppHost...");
-            sequenceBuilder.Type("aspire init")
-                .Enter()
-                .Wait(TimeSpan.FromSeconds(5))
-                .Enter()
-                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            sequenceBuilder.RunAspireInit(counter);
 
             // Step 4: Add required packages
             output.WriteLine("Step 4: Adding Azure Container Apps package...");

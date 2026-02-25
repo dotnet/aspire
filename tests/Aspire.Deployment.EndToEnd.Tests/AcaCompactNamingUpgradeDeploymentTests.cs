@@ -65,9 +65,6 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            var waitingForInitComplete = new CellPatternSearcher()
-                .Find("Aspire initialization complete");
-
             var waitingForVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -114,14 +111,9 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 5: Create single-file AppHost with GA CLI
+            // Step 5: Create single-file AppHost with GA CLI (no agent init prompt in GA)
             output.WriteLine("Step 5: Creating single-file AppHost with GA CLI...");
-            sequenceBuilder.Type("aspire init")
-                .Enter()
-                .Wait(TimeSpan.FromSeconds(5))
-                .Enter()
-                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            sequenceBuilder.RunAspireInit(counter, hasAgentInitPrompt: false);
 
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");

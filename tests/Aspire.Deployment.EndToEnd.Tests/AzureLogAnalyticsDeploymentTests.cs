@@ -63,10 +63,6 @@ public sealed class AzureLogAnalyticsDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire init
-            var waitingForInitComplete = new CellPatternSearcher()
-                .Find("Aspire initialization complete");
-
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -91,14 +87,7 @@ public sealed class AzureLogAnalyticsDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.Type("aspire init")
-                .Enter()
-                // NuGet.config prompt may or may not appear depending on environment.
-                // Wait a moment then press Enter to dismiss if present, then wait for completion.
-                .Wait(TimeSpan.FromSeconds(5))
-                .Enter()  // Dismiss NuGet.config prompt if present (no-op if already auto-accepted)
-                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            sequenceBuilder.RunAspireInit(counter);
 
             // Step 4: Add Aspire.Hosting.Azure.OperationalInsights package
             output.WriteLine("Step 4: Adding Azure Log Analytics hosting package...");

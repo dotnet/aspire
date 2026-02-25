@@ -47,6 +47,11 @@
         <target state="translated">Nie znaleziono pliku rozwiązania. Trwa tworzenie hosta aplikacji (AppHost) z jednym plikiem...</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptRunAgentInit">
+        <source>Would you like to configure AI agent environments? (aspire agent init)</source>
+        <target state="new">Would you like to configure AI agent environments? (aspire agent init)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Wykryto rozwiązanie: {0}</target>
