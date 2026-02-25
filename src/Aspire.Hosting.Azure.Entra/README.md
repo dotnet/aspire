@@ -90,6 +90,26 @@ var entra = builder.AddEntraIdApplication("entra-web")
     .WithCertificateFromKeyVault("https://myvault.vault.azure.net", "MyCert");
 ```
 
+### Certificate from store
+
+```csharp
+var entra = builder.AddEntraIdApplication("entra-web")
+    .WithTenantId(tenantId)
+    .WithClientId(webClientId)
+    .WithCertificateThumbprint("CurrentUser/My", "ABC123...");
+```
+
+### Advanced: custom credential
+
+For credential types not covered by convenience methods, use `WithCredential` directly:
+
+```csharp
+var entra = builder.AddEntraIdApplication("entra-web")
+    .WithTenantId(tenantId)
+    .WithClientId(webClientId)
+    .WithCredential(new EntraIdSignedAssertionFileCredential());
+```
+
 ### Sovereign clouds
 
 To use a sovereign cloud instance (e.g., Azure Government):

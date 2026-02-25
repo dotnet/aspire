@@ -161,59 +161,81 @@ public class EntraIdApplicationResource(string name, string configSectionName = 
 }
 
 /// <summary>
-/// Represents a client credential entry for an Entra ID application registration.
+/// Base class for client credential entries in an Entra ID application registration.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Maps to a single entry in the <c>ClientCredentials</c> array in Microsoft.Identity.Web
-/// configuration. Each entry describes one credential source, keyed by <see cref="SourceType"/>.
+/// Each subclass corresponds to a specific <c>SourceType</c> in the Microsoft.Identity.Web
+/// <c>ClientCredentials</c> configuration array. Use one of the concrete types:
 /// </para>
-/// <para>
-/// The properties on this class mirror those of <c>CredentialDescription</c> from
-/// <c>Microsoft.Identity.Abstractions</c>. Only the properties relevant to the chosen
-/// <see cref="SourceType"/> need to be set.
-/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="EntraIdClientSecretCredential"/> — application secret.</description></item>
+/// <item><description><see cref="EntraIdFederatedIdentityCredential"/> — FIC with managed identity.</description></item>
+/// <item><description><see cref="EntraIdKeyVaultCertificateCredential"/> — certificate from Azure Key Vault.</description></item>
+/// <item><description><see cref="EntraIdStoreCertificateCredential"/> — certificate from the certificate store.</description></item>
+/// <item><description><see cref="EntraIdFileCertificateCredential"/> — certificate from a file on disk.</description></item>
+/// <item><description><see cref="EntraIdSignedAssertionFileCredential"/> — signed assertion file (AKS workload identity).</description></item>
+/// </list>
 /// </remarks>
-public sealed class EntraIdClientCredential
+public abstract class EntraIdClientCredential
 {
     /// <summary>
-    /// Gets or sets the source type of the credential.
+    /// Gets the <c>SourceType</c> string used in the Microsoft.Identity.Web configuration.
     /// </summary>
-    /// <remarks>
-    /// Valid values include:
-    /// <list type="bullet">
-    /// <item><description><c>"ClientSecret"</c> — application secret.</description></item>
-    /// <item><description><c>"SignedAssertionFromManagedIdentity"</c> — federated identity credential via managed identity.</description></item>
-    /// <item><description><c>"Certificate"</c> — X.509 certificate provided directly.</description></item>
-    /// <item><description><c>"KeyVault"</c> — certificate from Azure Key Vault.</description></item>
-    /// <item><description><c>"Base64Encoded"</c> — certificate from a base64-encoded value.</description></item>
-    /// <item><description><c>"Path"</c> — certificate from a file path.</description></item>
-    /// <item><description><c>"StoreWithThumbprint"</c> — certificate from store by thumbprint.</description></item>
-    /// <item><description><c>"StoreWithDistinguishedName"</c> — certificate from store by distinguished name.</description></item>
-    /// <item><description><c>"SignedAssertionFilePath"</c> — signed assertion from file (e.g., AKS workload identity).</description></item>
-    /// <item><description><c>"SignedAssertionFromVault"</c> — signed assertion from Key Vault.</description></item>
-    /// </list>
-    /// </remarks>
-    public required string SourceType { get; set; }
-
-    // ── ClientSecret SourceType ────────────────────────────────────────────
+    public abstract string SourceType { get; }
 
     /// <summary>
-    /// Gets or sets the client secret value as a parameter resource.
+    /// Emits environment variables for this credential into the given context.
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"ClientSecret"</c>.
-    /// </remarks>
-    public ParameterResource? ClientSecret { get; set; }
+    /// <param name="envVars">The environment variable dictionary to populate.</param>
+    /// <param name="prefix">The environment variable prefix (e.g., <c>"AzureAd__ClientCredentials__0"</c>).</param>
+    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        envVars[$"{prefix}__SourceType"] = SourceType;
+    }
+}
 
-    // ── Managed Identity / FIC ─────────────────────────────────────────────
+/// <summary>
+/// A client secret credential for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// Maps to <c>SourceType = "ClientSecret"</c> in Microsoft.Identity.Web configuration.
+/// </remarks>
+public sealed class EntraIdClientSecretCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "ClientSecret";
 
     /// <summary>
-    /// Gets or sets the managed identity client ID for user-assigned managed identity.
+    /// Gets the client secret as a parameter resource.
+    /// </summary>
+    public required ParameterResource ClientSecret { get; init; }
+
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
+        envVars[$"{prefix}__ClientSecret"] = ClientSecret;
+    }
+}
+
+/// <summary>
+/// A federated identity credential (FIC) with managed identity for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// Maps to <c>SourceType = "SignedAssertionFromManagedIdentity"</c> in Microsoft.Identity.Web configuration.
+/// For system-assigned managed identity, leave <see cref="ManagedIdentityClientId"/> as <see langword="null"/>.
+/// </remarks>
+public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "SignedAssertionFromManagedIdentity";
+
+    /// <summary>
+    /// Gets or sets the client ID of a user-assigned managed identity.
     /// </summary>
     /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"SignedAssertionFromManagedIdentity"</c>.
-    /// For system-assigned managed identity, leave this <see langword="null"/>.
+    /// Leave <see langword="null"/> for system-assigned managed identity.
     /// </remarks>
     public string? ManagedIdentityClientId { get; set; }
 
@@ -233,90 +255,172 @@ public sealed class EntraIdClientCredential
     /// </remarks>
     public string? TokenExchangeAuthority { get; set; }
 
-    // ── KeyVault SourceType ────────────────────────────────────────────────
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
+
+        if (ManagedIdentityClientId is not null)
+        {
+            envVars[$"{prefix}__ManagedIdentityClientId"] = ManagedIdentityClientId;
+        }
+
+        if (TokenExchangeUrl is not null)
+        {
+            envVars[$"{prefix}__TokenExchangeUrl"] = TokenExchangeUrl;
+        }
+
+        if (TokenExchangeAuthority is not null)
+        {
+            envVars[$"{prefix}__TokenExchangeAuthority"] = TokenExchangeAuthority;
+        }
+    }
+}
+
+/// <summary>
+/// A certificate credential from Azure Key Vault for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// Maps to <c>SourceType = "KeyVault"</c> in Microsoft.Identity.Web configuration.
+/// </remarks>
+public sealed class EntraIdKeyVaultCertificateCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "KeyVault";
 
     /// <summary>
-    /// Gets or sets the URL of the Azure Key Vault containing the certificate.
+    /// Gets the URL of the Azure Key Vault (e.g., <c>"https://myvault.vault.azure.net"</c>).
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"KeyVault"</c> or <c>"SignedAssertionFromVault"</c>.
-    /// </remarks>
-    public string? KeyVaultUrl { get; set; }
+    public required string KeyVaultUrl { get; init; }
 
     /// <summary>
-    /// Gets or sets the name of the certificate in Azure Key Vault.
+    /// Gets the name of the certificate in Azure Key Vault.
     /// </summary>
-    /// <remarks>
-    /// Used in conjunction with <see cref="KeyVaultUrl"/>.
-    /// </remarks>
-    public string? KeyVaultCertificateName { get; set; }
+    public required string CertificateNameInKeyVault { get; init; }
 
-    // ── Certificate store ──────────────────────────────────────────────────
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
+        envVars[$"{prefix}__KeyVaultUrl"] = KeyVaultUrl;
+        envVars[$"{prefix}__KeyVaultCertificateName"] = CertificateNameInKeyVault;
+    }
+}
+
+/// <summary>
+/// A certificate credential from the certificate store for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Maps to <c>SourceType = "StoreWithThumbprint"</c> or <c>"StoreWithDistinguishedName"</c>
+/// in Microsoft.Identity.Web configuration, depending on which identifier is provided.
+/// </para>
+/// <para>
+/// Set either <see cref="Thumbprint"/> or <see cref="DistinguishedName"/> (not both).
+/// </para>
+/// </remarks>
+public sealed class EntraIdStoreCertificateCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => Thumbprint is not null ? "StoreWithThumbprint" : "StoreWithDistinguishedName";
 
     /// <summary>
-    /// Gets or sets the certificate store path (e.g., <c>"CurrentUser/My"</c>).
+    /// Gets the certificate store path (e.g., <c>"CurrentUser/My"</c> or <c>"LocalMachine/My"</c>).
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"StoreWithThumbprint"</c> or
-    /// <c>"StoreWithDistinguishedName"</c>.
-    /// </remarks>
-    public string? CertificateStorePath { get; set; }
+    public required string StorePath { get; init; }
 
     /// <summary>
-    /// Gets or sets the certificate thumbprint for store-based lookup.
+    /// Gets or sets the certificate thumbprint.
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"StoreWithThumbprint"</c>.
-    /// </remarks>
-    public string? CertificateThumbprint { get; set; }
+    public string? Thumbprint { get; set; }
 
     /// <summary>
-    /// Gets or sets the certificate distinguished name for store-based lookup.
+    /// Gets or sets the certificate distinguished name (e.g., <c>"CN=MyCert"</c>).
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"StoreWithDistinguishedName"</c>.
-    /// </remarks>
-    public string? CertificateDistinguishedName { get; set; }
+    public string? DistinguishedName { get; set; }
 
-    // ── Certificate from file ──────────────────────────────────────────────
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
+        envVars[$"{prefix}__CertificateStorePath"] = StorePath;
+
+        if (Thumbprint is not null)
+        {
+            envVars[$"{prefix}__CertificateThumbprint"] = Thumbprint;
+        }
+
+        if (DistinguishedName is not null)
+        {
+            envVars[$"{prefix}__CertificateDistinguishedName"] = DistinguishedName;
+        }
+    }
+}
+
+/// <summary>
+/// A certificate credential from a file on disk for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// Maps to <c>SourceType = "Path"</c> in Microsoft.Identity.Web configuration.
+/// Not recommended for production use.
+/// </remarks>
+public sealed class EntraIdFileCertificateCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "Path";
 
     /// <summary>
-    /// Gets or sets the path to a certificate file on disk.
+    /// Gets the path to the certificate file (e.g., a PFX file).
     /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"Path"</c>.
-    /// Not recommended for production use.
-    /// </remarks>
-    public string? CertificateDiskPath { get; set; }
+    public required string FilePath { get; init; }
 
     /// <summary>
-    /// Gets or sets the password for the certificate file.
+    /// Gets or sets the password for the certificate file, if password-protected.
     /// </summary>
-    /// <remarks>
-    /// Used in conjunction with <see cref="CertificateDiskPath"/> when the certificate is password-protected.
-    /// </remarks>
-    public string? CertificatePassword { get; set; }
+    public string? Password { get; set; }
 
-    // ── Base64-encoded certificate ─────────────────────────────────────────
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
+        envVars[$"{prefix}__CertificateDiskPath"] = FilePath;
+
+        if (Password is not null)
+        {
+            envVars[$"{prefix}__CertificatePassword"] = Password;
+        }
+    }
+}
+
+/// <summary>
+/// A signed assertion file credential for an Entra ID application (e.g., AKS workload identity).
+/// </summary>
+/// <remarks>
+/// Maps to <c>SourceType = "SignedAssertionFilePath"</c> in Microsoft.Identity.Web configuration.
+/// If <see cref="FilePath"/> is not provided, the <c>AZURE_FEDERATED_TOKEN_FILE</c>
+/// environment variable is used.
+/// </remarks>
+public sealed class EntraIdSignedAssertionFileCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "SignedAssertionFilePath";
 
     /// <summary>
-    /// Gets or sets the base64-encoded certificate value.
+    /// Gets or sets the path to the signed assertion file on disk.
     /// </summary>
     /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"Base64Encoded"</c>.
-    /// Not recommended for production use.
+    /// If not specified, defaults to the <c>AZURE_FEDERATED_TOKEN_FILE</c> environment variable.
     /// </remarks>
-    public string? Base64EncodedValue { get; set; }
+    public string? FilePath { get; set; }
 
-    // ── Signed assertion file (AKS workload identity) ──────────────────────
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix)
+    {
+        base.EmitEnvironmentVariables(envVars, prefix);
 
-    /// <summary>
-    /// Gets or sets the path to a signed assertion file on disk.
-    /// </summary>
-    /// <remarks>
-    /// Used when <see cref="SourceType"/> is <c>"SignedAssertionFilePath"</c>.
-    /// Typically used with Azure Kubernetes Service workload identity federation.
-    /// If not provided, the <c>AZURE_FEDERATED_TOKEN_FILE</c> environment variable is used.
-    /// </remarks>
-    public string? SignedAssertionFileDiskPath { get; set; }
+        if (FilePath is not null)
+        {
+            envVars[$"{prefix}__SignedAssertionFileDiskPath"] = FilePath;
+        }
+    }
 }

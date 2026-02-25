@@ -120,10 +120,9 @@ public class EntraIdResourceBuilderTests
 
         var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
         Assert.Single(resource.ClientCredentials);
-        Assert.Equal("ClientSecret", resource.ClientCredentials[0].SourceType);
-        var clientCred = resource.ClientCredentials[0].ClientSecret;
-        Assert.NotNull(clientCred);
-        Assert.Equal("EntraWebClientSecret", clientCred.Name);
+        var cred = Assert.IsType<EntraIdClientSecretCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("ClientSecret", cred.SourceType);
+        Assert.Equal("EntraWebClientSecret", cred.ClientSecret.Name);
     }
 
     [Fact]
@@ -308,8 +307,9 @@ public class EntraIdResourceBuilderTests
 
         var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
         Assert.Single(resource.ClientCredentials);
-        Assert.Equal("SignedAssertionFromManagedIdentity", resource.ClientCredentials[0].SourceType);
-        Assert.Equal("mi-client-id", resource.ClientCredentials[0].ManagedIdentityClientId);
+        var cred = Assert.IsType<EntraIdFederatedIdentityCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("SignedAssertionFromManagedIdentity", cred.SourceType);
+        Assert.Equal("mi-client-id", cred.ManagedIdentityClientId);
     }
 
     [Fact]
@@ -328,8 +328,9 @@ public class EntraIdResourceBuilderTests
 
         var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
         Assert.Single(resource.ClientCredentials);
-        Assert.Equal("SignedAssertionFromManagedIdentity", resource.ClientCredentials[0].SourceType);
-        Assert.Null(resource.ClientCredentials[0].ManagedIdentityClientId);
+        var cred = Assert.IsType<EntraIdFederatedIdentityCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("SignedAssertionFromManagedIdentity", cred.SourceType);
+        Assert.Null(cred.ManagedIdentityClientId);
     }
 
     [Fact]
@@ -351,8 +352,8 @@ public class EntraIdResourceBuilderTests
 
         var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
         Assert.Equal(2, resource.ClientCredentials.Count);
-        Assert.Equal("ClientSecret", resource.ClientCredentials[0].SourceType);
-        Assert.Equal("SignedAssertionFromManagedIdentity", resource.ClientCredentials[1].SourceType);
+        Assert.IsType<EntraIdClientSecretCredential>(resource.ClientCredentials[0]);
+        Assert.IsType<EntraIdFederatedIdentityCredential>(resource.ClientCredentials[1]);
     }
 
     [Fact]
@@ -371,9 +372,10 @@ public class EntraIdResourceBuilderTests
 
         var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
         Assert.Single(resource.ClientCredentials);
-        Assert.Equal("KeyVault", resource.ClientCredentials[0].SourceType);
-        Assert.Equal("https://myvault.vault.azure.net", resource.ClientCredentials[0].KeyVaultUrl);
-        Assert.Equal("MyCert", resource.ClientCredentials[0].KeyVaultCertificateName);
+        var cred = Assert.IsType<EntraIdKeyVaultCertificateCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("KeyVault", cred.SourceType);
+        Assert.Equal("https://myvault.vault.azure.net", cred.KeyVaultUrl);
+        Assert.Equal("MyCert", cred.CertificateNameInKeyVault);
     }
 
     [Fact]

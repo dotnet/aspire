@@ -154,9 +154,8 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(clientSecret);
 
-        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        builder.Resource.ClientCredentials.Add(new EntraIdClientSecretCredential
         {
-            SourceType = "ClientSecret",
             ClientSecret = clientSecret.Resource
         });
 
@@ -184,9 +183,8 @@ public static class EntraIdResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
         {
-            SourceType = "SignedAssertionFromManagedIdentity",
             ManagedIdentityClientId = managedIdentityClientId
         });
 
@@ -209,11 +207,10 @@ public static class EntraIdResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(keyVaultUrl);
         ArgumentException.ThrowIfNullOrEmpty(certificateName);
 
-        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        builder.Resource.ClientCredentials.Add(new EntraIdKeyVaultCertificateCredential
         {
-            SourceType = "KeyVault",
             KeyVaultUrl = keyVaultUrl,
-            KeyVaultCertificateName = certificateName
+            CertificateNameInKeyVault = certificateName
         });
 
         return builder;
@@ -235,11 +232,10 @@ public static class EntraIdResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(storePath);
         ArgumentException.ThrowIfNullOrEmpty(thumbprint);
 
-        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        builder.Resource.ClientCredentials.Add(new EntraIdStoreCertificateCredential
         {
-            SourceType = "StoreWithThumbprint",
-            CertificateStorePath = storePath,
-            CertificateThumbprint = thumbprint
+            StorePath = storePath,
+            Thumbprint = thumbprint
         });
 
         return builder;
@@ -261,11 +257,10 @@ public static class EntraIdResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(storePath);
         ArgumentException.ThrowIfNullOrEmpty(distinguishedName);
 
-        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        builder.Resource.ClientCredentials.Add(new EntraIdStoreCertificateCredential
         {
-            SourceType = "StoreWithDistinguishedName",
-            CertificateStorePath = storePath,
-            CertificateDistinguishedName = distinguishedName
+            StorePath = storePath,
+            DistinguishedName = distinguishedName
         });
 
         return builder;
@@ -504,85 +499,11 @@ public static class EntraIdResourceExtensions
                 context.EnvironmentVariables[$"{prefix}__AzureRegion"] = entra.AzureRegion;
             }
 
-            // Client credentials (M.I.W ClientCredentials array)
+            // Client credentials — each type emits its own env vars
             for (var i = 0; i < entra.ClientCredentials.Count; i++)
             {
-                var cred = entra.ClientCredentials[i];
                 var credPrefix = $"{prefix}__ClientCredentials__{i}";
-
-                context.EnvironmentVariables[$"{credPrefix}__SourceType"] = cred.SourceType;
-
-                // ClientSecret
-                if (cred.ClientSecret is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__ClientSecret"] = cred.ClientSecret;
-                }
-
-                // Managed identity / FIC
-                if (cred.ManagedIdentityClientId is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__ManagedIdentityClientId"] = cred.ManagedIdentityClientId;
-                }
-
-                if (cred.TokenExchangeUrl is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__TokenExchangeUrl"] = cred.TokenExchangeUrl;
-                }
-
-                if (cred.TokenExchangeAuthority is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__TokenExchangeAuthority"] = cred.TokenExchangeAuthority;
-                }
-
-                // Key Vault
-                if (cred.KeyVaultUrl is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__KeyVaultUrl"] = cred.KeyVaultUrl;
-                }
-
-                if (cred.KeyVaultCertificateName is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__KeyVaultCertificateName"] = cred.KeyVaultCertificateName;
-                }
-
-                // Certificate store
-                if (cred.CertificateStorePath is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__CertificateStorePath"] = cred.CertificateStorePath;
-                }
-
-                if (cred.CertificateThumbprint is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__CertificateThumbprint"] = cred.CertificateThumbprint;
-                }
-
-                if (cred.CertificateDistinguishedName is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__CertificateDistinguishedName"] = cred.CertificateDistinguishedName;
-                }
-
-                // Certificate from file
-                if (cred.CertificateDiskPath is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__CertificateDiskPath"] = cred.CertificateDiskPath;
-                }
-
-                if (cred.CertificatePassword is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__CertificatePassword"] = cred.CertificatePassword;
-                }
-
-                // Base64-encoded certificate
-                if (cred.Base64EncodedValue is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__Base64EncodedValue"] = cred.Base64EncodedValue;
-                }
-
-                // Signed assertion file
-                if (cred.SignedAssertionFileDiskPath is not null)
-                {
-                    context.EnvironmentVariables[$"{credPrefix}__SignedAssertionFileDiskPath"] = cred.SignedAssertionFileDiskPath;
-                }
+                entra.ClientCredentials[i].EmitEnvironmentVariables(context.EnvironmentVariables, credPrefix);
             }
 
             // Client capabilities (e.g., "cp1" for CAE)
