@@ -24,8 +24,16 @@ jobs:
 
       - name: Discover and dump ATS capabilities
         run: |
-          ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release --"
+          ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release -- --nologo"
           FAILURES=0
+
+          # Ensure sdk command is available in this workflow.
+          echo "::group::Enable polyglot support feature"
+          if ! $ASPIRE_CLI config set features.polyglotSupportEnabled true --global; then
+            echo "::error::Failed to enable features.polyglotSupportEnabled"
+            exit 1
+          fi
+          echo "::endgroup::"
 
           # Dump core Aspire.Hosting capabilities (no integration argument)
           echo "::group::Aspire.Hosting (core)"
