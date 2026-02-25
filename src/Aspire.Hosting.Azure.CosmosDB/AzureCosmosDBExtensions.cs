@@ -172,36 +172,15 @@ public static class AzureCosmosExtensions
                 return Task.CompletedTask;
             });
 
-            var resource = builder.Resource;
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            // Switch the emulator endpoint from HTTP to HTTPS when a certificate is available.
+            // The connection string and URI expressions use EndpointProperty.Url which will
+            // automatically reflect the updated scheme.
+            builder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                builder.WithEndpoint("emulator", ep =>
                 {
-                    if (developerCertificateService.UseForHttps)
-                    {
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // Switch the emulator endpoint from HTTP to HTTPS when a certificate is available.
-                    // The connection string and URI expressions use EndpointProperty.Url which will
-                    // automatically reflect the updated scheme.
-                    builder.WithEndpoint("emulator", ep =>
-                    {
-                        ep.UriScheme = "https";
-                    });
-                }
-
-                return Task.CompletedTask;
+                    ep.UriScheme = "https";
+                });
             });
         }
         else
@@ -429,8 +408,6 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        var resource = builder.Resource.InnerResource;
-
         var result = builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
             {
                 endpoint.UriScheme = "http";
@@ -450,32 +427,12 @@ public static class AzureCosmosExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            builder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                builder.WithEndpoint(KnownUrls.DataExplorer.EndpointName, ep =>
                 {
-                    if (developerCertificateService.UseForHttps)
-                    {
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    builder.WithEndpoint(KnownUrls.DataExplorer.EndpointName, ep =>
-                    {
-                        ep.UriScheme = "https";
-                    });
-                }
-
-                return Task.CompletedTask;
+                    ep.UriScheme = "https";
+                });
             });
         }
 
