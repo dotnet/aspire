@@ -409,6 +409,8 @@ public class DotNetTemplateFactoryTests
 
     private sealed class TestInteractionService : IInteractionService
     {
+        public ConsoleOutput Console { get; set; }
+
         public Task<T> PromptForSelectionAsync<T>(string prompt, IEnumerable<T> choices, Func<T, string> displaySelector, CancellationToken cancellationToken) where T : notnull
             => throw new NotImplementedException();
 
@@ -432,12 +434,12 @@ public class DotNetTemplateFactoryTests
 
         public void DisplaySuccess(string message) { }
         public void DisplayError(string message) { }
-        public void DisplayMessage(string emoji, string message) { }
+        public void DisplayMessage(string emojiName, string message) { }
         public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
         public void DisplayCancellationMessage() { }
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
-        public void DisplayRawText(string text) { }
+        public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
         public void DisplayMarkdown(string markdown) { }
         public void DisplayMarkupLine(string markup) { }
         public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }

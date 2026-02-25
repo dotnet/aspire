@@ -15,6 +15,13 @@ namespace Aspire.Cli.Commands;
 internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
+
+    /// <summary>
+    /// Gets the help group for this command.
+    /// When null, the command appears in the "Other Commands:" catch-all section.
+    /// </summary>
+    internal virtual HelpGroup HelpGroup => HelpGroup.None;
+
     private readonly CliExecutionContext _executionContext;
 
     protected CliExecutionContext ExecutionContext => _executionContext;

@@ -20,7 +20,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("telemetry");
+        var result = command.Parse("otel");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -35,7 +35,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("telemetry logs");
+        var result = command.Parse("otel logs");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -50,7 +50,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("telemetry spans");
+        var result = command.Parse("otel spans");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -65,7 +65,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("telemetry traces");
+        var result = command.Parse("otel traces");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

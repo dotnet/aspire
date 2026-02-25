@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Run an Aspire apphost in development mode.</value>
+    <value>Run an apphost in development mode.</value>
   </data>
   <data name="ForceArgumentDescription" xml:space="preserve">
     <value>Stop any running instance of the AppHost without prompting.</value>
@@ -130,7 +130,7 @@
     <value>Run the AppHost in the background and exit after it starts.</value>
   </data>
   <data name="JsonArgumentDescription" xml:space="preserve">
-    <value>Output result as JSON (only valid with --detach).</value>
+    <value>Output format (Table or Json). Only valid with --detach.</value>
   </data>
   <data name="WatchArgumentDescription" xml:space="preserve">
     <value>Start project resources in watch mode.</value>

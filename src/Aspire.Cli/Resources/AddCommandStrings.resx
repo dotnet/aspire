@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Add a hosting integration to the Aspire AppHost.</value>
+    <value>Add a hosting integration to the apphost.</value>
   </data>
   <data name="IntegrationArgumentDescription" xml:space="preserve">
     <value>The name of the integration to add (e.g. redis, postgres).</value>
@@ -171,5 +171,11 @@
   </data>
   <data name="UsePrereleasePackages" xml:space="preserve">
     <value>Use pre-release packages</value>
+  </data>
+  <data name="StoppedRunningInstance" xml:space="preserve">
+    <value>Stopped a running Aspire AppHost instance to allow package modification.</value>
+  </data>
+  <data name="UnableToStopRunningInstances" xml:space="preserve">
+    <value>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</value>
   </data>
 </root>

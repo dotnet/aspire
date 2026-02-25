@@ -44,6 +44,8 @@ internal sealed partial class PsCommandJsonContext : JsonSerializerContext
 
 internal sealed class PsCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<PsCommand> _logger;
@@ -118,7 +120,8 @@ internal sealed class PsCommand : BaseCommand
         if (format == OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.RelaxedEscaping.ListAppHostDisplayInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

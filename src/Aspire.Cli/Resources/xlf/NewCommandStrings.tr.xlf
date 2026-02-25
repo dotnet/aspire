@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Create a new Aspire project.</source>
-        <target state="translated">Yeni bir Aspire projesi oluşturun.</target>
+        <source>Create a new app from an Aspire starter template.</source>
+        <target state="needs-review-translation">Yeni bir Aspire projesi oluşturun.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">

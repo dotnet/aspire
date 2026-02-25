@@ -172,7 +172,8 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
         if (format == OutputFormat.Json)
         {
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
@@ -201,7 +202,8 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         {
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayRawText(line);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(line, ConsoleOutput.Standard);
             }
             else
             {

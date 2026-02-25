@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display logs from resources in a running Aspire apphost.</source>
-        <target state="translated">실행 중인 Aspire AppHost에서 리소스의 로그를 표시합니다.</target>
+        <source>Display logs from resources in a running apphost.</source>
+        <target state="needs-review-translation">실행 중인 Aspire AppHost에서 리소스의 로그를 표시합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output logs in JSON format (NDJSON).</source>
-        <target state="translated">JSON 형식(NDJSON)으로 로그를 출력합니다.</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">JSON 형식(NDJSON)으로 로그를 출력합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
@@ -40,6 +40,11 @@
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to get logs for. If not specified, logs from all resources are shown.</source>
         <target state="translated">로그를 가져올 리소스의 이름입니다. 지정하지 않으면 모든 리소스의 로그가 표시됩니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">--tail 옵션을 사용하려면 리소스 이름을 지정해야 합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

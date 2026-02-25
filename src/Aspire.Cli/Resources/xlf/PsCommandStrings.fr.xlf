@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../PsCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>List running Aspire apphosts.</source>
-        <target state="translated">Liste des hôtes d’application Aspire en cours d’exécution.</target>
+        <source>List running apphosts.</source>
+        <target state="needs-review-translation">Liste des hôtes d’application Aspire en cours d’exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format.</source>
-        <target state="translated">Sortie au format JSON.</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Sortie au format JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">

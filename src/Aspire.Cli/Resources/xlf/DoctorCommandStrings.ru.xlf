@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Diagnose Aspire environment issues and verify setup</source>
-        <target state="translated">Диагностика проблем среды Aspire и проверка настройки</target>
+        <source>Diagnose Aspire environment issues and verify setup.</source>
+        <target state="needs-review-translation">Диагностика проблем среды Aspire и проверка настройки</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output results as JSON for tooling integration</source>
-        <target state="translated">Вывод результатов в формате JSON для интеграции с инструментами</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Вывод результатов в формате JSON для интеграции с инструментами</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">

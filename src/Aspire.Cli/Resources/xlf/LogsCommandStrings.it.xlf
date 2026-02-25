@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Display logs from resources in a running Aspire apphost.</source>
-        <target state="translated">Consente di visualizzare i log delle risorse in un apphost Aspire in esecuzione.</target>
+        <source>Display logs from resources in a running apphost.</source>
+        <target state="needs-review-translation">Consente di visualizzare i log delle risorse in un apphost Aspire in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output logs in JSON format (NDJSON).</source>
-        <target state="translated">Log di output in formato JSON (NDJSON).</target>
+        <source>Output format (Table or Json).</source>
+        <target state="needs-review-translation">Log di output in formato JSON (NDJSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
@@ -40,6 +40,11 @@
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to get logs for. If not specified, logs from all resources are shown.</source>
         <target state="translated">Nome della risorsa per cui ottenere i log. Se non specificato, vengono visualizzati i log di tutte le risorse.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
@@ -70,6 +75,11 @@
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
         <target state="translated">L'opzione --tail richiede che venga specificato un nome di risorsa.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>
