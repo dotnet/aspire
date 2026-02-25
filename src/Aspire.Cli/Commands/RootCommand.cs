@@ -131,6 +131,7 @@ internal sealed class RootCommand : BaseRootCommand
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
         DocsCommand docsCommand,
+        SecretCommand secretCommand,
         SdkCommand sdkCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
@@ -215,6 +216,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
         Subcommands.Add(docsCommand);
+        Subcommands.Add(secretCommand);
 
         if (bundleService.IsBundle)
         {

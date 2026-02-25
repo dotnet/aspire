@@ -4,7 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Pipelines.Internal;
+using Aspire.Shared.Json;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
