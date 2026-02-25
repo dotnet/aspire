@@ -1291,6 +1291,21 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             CancellationToken.None
         );
     }
+
+    [Theory]
+    [InlineData("Success: Aspire.ProjectTemplates@13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // New .NET 10.0 SDK format with @ separator
+    [InlineData("Success: Aspire.ProjectTemplates::13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // Old SDK format with :: separator
+    [InlineData("Some other output", false, null)] // Missing success line
+    [InlineData("Success: Aspire.ProjectTemplates installed the following templates:", false, null)] // Invalid format without version separator
+    public void TryParsePackageVersionFromStdout_ParsesCorrectly(string stdout, bool expectedResult, string? expectedVersion)
+    {
+        // Act
+        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
+
+        // Assert
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedVersion, version);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -1310,20 +1325,5 @@ internal sealed class AssertingDotNetCliRunner(
     {
         assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
         return Task.FromResult(exitCode);
-    }
-
-    [Theory]
-    [InlineData("Success: Aspire.ProjectTemplates@13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // New .NET 10.0 SDK format with @ separator
-    [InlineData("Success: Aspire.ProjectTemplates::13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // Old SDK format with :: separator
-    [InlineData("Some other output", false, null)] // Missing success line
-    [InlineData("Success: Aspire.ProjectTemplates installed the following templates:", false, null)] // Invalid format without version separator
-    public void TryParsePackageVersionFromStdout_ParsesCorrectly(string stdout, bool expectedResult, string? expectedVersion)
-    {
-        // Act
-        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
-
-        // Assert
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedVersion, version);
     }
 }
