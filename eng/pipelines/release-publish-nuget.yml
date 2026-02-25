@@ -36,11 +36,18 @@ parameters:
     type: boolean
     default: false
 
+  - name: SkipHomebrewPublish
+    displayName: 'Skip Homebrew Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
   # Variable group containing NuGetApiKey
   - group: Aspire-Release-Secrets
+  # Variable group containing aspire-winget-bot-pat and aspire-homebrew-bot-pat for WinGet and HomeBrew publishing
+  - group: Aspire-Secrets
 
 resources:
   repositories:
@@ -89,6 +96,7 @@ extends:
                   Write-Host "GA Channel: ${{ parameters.GaChannelName }}"
                   Write-Host "Dry Run: ${{ parameters.DryRun }}"
                   Write-Host "Skip NuGet Publish: ${{ parameters.SkipNuGetPublish }}"
+                  Write-Host "Skip Homebrew Publish: ${{ parameters.SkipHomebrewPublish }}"
                   Write-Host "Skip Channel Promotion: ${{ parameters.SkipChannelPromotion }}"
                   Write-Host "==================================="
 
@@ -425,12 +433,67 @@ extends:
                     Write-Host "✓ Build successfully promoted to '$channelName'"
                     Write-Host "==========================="
 
+      # ----------------------------------------------------------------
+      # Publish installers (WinGet + Homebrew) after channel promotion.
+      # Both jobs run in parallel within a single stage.
+      # ----------------------------------------------------------------
+      - stage: PublishInstallers
+        displayName: 'Publish Installers'
+        dependsOn: []
+          #- PromoteToChannel
+        condition: |
+          and(
+            or(succeeded('PromoteToChannel'), eq('${{ parameters.SkipChannelPromotion }}', 'true')),
+            eq('${{ parameters.SkipHomebrewPublish }}', 'false')
+          )
+        jobs:
+          - template: /eng/common/templates-official/jobs/jobs.yml@self
+            parameters:
+              enableMicrobuild: false
+              enablePublishUsingPipelines: false
+              enablePublishBuildAssets: false
+              enablePublishBuildArtifacts: true
+              enableTelemetry: true
+              workspace:
+                clean: all
+              jobs:
+              - job: Homebrew
+                displayName: 'Submit Homebrew Release Cask'
+                condition: eq('${{ parameters.SkipHomebrewPublish }}', 'false')
+                timeoutInMinutes: 30
+                pool:
+                  name: Azure Pipelines
+                  vmImage: macOS-latest-internal
+                  os: macOS
+                steps:
+                - checkout: none
+
+                - task: DownloadBuildArtifacts@0
+                  displayName: 'Download Homebrew Release Cask'
+                  inputs:
+                    buildType: specific
+                    buildVersionToDownload: specific
+                    project: internal
+                    pipeline: dotnet-aspire
+                    buildId: $(resources.pipeline.aspire-build.runID)
+                    artifactName: homebrew-cask-stable
+                    downloadPath: '$(Pipeline.Workspace)/homebrew'
+                    checkDownloadedFiles: true
+
+                - template: /eng/pipelines/templates/publish-homebrew.yml@self
+                  parameters:
+                    caskArtifactPath: $(Pipeline.Workspace)/homebrew/homebrew-cask-stable
+                    version: ${{ parameters.ReleaseVersion }}
+                    channel: stable
+                    dryRun: ${{ parameters.DryRun }}
+
       - stage: Summary
         displayName: 'Release Summary'
         dependsOn:
           - ExtractBarBuildId
           - PublishNuGet
           - PromoteToChannel
+          - PublishInstallers
         condition: always()
         variables:
           BarBuildId: $[ stageDependencies.ExtractBarBuildId.ExtractBarId.outputs['extractBar.BarBuildId'] ]
@@ -458,6 +521,12 @@ extends:
                   Write-Host "╠═══════════════════════════════════════════════════════════════╣"
                   Write-Host "║ NuGet Publish:  ${{ parameters.SkipNuGetPublish }}" -NoNewline
                   if ("${{ parameters.SkipNuGetPublish }}" -eq "true") {
+                    Write-Host " (SKIPPED)"
+                  } else {
+                    Write-Host " (EXECUTED)"
+                  }
+                  Write-Host "║ Homebrew Pub:   ${{ parameters.SkipHomebrewPublish }}" -NoNewline
+                  if ("${{ parameters.SkipHomebrewPublish }}" -eq "true") {
                     Write-Host " (SKIPPED)"
                   } else {
                     Write-Host " (EXECUTED)"
