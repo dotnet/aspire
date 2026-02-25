@@ -274,7 +274,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("do my-step --project invalid.csproj");
+        var result = command.Parse("do my-step --apphost invalid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert

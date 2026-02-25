@@ -84,10 +84,7 @@ internal sealed class LogsCommand : BaseCommand
         Description = LogsCommandStrings.ResourceArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = SharedCommandStrings.ProjectOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
     private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
         Description = LogsCommandStrings.FollowOptionDescription
@@ -139,7 +136,7 @@ internal sealed class LogsCommand : BaseCommand
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_followOption);
         Options.Add(s_formatOption);
         Options.Add(s_tailOption);
@@ -151,7 +148,7 @@ internal sealed class LogsCommand : BaseCommand
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var follow = parseResult.GetValue(s_followOption);
         var format = parseResult.GetValue(s_formatOption);
         var tail = parseResult.GetValue(s_tailOption);

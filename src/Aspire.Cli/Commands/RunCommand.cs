@@ -129,7 +129,7 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_appHostOption);
         var detach = parseResult.GetValue(s_detachOption);
         _isDetachMode = detach;
         var noBuild = parseResult.GetValue(s_noBuildOption);
