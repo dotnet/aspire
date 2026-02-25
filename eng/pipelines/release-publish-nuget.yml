@@ -36,6 +36,11 @@ parameters:
     type: boolean
     default: false
 
+  - name: SkipWinGetPublish
+    displayName: 'Skip WinGet Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
   - name: SkipHomebrewPublish
     displayName: 'Skip Homebrew Publishing (set true if already completed)'
     type: boolean
@@ -96,6 +101,7 @@ extends:
                   Write-Host "GA Channel: ${{ parameters.GaChannelName }}"
                   Write-Host "Dry Run: ${{ parameters.DryRun }}"
                   Write-Host "Skip NuGet Publish: ${{ parameters.SkipNuGetPublish }}"
+                  Write-Host "Skip WinGet Publish: ${{ parameters.SkipWinGetPublish }}"
                   Write-Host "Skip Homebrew Publish: ${{ parameters.SkipHomebrewPublish }}"
                   Write-Host "Skip Channel Promotion: ${{ parameters.SkipChannelPromotion }}"
                   Write-Host "==================================="
@@ -444,7 +450,7 @@ extends:
         condition: |
           and(
             or(succeeded('PromoteToChannel'), eq('${{ parameters.SkipChannelPromotion }}', 'true')),
-            eq('${{ parameters.SkipHomebrewPublish }}', 'false')
+            or(eq('${{ parameters.SkipWinGetPublish }}', 'false'), eq('${{ parameters.SkipHomebrewPublish }}', 'false'))
           )
         jobs:
           - template: /eng/common/templates-official/jobs/jobs.yml@self
@@ -457,6 +463,36 @@ extends:
               workspace:
                 clean: all
               jobs:
+              - job: WinGet
+                displayName: 'Submit WinGet Release Manifests'
+                condition: eq('${{ parameters.SkipWinGetPublish }}', 'false')
+                timeoutInMinutes: 30
+                pool:
+                  name: NetCore1ESPool-Internal
+                  image: 1es-windows-2022
+                  os: windows
+                steps:
+                - checkout: none
+
+                - task: DownloadBuildArtifacts@0
+                  displayName: 'Download WinGet Release Manifests'
+                  inputs:
+                    buildType: specific
+                    buildVersionToDownload: specific
+                    project: internal
+                    pipeline: dotnet-aspire
+                    buildId: $(resources.pipeline.aspire-build.runID)
+                    artifactName: winget-manifests-stable
+                    downloadPath: '$(Pipeline.Workspace)/winget'
+                    checkDownloadedFiles: true
+
+                - template: /eng/pipelines/templates/publish-winget.yml@self
+                  parameters:
+                    manifestArtifactPath: $(Pipeline.Workspace)/winget/winget-manifests-stable
+                    version: ${{ parameters.ReleaseVersion }}
+                    packageIdentifier: Microsoft.Aspire
+                    dryRun: ${{ parameters.DryRun }}
+
               - job: Homebrew
                 displayName: 'Submit Homebrew Release Cask'
                 condition: eq('${{ parameters.SkipHomebrewPublish }}', 'false')
@@ -521,6 +557,12 @@ extends:
                   Write-Host "╠═══════════════════════════════════════════════════════════════╣"
                   Write-Host "║ NuGet Publish:  ${{ parameters.SkipNuGetPublish }}" -NoNewline
                   if ("${{ parameters.SkipNuGetPublish }}" -eq "true") {
+                    Write-Host " (SKIPPED)"
+                  } else {
+                    Write-Host " (EXECUTED)"
+                  }
+                  Write-Host "║ WinGet Publish: ${{ parameters.SkipWinGetPublish }}" -NoNewline
+                  if ("${{ parameters.SkipWinGetPublish }}" -eq "true") {
                     Write-Host " (SKIPPED)"
                   } else {
                     Write-Host " (EXECUTED)"

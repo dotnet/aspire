@@ -381,6 +381,21 @@ extends:
           workspace:
             clean: all
           jobs:
+          - job: WinGet
+            displayName: WinGet Manifest
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-windows-2022
+              os: windows
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - template: /eng/pipelines/templates/prepare-winget-manifest.yml@self
+              parameters:
+                version: $(aspireVersion)
+                channel: $(installerChannel)
+
           - job: Homebrew
             displayName: Homebrew Cask
             timeoutInMinutes: 30
