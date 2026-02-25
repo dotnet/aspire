@@ -1,0 +1,621 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+
+namespace Aspire.Hosting;
+
+/// <summary>
+/// Provides extension methods for adding Microsoft Entra ID resources to the application model.
+/// </summary>
+public static class EntraIdResourceExtensions
+{
+    /// <summary>
+    /// Adds a Microsoft Entra ID application registration resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The Entra ID application resource injects configuration as environment variables
+    /// into consuming services. The variables map to the <c>AzureAd</c> configuration section
+    /// that Microsoft.Identity.Web reads natively.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var entraApi = builder.AddEntraIdApplication("entra-api")
+    ///     .WithTenantId(builder.AddParameter("EntraTenantId"))
+    ///     .WithClientId(builder.AddParameter("EntraApiClientId"));
+    ///
+    /// builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithEntraIdAuthentication(entraApi);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AddEntraIdApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var resource = new EntraIdApplicationResource(name);
+        return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Adds a Microsoft Entra ID application registration resource with a custom configuration section name.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="configSectionName">The configuration section name (e.g., <c>"AzureAd"</c>, <c>"AzureAdApi"</c>).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> AddEntraIdApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string configSectionName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(configSectionName);
+
+        var resource = new EntraIdApplicationResource(name, configSectionName);
+        return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Configures the tenant ID for this Entra ID application using a parameter resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">A parameter containing the tenant ID (GUID).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithTenantId(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> tenantId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(tenantId);
+
+        builder.Resource.TenantIdParameter = tenantId.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the tenant ID for this Entra ID application using a string value.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">The tenant ID (GUID).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithTenantId(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string tenantId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(tenantId);
+
+        builder.Resource.TenantId = tenantId;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the client ID for this Entra ID application using a parameter resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="clientId">A parameter containing the client ID (GUID).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithClientId(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(clientId);
+
+        builder.Resource.ClientIdParameter = clientId.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the client ID for this Entra ID application using a string value.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="clientId">The client ID (GUID).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithClientId(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(clientId);
+
+        builder.Resource.ClientId = clientId;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a client secret credential to this Entra ID application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="clientSecret">A secret parameter containing the client secret.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This adds an entry to the <c>ClientCredentials</c> array in the Microsoft.Identity.Web
+    /// configuration with <c>SourceType</c> set to <c>"ClientSecret"</c>.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithClientSecret(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> clientSecret)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(clientSecret);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        {
+            SourceType = "ClientSecret",
+            ClientSecret = clientSecret.Resource
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a federated identity credential (FIC) with managed identity to this Entra ID application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="managedIdentityClientId">
+    /// The client ID of a user-assigned managed identity.
+    /// If <see langword="null"/>, the system-assigned managed identity is used.
+    /// </param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This adds an entry to the <c>ClientCredentials</c> array in the Microsoft.Identity.Web
+    /// configuration with <c>SourceType</c> set to <c>"SignedAssertionFromManagedIdentity"</c>.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithFicMsi(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string? managedIdentityClientId = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        {
+            SourceType = "SignedAssertionFromManagedIdentity",
+            ManagedIdentityClientId = managedIdentityClientId
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a certificate credential from Azure Key Vault to this Entra ID application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="keyVaultUrl">The URL of the Key Vault (e.g., <c>"https://myvault.vault.azure.net"</c>).</param>
+    /// <param name="certificateName">The name of the certificate in Key Vault.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithCertificateFromKeyVault(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string keyVaultUrl,
+        string certificateName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(keyVaultUrl);
+        ArgumentException.ThrowIfNullOrEmpty(certificateName);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        {
+            SourceType = "KeyVault",
+            KeyVaultUrl = keyVaultUrl,
+            KeyVaultCertificateName = certificateName
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a certificate credential from the certificate store by thumbprint.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="storePath">The certificate store path (e.g., <c>"CurrentUser/My"</c>).</param>
+    /// <param name="thumbprint">The certificate thumbprint.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithCertificateThumbprint(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string storePath,
+        string thumbprint)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(storePath);
+        ArgumentException.ThrowIfNullOrEmpty(thumbprint);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        {
+            SourceType = "StoreWithThumbprint",
+            CertificateStorePath = storePath,
+            CertificateThumbprint = thumbprint
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a certificate credential from the certificate store by distinguished name.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="storePath">The certificate store path (e.g., <c>"CurrentUser/My"</c>).</param>
+    /// <param name="distinguishedName">The certificate distinguished name (e.g., <c>"CN=MyCert"</c>).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithCertificateDistinguishedName(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string storePath,
+        string distinguishedName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(storePath);
+        ArgumentException.ThrowIfNullOrEmpty(distinguishedName);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdClientCredential
+        {
+            SourceType = "StoreWithDistinguishedName",
+            CertificateStorePath = storePath,
+            CertificateDistinguishedName = distinguishedName
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a raw credential entry for advanced scenarios not covered by convenience methods.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="credential">A fully configured <see cref="EntraIdClientCredential"/>.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithCredential(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        EntraIdClientCredential credential)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(credential);
+
+        builder.Resource.ClientCredentials.Add(credential);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Entra ID instance URL. Defaults to <c>https://login.microsoftonline.com/</c>.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="instance">The Entra ID instance URL (e.g., <c>https://login.microsoftonline.us/</c> for sovereign clouds).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithInstance(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string instance)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(instance);
+
+        builder.Resource.Instance = instance;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the home tenant ID for this app registration.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="appHomeTenantId">The tenant ID where the app is registered.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// Useful for multi-tenant apps and for navigating to the Azure Portal app registration.
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithAppHomeTenantId(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string appHomeTenantId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(appHomeTenantId);
+
+        builder.Resource.AppHomeTenantId = appHomeTenantId;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a client capability (e.g., <c>"cp1"</c> for Continuous Access Evaluation).
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="capability">The capability identifier.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithClientCapability(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string capability)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(capability);
+
+        builder.Resource.ClientCapabilities.Add(capability);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Azure region for optimized token acquisition.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="azureRegion">The Azure region (e.g., <c>"westus2"</c>) or <c>"TryAutoDetect"</c>.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithAzureRegion(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string azureRegion)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(azureRegion);
+
+        builder.Resource.AzureRegion = azureRegion;
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables ACL-based authorization for daemon-to-API scenarios.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithAllowWebApiToBeAuthorizedByACL(
+        this IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.AllowWebApiToBeAuthorizedByACL = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables PII logging for advanced debugging.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithPiiLogging(
+        this IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.EnablePiiLogging = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an extra query parameter to send to the identity provider.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="key">The query parameter key.</param>
+    /// <param name="value">The query parameter value.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithExtraQueryParameter(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string key,
+        string value)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        builder.Resource.ExtraQueryParameters[key] = value;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an accepted audience for this application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="audience">The audience value (e.g., <c>api://&lt;client-id&gt;</c>).</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithAudience(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        string audience)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(audience);
+
+        builder.Resource.Audiences.Add(audience);
+        return builder;
+    }
+
+    /// <summary>
+    /// Injects Entra ID authentication configuration into a consuming service as environment
+    /// variables that map to the Microsoft.Identity.Web configuration section.
+    /// </summary>
+    /// <typeparam name="T">The type of the destination resource.</typeparam>
+    /// <param name="builder">The resource that will receive the authentication configuration.</param>
+    /// <param name="source">The Entra ID application resource to reference.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method injects environment variables in the format <c>{ConfigSectionName}__{Key}</c>
+    /// (e.g., <c>AzureAd__TenantId</c>, <c>AzureAd__ClientId</c>) which .NET's configuration
+    /// system automatically maps to hierarchical configuration sections.
+    /// </para>
+    /// <para>
+    /// The consuming service can then use Microsoft.Identity.Web's standard configuration:
+    /// </para>
+    /// <code lang="csharp">
+    /// builder.Services.AddAuthentication()
+    ///     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+    /// </code>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraApi = builder.AddEntraIdApplication("entra-api")
+    ///     .WithTenantId(tenantId)
+    ///     .WithClientId(clientId);
+    ///
+    /// builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithEntraIdAuthentication(entraApi);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithEntraIdAuthentication<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<EntraIdApplicationResource> source)
+        where T : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        var entra = source.Resource;
+        var prefix = entra.ConfigSectionName;
+
+        builder.WithEnvironment(context =>
+        {
+            // Core identity properties
+            context.EnvironmentVariables[$"{prefix}__Instance"] = entra.Instance;
+
+            if (entra.TenantIdParameter is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__TenantId"] = entra.TenantIdParameter;
+            }
+            else if (entra.TenantId is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__TenantId"] = entra.TenantId;
+            }
+
+            if (entra.ClientIdParameter is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__ClientId"] = entra.ClientIdParameter;
+            }
+            else if (entra.ClientId is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__ClientId"] = entra.ClientId;
+            }
+
+            if (entra.AppHomeTenantId is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__AppHomeTenantId"] = entra.AppHomeTenantId;
+            }
+
+            // Always send X5C for easy certificate rollover
+            context.EnvironmentVariables[$"{prefix}__SendX5C"] = "true";
+
+            // Token acquisition
+            if (entra.AzureRegion is not null)
+            {
+                context.EnvironmentVariables[$"{prefix}__AzureRegion"] = entra.AzureRegion;
+            }
+
+            // Client credentials (M.I.W ClientCredentials array)
+            for (var i = 0; i < entra.ClientCredentials.Count; i++)
+            {
+                var cred = entra.ClientCredentials[i];
+                var credPrefix = $"{prefix}__ClientCredentials__{i}";
+
+                context.EnvironmentVariables[$"{credPrefix}__SourceType"] = cred.SourceType;
+
+                // ClientSecret
+                if (cred.ClientSecret is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__ClientSecret"] = cred.ClientSecret;
+                }
+
+                // Managed identity / FIC
+                if (cred.ManagedIdentityClientId is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__ManagedIdentityClientId"] = cred.ManagedIdentityClientId;
+                }
+
+                if (cred.TokenExchangeUrl is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__TokenExchangeUrl"] = cred.TokenExchangeUrl;
+                }
+
+                if (cred.TokenExchangeAuthority is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__TokenExchangeAuthority"] = cred.TokenExchangeAuthority;
+                }
+
+                // Key Vault
+                if (cred.KeyVaultUrl is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__KeyVaultUrl"] = cred.KeyVaultUrl;
+                }
+
+                if (cred.KeyVaultCertificateName is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__KeyVaultCertificateName"] = cred.KeyVaultCertificateName;
+                }
+
+                // Certificate store
+                if (cred.CertificateStorePath is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__CertificateStorePath"] = cred.CertificateStorePath;
+                }
+
+                if (cred.CertificateThumbprint is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__CertificateThumbprint"] = cred.CertificateThumbprint;
+                }
+
+                if (cred.CertificateDistinguishedName is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__CertificateDistinguishedName"] = cred.CertificateDistinguishedName;
+                }
+
+                // Certificate from file
+                if (cred.CertificateDiskPath is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__CertificateDiskPath"] = cred.CertificateDiskPath;
+                }
+
+                if (cred.CertificatePassword is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__CertificatePassword"] = cred.CertificatePassword;
+                }
+
+                // Base64-encoded certificate
+                if (cred.Base64EncodedValue is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__Base64EncodedValue"] = cred.Base64EncodedValue;
+                }
+
+                // Signed assertion file
+                if (cred.SignedAssertionFileDiskPath is not null)
+                {
+                    context.EnvironmentVariables[$"{credPrefix}__SignedAssertionFileDiskPath"] = cred.SignedAssertionFileDiskPath;
+                }
+            }
+
+            // Client capabilities (e.g., "cp1" for CAE)
+            for (var i = 0; i < entra.ClientCapabilities.Count; i++)
+            {
+                context.EnvironmentVariables[$"{prefix}__ClientCapabilities__{i}"] = entra.ClientCapabilities[i];
+            }
+
+            // Audiences
+            for (var i = 0; i < entra.Audiences.Count; i++)
+            {
+                context.EnvironmentVariables[$"{prefix}__Audiences__{i}"] = entra.Audiences[i];
+            }
+
+            // Web API authorization
+            if (entra.AllowWebApiToBeAuthorizedByACL)
+            {
+                context.EnvironmentVariables[$"{prefix}__AllowWebApiToBeAuthorizedByACL"] = "true";
+            }
+
+            // Diagnostics
+            if (entra.EnablePiiLogging)
+            {
+                context.EnvironmentVariables[$"{prefix}__EnablePiiLogging"] = "true";
+            }
+
+            // Extra query parameters
+            foreach (var kvp in entra.ExtraQueryParameters)
+            {
+                context.EnvironmentVariables[$"{prefix}__ExtraQueryParameters__{kvp.Key}"] = kvp.Value;
+            }
+        });
+
+        return builder;
+    }
+}
