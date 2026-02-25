@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">Arrêtez un AppHost Aspire en cours d’exécution.</target>
+        <target state="translated">Arrêter un apphost en cours d’exécution ou la ressource spécifiée.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
