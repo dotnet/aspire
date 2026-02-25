@@ -80,7 +80,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("run --project /tmp/doesnotexist.csproj");
+        var result = command.Parse("run --apphost /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

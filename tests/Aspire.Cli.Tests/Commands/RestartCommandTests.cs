@@ -62,7 +62,7 @@ public class RestartCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("restart myresource --project /path/to/project.csproj --help");
+        var result = command.Parse("restart myresource --apphost /path/to/project.csproj --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);

@@ -31,10 +31,7 @@ internal sealed class ResourceCommand : BaseCommand
         Description = ResourceCommandStrings.CommandNameArgumentDescription
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = SharedCommandStrings.ProjectOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     public ResourceCommand(
         IInteractionService interactionService,
@@ -52,14 +49,14 @@ internal sealed class ResourceCommand : BaseCommand
 
         Arguments.Add(s_resourceArgument);
         Arguments.Add(s_commandArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument)!;
         var commandName = parseResult.GetValue(s_commandArgument)!;
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
 
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,

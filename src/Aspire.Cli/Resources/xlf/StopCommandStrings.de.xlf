@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
-        <target state="translated">Mehrere AppHosts sind aktiv. Verwenden Sie --project, um anzugeben, welcher AppHost gestoppt werden soll, oder wählen Sie einen aus:</target>
+        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
+        <target state="translated">Mehrere AppHosts sind aktiv. Verwenden Sie --apphost, um anzugeben, welcher AppHost gestoppt werden soll, oder wählen Sie einen aus:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

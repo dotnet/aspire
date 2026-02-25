@@ -129,7 +129,7 @@
   <data name="AppHostNotRunning" xml:space="preserve">
     <value>No running AppHost found. Use 'aspire run' to start one first.</value>
   </data>
-  <data name="ProjectOptionDescription" xml:space="preserve">
+  <data name="AppHostOptionDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
   <data name="FormatOptionDescription" xml:space="preserve">

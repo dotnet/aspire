@@ -37,12 +37,9 @@ internal static class TelemetryCommandHelpers
     };
 
     /// <summary>
-    /// Project option shared across telemetry commands.
+    /// AppHost option shared across telemetry commands.
     /// </summary>
-    internal static Option<FileInfo?> CreateProjectOption() => new("--project")
-    {
-        Description = SharedCommandStrings.ProjectOptionDescription
-    };
+    internal static OptionWithLegacy<FileInfo?> CreateAppHostOption() => new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
     /// Output format option shared across telemetry commands.
@@ -107,15 +104,11 @@ internal static class TelemetryCommandHelpers
         AppHostConnectionResolver connectionResolver,
         IInteractionService interactionService,
         FileInfo? projectFile,
-        OutputFormat format,
         CancellationToken cancellationToken)
     {
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : SharedCommandStrings.ScanningForRunningAppHosts;
-
         var result = await connectionResolver.ResolveConnectionAsync(
             projectFile,
-            scanningMessage,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, TelemetryCommandStrings.SelectAppHostAction),
             SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
