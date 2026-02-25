@@ -15,8 +15,6 @@ namespace Aspire.Hosting;
 
 internal class DeveloperCertificateService : IDeveloperCertificateService
 {
-    private static readonly TimeSpan s_macOsTrustCheckTimeout = TimeSpan.FromSeconds(5);
-
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
     private readonly Lazy<bool> _supportsTlsTermination;
@@ -170,7 +168,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             var (task, processDisposable) = ProcessUtil.Run(processSpec);
             await using (processDisposable.ConfigureAwait(false))
             {
-                var result = await task.WaitAsync(s_macOsTrustCheckTimeout, cancellationToken).ConfigureAwait(false);
+                var result = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 return result.ExitCode == 0;
             }
         }
