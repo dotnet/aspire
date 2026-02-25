@@ -183,6 +183,10 @@ public class PsCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
-        Assert.Equal("[]", string.Join(string.Empty, textWriter.Logs));
+
+        var json = string.Join(string.Empty, textWriter.Logs);
+        var document = JsonDocument.Parse(json);
+        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
+        Assert.Equal(0, document.RootElement.GetArrayLength());
     }
 }
