@@ -40,7 +40,7 @@ Windows only (x64, arm64). Installers are zip archives containing a portable `as
 
 ## Artifact URLs
 
-```
+```text
 https://ci.dot.net/public/aspire/{VERSION}/aspire-cli-win-{arch}-{VERSION}.zip
 ```
 
