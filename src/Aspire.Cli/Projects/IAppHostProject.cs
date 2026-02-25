@@ -226,7 +226,10 @@ internal interface IAppHostProject
     /// <summary>
     /// Gets the UserSecretsId for the specified AppHost file.
     /// </summary>
-    Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, CancellationToken cancellationToken);
+    /// <param name="appHostFile">The AppHost file.</param>
+    /// <param name="autoInit">If true, initializes user secrets if not configured.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken);
 }
 
 /// <summary>

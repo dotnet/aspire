@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -504,9 +505,42 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets the UserSecretsId from a project file.
+    /// Gets the UserSecretsId from a project file, optionally initializing if not configured.
     /// </summary>
-    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var userSecretsId = await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+
+        if (!string.IsNullOrEmpty(userSecretsId) || !autoInit)
+        {
+            return userSecretsId;
+        }
+
+        // Auto-initialize user secrets
+        _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
+        _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
+
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            ArgumentList = { "user-secrets", "init", "--project", projectFile.FullName },
+            WorkingDirectory = projectFile.Directory!.FullName,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        if (process is not null)
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+
+        // Re-query
+        return await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+    }
+
+    private async Task<string?> QueryUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {
@@ -526,7 +560,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             if (rootElement.TryGetProperty("Properties", out var properties) &&
                 properties.TryGetProperty("UserSecretsId", out var userSecretsIdElement))
             {
-                return userSecretsIdElement.GetString();
+                var value = userSecretsIdElement.GetString();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
             }
 
             return null;
@@ -554,7 +589,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         env["DcpPublisher__RandomizePorts"] = "true";
 
         // Get the UserSecretsId from the project and create isolated copy
-        var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+        var userSecretsId = await QueryUserSecretsIdAsync(appHostFile, cancellationToken);
         if (!string.IsNullOrEmpty(userSecretsId))
         {
             _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);

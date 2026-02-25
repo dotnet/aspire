@@ -1149,7 +1149,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Computes a deterministic synthetic UserSecretsId from the AppHost file path.
     /// </summary>
-    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
     {
         var id = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
         return Task.FromResult<string?>(id);
