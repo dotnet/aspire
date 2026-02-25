@@ -17,24 +17,9 @@
         <target state="translated">Nome della risorsa di destinazione rispetto al quale eseguire il comando.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">Nessun AppHost in ambito trovato. Visualizzazione di tutti gli AppHost in esecuzione.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Non sono stati trovati AppHost in esecuzione.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OptionNotValidWithResource">
         <source>The '{0}' option is not valid when starting a resource.</source>
         <target state="new">The '{0}' option is not valid when starting a resource.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Percorso del file di un progetto AppHost di Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">

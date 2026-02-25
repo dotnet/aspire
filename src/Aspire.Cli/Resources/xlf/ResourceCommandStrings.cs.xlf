@@ -17,24 +17,9 @@
         <target state="translated">Název prostředku, na kterém se má příkaz provést</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">Nebyli nalezeni žádní hostitelé aplikací v daném oboru. Zobrazují se všichni spuštění hostitelé aplikací.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Nebyl nalezen žádný spuštěný hostitel aplikací.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OptionNotValidWithResource">
         <source>The '{0}' option is not valid when starting a resource.</source>
         <target state="new">The '{0}' option is not valid when starting a resource.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">

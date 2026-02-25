@@ -70,10 +70,6 @@ internal sealed class RunCommand : BaseCommand
 
     protected override bool UpdateNotificationsEnabled => !_isDetachMode;
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = RunCommandStrings.ProjectArgumentDescription
-    };
     private static readonly Option<bool> s_detachOption = new("--detach")
     {
         Description = RunCommandStrings.DetachArgumentDescription
@@ -115,7 +111,6 @@ internal sealed class RunCommand : BaseCommand
         _appHostLauncher = appHostLauncher;
         _fileLoggerProvider = fileLoggerProvider;
 
-        Options.Add(s_projectOption);
         Options.Add(s_detachOption);
         Options.Add(s_noBuildOption);
         AppHostLauncher.AddLaunchOptions(this);
@@ -134,7 +129,7 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_projectOption);
         var detach = parseResult.GetValue(s_detachOption);
         _isDetachMode = detach;
         var noBuild = parseResult.GetValue(s_noBuildOption);

@@ -17,24 +17,9 @@
         <target state="translated">명령을 실행할 대상 리소스의 이름입니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">범위 내 AppHost를 찾을 수 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">실행 중인 AppHost를 찾을 수 없습니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OptionNotValidWithResource">
         <source>The '{0}' option is not valid when starting a resource.</source>
         <target state="new">The '{0}' option is not valid when starting a resource.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">

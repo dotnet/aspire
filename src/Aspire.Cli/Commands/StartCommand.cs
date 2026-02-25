@@ -29,11 +29,6 @@ internal sealed class StartCommand : BaseCommand
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = ResourceCommandStrings.ProjectOptionDescription
-    };
-
     private static readonly Option<bool> s_noBuildOption = new("--no-build")
     {
         Description = RunCommandStrings.NoBuildArgumentDescription
@@ -57,7 +52,6 @@ internal sealed class StartCommand : BaseCommand
         _logger = logger;
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
         Options.Add(s_noBuildOption);
         AppHostLauncher.AddLaunchOptions(this);
 
@@ -67,7 +61,7 @@ internal sealed class StartCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_projectOption);
         var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
         var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
 
@@ -114,15 +108,15 @@ internal sealed class StartCommand : BaseCommand
     {
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            ResourceCommandStrings.ScanningForRunningAppHosts,
-            ResourceCommandStrings.SelectAppHost,
-            ResourceCommandStrings.NoInScopeAppHostsShowingAll,
-            ResourceCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, ResourceCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayError(result.ErrorMessage ?? ResourceCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(result.ErrorMessage);
             return ExitCodeConstants.FailedToFindProject;
         }
 
