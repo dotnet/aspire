@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 <#
 .SYNOPSIS
     Repeatedly runs a dotnet test command to validate flaky test fixes.
@@ -5,19 +7,18 @@
 .DESCRIPTION
     Runs <TestCommand> repeatedly to validate flaky test fixes.
     Cleanup logic modeled on tests/helix/send-to-helix-inner.proj pre-commands.
-    Everything after '--' is executed verbatim each iteration.
+    Everything after '--' (or after the last recognized option) is executed
+    verbatim each iteration.
 
-.PARAMETER n
-    Number of iterations (default: 100).
-
-.PARAMETER RunAll
-    Don't stop on first failure, run all iterations.
+    NOTE: PowerShell strips '--' when calling scripts directly. The script
+    handles both cases: with '--' (e.g. via pwsh -File) and without it
+    (direct invocation from a PowerShell prompt).
 
 .EXAMPLE
     ./run-test-repeatedly.ps1 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
 
 .EXAMPLE
-    ./run-test-repeatedly.ps1 -n 50 -RunAll -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+    ./run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 #>
 
 # ---------- defaults ----------
@@ -25,9 +26,15 @@ $Iterations = 100
 $StopOnFailure = $true
 
 # ---------- parse arguments ----------
+# PowerShell's parameter binder consumes '--' when scripts are called directly
+# (e.g. ./script.ps1 ... -- cmd), so the separator may not appear in $args.
+# We handle both cases: if '--' is found we use everything after it; otherwise
+# the first unrecognized argument starts the test command.
 $TestCmd = @()
 $i = 0
-while ($i -lt $args.Count) {
+# Label the loop so we can break out of it from inside the switch statement.
+# In PowerShell, 'break' inside a switch only exits the switch, not an enclosing loop.
+:argloop while ($i -lt $args.Count) {
     switch ($args[$i]) {
         '-n' {
             $Iterations = [int]$args[$i + 1]
@@ -50,19 +57,21 @@ Options:
   --help        Show this help message
 
 Examples:
-  ./run-test-repeatedly.ps1 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
+  ./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj -- --filter-method "*.MyTest"
   ./run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 "@
             exit 0
         }
         '--' {
-            $TestCmd = $args[($i + 1)..($args.Count - 1)]
-            break
+            # Explicit separator (works with pwsh -File)
+            $TestCmd = @($args[($i + 1)..($args.Count - 1)])
+            break argloop
         }
         default {
-            Write-Error "Unknown option: $($args[$i])"
-            Write-Error "Run with --help for usage."
-            exit 1
+            # First unrecognized argument starts the test command.
+            # This handles direct invocation where PowerShell consumed '--'.
+            $TestCmd = @($args[$i..($args.Count - 1)])
+            break argloop
         }
     }
 }
@@ -86,7 +95,7 @@ foreach ($arg in $TestCmd) {
 
 # ---------- setup ----------
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$ResultsDir = Join-Path $env:TEMP "test-results-$timestamp"
+$ResultsDir = Join-Path ([System.IO.Path]::GetTempPath()) "test-results-$timestamp"
 New-Item -ItemType Directory -Path $ResultsDir -Force | Out-Null
 $LogFile = Join-Path $ResultsDir "test-run.log"
 
@@ -95,7 +104,7 @@ $FailCount = 0
 $TimeoutCount = 0
 
 # ---------- cleanup ----------
-function Clean-Environment {
+function Invoke-TestCleanup {
     # Kill dcp / dcpctrl processes
     Get-Process -ErrorAction SilentlyContinue | Where-Object {
         $_.ProcessName -match '^dcp(ctl)?$'
@@ -143,7 +152,7 @@ function Clean-Environment {
 }
 
 # ---------- state logging ----------
-function Log-EnvironmentState {
+function Write-EnvironmentState {
     param(
         [int]$Iteration,
         [string]$LogTarget
@@ -200,8 +209,8 @@ for ($iter = 1; $iter -le $Iterations; $iter++) {
     $iterLog = Join-Path $ResultsDir "iteration-$iter.log"
 
     # Log environment state, then clean
-    Log-EnvironmentState -Iteration $iter -LogTarget $iterLog
-    Clean-Environment
+    Write-EnvironmentState -Iteration $iter -LogTarget $iterLog
+    Invoke-TestCleanup
 
     # Print iteration header
     $iterHeader = "Iteration $iter/$Iterations [$(Get-Date -Format 'HH:mm:ss')]: "
@@ -211,11 +220,22 @@ for ($iter = 1; $iter -le $Iterations; $iter++) {
     # Log exact command
     "Running: $($TestCmd -join ' ')" | Out-File -Append -FilePath $iterLog -Encoding utf8
 
+    # Build properly escaped argument string for Start-Process.
+    # Start-Process -ArgumentList with a string[] joins elements with spaces but
+    # does not quote elements containing spaces, so we pass a single pre-escaped string.
+    $argString = ""
+    if ($TestCmd.Count -gt 1) {
+        $argString = ($TestCmd[1..($TestCmd.Count - 1)] | ForEach-Object {
+            if ($_ -match '\s') { "`"$_`"" } else { $_ }
+        }) -join ' '
+    }
+
     # Run test with timeout
-    $cmdString = $TestCmd -join ' '
-    $process = Start-Process -FilePath $TestCmd[0] -ArgumentList $TestCmd[1..($TestCmd.Count - 1)] `
-        -NoNewWindow -PassThru -RedirectStandardOutput (Join-Path $ResultsDir "iter-stdout-$iter.tmp") `
-        -RedirectStandardError (Join-Path $ResultsDir "iter-stderr-$iter.tmp")
+    $stdoutFile = Join-Path $ResultsDir "iter-stdout-$iter.tmp"
+    $stderrFile = Join-Path $ResultsDir "iter-stderr-$iter.tmp"
+    $process = Start-Process -FilePath $TestCmd[0] -ArgumentList $argString `
+        -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile `
+        -RedirectStandardError $stderrFile
 
     $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 
@@ -228,8 +248,6 @@ for ($iter = 1; $iter -le $Iterations; $iter++) {
     }
 
     # Append stdout/stderr to iteration log
-    $stdoutFile = Join-Path $ResultsDir "iter-stdout-$iter.tmp"
-    $stderrFile = Join-Path $ResultsDir "iter-stderr-$iter.tmp"
     if (Test-Path $stdoutFile) {
         Get-Content $stdoutFile | Out-File -Append -FilePath $iterLog -Encoding utf8
         Remove-Item $stdoutFile -ErrorAction SilentlyContinue
@@ -279,7 +297,7 @@ for ($iter = 1; $iter -le $Iterations; $iter++) {
 }
 
 # ---------- final cleanup ----------
-Clean-Environment
+Invoke-TestCleanup
 
 # ---------- summary ----------
 $Total = $PassCount + $FailCount + $TimeoutCount
