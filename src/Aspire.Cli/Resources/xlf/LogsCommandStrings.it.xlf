@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../LogsCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Non è stato trovato alcun AppHost in esecuzione. Usare prima di tutto "aspire run" per avviarne uno.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
         <target state="needs-review-translation">Consente di visualizzare i log delle risorse in un apphost Aspire in esecuzione.</target>
@@ -22,19 +17,9 @@
         <target state="needs-review-translation">Log di output in formato JSON (NDJSON).</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Nessun AppHost trovato nella directory corrente. Visualizzazione di tutti gli AppHost in esecuzione.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
         <target state="translated">Non sono state trovate risorse.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Percorso del file di un progetto AppHost di Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -52,14 +37,9 @@
         <target state="translated">Quando non si usa --follow, è necessario specificare un nome di risorsa. Usare --follow per trasmettere i log da tutte le risorse.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Analisi per l'esecuzione di AppHosts in corso...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Selezionare un AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stream logs from</source>
+        <target state="new">stream logs from</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">

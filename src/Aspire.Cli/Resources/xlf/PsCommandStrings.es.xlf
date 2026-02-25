@@ -32,16 +32,6 @@
         <target state="needs-review-translation">Salida en formato JSON.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">No se encontraron AppHosts en ejecución.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Buscando AppHosts en ejecución...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">Desconocido</target>

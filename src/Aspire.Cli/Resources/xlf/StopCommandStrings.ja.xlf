@@ -32,29 +32,14 @@
         <target state="translated">複数の AppHost が実行されています。--project を使用して停止するものを指定するか、次のいずれかを選択します。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">現在のディレクトリに実行中の AppHost が見つかりません。実行中のすべての AppHost を表示しています:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found in scope.</source>
-        <target state="translated">スコープ内に実行中の AppHost が見つかりません。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
         <target state="translated">Aspire AppHost プロジェクト ファイルへのパス。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">実行中の AppHost をスキャンしています...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHostToStop">
-        <source>Select an AppHost to stop:</source>
-        <target state="translated">停止する AppHost を選択します。</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stop</source>
+        <target state="new">stop</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

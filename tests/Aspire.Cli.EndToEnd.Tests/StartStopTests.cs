@@ -144,7 +144,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         // Pattern searcher for the informational message (not an error)
         var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHosts found in scope.");
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -274,7 +274,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // aspire stop may return a non-zero exit code if no instances are found
         // (already stopped by aspire add), so wait for known output patterns.
         var waitForStopResult = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
         var waitForStoppedSuccessfully = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
 
@@ -404,7 +404,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // aspire stop may return a non-zero exit code if no instances are found
         // (already stopped by aspire add), so wait for known output patterns.
         var waitForStopResult2 = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
         var waitForStoppedSuccessfully2 = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
 

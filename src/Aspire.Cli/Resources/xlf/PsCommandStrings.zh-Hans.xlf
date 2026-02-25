@@ -32,16 +32,6 @@
         <target state="needs-review-translation">以 JSON 格式输出。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">未找到正在运行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">未知</target>

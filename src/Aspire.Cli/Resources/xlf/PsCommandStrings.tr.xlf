@@ -32,16 +32,6 @@
         <target state="needs-review-translation">Çıkışı JSON biçiminde oluşturun.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Çalışan AppHost bulunamadı.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">Bilinmiyor</target>

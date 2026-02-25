@@ -354,6 +354,7 @@ public class Program
         builder.Services.AddSingleton<IMcpTransportFactory, StdioMcpTransportFactory>();
 
         // Commands.
+        builder.Services.AddTransient<AppHostLauncher>();
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();

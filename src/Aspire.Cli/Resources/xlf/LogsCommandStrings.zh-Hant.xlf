@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../LogsCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">找不到正在執行的 AppHost。請先使用 'aspire run' 啟動一個。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
         <target state="needs-review-translation">顯示正在執行 Aspire Apphost 中的資源記錄。</target>
@@ -22,19 +17,9 @@
         <target state="needs-review-translation">輸出記錄採用 JSON 格式 (NDJSON)。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">在目前的目錄中找不到 AppHost。顯示所有正在執行的 AppHost。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
         <target state="translated">找不到任何資源。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -52,14 +37,9 @@
         <target state="translated">當未使用 --follow 時，必須指定資源名稱。使用 --follow 從所有資源串流記錄。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在掃描執行中的 AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">選取 AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stream logs from</source>
+        <target state="new">stream logs from</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
