@@ -15,6 +15,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class WaitCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ResourceManagement;
+
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<WaitCommand> _logger;
@@ -37,10 +39,7 @@ internal sealed class WaitCommand : BaseCommand
         DefaultValueFactory = _ => 120
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = WaitCommandStrings.ProjectOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     public WaitCommand(
         IInteractionService interactionService,
@@ -61,7 +60,7 @@ internal sealed class WaitCommand : BaseCommand
         Arguments.Add(s_resourceArgument);
         Options.Add(s_statusOption);
         Options.Add(s_timeoutOption);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -71,7 +70,7 @@ internal sealed class WaitCommand : BaseCommand
         var resourceName = parseResult.GetValue(s_resourceArgument)!;
         var status = parseResult.GetValue(s_statusOption)!.ToLowerInvariant();
         var timeoutSeconds = parseResult.GetValue(s_timeoutOption);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
 
         // Validate status value
         if (!IsValidStatus(status))
@@ -90,15 +89,15 @@ internal sealed class WaitCommand : BaseCommand
         // Resolve connection to a running AppHost
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            WaitCommandStrings.ScanningForRunningAppHosts,
-            WaitCommandStrings.SelectAppHost,
-            WaitCommandStrings.NoInScopeAppHostsShowingAll,
-            WaitCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, WaitCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayError(result.ErrorMessage ?? WaitCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(result.ErrorMessage);
             return ExitCodeConstants.FailedToFindProject;
         }
 

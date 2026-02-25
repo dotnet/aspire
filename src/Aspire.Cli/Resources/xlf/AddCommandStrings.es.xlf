@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="translated">Agregue una integración de hospedaje a Aspire AppHost.</target>
+        <source>Add a hosting integration to the apphost.</source>
+        <target state="needs-review-translation">Agregue una integración de hospedaje a Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -48,8 +48,8 @@
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">La ruta al archivo del proyecto al que se agregará la integración.</target>
+        <source>The path to the Aspire AppHost project file to add the integration to.</source>
+        <target state="needs-review-translation">La ruta al archivo del proyecto al que se agregará la integración.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">

@@ -62,6 +62,11 @@ Aspire CLI 會收集使用方式資料。它由 Microsoft 收集，用於協助�
         <target state="translated">抑制啟動橫幅與遙測通知。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">請等候偵錯工具連結後再執行命令。</target>

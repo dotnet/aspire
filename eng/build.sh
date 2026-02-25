@@ -150,7 +150,7 @@ while [[ $# > 0 ]]; do
       ;;
 
      -mauirestore)
-      export restore_maui=true
+      extraargs="$extraargs -restoreMaui"
       shift 1
       ;;
 
@@ -253,11 +253,6 @@ if [ "$build_bundle" = true ]; then
             break
         fi
     done
-    
-    # Pass through runtime version if set
-    if [ -n "$runtime_version" ]; then
-        bundle_args+=("/p:BundleRuntimeVersion=$runtime_version")
-    fi
     
     # CI flag is passed to Bundle.proj which handles version computation via Versions.props
     if [ "${CI:-}" = "true" ]; then

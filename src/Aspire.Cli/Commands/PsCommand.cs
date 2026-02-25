@@ -44,6 +44,8 @@ internal sealed partial class PsCommandJsonContext : JsonSerializerContext
 
 internal sealed class PsCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<PsCommand> _logger;
@@ -86,7 +88,7 @@ internal sealed class PsCommand : BaseCommand
         else
         {
             connections = await _interactionService.ShowStatusAsync(
-                PsCommandStrings.ScanningForRunningAppHosts,
+                SharedCommandStrings.ScanningForRunningAppHosts,
                 async () =>
                 {
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
@@ -98,11 +100,11 @@ internal sealed class PsCommand : BaseCommand
         {
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayPlainText("[]");
+                _interactionService.DisplayRawText("[]", ConsoleOutput.Standard);
             }
             else
             {
-                _interactionService.DisplayMessage("information", PsCommandStrings.NoRunningAppHostsFound);
+                _interactionService.DisplayMessage("information", SharedCommandStrings.AppHostNotRunning);
             }
             return ExitCodeConstants.Success;
         }
@@ -118,7 +120,8 @@ internal sealed class PsCommand : BaseCommand
         if (format == OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.RelaxedEscaping.ListAppHostDisplayInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {

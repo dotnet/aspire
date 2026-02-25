@@ -2,19 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../TelemetryCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">실행 중인 AppHost를 찾을 수 없습니다. 'aspire run'을 사용하여 먼저 하나를 시작합니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
         <target state="translated">대시보드 API를 사용할 수 없습니다. AppHost가 대시보드를 활성화한 상태로 실행 중인지 확인하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">실행 중인 Aspire 애플리케이션의 원격 분석 데이터(로그, 범위, 추적)를 확인합니다.</target>
+        <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
+        <target state="needs-review-translation">실행 중인 Aspire 애플리케이션의 원격 분석 데이터(로그, 범위, 추적)를 확인합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -52,29 +47,14 @@
         <target state="translated">대시보드 원격 분석 API에서 구조화된 로그를 확인합니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">현재 디렉터리에 AppHost가 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
         <target state="translated">리소스 이름으로 필터링</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">실행 중인 AppHost를 검색하는 중...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">AppHost 선택:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>view telemetry for</source>
+        <target state="new">view telemetry for</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

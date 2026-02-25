@@ -103,13 +103,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
-        <source>The --project option specified a project that does not exist.</source>
-        <target state="translated">--project オプションで、存在しないプロジェクトが指定されています。</target>
+        <source>The --apphost option specified a project that does not exist.</source>
+        <target state="translated">--apphost オプションで、存在しないプロジェクトが指定されています。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">--project オプションが指定されておらず、アプリ ホスティング プロセスのプロジェクト ファイルが複数検出されました。</target>
+        <source>The --apphost option was not specified and multiple app host project files were detected.</source>
+        <target state="translated">--apphost オプションが指定されておらず、アプリ ホスティング プロセスのプロジェクト ファイルが複数検出されました。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">

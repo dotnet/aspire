@@ -2,19 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../TelemetryCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Non è stato trovato alcun AppHost in esecuzione. Usare prima di tutto "aspire run" per avviarne uno.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
         <target state="translated">L'API del dashboard non è disponibile. Verificare che AppHost sia in esecuzione con il dashboard abilitato.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">Visualizza i dati di telemetria (log, span, tracce) da un'applicazione Aspire in esecuzione.</target>
+        <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
+        <target state="needs-review-translation">Visualizza i dati di telemetria (log, span, tracce) da un'applicazione Aspire in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -52,29 +47,14 @@
         <target state="translated">Visualizza i log strutturati dall'API di telemetria del dashboard.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Nessun AppHost trovato nella directory corrente. Visualizzazione di tutti gli AppHost in esecuzione.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Percorso del file di un progetto AppHost di Aspire.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
         <target state="translated">Filtrare per nome della risorsa.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Analisi per l'esecuzione di AppHosts in corso...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Selezionare un AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>view telemetry for</source>
+        <target state="new">view telemetry for</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

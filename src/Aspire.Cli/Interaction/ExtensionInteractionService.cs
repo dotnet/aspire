@@ -233,11 +233,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emoji, message.RemoveSpectreFormatting(), _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emojiName, message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayMessage(emoji, message);
+        _consoleInteractionService.DisplayMessage(emojiName, message);
     }
 
     public void DisplaySuccess(string message)
@@ -299,11 +299,17 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(text);
     }
 
-    public void DisplayRawText(string text)
+    public ConsoleOutput Console
+    {
+        get => _consoleInteractionService.Console;
+        set => _consoleInteractionService.Console = value;
+    }
+
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayPlainTextAsync(text, _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayRawText(text);
+        _consoleInteractionService.DisplayRawText(text, consoleOverride);
     }
 
     public void DisplayMarkdown(string markdown)

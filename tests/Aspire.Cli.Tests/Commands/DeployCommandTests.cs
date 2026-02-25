@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
@@ -9,6 +9,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -55,7 +56,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project invalid.csproj");
+        var result = command.Parse("deploy --apphost invalid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -89,7 +90,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project valid.csproj");
+        var result = command.Parse("deploy --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -123,7 +124,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project valid.csproj");
+        var result = command.Parse("deploy --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -268,6 +269,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11217")]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);

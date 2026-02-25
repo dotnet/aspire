@@ -12,18 +12,10 @@ public enum LayoutComponent
 {
     /// <summary>CLI executable.</summary>
     Cli,
-    /// <summary>.NET runtime.</summary>
-    Runtime,
-    /// <summary>Pre-built AppHost Server.</summary>
-    AppHostServer,
-    /// <summary>Aspire Dashboard.</summary>
-    Dashboard,
     /// <summary>Developer Control Plane.</summary>
     Dcp,
-    /// <summary>NuGet Helper tool.</summary>
-    NuGetHelper,
-    /// <summary>Dev-certs tool.</summary>
-    DevCerts
+    /// <summary>Unified managed binary (dashboard, server, nuget).</summary>
+    Managed
 }
 
 /// <summary>
@@ -41,11 +33,6 @@ public sealed class LayoutConfiguration
     /// Target platform (e.g., "linux-x64", "win-x64").
     /// </summary>
     public string? Platform { get; set; }
-
-    /// <summary>
-    /// .NET runtime version included in the bundle (e.g., "10.0.0").
-    /// </summary>
-    public string? RuntimeVersion { get; set; }
 
     /// <summary>
     /// Root path of the layout.
@@ -75,12 +62,8 @@ public sealed class LayoutConfiguration
         var relativePath = component switch
         {
             LayoutComponent.Cli => Components.Cli,
-            LayoutComponent.Runtime => Components.Runtime,
-            LayoutComponent.AppHostServer => Components.ApphostServer,
-            LayoutComponent.Dashboard => Components.Dashboard,
             LayoutComponent.Dcp => Components.Dcp,
-            LayoutComponent.NuGetHelper => Components.NugetHelper,
-            LayoutComponent.DevCerts => Components.DevCerts,
+            LayoutComponent.Managed => Components.Managed,
             _ => null
         };
 
@@ -88,72 +71,23 @@ public sealed class LayoutConfiguration
     }
 
     /// <summary>
-    /// Gets the path to the dotnet muxer executable from the bundled runtime.
-    /// </summary>
-    public string? GetMuxerPath()
-    {
-        var runtimePath = GetComponentPath(LayoutComponent.Runtime);
-        if (runtimePath is null)
-        {
-            return null;
-        }
-
-        var bundledPath = Path.Combine(runtimePath, BundleDiscovery.GetDotNetExecutableName());
-        return File.Exists(bundledPath) ? bundledPath : null;
-    }
-
-    /// <summary>
-    /// Gets the path to the dotnet executable. Alias for GetMuxerPath.
-    /// </summary>
-    public string? GetDotNetExePath() => GetMuxerPath();
-
-    /// <summary>
     /// Gets the path to the DCP directory.
     /// </summary>
     public string? GetDcpPath() => GetComponentPath(LayoutComponent.Dcp);
 
     /// <summary>
-    /// Gets the path to the Dashboard directory.
+    /// Gets the path to the aspire-managed executable.
     /// </summary>
-    public string? GetDashboardPath() => GetComponentPath(LayoutComponent.Dashboard);
-
-    /// <summary>
-    /// Gets the path to the AppHost Server executable.
-    /// </summary>
-    /// <returns>The path to aspire-server.exe.</returns>
-    public string? GetAppHostServerPath()
+    /// <returns>The path to aspire-managed(.exe).</returns>
+    public string? GetManagedPath()
     {
-        var serverPath = GetComponentPath(LayoutComponent.AppHostServer);
-        if (serverPath is null)
+        var managedDir = GetComponentPath(LayoutComponent.Managed);
+        if (managedDir is null)
         {
             return null;
         }
 
-        return Path.Combine(serverPath, BundleDiscovery.GetExecutableFileName(BundleDiscovery.AppHostServerExecutableName));
-    }
-
-    /// <summary>
-    /// Gets the path to the NuGet Helper executable.
-    /// </summary>
-    /// <returns>The path to aspire-nuget.exe.</returns>
-    public string? GetNuGetHelperPath()
-    {
-        var helperPath = GetComponentPath(LayoutComponent.NuGetHelper);
-        if (helperPath is null)
-        {
-            return null;
-        }
-
-        return Path.Combine(helperPath, BundleDiscovery.GetExecutableFileName(BundleDiscovery.NuGetHelperExecutableName));
-    }
-
-    /// <summary>
-    /// Gets the path to the dev-certs DLL (requires dotnet muxer to run).
-    /// </summary>
-    public string? GetDevCertsPath()
-    {
-        var devCertsPath = GetComponentPath(LayoutComponent.DevCerts);
-        return devCertsPath is not null ? Path.Combine(devCertsPath, BundleDiscovery.GetDllFileName(BundleDiscovery.DevCertsExecutableName)) : null;
+        return Path.Combine(managedDir, BundleDiscovery.GetExecutableFileName(BundleDiscovery.ManagedExecutableName));
     }
 }
 
@@ -168,32 +102,12 @@ public sealed class LayoutComponents
     public string? Cli { get; set; } = "aspire";
 
     /// <summary>
-    /// Path to .NET runtime directory.
-    /// </summary>
-    public string? Runtime { get; set; } = BundleDiscovery.RuntimeDirectoryName;
-
-    /// <summary>
-    /// Path to pre-built AppHost Server.
-    /// </summary>
-    public string? ApphostServer { get; set; } = BundleDiscovery.AppHostServerDirectoryName;
-
-    /// <summary>
-    /// Path to Aspire Dashboard.
-    /// </summary>
-    public string? Dashboard { get; set; } = BundleDiscovery.DashboardDirectoryName;
-
-    /// <summary>
     /// Path to Developer Control Plane.
     /// </summary>
     public string? Dcp { get; set; } = BundleDiscovery.DcpDirectoryName;
 
     /// <summary>
-    /// Path to NuGet Helper tool.
+    /// Path to the unified managed binary directory.
     /// </summary>
-    public string? NugetHelper { get; set; } = BundleDiscovery.NuGetHelperDirectoryName;
-
-    /// <summary>
-    /// Path to dev-certs tool.
-    /// </summary>
-    public string? DevCerts { get; set; } = BundleDiscovery.DevCertsDirectoryName;
+    public string? Managed { get; set; } = BundleDiscovery.ManagedDirectoryName;
 }

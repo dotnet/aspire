@@ -2,19 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../TelemetryCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">找不到正在运行的 AppHost。请先使用 "aspire run" 启动一个。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
         <target state="translated">仪表板 API 不可用。请确保 AppHost 在运行时启用了仪表板。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">查看正在运行的 Aspire 应用程序中的遥测数据(日志、跨度、跟踪)。</target>
+        <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
+        <target state="needs-review-translation">查看正在运行的 Aspire 应用程序中的遥测数据(日志、跨度、跟踪)。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -52,29 +47,14 @@
         <target state="translated">查看仪表板遥测 API 中的结构化日志。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">当前目录中未找到 AppHost。显示所有正在运行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 项目文件的路径。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
         <target state="translated">按资源名称筛选。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">选择 AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>view telemetry for</source>
+        <target state="new">view telemetry for</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

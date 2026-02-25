@@ -93,7 +93,6 @@
   "aspire-vscode.strings.lookingForDevkitBuildTask": "C# Dev Kit is installed, looking for C# Dev Kit build task...",
   "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
-  "aspire-vscode.strings.cliFoundAtDefaultPath": "Aspire CLI found at {0}. The extension will use this path.",
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
   "aspire-vscode.strings.dismissLabel": "Dismiss"
 }

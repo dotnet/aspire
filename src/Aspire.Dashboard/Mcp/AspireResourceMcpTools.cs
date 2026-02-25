@@ -91,7 +91,7 @@ internal sealed class AspireResourceMcpTools
             return $"Unable to find a resource named '{resourceName}'.";
         }
 
-        var logParser = new LogParser(ConsoleColor.Black);
+        var logParser = new LogParser(ConsoleColor.Black, encodeForHtml: true);
         var logEntries = new LogEntries(maximumEntryCount: AIHelpers.ConsoleLogsLimit) { BaseLineNumber = 1 };
 
         // Add a timeout for getting all console logs.

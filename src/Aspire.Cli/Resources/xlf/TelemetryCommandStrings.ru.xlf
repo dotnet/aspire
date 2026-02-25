@@ -2,19 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../TelemetryCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Запущенные хосты приложений не найдены. Сначала запустите один из них с помощью команды "aspire run".</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
         <target state="translated">API панели мониторинга недоступен. Убедитесь, что AppHost запущен с включенной панелью мониторинга.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="translated">Просмотр данных телеметрии (журналы, диапазоны, трассировки) из запущенного приложения Aspire.</target>
+        <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
+        <target state="needs-review-translation">Просмотр данных телеметрии (журналы, диапазоны, трассировки) из запущенного приложения Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -52,29 +47,14 @@
         <target state="translated">Просмотр структурированных журналов через API телеметрии панели мониторинга.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Хосты приложений не найдены в текущем каталоге. Отображаются все запущенные хосты приложений.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
         <target state="translated">Фильтровать по имени ресурса.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Выполняется сканирование на наличие запущенных хостов приложений...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Выберите хост приложения:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>view telemetry for</source>
+        <target state="new">view telemetry for</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
