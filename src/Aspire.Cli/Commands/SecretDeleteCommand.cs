@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -18,7 +20,7 @@ internal sealed class SecretDeleteCommand : BaseCommand
 {
     private static readonly Argument<string> s_keyArgument = new("key")
     {
-        Description = "The secret key to delete."
+        Description = SecretCommandStrings.KeyDeleteArgumentDescription
     };
 
     private readonly IInteractionService _interactionService;
@@ -31,35 +33,35 @@ internal sealed class SecretDeleteCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry)
-        : base("delete", "Delete a secret.", features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("delete", SecretCommandStrings.DeleteDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
         Arguments.Add(s_keyArgument);
-        Options.Add(SecretCommand.s_projectOption);
+        Options.Add(SecretCommand.s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var key = parseResult.GetValue(s_keyArgument)!;
-        var projectFile = parseResult.GetValue(SecretCommand.s_projectOption);
+        var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
 
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: false, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError("Could not find an AppHost project.");
+            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
         if (!result.Store.Remove(key))
         {
-            _interactionService.DisplayError($"Secret '{key.EscapeMarkup()}' not found.");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretNotFound, key.EscapeMarkup()));
             return ExitCodeConstants.ConfigNotFound;
         }
 
         result.Store.Save();
-        _interactionService.DisplaySuccess($"Secret '{key.EscapeMarkup()}' deleted successfully.");
+        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretDeleteSuccess, key.EscapeMarkup()));
         return ExitCodeConstants.Success;
     }
 }

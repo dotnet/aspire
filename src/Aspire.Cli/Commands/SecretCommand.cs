@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
@@ -15,9 +16,9 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class SecretCommand : BaseCommand
 {
-    internal static readonly Option<FileInfo?> s_projectOption = new("--project")
+    internal static readonly Option<FileInfo?> s_appHostOption = new("--apphost")
     {
-        Description = "The path to the Aspire AppHost project file."
+        Description = SharedCommandStrings.AppHostOptionDescription
     };
 
     internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
@@ -32,7 +33,7 @@ internal sealed class SecretCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry)
-        : base("secret", "Manage AppHost user secrets.", features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("secret", SecretCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         Subcommands.Add(setCommand);
         Subcommands.Add(getCommand);

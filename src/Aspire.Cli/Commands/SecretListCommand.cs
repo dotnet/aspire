@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -19,7 +20,7 @@ internal sealed class SecretListCommand : BaseCommand
 {
     private static readonly Option<OutputFormat?> s_formatOption = new("--format")
     {
-        Description = "Output format."
+        Description = SecretCommandStrings.FormatOptionDescription
     };
 
     private readonly IInteractionService _interactionService;
@@ -32,24 +33,24 @@ internal sealed class SecretListCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry)
-        : base("list", "List all secrets.", features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("list", SecretCommandStrings.ListDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
-        Options.Add(SecretCommand.s_projectOption);
+        Options.Add(SecretCommand.s_appHostOption);
         Options.Add(s_formatOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var projectFile = parseResult.GetValue(SecretCommand.s_projectOption);
+        var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
         var format = parseResult.GetValue(s_formatOption);
 
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: false, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError("Could not find an AppHost project.");
+            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -71,7 +72,7 @@ internal sealed class SecretListCommand : BaseCommand
         {
             if (secrets.Count == 0)
             {
-                _interactionService.DisplayMessage("information", "No secrets configured.");
+                _interactionService.DisplayMessage("information", SecretCommandStrings.NoSecretsConfigured);
             }
             else
             {

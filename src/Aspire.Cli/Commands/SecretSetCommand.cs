@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -18,12 +20,12 @@ internal sealed class SecretSetCommand : BaseCommand
 {
     private static readonly Argument<string> s_keyArgument = new("key")
     {
-        Description = "The secret key (e.g., Azure:Location or Parameters:postgres-password)."
+        Description = SecretCommandStrings.KeyArgumentDescription
     };
 
     private static readonly Argument<string> s_valueArgument = new("value")
     {
-        Description = "The secret value to set."
+        Description = SecretCommandStrings.ValueArgumentDescription
     };
 
     private readonly IInteractionService _interactionService;
@@ -36,33 +38,33 @@ internal sealed class SecretSetCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry)
-        : base("set", "Set a secret value.", features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("set", SecretCommandStrings.SetDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
         Arguments.Add(s_keyArgument);
         Arguments.Add(s_valueArgument);
-        Options.Add(SecretCommand.s_projectOption);
+        Options.Add(SecretCommand.s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var key = parseResult.GetValue(s_keyArgument)!;
         var value = parseResult.GetValue(s_valueArgument)!;
-        var projectFile = parseResult.GetValue(SecretCommand.s_projectOption);
+        var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
 
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: true, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError("Could not find an AppHost project.");
+            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
         result.Store.Set(key, value);
         result.Store.Save();
 
-        _interactionService.DisplaySuccess($"Secret '{key.EscapeMarkup()}' set successfully.");
+        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretSetSuccess, key.EscapeMarkup()));
         return ExitCodeConstants.Success;
     }
 }
