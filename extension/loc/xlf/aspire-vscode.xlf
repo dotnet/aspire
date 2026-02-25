@@ -58,6 +58,9 @@
     <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.closeDashboardOnDebugEnd">
+      <source xml:lang="en">Close the dashboard browser when the debug session ends. Works with debug browser options (Chrome, Edge, Firefox).</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespaces">
       <source xml:lang="en">Codespaces</source>
     </trans-unit>
@@ -184,6 +187,15 @@
     <trans-unit id="aspire-vscode.strings.openAspireDashboard">
       <source xml:lang="en">Launch Aspire Dashboard</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser.debugChrome">
+      <source xml:lang="en">Launch Chrome as a debug session (auto-closes when debugging ends).</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser.debugFirefox">
+      <source xml:lang="en">Launch Firefox as a debug session (requires Firefox Debugger extension).</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser.debugEdge">
+      <source xml:lang="en">Launch Microsoft Edge as a debug session (auto-closes when debugging ends).</source>
+    </trans-unit>
     <trans-unit id="extension.debug.defaultConfiguration.description">
       <source xml:lang="en">Launch the effective Aspire apphost in your workspace</source>
     </trans-unit>
@@ -274,6 +286,9 @@
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser">
+      <source xml:lang="en">The browser to use when auto-launching the Aspire Dashboard.</source>
+    </trans-unit>
     <trans-unit id="configuration.aspire.aspireCliExecutablePath">
       <source xml:lang="en">The path to the Aspire CLI executable. If not set, the extension will attempt to use &apos;aspire&apos; from the system PATH.</source>
     </trans-unit>
@@ -282,6 +297,9 @@
     </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser.openExternalBrowser">
+      <source xml:lang="en">Use the system default browser (cannot auto-close).</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
