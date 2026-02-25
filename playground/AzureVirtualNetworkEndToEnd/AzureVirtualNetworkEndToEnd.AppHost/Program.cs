@@ -47,8 +47,14 @@ var myqueue = storage.AddQueue("myqueue");
 privateEndpointsSubnet.AddPrivateEndpoint(blobs);
 privateEndpointsSubnet.AddPrivateEndpoint(queues);
 
+var sqlServer = builder.AddAzureSqlServer("sqlserver");
+privateEndpointsSubnet.AddPrivateEndpoint(sqlServer);
+
+var db = sqlServer.AddDatabase("sqldb");
+
 builder.AddProject<Projects.AzureVirtualNetworkEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
+       .WithReference(db).WaitFor(db)
        .WithReference(mycontainer).WaitFor(mycontainer)
        .WithReference(myqueue).WaitFor(myqueue);
 
