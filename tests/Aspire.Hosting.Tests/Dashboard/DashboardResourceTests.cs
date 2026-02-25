@@ -693,11 +693,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     {
         foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
         {
-            if (endpoint.Name == DashboardEventHandlers.OtlpGrpcEndpointName)
+            if (endpoint.Name == KnownEndpointNames.OtlpGrpcEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
             }
-            else if (endpoint.Name == DashboardEventHandlers.OtlpHttpEndpointName)
+            else if (endpoint.Name == KnownEndpointNames.OtlpHttpEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
             }

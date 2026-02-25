@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable IDE0005 // Incorrectly flagged as unused due to types spread across namespaces
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Tests.Utils;
+using Hex1b;
 using Hex1b.Automation;
-#pragma warning restore IDE0005
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests.Helpers;
@@ -69,22 +69,20 @@ internal static class CliE2ETestHelpers
     /// <returns>The full path to the .cast recording file.</returns>
     internal static string GetTestResultsRecordingPath(string testName)
     {
-        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
-        string recordingsDir;
+        return Hex1bTestHelpers.GetTestResultsRecordingPath(testName, "aspire-cli-e2e");
+    }
 
-        if (!string.IsNullOrEmpty(githubWorkspace))
-        {
-            // CI environment - write directly to test results for artifact upload
-            recordingsDir = Path.Combine(githubWorkspace, "testresults", "recordings");
-        }
-        else
-        {
-            // Local development - use temp directory
-            recordingsDir = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", "recordings");
-        }
-
-        Directory.CreateDirectory(recordingsDir);
-        return Path.Combine(recordingsDir, $"{testName}.cast");
+    /// <summary>
+    /// Creates a headless Hex1b terminal configured for E2E testing with asciinema recording.
+    /// Uses default dimensions of 160x48 unless overridden.
+    /// </summary>
+    /// <param name="testName">The test name used for the recording file path. Defaults to the calling method name.</param>
+    /// <param name="width">The terminal width in columns. Defaults to 160.</param>
+    /// <param name="height">The terminal height in rows. Defaults to 48.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/> instance. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateTestTerminal(int width = 160, int height = 48, [CallerMemberName] string testName = "")
+    {
+        return Hex1bTestHelpers.CreateTestTerminal("aspire-cli-e2e", width, height, testName);
     }
 
     internal static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
@@ -197,55 +195,6 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
-    }
-
-    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter,
-        TimeSpan? timeout = null)
-    {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
-
-        return builder.WaitUntil(snapshot =>
-            {
-                var successPromptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText(" OK] $ ");
-
-                var result = successPromptSearcher.Search(snapshot);
-                return result.Count > 0;
-            }, effectiveTimeout)
-            .IncrementSequence(counter);
-    }
-
-    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
-    {
-        return builder.WaitUntil(s =>
-        {
-            // Hack to pump the counter fluently.
-            counter.Increment();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
-
-    /// <summary>
-    /// Executes an arbitrary callback action during the sequence execution.
-    /// This is useful for performing file modifications or other side effects between terminal commands.
-    /// </summary>
-    /// <param name="builder">The sequence builder.</param>
-    /// <param name="callback">The callback action to execute.</param>
-    /// <returns>The builder for chaining.</returns>
-    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        Action callback)
-    {
-        return builder.WaitUntil(s =>
-        {
-            callback();
-            return true;
-        }, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>

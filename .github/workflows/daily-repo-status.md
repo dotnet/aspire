@@ -22,7 +22,6 @@ tools:
     toolsets: [repos, issues, pull_requests, discussions, search]
     lockdown: false
   cache-memory:
-  bash: ["echo", "date", "cat", "wc"]
 
 safe-outputs:
   create-issue:
@@ -104,16 +103,18 @@ If fewer than 2 data points are available, note that the chart will become riche
 
 ## Report structure
 
-Create a GitHub issue with the following sections in this order:
+Create a GitHub issue with the following sections. Use these **exact section headers** in this **exact order** every time — do not rename, reorder, or omit any section:
 
-1. **📊 Burndown Chart** — The Mermaid chart (or a note that data is still being collected)
-2. **📈 Milestone Progress** — Total open vs closed, percentage complete, net change today
-3. **✅ Issues Closed Today** — Table or list of issues closed in the 13.2 milestone
-4. **🐛 New Bugs Found** — Any new bug issues added to the 13.2 milestone
-5. **🚀 Notable Changes Merged** — Summary of impactful PRs merged to release/13.2
-6. **👀 PRs Awaiting Review** — Open PRs targeting release/13.2 that need reviewer attention
-7. **💬 Discussions** — Relevant 13.2 discussion activity
-8. **📋 Triage Queue** — Brief list of un-milestoned issues that need attention (keep short)
+1. `## 📊 Burndown Chart`
+2. `## 📈 Milestone Progress`
+3. `## ✅ Issues Closed Today`
+4. `## 🐛 New Bugs Found`
+5. `## 🚀 Notable Changes Merged`
+6. `## 👀 PRs Awaiting Review`
+7. `## 💬 Discussions`
+8. `## 📋 Triage Queue`
+
+If there is no activity for a section, keep the header and note that there was no activity.
 
 ## Style
 
