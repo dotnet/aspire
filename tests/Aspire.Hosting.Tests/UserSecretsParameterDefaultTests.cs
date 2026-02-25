@@ -20,9 +20,7 @@ public class UserSecretsParameterDefaultTests
 
     private static UserSecretsManagerFactory CreateFactory()
     {
-        return new UserSecretsManagerFactory(
-            new FileSystemService(
-                new ConfigurationBuilder().Build()));
+        return new UserSecretsManagerFactory();
     }
 
     [Fact]

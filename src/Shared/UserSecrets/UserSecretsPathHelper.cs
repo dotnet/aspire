@@ -64,4 +64,16 @@ internal static class UserSecretsPathHelper
             ? Path.Combine(root, "Microsoft", "UserSecrets", userSecretsId, SecretsFileName)
             : Path.Combine(root, ".microsoft", "usersecrets", userSecretsId, SecretsFileName);
     }
+
+    /// <summary>
+    /// Computes a deterministic synthetic UserSecretsId from a file path.
+    /// Used for polyglot AppHosts that don't have a csproj with UserSecretsId.
+    /// </summary>
+    public static string ComputeSyntheticUserSecretsId(string appHostPath)
+    {
+        var hashBytes = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(appHostPath.ToLowerInvariant()));
+        var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return $"aspire-{hash[..32]}";
+    }
 }

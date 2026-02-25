@@ -143,7 +143,7 @@ internal sealed class SecretCommand : BaseCommand
             }
 
             // Write value to stdout (machine-readable)
-            Console.WriteLine(value);
+            _interactionService.DisplayPlainText(value);
             return ExitCodeConstants.Success;
         }
     }
@@ -197,7 +197,8 @@ internal sealed class SecretCommand : BaseCommand
                     WriteIndented = true,
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 });
-                Console.WriteLine(json);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
             }
             else
             {
@@ -209,7 +210,7 @@ internal sealed class SecretCommand : BaseCommand
                 {
                     foreach (var (key, value) in secrets.OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase))
                     {
-                        Console.WriteLine($"{key} = {value}");
+                        _interactionService.DisplayPlainText($"{key} = {value}");
                     }
                 }
             }
