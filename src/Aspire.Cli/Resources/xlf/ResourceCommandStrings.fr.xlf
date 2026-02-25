@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../ResourceCommandStrings.resx">
     <body>
@@ -17,6 +17,26 @@
         <target state="translated">Nom de la ressource sur laquelle exécuter la commande.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
+        <target state="translated">Aucun AppHost dans le périmètre n’a été trouvé. Affichage de tous les AppHosts en cours d’exécution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found.</source>
+        <target state="translated">Désolé, aucun AppHost en cours d’exécution n’a été trouvé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OptionNotValidWithResource">
+        <source>The '{0}' option is not valid when starting a resource.</source>
+        <target state="new">The '{0}' option is not valid when starting a resource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
         <target state="translated">Redémarrer une ressource en cours d’exécution.</target>
@@ -33,12 +53,12 @@
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
-        <source>Start a stopped resource.</source>
+        <source>Start an apphost in the background, or start a stopped resource.</source>
         <target state="translated">Démarrer une ressource arrêtée.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
-        <source>The name of the resource to start.</source>
+        <source>The name of the resource to start. If not specified, starts the AppHost in the background.</source>
         <target state="translated">Le nom de la ressource à commencer.</target>
         <note />
       </trans-unit>

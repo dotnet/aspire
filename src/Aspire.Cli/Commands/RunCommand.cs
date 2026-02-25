@@ -11,7 +11,6 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Processes;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -63,10 +62,9 @@ internal sealed class RunCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
-    private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
-    private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
+    private readonly AppHostLauncher _appHostLauncher;
     private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
     private bool _isDetachMode;
 
@@ -80,22 +78,9 @@ internal sealed class RunCommand : BaseCommand
     {
         Description = RunCommandStrings.DetachArgumentDescription
     };
-    private static readonly Option<OutputFormat?> s_formatOption = new("--format")
-    {
-        Description = RunCommandStrings.JsonArgumentDescription
-    };
-    private static readonly Option<bool> s_isolatedOption = new("--isolated")
-    {
-        Description = RunCommandStrings.IsolatedArgumentDescription
-    };
     private static readonly Option<bool> s_noBuildOption = new("--no-build")
     {
         Description = RunCommandStrings.NoBuildArgumentDescription
-    };
-    private static readonly Option<string?> s_logFileOption = new("--log-file")
-    {
-        Description = "Path to write the log file (used internally by --detach).",
-        Hidden = true
     };
     private readonly Option<bool>? _startDebugSessionOption;
 
@@ -113,9 +98,8 @@ internal sealed class RunCommand : BaseCommand
         CliExecutionContext executionContext,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
-        IAuxiliaryBackchannelMonitor backchannelMonitor,
-        Diagnostics.FileLoggerProvider fileLoggerProvider,
-        TimeProvider? timeProvider)
+        AppHostLauncher appHostLauncher,
+        Diagnostics.FileLoggerProvider fileLoggerProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -128,16 +112,13 @@ internal sealed class RunCommand : BaseCommand
         _features = features;
         _logger = logger;
         _projectFactory = projectFactory;
-        _backchannelMonitor = backchannelMonitor;
+        _appHostLauncher = appHostLauncher;
         _fileLoggerProvider = fileLoggerProvider;
-        _timeProvider = timeProvider ?? TimeProvider.System;
 
         Options.Add(s_projectOption);
         Options.Add(s_detachOption);
-        Options.Add(s_formatOption);
-        Options.Add(s_isolatedOption);
         Options.Add(s_noBuildOption);
-        Options.Add(s_logFileOption);
+        AppHostLauncher.AddLaunchOptions(this);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -156,9 +137,9 @@ internal sealed class RunCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var detach = parseResult.GetValue(s_detachOption);
         _isDetachMode = detach;
-        var format = parseResult.GetValue(s_formatOption);
-        var isolated = parseResult.GetValue(s_isolatedOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
+        var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
+        var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = false;
         if (isExtensionHost)
@@ -626,309 +607,27 @@ internal sealed class RunCommand : BaseCommand
     /// </list>
     /// <para>On any failure, the log file path is displayed so the user can investigate.</para>
     /// </remarks>
-    private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, bool isExtensionHost, CancellationToken cancellationToken)
+    private Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, bool isExtensionHost, CancellationToken cancellationToken)
     {
-        var format = parseResult.GetValue(s_formatOption);
+        var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
+        var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
+        var noBuild = parseResult.GetValue(s_noBuildOption);
+        var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
+        var additionalArgs = parseResult.UnmatchedTokens.Where(t => t != "--detach").ToList();
 
-        // When outputting JSON, write all console to stderr by default.
-        // Only content explicitly sent to stdout (JSON results) appears on stdout.
-        if (format == OutputFormat.Json)
+        if (noBuild)
         {
-            _interactionService.Console = ConsoleOutput.Error;
+            additionalArgs.Add("--no-build");
         }
 
-        // Failure mode 1: Project not found
-        // When outputting JSON, use Throw instead of Prompt to avoid polluting stdout
-        // with interactive selection UI. The user should specify --project explicitly.
-        var multipleAppHostBehavior = format == OutputFormat.Json
-            ? MultipleAppHostProjectsFoundBehavior.Throw
-            : MultipleAppHostProjectsFoundBehavior.Prompt;
-
-        var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
+        return _appHostLauncher.LaunchDetachedAsync(
             passedAppHostProjectFile,
-            multipleAppHostBehavior,
-            createSettingsFile: false,
+            format,
+            isolated,
+            isExtensionHost,
+            globalArgs,
+            additionalArgs,
             cancellationToken);
-
-        var effectiveAppHostFile = searchResult.SelectedProjectFile;
-
-        if (effectiveAppHostFile is null)
-        {
-            return ExitCodeConstants.FailedToFindProject;
-        }
-
-        _logger.LogDebug("Starting AppHost in background: {AppHostPath}", effectiveAppHostFile.FullName);
-
-        // Compute the expected auxiliary socket path prefix for this AppHost.
-        // The hash identifies the AppHost (from project path), while the PID makes each instance unique.
-        // Multiple instances of the same AppHost will have the same hash but different PIDs.
-        var expectedSocketPrefix = AppHostHelper.ComputeAuxiliarySocketPrefix(
-            effectiveAppHostFile.FullName,
-            ExecutionContext.HomeDirectory.FullName);
-        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPrefix
-        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPrefix)!;
-
-        _logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
-
-        // Check for running instance and stop it if found (same behavior as regular run)
-        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        var existingSockets = AppHostHelper.FindMatchingSockets(
-            effectiveAppHostFile.FullName,
-            ExecutionContext.HomeDirectory.FullName);
-
-        if (runningInstanceDetectionEnabled && existingSockets.Length > 0)
-        {
-            _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
-            var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
-            // Stop all running instances in parallel - don't block on failures
-            var stopTasks = existingSockets.Select(socket =>
-                manager.StopRunningInstanceAsync(socket, cancellationToken));
-            await Task.WhenAll(stopTasks).ConfigureAwait(false);
-        }
-
-        // Build the arguments for the child CLI process
-        // Tell the child where to write its log so we can find it on failure.
-        var childLogFile = GenerateChildLogFilePath();
-
-        var args = new List<string>
-        {
-            "run",
-            "--non-interactive",
-            "--project",
-            effectiveAppHostFile.FullName,
-            "--log-file",
-            childLogFile
-        };
-
-        // Pass through global options that should be forwarded to child CLI
-        args.AddRange(RootCommand.GetChildProcessArgs(parseResult));
-
-        // Pass through run-specific options
-        if (parseResult.GetValue(s_isolatedOption))
-        {
-            args.Add("--isolated");
-        }
-        if (parseResult.GetValue(s_noBuildOption))
-        {
-            args.Add("--no-build");
-        }
-
-        // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)
-        foreach (var token in parseResult.UnmatchedTokens)
-        {
-            if (token != "--detach")
-            {
-                args.Add(token);
-            }
-        }
-
-        // Get the path to the current executable
-        // When running as `dotnet aspire.dll`, Environment.ProcessPath returns dotnet.exe,
-        // so we need to also pass the entry assembly (aspire.dll) as the first argument.
-        // When running native AOT, ProcessPath IS the native executable.
-        var dotnetPath = Environment.ProcessPath ?? "dotnet";
-        var isDotnetHost = dotnetPath.EndsWith("dotnet", StringComparison.OrdinalIgnoreCase) ||
-                           dotnetPath.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase);
-
-        // For single-file apps, Assembly.Location is empty. Use command-line args instead.
-        // args[0] when running `dotnet aspire.dll` is the dll path
-        var entryAssemblyPath = Environment.GetCommandLineArgs().FirstOrDefault();
-
-        _logger.LogDebug("Spawning child CLI: {Executable} (isDotnetHost={IsDotnetHost}) with args: {Args}",
-            dotnetPath, isDotnetHost, string.Join(" ", args));
-        _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
-
-        // Build the full argument list for the child process, including the entry assembly
-        // path when running via `dotnet aspire.dll`
-        var childArgs = new List<string>();
-        if (isDotnetHost && !string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-        {
-            childArgs.Add(entryAssemblyPath);
-        }
-
-        childArgs.AddRange(args);
-
-        // Start the child process and wait for the backchannel in a single status spinner
-        Process? childProcess = null;
-        var childExitedEarly = false;
-        var childExitCode = 0;
-
-        async Task<IAppHostAuxiliaryBackchannel?> StartAndWaitForBackchannelAsync()
-        {
-            // Failure mode 2: Failed to spawn child process
-            try
-            {
-                childProcess = DetachedProcessLauncher.Start(
-                    dotnetPath,
-                    childArgs,
-                    ExecutionContext.WorkingDirectory.FullName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to start child CLI process");
-                return null;
-            }
-
-            _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
-
-            // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
-            // - Mode 3: Child exits early (build failure, config error, etc.)
-            // - Mode 4: Timeout waiting for backchannel (120 seconds)
-            var startTime = _timeProvider.GetUtcNow();
-            var timeout = TimeSpan.FromSeconds(120);
-
-            while (_timeProvider.GetUtcNow() - startTime < timeout)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Failure mode 3: Child process exited early
-                if (childProcess.HasExited)
-                {
-                    childExitedEarly = true;
-                    childExitCode = childProcess.ExitCode;
-                    _logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
-                    return null;
-                }
-
-                // Trigger a scan and try to connect
-                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-
-                // Check if we can find a connection for this AppHost by hash
-                var connection = _backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
-                if (connection is not null)
-                {
-                    return connection;
-                }
-
-                // Wait a bit before trying again, but short-circuit if the child process exits
-                try
-                {
-                    await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-                    // If we get here, the process exited - we'll catch it at the top of the next iteration
-                }
-                catch (TimeoutException)
-                {
-                    // Expected - the 500ms delay elapsed without the process exiting
-                }
-            }
-
-            // Failure mode 4: Timeout - loop exited without finding connection
-            return null;
-        }
-
-        // For JSON output, skip the status spinner to avoid contaminating stdout
-        IAppHostAuxiliaryBackchannel? backchannel;
-        if (format == OutputFormat.Json)
-        {
-            backchannel = await StartAndWaitForBackchannelAsync();
-        }
-        else
-        {
-            backchannel = await _interactionService.ShowStatusAsync(
-                RunCommandStrings.StartingAppHostInBackground,
-                StartAndWaitForBackchannelAsync);
-        }
-
-        // Handle failure cases - show specific error and log file path
-        if (backchannel is null || childProcess is null)
-        {
-            if (childProcess is null)
-            {
-                _interactionService.DisplayError(RunCommandStrings.FailedToStartAppHost);
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-
-            if (childExitedEarly)
-            {
-                // Show a friendly message based on well-known exit codes from the child
-                _interactionService.DisplayError(GetDetachedFailureMessage(childExitCode));
-            }
-            else
-            {
-                _interactionService.DisplayError(RunCommandStrings.TimeoutWaitingForAppHost);
-
-                // Try to kill the child process if it's still running (timeout case)
-                if (!childProcess.HasExited)
-                {
-                    try
-                    {
-                        childProcess.Kill();
-                    }
-                    catch
-                    {
-                        // Ignore errors when killing
-                    }
-                }
-            }
-
-            // Point to the child's log file — it contains the actual build/runtime errors
-            _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
-                CultureInfo.CurrentCulture,
-                RunCommandStrings.CheckLogsForDetails,
-                childLogFile.EscapeMarkup()));
-
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-
-        var appHostInfo = backchannel.AppHostInfo;
-
-        // Get the dashboard URLs
-        var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
-
-        var pid = appHostInfo?.ProcessId ?? childProcess.Id;
-
-        if (format == OutputFormat.Json)
-        {
-            // Output structured JSON for programmatic consumption
-            var result = new DetachOutputInfo(
-                effectiveAppHostFile.FullName,
-                pid,
-                childProcess.Id,
-                dashboardUrls?.BaseUrlWithLoginToken,
-                childLogFile);
-            var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
-            // Structured output always goes to stdout.
-            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
-        }
-        else
-        {
-            // Display success UX using shared rendering
-            var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
-            RenderAppHostSummary(
-                _ansiConsole,
-                appHostRelativePath,
-                dashboardUrls?.BaseUrlWithLoginToken,
-                codespacesUrl: null,
-                childLogFile,
-                isExtensionHost,
-                pid);
-            _ansiConsole.WriteLine();
-
-            _interactionService.DisplaySuccess(RunCommandStrings.AppHostStartedSuccessfully);
-        }
-
-        return ExitCodeConstants.Success;
     }
 
-    internal static string GetDetachedFailureMessage(int childExitCode)
-    {
-        return childExitCode switch
-        {
-            ExitCodeConstants.FailedToBuildArtifacts => RunCommandStrings.AppHostFailedToBuild,
-            _ => string.Format(CultureInfo.CurrentCulture, RunCommandStrings.AppHostExitedWithCode, childExitCode)
-        };
-    }
-
-    internal static string GenerateChildLogFilePath(string logsDirectory, TimeProvider timeProvider)
-    {
-        var timestamp = timeProvider.GetUtcNow().ToString("yyyyMMddTHHmmssfff", CultureInfo.InvariantCulture);
-        var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
-        var fileName = $"cli_{timestamp}_detach-child_{uniqueId}.log";
-        return Path.Combine(logsDirectory, fileName);
-    }
-
-    private string GenerateChildLogFilePath()
-    {
-        return GenerateChildLogFilePath(ExecutionContext.LogsDirectory.FullName, _timeProvider);
-    }
 }
