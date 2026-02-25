@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="needs-review-translation">查看正在运行的 Aspire 应用程序中的遥测数据(日志、跨度、跟踪)。</target>
+        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">

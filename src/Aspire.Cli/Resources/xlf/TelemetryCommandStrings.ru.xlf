@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="needs-review-translation">Просмотр данных телеметрии (журналы, диапазоны, трассировки) из запущенного приложения Aspire.</target>
+        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">

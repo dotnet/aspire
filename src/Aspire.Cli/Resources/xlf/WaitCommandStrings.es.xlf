@@ -4,82 +4,82 @@
     <body>
       <trans-unit id="Description">
         <source>Wait for a resource to reach a target status.</source>
-        <target state="new">Wait for a resource to reach a target status.</target>
+        <target state="translated">Espere a que un recurso alcance un estado de destino.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidStatusValue">
         <source>Invalid status value '{0}'. Valid values are: healthy, up, down.</source>
-        <target state="new">Invalid status value '{0}'. Valid values are: healthy, up, down.</target>
+        <target state="translated">Valor de estado no válido: "{0}". Los valores válidos son: correcto, arriba, abajo.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
+        <target state="translated">No se encontró ningún AppHosts en ejecución en el directorio actual. Mostrando todos los AppHosts en ejecución:</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">
         <source>No running AppHosts found.</source>
-        <target state="new">No running AppHosts found.</target>
+        <target state="translated">No se encontraron AppHosts en ejecución.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to wait for.</source>
-        <target state="new">The name of the resource to wait for.</target>
+        <target state="translated">Nombre del recurso que se va a esperar.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceEnteredFailedState">
         <source>Resource '{0}' entered a failed state: {1}.</source>
-        <target state="new">Resource '{0}' entered a failed state: {1}.</target>
+        <target state="translated">El recurso "{0}" entró en un estado de error: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">No se encontró el recurso "{0}".</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceReachedTargetStatus">
         <source>Resource '{0}' is {1}. ({2:F1}s)</source>
-        <target state="new">Resource '{0}' is {1}. ({2:F1}s)</target>
+        <target state="translated">El recurso "{0}" está {1}. ({2:F1}s)</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Buscando AppHosts en ejecución...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">Seleccione un AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="StatusOptionDescription">
         <source>The target status to wait for (healthy, up, down). Defaults to healthy.</source>
-        <target state="new">The target status to wait for (healthy, up, down). Defaults to healthy.</target>
+        <target state="translated">Estado de destino que se va a esperar (correcto, arriba, abajo). El valor predeterminado es correcto.</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutMustBePositive">
         <source>Timeout must be a positive number of seconds.</source>
-        <target state="new">Timeout must be a positive number of seconds.</target>
+        <target state="translated">El tiempo de espera debe ser un número positivo de segundos.</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutOptionDescription">
         <source>Maximum time to wait in seconds. Defaults to 120.</source>
-        <target state="new">Maximum time to wait in seconds. Defaults to 120.</target>
+        <target state="translated">Tiempo máximo de espera en segundos. Tiene como valor predeterminado el 120.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitTimedOut">
         <source>Timed out waiting for resource '{0}' to be {1} after {2}s.</source>
-        <target state="new">Timed out waiting for resource '{0}' to be {1} after {2}s.</target>
+        <target state="translated">Se agotó el tiempo de espera para que el recurso '{0}' se {1} después de {2} s.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForResource">
         <source>Waiting for resource '{0}' to be {1}...</source>
-        <target state="new">Waiting for resource '{0}' to be {1}...</target>
+        <target state="translated">Esperando a que el recurso "{0}" sea {1}...</target>
         <note />
       </trans-unit>
     </body>

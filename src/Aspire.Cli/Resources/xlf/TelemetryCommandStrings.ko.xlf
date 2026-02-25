@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="needs-review-translation">실행 중인 Aspire 애플리케이션의 원격 분석 데이터(로그, 범위, 추적)를 확인합니다.</target>
+        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
