@@ -11,7 +11,7 @@ param api_identity_outputs_id string
 
 param api_containerport string
 
-param sqlserver_outputs_sqlserverfqdn string
+param sql_outputs_sqlserverfqdn string
 
 param storage_outputs_blobendpoint string
 
@@ -67,11 +67,11 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'ConnectionStrings__sqldb'
-              value: 'Server=tcp:${sqlserver_outputs_sqlserverfqdn},1433;Encrypt=True;Authentication="Active Directory Default";Database=sqldb'
+              value: 'Server=tcp:${sql_outputs_sqlserverfqdn},1433;Encrypt=True;Authentication="Active Directory Default";Database=sqldb'
             }
             {
               name: 'SQLDB_HOST'
-              value: sqlserver_outputs_sqlserverfqdn
+              value: sql_outputs_sqlserverfqdn
             }
             {
               name: 'SQLDB_PORT'
@@ -79,11 +79,11 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'SQLDB_URI'
-              value: 'mssql://${sqlserver_outputs_sqlserverfqdn}:1433/sqldb'
+              value: 'mssql://${sql_outputs_sqlserverfqdn}:1433/sqldb'
             }
             {
               name: 'SQLDB_JDBCCONNECTIONSTRING'
-              value: 'jdbc:sqlserver://${sqlserver_outputs_sqlserverfqdn}:1433;database=sqldb;encrypt=true;trustServerCertificate=false'
+              value: 'jdbc:sqlserver://${sql_outputs_sqlserverfqdn}:1433;database=sqldb;encrypt=true;trustServerCertificate=false'
             }
             {
               name: 'SQLDB_DATABASENAME'

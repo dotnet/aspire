@@ -2,12 +2,12 @@
 param location string = resourceGroup().location
 
 resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
-  name: take('sqlserver-admin-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sql-admin-${uniqueString(resourceGroup().id)}', 63)
   location: location
 }
 
-resource sqlserver 'Microsoft.Sql/servers@2023-08-01' = {
-  name: take('sqlserver-${uniqueString(resourceGroup().id)}', 63)
+resource sql 'Microsoft.Sql/servers@2023-08-01' = {
+  name: take('sql-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administrators: {
@@ -22,7 +22,7 @@ resource sqlserver 'Microsoft.Sql/servers@2023-08-01' = {
     version: '12.0'
   }
   tags: {
-    'aspire-resource-name': 'sqlserver'
+    'aspire-resource-name': 'sql'
   }
 }
 
@@ -36,13 +36,13 @@ resource sqldb 'Microsoft.Sql/servers/databases@2023-08-01' = {
   sku: {
     name: 'GP_S_Gen5_2'
   }
-  parent: sqlserver
+  parent: sql
 }
 
-output sqlServerFqdn string = sqlserver.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
 
-output name string = sqlserver.name
+output name string = sql.name
 
-output id string = sqlserver.id
+output id string = sql.id
 
-output sqlServerAdminName string = sqlserver.properties.administrators.login
+output sqlServerAdminName string = sql.properties.administrators.login
