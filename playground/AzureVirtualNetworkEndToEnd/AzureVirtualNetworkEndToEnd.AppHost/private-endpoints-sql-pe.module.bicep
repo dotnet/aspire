@@ -5,25 +5,25 @@ param privatelink_database_windows_net_outputs_name string
 
 param vnet_outputs_private_endpoints_id string
 
-param sqlserver_outputs_id string
+param sql_outputs_id string
 
 resource privatelink_database_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   name: privatelink_database_windows_net_outputs_name
 }
 
-resource private_endpoints_sqlserver_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
-  name: take('private_endpoints_sqlserver_pe-${uniqueString(resourceGroup().id)}', 64)
+resource private_endpoints_sql_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
+  name: take('private_endpoints_sql_pe-${uniqueString(resourceGroup().id)}', 64)
   location: location
   properties: {
     privateLinkServiceConnections: [
       {
         properties: {
-          privateLinkServiceId: sqlserver_outputs_id
+          privateLinkServiceId: sql_outputs_id
           groupIds: [
             'sqlServer'
           ]
         }
-        name: 'private-endpoints-sqlserver-pe-connection'
+        name: 'private-endpoints-sql-pe-connection'
       }
     ]
     subnet: {
@@ -31,11 +31,11 @@ resource private_endpoints_sqlserver_pe 'Microsoft.Network/privateEndpoints@2025
     }
   }
   tags: {
-    'aspire-resource-name': 'private-endpoints-sqlserver-pe'
+    'aspire-resource-name': 'private-endpoints-sql-pe'
   }
 }
 
-resource private_endpoints_sqlserver_pe_dnsgroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
+resource private_endpoints_sql_pe_dnsgroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
   name: 'default'
   properties: {
     privateDnsZoneConfigs: [
@@ -47,9 +47,9 @@ resource private_endpoints_sqlserver_pe_dnsgroup 'Microsoft.Network/privateEndpo
       }
     ]
   }
-  parent: private_endpoints_sqlserver_pe
+  parent: private_endpoints_sql_pe
 }
 
-output id string = private_endpoints_sqlserver_pe.id
+output id string = private_endpoints_sql_pe.id
 
-output name string = private_endpoints_sqlserver_pe.name
+output name string = private_endpoints_sql_pe.name
