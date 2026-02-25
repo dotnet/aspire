@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOSMOSDB001
+#pragma warning disable ASPIRECERTIFICATES001
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
@@ -76,7 +79,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void AddAzureCosmosDBWithDataExplorer()
     {
-#pragma warning disable ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
@@ -89,7 +91,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // WithDataExplorer doesn't work against the non-preview emulator
         var cosmos2 = builder.AddAzureCosmosDB("cosmos2");
         Assert.Throws<NotSupportedException>(() => cosmos2.RunAsEmulator(e => e.WithDataExplorer()));
-#pragma warning restore ASPIRECOSMOSDB001 // RunAsPreviewEmulator is experimental
     }
 
     [Fact]
@@ -204,7 +205,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
-            
 
         var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
@@ -260,7 +260,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
-    
+
     [Fact]
     public async Task AddAzureCosmosDBEmulator()
     {
@@ -288,10 +288,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
-
-#pragma warning disable ASPIRECOSMOSDB001
         builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
-#pragma warning restore ASPIRECOSMOSDB001
 
         var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -541,10 +538,8 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     public void RunAsPreviewEmulatorAppliesEmulatorResourceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-#pragma warning disable ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsPreviewEmulator();
-#pragma warning restore ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Verify that the EmulatorResourceAnnotation is applied
         Assert.True(cosmos.Resource.IsEmulator());
@@ -623,16 +618,12 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
     [Fact]
     public void RunAsPreviewEmulatorRegistersHttpsCertificateConfigurationCallback()
     {
-#pragma warning disable ASPIRECOSMOSDB001
         using var builder = TestDistributedApplicationBuilder.Create();
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsPreviewEmulator();
-#pragma warning restore ASPIRECOSMOSDB001
 
         // Verify that the HttpsCertificateConfigurationCallbackAnnotation is registered
-#pragma warning disable ASPIRECERTIFICATES001
         Assert.Contains(cosmos.Resource.Annotations, a => a is HttpsCertificateConfigurationCallbackAnnotation);
-#pragma warning restore ASPIRECERTIFICATES001
     }
 
     [Fact]
@@ -643,21 +634,16 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
                            .RunAsEmulator();
 
         // Standard (non-preview) emulator should NOT have HTTPS certificate configuration
-#pragma warning disable ASPIRECERTIFICATES001
         Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is HttpsCertificateConfigurationCallbackAnnotation);
-#pragma warning restore ASPIRECERTIFICATES001
     }
 
     [Fact]
     public async Task RunAsPreviewEmulatorHttpsCertificateCallbackSetsExpectedEnvironmentVariables()
     {
-#pragma warning disable ASPIRECOSMOSDB001
         using var builder = TestDistributedApplicationBuilder.Create();
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsPreviewEmulator();
-#pragma warning restore ASPIRECOSMOSDB001
 
-#pragma warning disable ASPIRECERTIFICATES001
         var certConfigAnnotation = Assert.Single(
             cosmos.Resource.Annotations.OfType<HttpsCertificateConfigurationCallbackAnnotation>());
 
@@ -683,19 +669,15 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Contains("EXPLORER_PROTOCOL", env.Keys);
         Assert.Contains("CERT_PATH", env.Keys);
         Assert.DoesNotContain("CERT_SECRET", env.Keys);
-#pragma warning restore ASPIRECERTIFICATES001
     }
 
     [Fact]
     public async Task RunAsPreviewEmulatorHttpsCertificateCallbackSetsPasswordWhenProvided()
     {
-#pragma warning disable ASPIRECOSMOSDB001
         using var builder = TestDistributedApplicationBuilder.Create();
         var cosmos = builder.AddAzureCosmosDB("cosmos")
                            .RunAsPreviewEmulator();
-#pragma warning restore ASPIRECOSMOSDB001
 
-#pragma warning disable ASPIRECERTIFICATES001
         var certConfigAnnotation = Assert.Single(
             cosmos.Resource.Annotations.OfType<HttpsCertificateConfigurationCallbackAnnotation>());
 
@@ -723,14 +705,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Contains("CERT_PATH", env.Keys);
         Assert.Contains("CERT_SECRET", env.Keys);
         Assert.Same(passwordParam, env["CERT_SECRET"]);
-#pragma warning restore ASPIRECERTIFICATES001
     }
 
     [Fact]
     public async Task RunAsPreviewEmulatorSwitchesEndpointToHttpsWhenCertificateAvailable()
     {
-#pragma warning disable ASPIRECOSMOSDB001
-#pragma warning disable ASPIRECERTIFICATES001
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
@@ -757,15 +736,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var emulatorEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "emulator");
         Assert.Equal("https", emulatorEndpoint.UriScheme);
-#pragma warning restore ASPIRECERTIFICATES001
-#pragma warning restore ASPIRECOSMOSDB001
     }
 
     [Fact]
     public async Task RunAsPreviewEmulatorKeepsHttpWhenNoCertificateAvailable()
     {
-#pragma warning disable ASPIRECOSMOSDB001
-#pragma warning disable ASPIRECERTIFICATES001
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
@@ -793,15 +768,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var emulatorEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "emulator");
         Assert.Equal("http", emulatorEndpoint.UriScheme);
-#pragma warning restore ASPIRECERTIFICATES001
-#pragma warning restore ASPIRECOSMOSDB001
     }
 
     [Fact]
     public async Task WithDataExplorerSwitchesEndpointToHttpsWhenCertificateAvailable()
     {
-#pragma warning disable ASPIRECOSMOSDB001
-#pragma warning disable ASPIRECERTIFICATES001
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
@@ -826,15 +797,11 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
         Assert.Equal("https", dataExplorerEndpoint.UriScheme);
-#pragma warning restore ASPIRECERTIFICATES001
-#pragma warning restore ASPIRECOSMOSDB001
     }
 
     [Fact]
     public async Task WithDataExplorerKeepsHttpWhenNoCertificateAvailable()
     {
-#pragma warning disable ASPIRECOSMOSDB001
-#pragma warning disable ASPIRECERTIFICATES001
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
@@ -860,8 +827,6 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
         Assert.Equal("http", dataExplorerEndpoint.UriScheme);
-#pragma warning restore ASPIRECERTIFICATES001
-#pragma warning restore ASPIRECOSMOSDB001
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

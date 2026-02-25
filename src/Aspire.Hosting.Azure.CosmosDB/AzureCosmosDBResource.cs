@@ -86,7 +86,14 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
-    internal bool IsPreviewEmulator { get; set; }
+    /// <summary>
+    /// Is this instance running a preview emulator version?
+    /// </summary>
+    internal bool IsPreviewEmulator
+    {
+        get => IsEmulator && field;
+        set => field = value;
+    }
 
     /// <summary>
     /// Gets the account endpoint URI expression for the Cosmos DB account.
