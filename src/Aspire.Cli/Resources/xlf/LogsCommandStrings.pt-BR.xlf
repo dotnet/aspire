@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">Exiba logs de recursos em um apphost do Aspire em execução.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Logs de saída no formato JSON (NDJSON).</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">

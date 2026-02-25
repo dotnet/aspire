@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">Çalışan bir Aspire apphost'taki kaynakların günlüklerini görüntüle.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Günlükleri JSON biçiminde (NDJSON) çıkar.</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
