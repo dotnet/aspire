@@ -54,9 +54,9 @@
                 "description": "%extension.debug.debuggers%",
                 "default": {}
               },
-              "aspireCommand": {
+              "command": {
                 "type": "string",
-                "description": "%extension.debug.aspireCommand%",
+                "description": "%extension.debug.command%",
                 "enum": [
                   "run",
                   "deploy",

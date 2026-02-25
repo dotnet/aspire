@@ -12,6 +12,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -30,8 +31,10 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IConfiguration _configuration;
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
+    private readonly Option<bool>? _startDebugSessionOption;
 
     protected static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", PublishCommandStrings.ProjectArgumentDescription);
 
@@ -69,7 +72,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, IConfiguration configuration, ILogger logger, IAnsiConsole ansiConsole)
         : base(name, description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -77,6 +80,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
         _projectFactory = projectFactory;
+        _configuration = configuration;
         _logger = logger;
         _ansiConsole = ansiConsole;
 
@@ -91,6 +95,15 @@ internal abstract class PipelineCommandBase : BaseCommand
         Options.Add(s_environmentOption);
         Options.Add(s_includeExceptionDetailsOption);
         Options.Add(s_noBuildOption);
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
+        {
+            _startDebugSessionOption = new Option<bool>("--start-debug-session")
+            {
+                Description = RunCommandStrings.StartDebugSessionArgumentDescription
+            };
+            Options.Add(_startDebugSessionOption);
+        }
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -107,6 +120,24 @@ internal abstract class PipelineCommandBase : BaseCommand
         var debugMode = parseResult.GetValue(RootCommand.DebugOption);
         var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
+
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
+        var startDebugSession = false;
+        if (isExtensionHost)
+        {
+            Debug.Assert(_startDebugSessionOption is not null);
+            startDebugSession = parseResult.GetValue(_startDebugSessionOption);
+        }
+
+        // A user may run `aspire deploy/publish` in an Aspire terminal in VS Code. In this case, intercept and prompt
+        // VS Code to start a debug session using the current directory.
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _)
+            && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
+        {
+            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession, Name);
+            return ExitCodeConstants.Success;
+        }
 
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;
@@ -118,7 +149,6 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 

@@ -73,10 +73,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       const appHostPath = this._session.configuration.program as string;
       const noDebug = !!message.arguments?.noDebug;
-      const aspireCommand = this._session.configuration.aspireCommand ?? 'run';
+      const aspireCommand = this._session.configuration.command ?? 'run';
 
       const args = [aspireCommand];
-      if (aspireCommand === 'run' && !noDebug) {
+      if (!noDebug) {
         args.push('--start-debug-session');
       }
       if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {

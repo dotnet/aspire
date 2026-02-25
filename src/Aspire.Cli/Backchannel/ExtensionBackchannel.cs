@@ -42,7 +42,7 @@ internal interface IExtensionBackchannel
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
-    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, CancellationToken cancellationToken);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, string command, CancellationToken cancellationToken);
     Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
     Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken);
 }
@@ -666,7 +666,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             cancellationToken);
     }
 
-    public async Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug,
+    public async Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, string command,
         CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
@@ -675,12 +675,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Starting extension debugging session in directory {WorkingDirectory} for project file {ProjectFile} with debug={Debug}",
-            workingDirectory, projectFile ?? "<none>", debug);
+        _logger.LogDebug("Starting extension debugging session in directory {WorkingDirectory} for project file {ProjectFile} with debug={Debug} command={Command}",
+            workingDirectory, projectFile ?? "<none>", debug, command);
 
         await rpc.InvokeWithCancellationAsync(
             "startDebugSession",
-            [_token, workingDirectory, projectFile, debug],
+            [_token, workingDirectory, projectFile, debug, command],
             cancellationToken);
     }
 

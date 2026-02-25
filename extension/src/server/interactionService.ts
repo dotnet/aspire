@@ -34,7 +34,7 @@ export interface IInteractionService {
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
-    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
+    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean, command: string) => Promise<void>;
     writeDebugSessionMessage: (message: string, stdout: boolean, textStyle?: string) => void;
 }
 
@@ -437,7 +437,7 @@ export class InteractionService implements IInteractionService {
         debugSession.notifyAppHostStartupCompleted();
     }
 
-    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean): Promise<void> {
+    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean, command: string): Promise<void> {
         this.clearProgressNotification();
 
         const debugConfiguration: AspireExtendedDebugConfiguration = {
@@ -446,6 +446,7 @@ export class InteractionService implements IInteractionService {
             request: 'launch',
             program: projectFile ?? workingDirectory,
             noDebug: !debug,
+            command: command as 'run' | 'deploy' | 'publish',
         };
 
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(workingDirectory));
@@ -499,6 +500,6 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
-    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
+    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean, command: string) => interactionService.startDebugSession(workingDirectory, projectFile, debug, command)));
     connection.onRequest("writeDebugSessionMessage", middleware('writeDebugSessionMessage', interactionService.writeDebugSessionMessage.bind(interactionService)));
 }
