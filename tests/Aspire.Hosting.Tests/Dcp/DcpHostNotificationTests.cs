@@ -2,13 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
@@ -109,6 +112,59 @@ public sealed class DcpHostNotificationTests
         Assert.Contains(string.Format(CultureInfo.InvariantCulture, InteractionStrings.ContainerRuntimeUnhealthyMessage, "docker"), interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
+    }
+
+    [Fact]
+    public async Task DcpHost_WithUntrustedDeveloperCertificate_ShowsNotificationAndLogsWarning()
+    {
+        // Arrange
+        using var certificate = CreateUntrustedCertificate();
+        var testSink = new TestSink();
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddProvider(new TestLoggerProvider(testSink));
+        });
+        var dcpOptions = Options.Create(new DcpOptions());
+        var dependencyCheckService = new TestDcpDependencyCheckService();
+        var interactionService = new TestInteractionService { IsAvailable = true };
+        var locations = CreateTestLocations();
+        var applicationModel = new DistributedApplicationModel(new ResourceCollection());
+        var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var appHostDirectory = Path.Combine(Path.GetTempPath(), "aspire-apphost-test");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:Directory"] = appHostDirectory
+            })
+            .Build();
+
+        var dcpHost = new DcpHost(
+            loggerFactory,
+            dcpOptions,
+            dependencyCheckService,
+            interactionService,
+            locations,
+            applicationModel,
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
+
+        // Act
+        await dcpHost.EnsureDevelopmentCertificateTrustAsync(CancellationToken.None).DefaultTimeout();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+
+        // Assert
+        var expectedMessage = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, $"'{appHostDirectory}'");
+        Assert.Equal(InteractionStrings.DeveloperCertificateNotFullyTrustedTitle, interaction.Title);
+        Assert.Equal(expectedMessage, interaction.Message);
+        var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
+        Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
+        Assert.Contains(testSink.Writes, w => string.Equals(w.Message, expectedMessage, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -430,6 +486,26 @@ public sealed class DcpHostNotificationTests
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("test-container", "nginx:latest");
         return builder.Build();
+    }
+
+    private static X509Certificate2 CreateUntrustedCertificate()
+    {
+        var searchPaths = new[]
+        {
+            Path.Combine(Directory.GetCurrentDirectory(), "tests", "Shared", "TestCertificates", "testCert.pfx"),
+            Path.Combine(AppContext.BaseDirectory, "shared", "TestCertificates", "testCert.pfx"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tests", "Shared", "TestCertificates", "testCert.pfx"))
+        };
+
+        foreach (var path in searchPaths)
+        {
+            if (File.Exists(path))
+            {
+                return new X509Certificate2(path, "testPassword");
+            }
+        }
+
+        throw new FileNotFoundException("Could not locate test certificate file 'testCert.pfx' in expected locations.");
     }
 
     private sealed class TestDcpDependencyCheckService : IDcpDependencyCheckService
