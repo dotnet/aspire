@@ -62,6 +62,11 @@ Leia mais sobre a telemetria da CLI do Aspire: https://aka.ms/aspire/cli-telemet
         <target state="translated">Suprima a faixa de inicialização e o aviso de telemetria.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Aguarde um depurador anexar antes de executar o comando.</target>

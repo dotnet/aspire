@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">Запустите хост приложений Aspire в режиме разработки.</target>
+        <source>Run an apphost in development mode.</source>
+        <target state="new">Run an apphost in development mode.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">Вывод результата в формате JSON (допустимо только с параметром --detach).</target>
+        <source>Output format (Table or Json). Only valid with --detach.</source>
+        <target state="new">Output format (Table or Json). Only valid with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

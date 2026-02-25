@@ -62,6 +62,11 @@ Aspire CLI telemetrisi hakkında daha fazla bilgi edinin: https://aka.ms/aspire/
         <target state="translated">Başlangıç başlığını ve telemetri bildirimini gizle.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Komutu yürütmeden önce hata ayıklayıcısının eklenmesini bekleyin.</target>

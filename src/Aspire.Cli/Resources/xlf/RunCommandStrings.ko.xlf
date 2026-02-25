@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
+        <source>Run an apphost in development mode.</source>
+        <target state="new">Run an apphost in development mode.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">JSON으로 결과를 출력합니다(--detach와 함께 사용 시에만 유효).</target>
+        <source>Output format (Table or Json). Only valid with --detach.</source>
+        <target state="new">Output format (Table or Json). Only valid with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

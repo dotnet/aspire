@@ -62,6 +62,11 @@ Aspire CLI 收集使用情况数据。该数据由 Microsoft 收集，用于帮�
         <target state="translated">抑制显示启动横幅和遥测通知。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">在执行命令之前，请等待附加调试程序。</target>

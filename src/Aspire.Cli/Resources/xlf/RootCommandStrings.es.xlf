@@ -62,6 +62,11 @@ Más información acerca de la telemetría de la CLI de Aspire: https://aka.ms/a
         <target state="translated">Suprima el banner de inicio y el aviso de telemetría.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Espere a que se asocie un depurador antes de ejecutar el comando.</target>

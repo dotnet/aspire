@@ -62,6 +62,11 @@ Aspire CLI 원격 분석에 대해 자세히 알아보기: https://aka.ms/aspire
         <target state="translated">시작 배너 및 원격 분석 알림을 표시하지 않습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">명령을 실행하기 전에 디버거가 연결되기를 기다리세요.</target>

@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">Geliştirme modunda bir Aspire uygulama ana işlemini çalıştırın.</target>
+        <source>Run an apphost in development mode.</source>
+        <target state="new">Run an apphost in development mode.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">Sonucu JSON olarak çıkar (yalnızca --detach ile geçerlidir).</target>
+        <source>Output format (Table or Json). Only valid with --detach.</source>
+        <target state="new">Output format (Table or Json). Only valid with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
