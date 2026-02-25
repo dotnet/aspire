@@ -32,10 +32,7 @@ internal sealed class StopCommand : BaseCommand
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = StopCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", StopCommandStrings.ProjectArgumentDescription);
 
     private static readonly Option<bool> s_allOption = new("--all")
     {

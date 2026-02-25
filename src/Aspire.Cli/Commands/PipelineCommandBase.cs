@@ -33,10 +33,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
 
-    protected static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = PublishCommandStrings.ProjectArgumentDescription
-    };
+    protected static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", PublishCommandStrings.ProjectArgumentDescription);
 
     private readonly Option<string?> _outputPathOption;
 

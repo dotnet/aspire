@@ -27,10 +27,7 @@ internal class ExecCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
 
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = ExecCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", ExecCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_resourceOption = new("--resource", "-r")
     {
         Description = ExecCommandStrings.TargetResourceArgumentDescription

@@ -36,10 +36,7 @@ internal sealed class AppHostLauncher(
     /// <summary>
     /// Shared option for the AppHost project file path.
     /// </summary>
-    internal static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    internal static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
     /// Shared option for output format (JSON or table) in detached AppHost mode.

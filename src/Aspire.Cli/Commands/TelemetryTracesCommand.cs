@@ -30,7 +30,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
-    private static readonly Option<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
     private static readonly Option<OutputFormat> s_formatOption = TelemetryCommandHelpers.CreateFormatOption();
     private static readonly Option<int?> s_limitOption = TelemetryCommandHelpers.CreateLimitOption();
     private static readonly Option<string?> s_traceIdOption = TelemetryCommandHelpers.CreateTraceIdOption("--trace-id", "-t");
@@ -79,7 +79,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
 
         var (success, baseUrl, apiToken, _, exitCode) = await TelemetryCommandHelpers.GetDashboardApiAsync(
-            _connectionResolver, _interactionService, passedAppHostProjectFile, format, cancellationToken);
+            _connectionResolver, _interactionService, passedAppHostProjectFile, cancellationToken);
 
         if (!success)
         {

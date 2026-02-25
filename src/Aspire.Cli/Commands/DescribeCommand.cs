@@ -77,10 +77,7 @@ internal sealed class DescribeCommand : BaseCommand
         Description = DescribeCommandStrings.ResourceArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
     private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
         Description = DescribeCommandStrings.FollowOptionDescription

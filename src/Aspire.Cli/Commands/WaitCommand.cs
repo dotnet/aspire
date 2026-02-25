@@ -39,10 +39,7 @@ internal sealed class WaitCommand : BaseCommand
         DefaultValueFactory = _ => 120
     };
 
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     public WaitCommand(
         IInteractionService interactionService,

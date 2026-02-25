@@ -34,10 +34,7 @@ internal sealed class AddCommand : BaseCommand
         Description = AddCommandStrings.IntegrationArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = AddCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", AddCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription

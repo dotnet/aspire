@@ -31,7 +31,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
-    private static readonly Option<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
     private static readonly Option<bool> s_followOption = TelemetryCommandHelpers.CreateFollowOption();
     private static readonly Option<OutputFormat> s_formatOption = TelemetryCommandHelpers.CreateFormatOption();
     private static readonly Option<int?> s_limitOption = TelemetryCommandHelpers.CreateLimitOption();

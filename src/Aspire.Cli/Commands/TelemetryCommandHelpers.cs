@@ -39,10 +39,7 @@ internal static class TelemetryCommandHelpers
     /// <summary>
     /// AppHost option shared across telemetry commands.
     /// </summary>
-    internal static Option<FileInfo?> CreateAppHostOption() => new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    internal static OptionWithLegacy<FileInfo?> CreateAppHostOption() => new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
     /// Output format option shared across telemetry commands.

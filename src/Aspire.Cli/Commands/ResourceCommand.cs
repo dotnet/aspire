@@ -31,10 +31,7 @@ internal sealed class ResourceCommand : BaseCommand
         Description = ResourceCommandStrings.CommandNameArgumentDescription
     };
 
-    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     public ResourceCommand(
         IInteractionService interactionService,

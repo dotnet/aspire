@@ -23,10 +23,7 @@ internal abstract class ResourceCommandBase : BaseCommand
 
     private readonly Argument<string> _resourceArgument;
 
-    protected static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    protected static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
     /// The resource command name to execute (e.g., KnownResourceCommands.StartCommand).
