@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -571,13 +573,19 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
+        var executionContextServiceProvider = new TestServiceProvider(configuration)
+            .AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService([], supportsContainerTrust: true, trustCertificate: true, tlsTerminate: true));
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+        {
+            ServiceProvider = executionContextServiceProvider
+        });
 
         return new DashboardEventHandlers(
             configuration,
             dashboardOptions,
             distributedApplicationLogger ?? NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            executionContext,
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
