@@ -3,12 +3,17 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
+using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
@@ -91,6 +96,8 @@ public static class AzureSqlExtensions
         var azureSqlServer = builder.AddResource(resource)
             .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
+
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationEventingSubscriber, AzureSqlDeploymentScriptPreparer>());
 
         return azureSqlServer;
     }
@@ -348,5 +355,102 @@ public static class AzureSqlExtensions
         infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login.ToBicepExpression() });
 
         return sqlServer;
+    }
+
+    /// <summary>
+    /// Configures the Azure SQL Server to use the specified subnet for deployment script execution.
+    /// </summary>
+    /// <param name="builder">The Azure SQL Server resource builder.</param>
+    /// <param name="subnet">The subnet to delegate for Azure Container Instances used by deployment scripts.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// When an Azure SQL Server has a private endpoint, deployment scripts that add database role assignments
+    /// run inside Azure Container Instances (ACI). This method allows you to provide an explicit subnet for those
+    /// containers instead of having one auto-created.
+    /// </para>
+    /// <para>
+    /// The specified subnet will be automatically delegated to <c>Microsoft.ContainerInstance/containerGroups</c>.
+    /// Ensure the subnet has outbound network security rules allowing access to Azure Active Directory (port 443)
+    /// and SQL (port 443) service tags.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptSubnet(
+        this IResourceBuilder<AzureSqlServerResource> builder,
+        IResourceBuilder<AzureSubnetResource> subnet)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(subnet);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        builder.Resource.Annotations.Add(new AdminDeploymentScriptSubnetAnnotation(subnet.Resource));
+
+        // Delegate the subnet to ACI
+        builder.ApplicationBuilder.CreateResourceBuilder(new AciDelegatedSubnetResource())
+            .WithDelegatedSubnet(subnet);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the Azure SQL Server to use the specified storage account for deployment script execution.
+    /// </summary>
+    /// <param name="builder">The Azure SQL Server resource builder.</param>
+    /// <param name="storage">The storage account to use for deployment scripts.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// When an Azure SQL Server has a private endpoint, deployment scripts require a storage account to upload
+    /// scripts and write logs. This method allows you to provide an explicit storage account instead of having
+    /// one auto-created.
+    /// </para>
+    /// <para>
+    /// The storage account must have <c>AllowSharedKeyAccess</c> enabled, as deployment scripts need to mount
+    /// file shares. If the storage is not an existing resource, this method will automatically configure
+    /// <c>AllowSharedKeyAccess = true</c>.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptStorage(
+        this IResourceBuilder<AzureSqlServerResource> builder,
+        IResourceBuilder<AzureStorageResource> storage)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(storage);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        builder.Resource.Annotations.Add(new AdminDeploymentScriptStorageAnnotation(storage.Resource));
+
+        // If the storage is not an existing resource, ensure AllowSharedKeyAccess is enabled
+        if (!storage.Resource.IsExisting())
+        {
+            storage.ConfigureInfrastructure(infra =>
+            {
+                var sa = infra.GetProvisionableResources().OfType<StorageAccount>().SingleOrDefault()
+                    ?? throw new InvalidOperationException("Could not find a StorageAccount resource in the infrastructure. Ensure that the provided storage builder creates a StorageAccount resource.");
+
+                sa.AllowSharedKeyAccess = true;
+            });
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Dummy resource that implements <see cref="IAzureDelegatedSubnetResource"/> for ACI delegation.
+    /// </summary>
+    private sealed class AciDelegatedSubnetResource()
+        : Resource("aciDelegatedSubnet"), IAzureDelegatedSubnetResource
+    {
+        public string DelegatedSubnetServiceName => "Microsoft.ContainerInstance/containerGroups";
     }
 }

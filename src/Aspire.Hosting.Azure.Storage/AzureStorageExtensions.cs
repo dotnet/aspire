@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -388,6 +389,22 @@ public static class AzureStorageExtensions
         }
 
         return CreateBlobService(builder, name);
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureFileStorageResource"/> which can be referenced to create a private endpoint for the Azure Storage file service.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureFileStorageResource"/>.</returns>
+    [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureFileStorageResource> AddFiles(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var resource = new AzureFileStorageResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
