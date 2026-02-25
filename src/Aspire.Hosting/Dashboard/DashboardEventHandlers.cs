@@ -371,9 +371,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
         var mcpEndpointUrl = options.McpEndpointUrl;
 
-        // Track whether any endpoint uses HTTPS
-        var hasHttpsEndpoint = false;
-
         eventing.Subscribe<ResourceReadyEvent>(dashboardResource, async (@event, cancellationToken) =>
         {
             var browserToken = options.DashboardToken;
