@@ -525,6 +525,10 @@ public static class AzureVirtualNetworkExtensions
         var index = 2;
         while (nsgResource.SecurityRules.Any(r => r.Name == candidateName))
         {
+            if (index == 100)
+            {
+                throw new InvalidOperationException($"Could not generate a unique name for security rule '{baseName}'");
+            }
             candidateName = $"{baseName}-{index}";
             index++;
         }
