@@ -458,6 +458,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (hasHttpsEndpoint &&
             !dashboardResource.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>())
         {
+            // If the dashboard has an HTTPS endpoint and we haven't already applied an HTTPS certificate configuration (no HttpsCertificateConfigurationCallbackAnnotation),
+            // apply a default configuration with a valid trusted dev cert instance.
             var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
             var trustDeveloperCertificate = developerCertificateService.TrustCertificate;
             if (dashboardResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certificateAuthorityAnnotation))
@@ -469,6 +471,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 dashboardResource.Annotations.Add(new HttpsCertificateConfigurationCallbackAnnotation(ctx =>
                 {
+                    // Ensure we use a trusted developer certificate (Kestrel selects the latest certificate, which may not be trusted after an SDK update)
                     ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
                     ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
                     if (ctx.Password is not null)
