@@ -143,10 +143,17 @@ public static class AzureCosmosExtensions
             // delegate to the inner resource, so the annotation ends up on the correct resource.
             var emulatorSurrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
             var emulatorSurrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorSurrogate);
+
+            // VNext cosmosdb sets a default CERT_SECRET environment variable for the default emulator certificate and we can't
+            // remove it, so we need to provide "some" secret value to avoid issues with our provided certificate. This simply sets the
+            // dev cert used by cosmos to have a stable passphrase. Users can override by calling `WithHttpsDeveloperCertificate` again
+            // with a custom passphrase (or with a passphrase omitted).
             var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-certificate-passphrase");
             emulatorSurrogateBuilder.WithHttpsDeveloperCertificate(password: builder.ApplicationBuilder.CreateResourceBuilder(password));
+
             emulatorSurrogateBuilder.WithHttpsCertificateConfiguration(ctx =>
             {
+                // Enable HTTPS for both the emulator endpoint and the data explorer endpoint (if enabled) by setting environment variables used by the emulator to configure its certificate.
                 ctx.EnvironmentVariables["PROTOCOL"] = "https";
                 ctx.EnvironmentVariables["EXPLORER_PROTOCOL"] = "https";
                 ctx.EnvironmentVariables["CERT_PATH"] = ctx.PfxPath;
