@@ -53,6 +53,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "aspireCommand": {
+                "type": "string",
+                "description": "%extension.debug.aspireCommand%",
+                "enum": [
+                  "run",
+                  "deploy",
+                  "publish"
+                ],
+                "default": "run"
               }
             }
           }

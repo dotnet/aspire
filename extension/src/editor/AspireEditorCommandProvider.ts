@@ -114,6 +114,18 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('run', noDebug);
+    }
+
+    public async tryExecuteDeployAppHost(): Promise<void> {
+        await this.launchAspireDebugSession('deploy', true);
+    }
+
+    public async tryExecutePublishAppHost(): Promise<void> {
+        await this.launchAspireDebugSession('publish', true);
+    }
+
+    private async launchAspireDebugSession(aspireCommand: 'run' | 'deploy' | 'publish', noDebug: boolean): Promise<void> {
         let appHostToRun: string;
         if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
             appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
@@ -128,9 +140,10 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         await vscode.debug.startDebugging(undefined, {
             type: 'aspire',
-            name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
+            name: `Aspire ${aspireCommand}: ${vscode.workspace.asRelativePath(appHostToRun)}`,
             request: 'launch',
             program: appHostToRun,
+            aspireCommand: aspireCommand,
             noDebug: noDebug
         });
     }
