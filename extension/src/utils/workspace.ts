@@ -294,6 +294,7 @@ export async function checkCliAvailableOrRedirect(cliPath: string): Promise<bool
         cliAvailableOnPath = true;
         return true;
     } catch (error) {
+        extensionLogOutputChannel.error(`Aspire CLI not found at path: ${cliPath}. Error: ${error}`);
         cliAvailableOnPath = false;
         vscode.window.showErrorMessage(
             cliNotAvailable,

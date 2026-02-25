@@ -418,4 +418,164 @@ public class AddNodeAppTests
 
     private sealed class MyFilesContainer(string name, string command, string workingDirectory)
         : ExecutableResource(name, command, workingDirectory), IResourceWithContainerFiles;
+
+    #region Debug Support Tests
+
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only
+
+    [Fact]
+    public void NodeApp_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js");
+
+        var annotation = nodeApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("node", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void NodeApp_WithVSCodeDebugging_DoesNotAddAnnotationInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TestTempDirectory();
+
+        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js");
+
+        var annotation = nodeApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.Null(annotation);
+    }
+
+    [Fact]
+    public void NodeApp_WithVSCodeNodeDebuggerProperties_AddsAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js")
+            .WithVSCodeNodeDebuggerProperties(props =>
+            {
+                props.StopOnEntry = true;
+                props.SmartStep = true;
+            });
+
+        var annotation = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().SingleOrDefault();
+        Assert.NotNull(annotation);
+    }
+
+    [Fact]
+    public void ViteApp_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path);
+
+        var annotation = viteApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("node", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_CreatesChildResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithBrowserDebugger();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().SingleOrDefault();
+        Assert.NotNull(browserDebuggerResource);
+        Assert.Equal("viteapp-browser", browserDebuggerResource.Name);
+
+        // Verify parent relationship
+        Assert.True(browserDebuggerResource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        var parentRelationship = Assert.Single(relationships, r => r.Type == "Parent");
+        Assert.Same(viteApp.Resource, parentRelationship.Resource);
+
+        // Verify supports debugging annotation
+        var annotation = browserDebuggerResource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("browser", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_DefaultsToEdgeBrowser()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithBrowserDebugger();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
+        Assert.Equal("msedge", browserDebuggerResource.DebuggerProperties.Type);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_UsesSpecifiedBrowser()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithBrowserDebugger(browser: "chrome");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
+        Assert.Equal("chrome", browserDebuggerResource.DebuggerProperties.Type);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_ConfiguresDebuggerProperties()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithBrowserDebugger(configureDebuggerProperties: props =>
+            {
+                props.SmartStep = true;
+                props.Timeout = 30000;
+            });
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
+        Assert.True(browserDebuggerResource.DebuggerProperties.SmartStep);
+        Assert.Equal(30000, browserDebuggerResource.DebuggerProperties.Timeout);
+        Assert.Equal(tempDir.Path, browserDebuggerResource.DebuggerProperties.WebRoot);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_WithoutEndpoint_ThrowsInvalidOperationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        // Create a minimal JavaScriptAppResource without endpoints
+        var resource = new JavaScriptAppResource("jsapp", "npm", tempDir.Path);
+        var jsApp = builder.AddResource(resource);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            jsApp.WithBrowserDebugger());
+
+        Assert.Contains("does not have an HTTP or HTTPS endpoint", exception.Message);
+    }
+
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
+
+    #endregion
 }
