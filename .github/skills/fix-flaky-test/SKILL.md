@@ -16,9 +16,28 @@ You are a specialized agent for reproducing and fixing flaky tests in the dotnet
 5. **Step 4** — Analyze failure logs to confirm root cause
 6. **Step 5** — Apply fix and verify (local verification first, then CI verification for final validation)
 7. **Step 6** — Verify the fix did not introduce regressions in the CI workflow
-8. **Step 7** — Clean up CI configuration
+8. **Step 7** — Clean up investigation branch and create final PR
 
 Each step has a **checkpoint** at the end. Do not proceed to the next step until the checkpoint is satisfied. Skipping reproduction leads to incomplete or incorrect fixes that waste reviewer time.
+
+## Two-Branch Workflow
+
+This skill uses two branches to keep investigation artifacts separate from the final clean fix:
+
+### Investigation Branch (draft PR)
+- Created from the working branch (or `main`)
+- Named: `<base-branch>-investigate` (e.g., `flaky-test0-investigate`)
+- Contains: disabled `ci.yml`, configured `reproduce-flaky-tests.yml`, code fix
+- Opened as a **draft PR** with prominent WIP marking
+- Purpose: CI verification of the fix using the reproduce workflow without triggering full CI
+
+### Fix Branch (final PR)
+- The original working branch (e.g., `flaky-test0`)
+- Contains: only the code fix (clean diff)
+- `ci.yml` enabled, `reproduce-flaky-tests.yml` at defaults
+- Created/updated after verification succeeds on the investigation branch
+
+**Why two branches?** Pushing workflow changes (disable ci.yml, configure reproduce workflow) to the same branch as the fix would trigger unwanted CI runs and pollute the final PR diff. The investigation branch isolates this.
 
 ## Top-Level Tracking
 
@@ -35,8 +54,7 @@ INSERT INTO todos (id, title, description, status) VALUES
   ('analyze', 'Analyze failure logs', 'Download CI logs or review local logs, identify root cause', 'pending'),
   ('fix', 'Apply fix', 'Write the code fix based on root cause analysis', 'pending'),
   ('verify', 'Verify fix on CI', 'Re-run reproduce workflow to confirm fix works', 'pending'),
-  ('verify-ci', 'Verify no CI regressions', 'Confirm the CI workflow passes with no new failures introduced by the fix', 'pending'),
-  ('cleanup', 'Clean up CI config', 'Reset reproduce-flaky-tests.yml to defaults', 'pending');
+  ('cleanup', 'Clean up investigation', 'Close investigation PR, create clean fix PR', 'pending');
 
 INSERT INTO todo_deps (todo_id, depends_on) VALUES
   ('analyze-existing', 'gather-data'),
@@ -45,8 +63,7 @@ INSERT INTO todo_deps (todo_id, depends_on) VALUES
   ('analyze', 'reproduce-local'),
   ('fix', 'analyze'),
   ('verify', 'fix'),
-  ('verify-ci', 'verify'),
-  ('cleanup', 'verify-ci');
+  ('cleanup', 'verify');
 ```
 
 ### Store key parameters in session state:
@@ -64,7 +81,9 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES
   ('reproduce_attempt', '1'),
   ('fix_attempt', '1'),
   ('reproduce_run_id', ''),
-  ('verify_run_id', '');
+  ('verify_run_id', ''),
+  ('investigation_branch', ''),
+  ('fix_branch', '');
 ```
 
 **Always update todo status as you work** — set to `in_progress` before starting, `done` when complete. Query `SELECT * FROM todos;` to check progress. Store CI run IDs and attempt counts in `session_state`.
@@ -92,7 +111,7 @@ The steps below are sequential and gated. Complete each step fully before moving
 4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **fall back to CI reproduction** using `reproduce-flaky-tests.yml`
 5. Analyze failure logs to identify root cause
 6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`/`.ps1`, then **always validate on CI** as final verification.
-7. Clean up: reset reproduce workflow configuration
+7. Clean up: close investigation branch, create clean fix PR
 
 **Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run.
 
@@ -135,14 +154,14 @@ gh issue view <issue-number> --repo dotnet/aspire
 
 ### From the Test Code
 
-Find the test method, class, and project. **Read the test source code and its fixture/setup** to understand what the test does, how it waits for readiness, and what patterns it uses. This is essential for understanding what you're trying to reproduce and for matching against the common flaky test patterns table (see Appendix).
+Find the test method, class, and project. **Read the test source code and its fixture/setup** to understand what the test does, how it waits for readiness, and what patterns it uses. This is essential for understanding what you're trying to reproduce and for matching against common flaky test patterns.
 
 ```bash
 # Search for the test method
 grep -rn "public.*async.*Task.*TestMethodName\|public.*void.*TestMethodName" tests/ --include="*.cs"
 ```
 
-**Consult the Common Flaky Test Patterns table** (Appendix) early. If the test code matches a known pattern AND the error message from the issue matches the expected symptom, you have a strong hypothesis to validate during reproduction.
+**Consult the flaky test patterns** in `.github/instructions/test-review-guidelines.instructions.md` early. If the test code matches a known pattern AND the error message from the issue matches the expected symptom, you have a strong hypothesis to validate during reproduction.
 
 ### Iteration Count Heuristic
 
@@ -342,6 +361,36 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES ('local_result', 'no_fa
 
 ## Step 3: Reproduce on CI (Fallback)
 
+### 3.0: Create the Investigation Branch
+
+Create a separate branch for CI investigation. This branch will have `ci.yml` disabled and `reproduce-flaky-tests.yml` configured, keeping the fix branch clean.
+
+```bash
+# Create investigation branch from the current working branch
+git checkout -b <fix-branch>-investigate
+
+# Store the branch names
+```
+
+```sql
+INSERT OR REPLACE INTO session_state (key, value) VALUES
+  ('investigation_branch', '<fix-branch>-investigate'),
+  ('fix_branch', '<fix-branch>');
+```
+
+### 3.0a: Disable ci.yml
+
+Disable `ci.yml` so pushing to the investigation branch doesn't trigger full CI:
+
+```yaml
+# .github/workflows/ci.yml — add this at the top level, after `name:`
+# Change the `on:` trigger to disable automatic runs:
+on:
+  workflow_dispatch: {}  # Only manual trigger, no automatic PR/push triggers
+```
+
+This prevents CI from running on every push to the investigation branch. You will re-enable it when creating the final fix PR.
+
 ### 3.1: Configure the Reproduce Workflow
 
 Edit `.github/workflows/reproduce-flaky-tests.yml` — change only the `env:` section at the top:
@@ -350,10 +399,16 @@ Edit `.github/workflows/reproduce-flaky-tests.yml` — change only the `env:` se
 env:
   TEST_PROJECT: "Hosting.Azure"  # Project shortname
   TEST_FILTER: '--filter-method "*.DeployAsync_WithMultipleComputeEnvironments_Works"'
-  TARGET_OSES: "ubuntu-latest,windows-latest"  # Only OSes that fail
-  RUNNERS_PER_OS: "3"
-  ITERATIONS_PER_RUNNER: "3"
+  TARGET_OSES: "windows-latest"  # Focus on highest-failure-rate OS
+  RUNNERS_PER_OS: "5"
+  ITERATIONS_PER_RUNNER: "5"
 ```
+
+**OS targeting strategy:**
+- **High failure rate (>20%) on one OS**: Target that OS only first — fastest feedback
+- **High rate on multiple OSes**: Target all failing OSes
+- **Low rate or can't reproduce**: Focus on the OS with the highest failure rate, increase iterations
+- **Unknown rates**: Target `ubuntu-latest,windows-latest` with moderate iterations
 
 **Test project shortname mapping**: The workflow resolves `TEST_PROJECT` to a path:
 - Tries `tests/{name}.Tests/{name}.Tests.csproj` first
@@ -372,26 +427,54 @@ TEST_FILTER: '--filter-method "*.Test1" --filter-method "*.Test2"'
 
 **For quarantined tests**: The build step already includes `/p:RunQuarantinedTests=true`, so quarantined tests are automatically included. You do NOT need to add any special flags.
 
-### 3.2: Trigger the Reproduce Workflow
+### 3.2: Push and Open Draft PR
 
-Use `workflow_dispatch` to trigger the workflow against your branch:
-
-```bash
-# Edit reproduce-flaky-tests.yml env vars on your branch, commit and push, then:
-gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <your-branch>
-```
-
-This dispatches the workflow from `main` but runs the version from your branch, so your env var edits will be used. No need to touch `ci.yml` or open a PR just for reproduction.
-
-### 3.3: Push, Monitor, and Cancel
+Commit the workflow changes and open a **draft PR** with the investigation template:
 
 ```bash
-# Push the reproduce-flaky-tests.yml changes, then dispatch
-git add .github/workflows/reproduce-flaky-tests.yml
-git commit -m "Configure reproduce workflow for <test name>"
-git push
-gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <your-branch>
+git add .github/workflows/ci.yml .github/workflows/reproduce-flaky-tests.yml
+git commit -m "🔍 Investigation: configure CI for flaky test reproduction
+
+⚠️ DO NOT MERGE — This is a temporary investigation branch.
+ci.yml disabled, reproduce workflow configured for <test name>."
+git push --set-upstream origin <fix-branch>-investigate
 ```
+
+Open a draft PR with prominent WIP marking:
+
+```bash
+gh pr create --draft --repo dotnet/aspire \
+  --title "🔍 [DO NOT MERGE] Investigation: <test name>" \
+  --body "## ⚠️ DO NOT MERGE — Investigation Branch
+
+This is a temporary branch for reproducing and verifying a fix for a flaky test.
+
+**Issue**: #<issue-number>
+**Test**: \`<FullyQualifiedTestName>\`
+
+### What's changed on this branch
+- \`ci.yml\` disabled (prevents full CI on investigation pushes)
+- \`reproduce-flaky-tests.yml\` configured for the target test
+- Code fix (will be applied after reproduction)
+
+### Status
+- [ ] Reproduction confirmed
+- [ ] Fix applied
+- [ ] Fix verified on CI
+- [ ] Clean fix PR created
+
+This branch will be deleted after the fix is verified and a clean PR is created."
+```
+
+### 3.3: Trigger the Reproduce Workflow
+
+```bash
+gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <fix-branch>-investigate
+```
+
+This dispatches the workflow from `main` but runs the version from your branch, so your env var edits will be used.
+
+### 3.4: Monitor and Cancel
 
 **Monitor the run using polling** (CI runs take 10-30+ minutes):
 
@@ -415,8 +498,6 @@ gh run view <run-id> --repo dotnet/aspire --json jobs \
   --jq '.jobs[] | select(.status == "completed") | {name: .name, conclusion: .conclusion}'
 ```
 
-**Tip**: Use `gh run watch` with bash `mode="async"` only as a background blocker. Don't read its output — instead use the targeted `gh run view` queries above to check progress.
-
 **Cancel old runs** when starting new ones to avoid wasting CI resources:
 
 ```bash
@@ -430,7 +511,7 @@ gh run list --repo dotnet/aspire --branch <branch> --status in_progress --json d
 
 Always cancel previous reproduce/verify runs before pushing a new configuration. `workflow_dispatch` runs are NOT auto-cancelled, so you must cancel them manually.
 
-### 3.4: Handle Reproduction Results
+### 3.5: Handle Reproduction Results
 
 **⛔ GATE: Do not proceed past this point until the CI run has completed.**
 
@@ -600,10 +681,18 @@ For tests with very low failure rates (<5%), consider whether the verification i
 
 ### 5.4: Push and Verify on CI
 
+Push the fix to the **investigation branch** (where reproduce workflow is already configured):
+
 ```bash
 git add -A
 git commit -m "Fix flaky test: <description of fix>"
 git push
+```
+
+Then trigger the reproduce workflow to verify:
+
+```bash
+gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <fix-branch>-investigate
 ```
 
 Store the verification run ID:
@@ -636,65 +725,11 @@ VALUES ('fix_attempt', CAST((SELECT CAST(value AS INTEGER) FROM session_state WH
 
 **After 3 failed fix attempts**: Stop and report findings to the user. The issue may require deeper architectural changes or domain expertise.
 
-## Step 6: Verify No CI Regressions
+## Step 6: Clean Up and Create Final PR
 
-After confirming the flaky test fix passes via the reproduce workflow, verify the fix does not introduce new failures in the main CI workflow.
+After the fix is verified on the investigation branch, create a clean fix PR.
 
-### 6.1: Check for a CI Run
-
-If you are working on a PR branch, the CI workflow (`ci.yml`) will trigger automatically when you push. Find the CI run for your latest push:
-
-```bash
-gh run list --repo dotnet/aspire --branch <branch> --workflow ci.yml --limit 5 --json databaseId,status,conclusion,headSha
-```
-
-If no CI run exists (e.g., working without a PR), trigger one manually by opening a PR or pushing to a PR branch.
-
-### 6.2: Wait for CI to Complete
-
-Poll the CI run until it completes. Use `gh run view`, not `gh run watch`:
-
-```bash
-gh run view <ci-run-id> --repo dotnet/aspire --json status,conclusion
-```
-
-Store the CI run ID for tracking:
-```sql
-INSERT OR REPLACE INTO session_state (key, value) VALUES ('ci_run_id', '<ci-run-id>');
-```
-
-### 6.3: Analyze CI Results
-
-**If CI passes**: The fix is confirmed safe ✅. Proceed to Step 7.
-
-**If CI fails**: Investigate whether the failures are related to your changes:
-
-1. Download logs for failed jobs:
-   ```bash
-   gh run view <ci-run-id> --repo dotnet/aspire --json jobs --jq '.jobs[] | select(.conclusion == "failure") | "\(.databaseId) \(.name)"'
-   ```
-2. Use the `get_job_logs` MCP tool or `gh run download` to inspect failure details
-3. Compare the failures against the files you changed — are they in the same test project or area?
-4. Check if the same failures exist on the `main` branch (pre-existing flakiness vs your regression)
-
-**If failures are caused by your fix**: Go back to Step 5 and iterate on the fix.
-
-**If failures are unrelated** (pre-existing flakiness or infrastructure issues): Document them and proceed to Step 7. Note the unrelated failures in your summary.
-
-### ✅ Checkpoint
-
-- [ ] CI workflow has completed on a branch containing your fix
-- [ ] No new failures were introduced by your changes (or unrelated failures are documented)
-
-```sql
-UPDATE todos SET status = 'done' WHERE id = 'verify-ci';
-```
-
-## Step 7: Clean Up
-
-Once the fix is verified:
-
-### 7.0: Cancel Any Remaining CI Runs
+### 6.0: Cancel Any Remaining CI Runs
 
 Cancel any in-progress reproduce or verify runs that are no longer needed:
 
@@ -704,7 +739,42 @@ gh run list --repo dotnet/aspire --branch <branch> --status in_progress --json d
 gh run cancel <run-id> --repo dotnet/aspire
 ```
 
-### 7.1: DO NOT Unquarantine or Close the Issue
+### 6.1: Cherry-Pick Fix to the Clean Branch
+
+Switch back to the fix branch and cherry-pick only the code fix commits (not the workflow changes):
+
+```bash
+git checkout <fix-branch>
+
+# Cherry-pick the fix commit(s) from the investigation branch
+git cherry-pick <fix-commit-sha>
+
+# Verify the fix branch has NO workflow changes
+git diff main -- .github/workflows/  # Should be empty
+```
+
+### 6.2: Push and Open Final PR
+
+```bash
+git push
+```
+
+Open a non-draft PR with the fix:
+
+```bash
+gh pr create --repo dotnet/aspire \
+  --title "Fix flaky test: <description>" \
+  --body "<use the Response Format template below>"
+```
+
+### 6.3: Close the Investigation PR
+
+```bash
+# Close the investigation draft PR
+gh pr close <investigation-pr-number> --repo dotnet/aspire --delete-branch
+```
+
+### 6.4: DO NOT Unquarantine or Close the Issue
 
 **Important policy**: A code fix alone is not sufficient to unquarantine a test. The test must have **zero failures across all OSes for 21 consecutive days** in the quarantine CI runs before it can be unquarantined. See `docs/unquarantine-policy.md`.
 
@@ -712,29 +782,16 @@ gh run cancel <run-id> --repo dotnet/aspire
 - **DO NOT** close the tracking issue
 - A separate process monitors the quarantine CI and handles unquarantining when the 21-day criteria are met
 
-### 7.2: Reset the Reproduce Workflow
+### ✅ Final Checkpoint
 
-Reset `.github/workflows/reproduce-flaky-tests.yml` env vars to defaults:
+- [ ] Fix is verified on CI via the reproduce workflow (all iterations pass)
+- [ ] Clean fix PR is open with only code changes (no workflow modifications)
+- [ ] Investigation draft PR is closed and branch deleted
+- [ ] No remaining in-progress CI runs on the investigation branch
+- [ ] Summary comment posted (see Response Format below)
 
-```yaml
-env:
-  TEST_PROJECT: "Hosting"
-  TEST_FILTER: '--filter-method "*.YourTestMethodName"'
-  TARGET_OSES: "ubuntu-latest,windows-latest"
-  RUNNERS_PER_OS: "3"
-  ITERATIONS_PER_RUNNER: "3"
-```
-
-### 7.3: Final Commit
-
-```bash
-git add -A
-git commit -m "Fix flaky test: <test name>
-
-<brief description of fix>
-
-Fixes #<issue-number>"
-git push
+```sql
+UPDATE todos SET status = 'done' WHERE id = 'cleanup';
 ```
 
 ## Key Technical Details
@@ -756,8 +813,8 @@ Failed iterations upload their test output as artifacts named `failures-<os>-<in
 
 `workflow_dispatch` requires the workflow file to exist on the **default branch** (`main`). Key implications:
 
-- You can dispatch it against any branch with `gh workflow run reproduce-flaky-tests.yml --ref <branch>`. GitHub discovers the workflow from `main` but runs the version from the specified `--ref`. This means your branch's env var edits will be used.
-- No need to touch `ci.yml` or open a PR just for reproduction.
+- You can dispatch it against any branch with `gh workflow run reproduce-flaky-tests.yml --ref <branch>`. GitHub discovers the workflow from `main` but runs the version from the specified `--ref`. This means your investigation branch's env var edits will be used.
+- The investigation branch has `ci.yml` disabled, so pushes don't trigger full CI — only `workflow_dispatch` of the reproduce workflow is used.
 - **Creating a new workflow file on a feature branch won't help** — GitHub won't discover it via `workflow_dispatch` until it's merged to `main`.
 
 ## Response Format
@@ -805,29 +862,18 @@ Description of the code change.
 - **Detect your OS**: Check with `uname -s` to decide if local reproduction is viable for the failing OS
 - **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default
 - **Keep investigation notes in session workspace**: Use `plan.md` and `files/` in the session workspace, not a directory in the repo
+- **Use two branches**: Investigation branch (draft PR with disabled ci.yml) for reproduce/verify; fix branch (clean PR with only code changes) for the final submission
 - **Distinguish infrastructure vs test failures**: CI runners sometimes fail due to infrastructure issues (e.g., `Failed to install or invoke dotnet...` on Windows). These do NOT count as test reproductions. Always verify the error matches the expected test failure pattern.
 - **DO NOT unquarantine or close issue**: The test stays quarantined until 21 days of zero failures (see `docs/unquarantine-policy.md`)
 - **Scale verification to failure rate**: A 50% failure rate test needs fewer verification iterations than a 5% failure rate test. Use the verification heuristic table.
-- **Target specific OSes**: Only test on OSes that show failures in the tracking data
+- **Target specific OSes**: Focus on the OS with the highest failure rate first. Only expand to multiple OSes when the rate is high (>20%) on multiple OSes or when initial attempts don't reproduce.
 - **Build-verify everything**: After fixes, after any test attribute changes
-- **Reset configuration**: Always reset reproduce-flaky-tests.yml when done
 - **Don't fix unrelated issues**: If you encounter unrelated test failures, ignore them
 - **Windows UTF-16LE**: Always handle encoding when reading Windows CI logs downloaded as files (not needed when using `get_job_logs` via GitHub API/MCP, which returns UTF-8)
 - **Prefer polling over `gh run watch`**: Use `gh run view --json status,conclusion` to check CI status — `gh run watch` produces excessive output that floods the context window
 - **Use sub-agents for heavy work**: Delegate log analysis and CI monitoring to sub-agents to keep main context clean
 - **Track state in SQL**: Use the todos table and session_state for tracking progress across the investigate→reproduce→fix→verify cycle
 
-## Appendix: Common Flaky Test Patterns
+## Appendix: Flaky Test Patterns Reference
 
-Consult this table during Step 1 (gather data) to form hypotheses, and during Step 3 (analysis) to confirm root causes.
-
-| Pattern                   | Symptom                                                                  | Fix                                                                               |
-|---------------------------|--------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Thread-unsafe collections | `Assert.Contains()` missing items; concurrent test fakes using `List<T>` | Replace `List<T>` with `ConcurrentBag<T>`                                         |
-| Race condition on startup | Fails intermittently with timeout or "not started"                       | Use `WaitForHealthyAsync()` instead of `WaitForTextAsync("Application started.")` |
-| Shared timeout budget     | `TaskCanceledException` in fixture `InitializeAsync`; one phase starves the other | Use separate `CancellationTokenSource` for each phase (startup vs readiness)      |
-| Sequential service waits  | `TaskCanceledException` in `WaitReadyStateAsync`; timeout under CI load  | Wait for services in parallel with `Task.WhenAll` instead of sequentially         |
-| Port conflicts            | `AddressInUseException`                                                  | Ensure `randomizePorts: true`                                                     |
-| File locking (Windows)    | `IOException: The process cannot access the file`                        | Add retry logic or use temp directories                                           |
-| Order-dependent state     | Passes alone, fails with other tests                                     | Ensure proper test isolation/cleanup                                              |
-| Contention-only failure   | Passes 100% in isolation, fails 10-20% in quarantine runs               | Look for shared resources (ports, CTS, fixtures); parallelize waits; add margins  |
+Common flaky test patterns are documented in `.github/instructions/test-review-guidelines.instructions.md`. Consult that file during Step 1 (gather data) to form hypotheses, and during Step 4 (analysis) to confirm root causes.
