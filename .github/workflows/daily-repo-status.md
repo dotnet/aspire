@@ -53,6 +53,18 @@ Collect the following data using the GitHub tools. All time-based queries should
     4. Sort by date ascending and trim to the **most recent 7 entries**.
     5. Serialize back to JSON and overwrite the cache value.
 
+### 1b. Historical burndown data (fallback)
+
+If the cache from step 1 contains **fewer than 7 data points** after adding today's entry, fill in the missing days by reading previous burndown report issues:
+
+- Search for issues (open or closed) with `[13.2-burndown]` in the title, sorted by creation date descending, limit to the most recent 7.
+- For each previous report issue, find the **Milestone Progress** section and extract the **Open Issues** count from the table row labeled "Open Issues".
+- Extract the date from the issue title (e.g., "Daily Burndown Report - February 19, 2026" → "2026-02-19").
+- Merge these data points into the cache array, keeping only dates that are not already present (cache entries take priority).
+- Sort by date ascending, trim to the most recent 7 entries, and save back to cache-memory.
+
+Skip this step entirely if the cache already has 7 data points.
+
 ### 2. Issues closed in the last 24 hours (13.2 milestone)
 
 - Search for issues in this repository that were **closed in the last 24 hours** and belong to the **13.2 milestone**.
@@ -85,7 +97,7 @@ Collect the following data using the GitHub tools. All time-based queries should
 
 ## Burndown chart
 
-Using the historical data stored via **cache-memory** (key: `burndown-13.2-snapshot`), generate a **Mermaid xychart** showing the number of **open issues** in the 13.2 milestone over the last 7 days (or however many data points are available).
+Using the data from **cache-memory** (enriched with previous issue data if needed from step 1b), generate a **Mermaid xychart** showing the number of **open issues** in the 13.2 milestone over the last 7 days (or however many data points are available).
 
 Use this format so it renders natively in the GitHub issue:
 
