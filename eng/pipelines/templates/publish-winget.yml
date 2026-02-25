@@ -78,9 +78,9 @@ steps:
           Write-Host "  OK ($code): $url"
         }
         catch {
-          $code = $_.Exception.Response.StatusCode.value__
-          if (-not $code) { $code = 'ERR' }
-          Write-Host "##[error]FAILED ($code): $url"
+          $code = 'ERR'
+          if ($_.Exception.Response) { $code = $_.Exception.Response.StatusCode.value__ }
+          Write-Host "##[error]FAILED ($code): $url — $($_.Exception.Message)"
           $failed = $true
         }
       }
@@ -118,9 +118,9 @@ steps:
         Write-Host "  OK ($($response.StatusCode))"
       }
       catch {
-        $code = $_.Exception.Response.StatusCode.value__
-        if (-not $code) { $code = 'ERR' }
-        Write-Error "ReleaseNotesUrl is not accessible ($code): $releaseNotesUrl"
+        $code = 'ERR'
+        if ($_.Exception.Response) { $code = $_.Exception.Response.StatusCode.value__ }
+        Write-Error "ReleaseNotesUrl is not accessible ($code): $releaseNotesUrl — $($_.Exception.Message)"
         exit 1
       }
 
@@ -156,7 +156,7 @@ steps:
         --prtitle "Update $packageId to version $version" 2>&1
 
       $exitCode = $LASTEXITCODE
-      $outputText = $output -join "`n"
+      $outputText = ($output -join "`n").Replace($token, '***')
       Write-Host $outputText
 
       if ($exitCode -ne 0) {
