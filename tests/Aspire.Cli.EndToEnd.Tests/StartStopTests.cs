@@ -6,7 +6,6 @@ using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
 
-
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
