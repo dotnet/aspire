@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an apphost to its deployment targets. (Preview)</source>
-        <target state="needs-review-translation">Stellen Sie die Inhalte eines Aspire-Apphosts auf den definierten Bereitstellungszielen bereit. (Vorschau)</target>
+        <target state="new">Deploy an apphost to its deployment targets. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
