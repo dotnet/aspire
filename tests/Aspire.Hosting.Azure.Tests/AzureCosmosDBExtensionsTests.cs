@@ -679,8 +679,9 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         await certConfigAnnotation.Callback(context);
 
+        Assert.Contains("PROTOCOL", env.Keys);
+        Assert.Contains("EXPLORER_PROTOCOL", env.Keys);
         Assert.Contains("CERT_PATH", env.Keys);
-        Assert.Contains("KEY_FILE", env.Keys);
         Assert.DoesNotContain("CERT_SECRET", env.Keys);
 #pragma warning restore ASPIRECERTIFICATES001
     }
@@ -717,8 +718,9 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         await certConfigAnnotation.Callback(context);
 
+        Assert.Contains("PROTOCOL", env.Keys);
+        Assert.Contains("EXPLORER_PROTOCOL", env.Keys);
         Assert.Contains("CERT_PATH", env.Keys);
-        Assert.Contains("KEY_FILE", env.Keys);
         Assert.Contains("CERT_SECRET", env.Keys);
         Assert.Same(passwordParam, env["CERT_SECRET"]);
 #pragma warning restore ASPIRECERTIFICATES001
