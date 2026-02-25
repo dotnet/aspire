@@ -128,6 +128,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
         const env: any = {
             ...process.env,
 
+            // IDE identification for Aspire debug features
+            ASPIRE_IDE: 'vscode',
+
             // Extension connection information
             ASPIRE_EXTENSION_ENDPOINT: this.rpcServerConnectionInfo.address,
             ASPIRE_EXTENSION_TOKEN: this.rpcServerConnectionInfo.token,
@@ -150,6 +153,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             env.ASPIRE_EXTENSION_DEBUG_RUN_MODE = noDebug === false ? "Debug" : "NoDebug";
             env.DEBUG_SESSION_INFO = JSON.stringify(getRunSessionInfo());
             env.ASPIRE_EXTENSION_CAPABILITIES = getSupportedCapabilities().join(',');
+            env.ASPIRE_EXTENSION_WORKSPACE_ROOT = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
             // if DCP debug logging is enabled, set DCP-specific logging environment variables
             const dcpDebugLoggingEnabled = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDcpDebugLogging', false);

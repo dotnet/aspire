@@ -16,6 +16,11 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "s
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
+    .WithBrowserDebugger(configureDebuggerProperties: props =>
+    {
+        // Enable verbose trace to see source map resolution in Debug Console
+        props.Trace = "verbose";
+    })
     .PublishAsDockerFile();
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")

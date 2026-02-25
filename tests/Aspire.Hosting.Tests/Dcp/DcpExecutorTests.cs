@@ -8,6 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
@@ -17,10 +18,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using static Aspire.Hosting.ResourceDebugSupportExtensions;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -1655,7 +1658,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(mode => new ExecutableLaunchConfiguration("test") { Mode = mode }, "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(options => new CustomExecutableLaunchConfiguration("test") { Mode = options.Mode }, "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         // No SupportsDebuggingAnnotation for this one
@@ -1692,7 +1695,7 @@ public class DcpExecutorTests
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
-        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
+        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<CustomExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
         var config1 = Assert.Single(launchConfigs1);
         Assert.Equal(ExecutableLaunchMode.Debug, config1.Mode);
         Assert.Equal("test", config1.Type);
@@ -1710,7 +1713,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var executable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(executable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(executable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session port and extension endpoint (extension mode)
         var configDict = new Dictionary<string, string?>
@@ -1746,7 +1749,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         builder.AddResource(nonDebuggableExecutable);
@@ -1788,7 +1791,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate no debug session port and no extension endpoint (no debug session info)
         var configDict = new Dictionary<string, string?>
@@ -1824,7 +1827,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session port with invalid JSON in DebugSessionInfo
         var configDict = new Dictionary<string, string?>
@@ -1860,7 +1863,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with null SupportedLaunchConfigurations
         var runSessionInfo = new RunSessionInfo
@@ -1902,7 +1905,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with SupportedLaunchConfigurations that do not match the executable type
         var runSessionInfo = new RunSessionInfo
@@ -1944,7 +1947,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithDebugSupport(_ => new CustomExecutableLaunchConfiguration("test"), "test");
 
         // Simulate debug session info with SupportedLaunchConfigurations that match the executable type
         var runSessionInfo = new RunSessionInfo
@@ -2283,6 +2286,98 @@ public class DcpExecutorTests
             a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name));
     }
 
+    [Fact]
+    public async Task PlainExecutable_LaunchConfigurationProducerThrows_FallsBackToProcess()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Create executable resource with SupportsDebuggingAnnotation that throws
+        var debuggableExecutable = new TestExecutableResource("test-working-directory");
+        builder.AddResource(debuggableExecutable).WithDebugSupport<TestExecutableResource, CustomExecutableLaunchConfiguration>(_ => throw new InvalidOperationException("Test exception from launch configuration producer"), "test");
+
+        // Simulate debug session info with SupportedLaunchConfigurations that match the executable type
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["test"]
+        };
+
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(runSessionInfo),
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
+        // Should fall back to Process execution when the launch configuration producer throws
+        Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
+    }
+
+    [Fact]
+    public async Task ProjectExecutable_LaunchConfigurationProducerThrows_FallsBackToProcess()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var project = builder.AddProject<Projects.ServiceA>("ServiceA");
+        
+        // Add a SupportsDebuggingAnnotation that throws to override the default project debugging
+        project.WithAnnotation(SupportsDebuggingAnnotation.Create<ProjectLaunchConfiguration>(
+            "project",
+            _ => throw new InvalidOperationException("Test exception from project launch configuration producer")));
+
+        // Simulate debug session info with project support
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["project"],
+            SupportedLaunchConfigurations = ["project"]
+        };
+
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(runSessionInfo),
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
+        // Should fall back to Process execution when the launch configuration producer throws
+        Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
+    }
+
     private static DcpExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
         IHostEnvironment? hostEnvironment = null,
@@ -2333,7 +2428,8 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
-            developerCertificateService);
+            developerCertificateService,
+            new FakeBackchannelLoggerProvider());
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -2427,5 +2523,19 @@ public class DcpExecutorTests
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent
     {
         public IResource Parent => parent;
+    }
+
+    private sealed class CustomExecutableLaunchConfiguration(string type) : ExecutableLaunchConfiguration(type);
+
+    private sealed class FakeBackchannelLoggerProvider : IBackchannelLoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName)
+        {
+            return NullLogger.Instance;
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

@@ -1,10 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+using Aspire.Hosting.Python;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddPythonApp("script-only", "../script_only", "main.py");
-builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py");
+builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py")
+    .WithVSCodePythonDebuggerProperties(props =>
+    {
+        props.StopOnEntry = true;
+    });
 
 builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8000")
@@ -13,7 +20,7 @@ builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
 
 // Run the same app on another port using uvicorn directly
 builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
-    .WithDebugging()
+    .WithVSCodeDebugging()
     .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
     .WithHttpEndpoint(targetPort: 8001);
 
@@ -27,7 +34,11 @@ builder.AddPythonModule("flask-app", "../flask_app", "flask")
         c.Args.Add("--port=8002");
     })
     .WithHttpEndpoint(targetPort: 8002)
-    .WithUv();
+    .WithUv()
+    .WithVSCodePythonDebuggerProperties(props =>
+    {
+        props.AutoReload = new PythonAutoReloadOptions { Enable = true };
+    });
 
 // Uvicorn app using the AddUvicornApp method
 builder.AddUvicornApp("uvicorn-app", "../uvicorn_app", "app:app")
