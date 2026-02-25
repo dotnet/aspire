@@ -499,7 +499,7 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_ValidRoles_DoesNotThrow()
+    public void WithRoleAssignments_EnumOverload_ValidRoles_DoesNotThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -507,13 +507,13 @@ public class AzureKeyVaultTests
         var container = builder.AddContainer("myContainer", "nginx");
 
         var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, "KeyVaultSecretsUser", "KeyVaultReader"));
+            container.WithRoleAssignments(kv, AzureKeyVaultRole.KeyVaultSecretsUser, AzureKeyVaultRole.KeyVaultReader));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_SingleRole_DoesNotThrow()
+    public void WithRoleAssignments_EnumOverload_SingleRole_DoesNotThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -521,42 +521,43 @@ public class AzureKeyVaultTests
         var container = builder.AddContainer("myContainer", "nginx");
 
         var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, "KeyVaultAdministrator"));
+            container.WithRoleAssignments(kv, AzureKeyVaultRole.KeyVaultAdministrator));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_InvalidRole_ThrowsArgumentException()
+    public void WithRoleAssignments_EnumOverload_InvalidRole_ThrowsArgumentException()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var kv = builder.AddAzureKeyVault("myKeyVault");
         var container = builder.AddContainer("myContainer", "nginx");
+        var invalidRole = (AzureKeyVaultRole)(-1);
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            container.WithRoleAssignments(kv, "NotARealRole"));
+            container.WithRoleAssignments(kv, invalidRole));
 
-        Assert.Contains("'NotARealRole' is not a valid Key Vault built-in role", exception.Message);
-        Assert.Contains("Valid roles:", exception.Message);
+        Assert.Contains("is not a valid AzureKeyVaultRole value", exception.Message);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_MixedValidAndInvalidRoles_ThrowsOnInvalid()
+    public void WithRoleAssignments_EnumOverload_MixedValidAndInvalidRoles_ThrowsOnInvalid()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var kv = builder.AddAzureKeyVault("myKeyVault");
         var container = builder.AddContainer("myContainer", "nginx");
+        var invalidRole = (AzureKeyVaultRole)123;
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            container.WithRoleAssignments(kv, "KeyVaultReader", "InvalidRole"));
+            container.WithRoleAssignments(kv, AzureKeyVaultRole.KeyVaultReader, invalidRole));
 
-        Assert.Contains("'InvalidRole'", exception.Message);
+        Assert.Contains("is not a valid AzureKeyVaultRole value", exception.Message);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_CaseInsensitive()
+    public void WithRoleAssignments_EnumOverload_DuplicateRoles_DoesNotThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -564,40 +565,47 @@ public class AzureKeyVaultTests
         var container = builder.AddContainer("myContainer", "nginx");
 
         var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, "keyvaultsecretsuser", "KEYVAULTREADER"));
-
-        Assert.Null(exception);
-    }
-
-    [Theory]
-    [InlineData("KeyVaultAdministrator")]
-    [InlineData("KeyVaultCertificateUser")]
-    [InlineData("KeyVaultCertificatesOfficer")]
-    [InlineData("KeyVaultContributor")]
-    [InlineData("KeyVaultCryptoOfficer")]
-    [InlineData("KeyVaultCryptoServiceEncryptionUser")]
-    [InlineData("KeyVaultCryptoServiceReleaseUser")]
-    [InlineData("KeyVaultCryptoUser")]
-    [InlineData("KeyVaultDataAccessAdministrator")]
-    [InlineData("KeyVaultReader")]
-    [InlineData("KeyVaultSecretsOfficer")]
-    [InlineData("KeyVaultSecretsUser")]
-    [InlineData("ManagedHsmContributor")]
-    public void WithRoleAssignments_StringOverload_AllBuiltInRoles_AreAccepted(string roleName)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var kv = builder.AddAzureKeyVault("myKeyVault");
-        var container = builder.AddContainer("myContainer", "nginx");
-
-        var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, roleName));
+            container.WithRoleAssignments(kv, AzureKeyVaultRole.KeyVaultSecretsUser, AzureKeyVaultRole.KeyVaultSecretsUser));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_EmptyRoles_DoesNotThrow()
+    public void WithRoleAssignments_EnumOverload_AllBuiltInRoles_AreAccepted()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kv = builder.AddAzureKeyVault("myKeyVault");
+        var container = builder.AddContainer("myContainer", "nginx");
+
+        var roles = new[]
+        {
+            AzureKeyVaultRole.KeyVaultAdministrator,
+            AzureKeyVaultRole.KeyVaultCertificateUser,
+            AzureKeyVaultRole.KeyVaultCertificatesOfficer,
+            AzureKeyVaultRole.KeyVaultContributor,
+            AzureKeyVaultRole.KeyVaultCryptoOfficer,
+            AzureKeyVaultRole.KeyVaultCryptoServiceEncryptionUser,
+            AzureKeyVaultRole.KeyVaultCryptoServiceReleaseUser,
+            AzureKeyVaultRole.KeyVaultCryptoUser,
+            AzureKeyVaultRole.KeyVaultDataAccessAdministrator,
+            AzureKeyVaultRole.KeyVaultReader,
+            AzureKeyVaultRole.KeyVaultSecretsOfficer,
+            AzureKeyVaultRole.KeyVaultSecretsUser,
+            AzureKeyVaultRole.ManagedHsmContributor
+        };
+
+        foreach (var role in roles)
+        {
+            var exception = Record.Exception(() =>
+                container.WithRoleAssignments(kv, role));
+
+            Assert.Null(exception);
+        }
+    }
+
+    [Fact]
+    public void WithRoleAssignments_EnumOverload_EmptyRoles_DoesNotThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -605,13 +613,13 @@ public class AzureKeyVaultTests
         var container = builder.AddContainer("myContainer", "nginx");
 
         var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, Array.Empty<string>()));
+            container.WithRoleAssignments(kv, Array.Empty<AzureKeyVaultRole>()));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void WithRoleAssignments_StringOverload_NullRoles_DoesNotThrow()
+    public void WithRoleAssignments_EnumOverload_NullRoles_DoesNotThrow()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -619,7 +627,7 @@ public class AzureKeyVaultTests
         var container = builder.AddContainer("myContainer", "nginx");
 
         var exception = Record.Exception(() =>
-            container.WithRoleAssignments(kv, (string[]?)null!));
+            container.WithRoleAssignments(kv, (AzureKeyVaultRole[]?)null!));
 
         Assert.Null(exception);
     }

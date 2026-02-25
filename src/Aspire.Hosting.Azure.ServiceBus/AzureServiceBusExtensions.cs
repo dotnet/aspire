@@ -689,6 +689,11 @@ public static class AzureServiceBusExtensions
         params AzureServiceBusRole[] roles)
         where T : IResource
     {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<ServiceBusBuiltInRole>());
+        }
+
         var builtInRoles = new ServiceBusBuiltInRole[roles.Length];
         for (var i = 0; i < roles.Length; i++)
         {
