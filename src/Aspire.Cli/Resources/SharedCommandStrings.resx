@@ -132,4 +132,10 @@
   <data name="ProjectOptionDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
+  <data name="FormatOptionDescription" xml:space="preserve">
+    <value>Output format for detached AppHost results.</value>
+  </data>
+  <data name="IsolatedOptionDescription" xml:space="preserve">
+    <value>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</value>
+  </data>
 </root>

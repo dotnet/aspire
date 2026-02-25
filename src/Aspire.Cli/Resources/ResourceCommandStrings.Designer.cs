@@ -92,5 +92,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CommandNameArgumentDescription", resourceCulture);
             }
         }
+
+        internal static string OptionNotValidWithResource {
+            get {
+                return ResourceManager.GetString("OptionNotValidWithResource", resourceCulture);
+            }
+        }
     }
 }

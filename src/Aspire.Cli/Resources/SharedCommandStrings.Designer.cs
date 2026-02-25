@@ -74,5 +74,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
             }
         }
+
+        internal static string FormatOptionDescription {
+            get {
+                return ResourceManager.GetString("FormatOptionDescription", resourceCulture);
+            }
+        }
+
+        internal static string IsolatedOptionDescription {
+            get {
+                return ResourceManager.GetString("IsolatedOptionDescription", resourceCulture);
+            }
+        }
     }
 }
