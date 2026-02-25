@@ -142,8 +142,14 @@ internal sealed class DcpHost
 
         try
         {
+            // If no resources use HTTPS/TLS, there's no need to warn about untrusted dev certificates.
+            if (!_applicationModel.Resources.Any(ResourceUsesTls))
+            {
+                return;
+            }
+
             // Check and warn if the developer certificate is not trusted
-            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !await DeveloperCertificateService.IsCertificateTrustedAsync(_fileSystemService, _developerCertificateService.Certificates.First(), cancellationToken).ConfigureAwait(false))
+            if (_developerCertificateService.Certificates.Count > 0 && !await DeveloperCertificateService.IsCertificateTrustedAsync(_fileSystemService, _developerCertificateService.Certificates.First(), cancellationToken).ConfigureAwait(false))
             {
                 var trustLocation = "your project folder";
                 var appHostDirectory = _configuration["AppHost:Directory"];
@@ -155,7 +161,7 @@ internal sealed class DcpHost
                 var title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
                 var message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
 
-                _logger.LogWarning("{Message}", message);
+                _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
 
                 // Check if the interaction service is available (dashboard enabled)
                 if (!_interactionService.IsAvailable)
@@ -531,6 +537,38 @@ internal sealed class DcpHost
         var installed = dcpInfo.Containers?.Installed ?? false;
         var running = dcpInfo.Containers?.Running ?? false;
         return installed && running;
+    }
+
+    /// <summary>
+    /// Determines whether a resource uses HTTPS/TLS by checking for HTTPS endpoint annotations
+    /// or active HTTPS certificate configuration callbacks that haven't been disabled.
+    /// </summary>
+    private static bool ResourceUsesTls(IResource resource)
+    {
+        // Check if the resource has any HTTPS endpoints
+        if (resource.Annotations.OfType<EndpointAnnotation>().Any(e => e.UriScheme is "https"))
+        {
+            return true;
+        }
+
+        // Check if the resource has an HTTPS certificate configuration callback that hasn't been
+        // disabled via WithoutHttpsCertificate(). HttpsCertificateAnnotation has no effect without
+        // HttpsCertificateConfigurationCallbackAnnotation, so it's only checked as a filter here.
+        if (resource.Annotations.OfType<HttpsCertificateConfigurationCallbackAnnotation>().Any())
+        {
+            // The callback is present. Check if it's been disabled by WithoutHttpsCertificate()
+            // which sets UseDeveloperCertificate = false and Certificate = null.
+            if (resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var certAnnotation)
+                && certAnnotation.UseDeveloperCertificate is false or null
+                && certAnnotation.Certificate is null)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }
 
