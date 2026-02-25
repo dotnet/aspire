@@ -69,9 +69,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string ProjectOptionDescription {
+        internal static string AppHostOptionDescription {
             get {
-                return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
+                return ResourceManager.GetString("AppHostOptionDescription", resourceCulture);
             }
         }
 

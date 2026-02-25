@@ -23,9 +23,9 @@ internal abstract class ResourceCommandBase : BaseCommand
 
     private readonly Argument<string> _resourceArgument;
 
-    protected static readonly Option<FileInfo?> s_projectOption = new("--project")
+    protected static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
-        Description = SharedCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.AppHostOptionDescription
     };
 
     /// <summary>
@@ -74,13 +74,13 @@ internal abstract class ResourceCommandBase : BaseCommand
         };
 
         Arguments.Add(_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(_resourceArgument)!;
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
 
         var result = await ConnectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,

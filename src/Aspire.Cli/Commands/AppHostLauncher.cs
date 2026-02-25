@@ -36,9 +36,9 @@ internal sealed class AppHostLauncher(
     /// <summary>
     /// Shared option for the AppHost project file path.
     /// </summary>
-    internal static readonly Option<FileInfo?> s_projectOption = new("--project")
+    internal static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
-        Description = SharedCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.AppHostOptionDescription
     };
 
     /// <summary>
@@ -63,7 +63,7 @@ internal sealed class AppHostLauncher(
     /// </summary>
     internal static void AddLaunchOptions(Command command)
     {
-        command.Options.Add(s_projectOption);
+        command.Options.Add(s_appHostOption);
         command.Options.Add(s_formatOption);
         command.Options.Add(s_isolatedOption);
     }
@@ -173,7 +173,7 @@ internal sealed class AppHostLauncher(
         {
             "run",
             "--non-interactive",
-            s_projectOption.Name,
+            s_appHostOption.Name,
             effectiveAppHostFile.FullName,
             "--log-file",
             childLogFile

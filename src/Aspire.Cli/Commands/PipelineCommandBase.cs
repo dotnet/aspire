@@ -33,7 +33,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
 
-    protected static readonly Option<FileInfo?> s_projectOption = new("--project")
+    protected static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
         Description = PublishCommandStrings.ProjectArgumentDescription
     };
@@ -88,7 +88,7 @@ internal abstract class PipelineCommandBase : BaseCommand
             Description = GetOutputPathDescription()
         };
 
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(_outputPathOption);
         Options.Add(s_logLevelOption);
         Options.Add(s_environmentOption);
@@ -121,7 +121,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 

@@ -32,7 +32,7 @@ internal sealed class StopCommand : BaseCommand
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
         Description = StopCommandStrings.ProjectArgumentDescription
     };
@@ -61,20 +61,20 @@ internal sealed class StopCommand : BaseCommand
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_allOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var stopAll = parseResult.GetValue(s_allOption);
 
         // Validate mutual exclusivity of --all and --project
         if (stopAll && passedAppHostProjectFile is not null)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndProjectMutuallyExclusive, s_allOption.Name, s_projectOption.Name));
+            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndProjectMutuallyExclusive, s_allOption.Name, s_appHostOption.Name));
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -139,7 +139,7 @@ internal sealed class StopCommand : BaseCommand
         }
 
         // Multiple in-scope AppHosts or none in scope: error with guidance
-        _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.MultipleAppHostsNonInteractive, s_projectOption.Name, s_allOption.Name));
+        _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.MultipleAppHostsNonInteractive, s_appHostOption.Name, s_allOption.Name));
         return ExitCodeConstants.FailedToFindProject;
     }
 

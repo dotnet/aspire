@@ -39,9 +39,9 @@ internal sealed class WaitCommand : BaseCommand
         DefaultValueFactory = _ => 120
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
-        Description = SharedCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.AppHostOptionDescription
     };
 
     public WaitCommand(
@@ -63,7 +63,7 @@ internal sealed class WaitCommand : BaseCommand
         Arguments.Add(s_resourceArgument);
         Options.Add(s_statusOption);
         Options.Add(s_timeoutOption);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -73,7 +73,7 @@ internal sealed class WaitCommand : BaseCommand
         var resourceName = parseResult.GetValue(s_resourceArgument)!;
         var status = parseResult.GetValue(s_statusOption)!.ToLowerInvariant();
         var timeoutSeconds = parseResult.GetValue(s_timeoutOption);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
 
         // Validate status value
         if (!IsValidStatus(status))

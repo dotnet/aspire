@@ -61,7 +61,7 @@ internal sealed class StartCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(AppHostLauncher.s_appHostOption);
         var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
         var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
 

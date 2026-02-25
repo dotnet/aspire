@@ -27,7 +27,7 @@ internal class ExecCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_appHostOption = new("--apphost", "--project")
     {
         Description = ExecCommandStrings.ProjectArgumentDescription
     };
@@ -69,7 +69,7 @@ internal class ExecCommand : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
 
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_resourceOption);
         Options.Add(s_startResourceOption);
         Options.Add(s_workdirOption);
@@ -130,7 +130,7 @@ internal class ExecCommand : BaseCommand
         {
             using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
