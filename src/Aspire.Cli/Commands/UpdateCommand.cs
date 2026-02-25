@@ -271,7 +271,10 @@ internal sealed class UpdateCommand : BaseCommand
         // for future 'aspire new' and 'aspire init' commands.
         if (string.IsNullOrEmpty(channel))
         {
-            var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
+            var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+            var channels = isStagingEnabled
+                ? new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily }
+                : new[] { PackageChannelNames.Stable, PackageChannelNames.Daily };
             channel = await InteractionService.PromptForSelectionAsync(
                 "Select the channel to update to:",
                 channels,
