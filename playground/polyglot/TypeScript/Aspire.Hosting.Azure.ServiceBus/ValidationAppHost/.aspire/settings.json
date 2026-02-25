@@ -1,8 +1,7 @@
 {
   "appHostPath": "../apphost.ts",
   "language": "typescript/nodejs",
-  "sdkVersion": "13.1.0",
   "packages": {
-    "Aspire.Hosting.Azure.ServiceBus": "13.3.0-preview.1.26124.2"
+    "Aspire.Hosting.Azure.ServiceBus": ""
   }
 }
