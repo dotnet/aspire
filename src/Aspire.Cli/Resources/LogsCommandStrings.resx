@@ -153,4 +153,7 @@
   <data name="SelectAppHostAction" xml:space="preserve">
     <value>stream logs from</value>
   </data>
+  <data name="GettingLogs" xml:space="preserve">
+    <value>Getting logs...</value>
+  </data>
 </root>

@@ -106,6 +106,8 @@ internal static class TelemetryCommandHelpers
         FileInfo? projectFile,
         CancellationToken cancellationToken)
     {
+        _ = format; // Will be used to conditionally skip status display in JSON mode.
+
         var result = await connectionResolver.ResolveConnectionAsync(
             projectFile,
             SharedCommandStrings.ScanningForRunningAppHosts,

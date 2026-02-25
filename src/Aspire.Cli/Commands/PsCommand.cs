@@ -79,27 +79,19 @@ internal sealed class PsCommand : BaseCommand
 
         // Scan for running AppHosts (same as ListAppHostsTool)
         // Skip status display for JSON output to avoid contaminating stdout
-        List<IAppHostAuxiliaryBackchannel> connections;
-        if (format == OutputFormat.Json)
-        {
-            await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _backchannelMonitor.Connections.ToList();
-        }
-        else
-        {
-            connections = await _interactionService.ShowStatusAsync(
-                SharedCommandStrings.ScanningForRunningAppHosts,
-                async () =>
-                {
-                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return _backchannelMonitor.Connections.ToList();
-                });
-        }
+        var connections = await _interactionService.ShowStatusAsync(
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            async () =>
+            {
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return _backchannelMonitor.Connections.ToList();
+            });
 
         if (connections.Count == 0)
         {
             if (format == OutputFormat.Json)
             {
+                // Structured output always goes to stdout.
                 _interactionService.DisplayRawText("[]", ConsoleOutput.Standard);
             }
             else
