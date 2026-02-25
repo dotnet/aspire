@@ -115,7 +115,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("addAzureFunctionsProject")]
+    [AspireExport("addAzureFunctionsProject", Description = "Adds an Azure Functions project to the distributed application")]
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
