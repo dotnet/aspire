@@ -25,11 +25,9 @@ param sql_outputs_name string
 
 param sql_outputs_sqlserveradminname string
 
+param myvnet_outputs_sql_aci_subnet_id string
+
 param depscriptstorage_outputs_name string
-
-param myvnet_outputs_pesubnet_id string
-
-param myvnet_outputs_name string
 
 param principalId string
 
@@ -45,133 +43,6 @@ resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-1
 
 resource depscriptstorage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
   name: depscriptstorage_outputs_name
-}
-
-resource depscriptstorage_sqlServerAdmin_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(depscriptstorage.id, sqlServerAdmin.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
-  properties: {
-    principalId: sqlServerAdmin.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
-    principalType: 'ServicePrincipal'
-  }
-  scope: depscriptstorage
-}
-
-resource depStorageFilesPe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
-  name: take('depStorageFilesPe-${uniqueString(resourceGroup().id)}', 64)
-  location: location
-  properties: {
-    privateLinkServiceConnections: [
-      {
-        properties: {
-          privateLinkServiceId: depscriptstorage.id
-          groupIds: [
-            'file'
-          ]
-        }
-        name: 'dep-storage-files-connection'
-      }
-    ]
-    subnet: {
-      id: myvnet_outputs_pesubnet_id
-    }
-  }
-  tags: {
-    'aspire-resource-name': 'dep-storage-files-pe'
-  }
-}
-
-resource existingVnet 'Microsoft.Network/virtualNetworks@2025-05-01' existing = {
-  name: myvnet_outputs_name
-}
-
-resource depStorageFilesDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
-  name: 'privatelink.file.core.windows.net'
-  location: 'global'
-}
-
-resource depStorageFilesDnsVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
-  name: 'dep-storage-files-vnet-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: existingVnet.id
-    }
-  }
-  parent: depStorageFilesDnsZone
-}
-
-resource depStorageFilesPe_dnsgroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
-  name: 'default'
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'depStorageFilesDnsZone'
-        properties: {
-          privateDnsZoneId: depStorageFilesDnsZone.id
-        }
-      }
-    ]
-  }
-  parent: depStorageFilesPe
-}
-
-resource aciSubnetNsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
-  name: take('aciSubnetNsg-${uniqueString(resourceGroup().id)}', 80)
-  location: location
-  tags: {
-    'aspire-resource-name': 'aci-subnet-nsg'
-  }
-}
-
-resource allow_outbound_443_AzureActiveDirectory 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
-  name: 'allow-outbound-443-AzureActiveDirectory'
-  properties: {
-    access: 'Allow'
-    destinationAddressPrefix: 'AzureActiveDirectory'
-    destinationPortRange: '443'
-    direction: 'Outbound'
-    priority: 100
-    protocol: '*'
-    sourceAddressPrefix: '*'
-    sourcePortRange: '*'
-  }
-  parent: aciSubnetNsg
-}
-
-resource allow_outbound_443_Sql 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
-  name: 'allow-outbound-443-Sql'
-  properties: {
-    access: 'Allow'
-    destinationAddressPrefix: 'Sql'
-    destinationPortRange: '443'
-    direction: 'Outbound'
-    priority: 200
-    protocol: '*'
-    sourceAddressPrefix: '*'
-    sourcePortRange: '*'
-  }
-  parent: aciSubnetNsg
-}
-
-resource aciSubnet 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
-  name: 'aci-deployment-script-subnet'
-  properties: {
-    addressPrefix: '10.0.255.248/29'
-    delegations: [
-      {
-        properties: {
-          serviceName: 'Microsoft.ContainerInstance/containerGroups'
-        }
-        name: 'Microsoft.ContainerInstance/containerGroups'
-      }
-    ]
-    networkSecurityGroup: {
-      id: aciSubnetNsg.id
-    }
-  }
-  parent: existingVnet
 }
 
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
@@ -194,7 +65,7 @@ resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     containerSettings: {
       subnetIds: [
         {
-          id: aciSubnet.id
+          id: myvnet_outputs_sql_aci_subnet_id
         }
       ]
     }
@@ -373,6 +244,8 @@ output loginServer string = env_acr.properties.loginServer
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param sql_nsg_outputs_id string
+
 resource myvnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   name: take('myvnet-${uniqueString(resourceGroup().id)}', 64)
   properties: {
@@ -396,11 +269,92 @@ resource pesubnet 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   parent: myvnet
 }
 
+resource sql_aci_subnet 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
+  name: 'sql-aci-subnet'
+  properties: {
+    addressPrefix: '10.0.255.248/29'
+    delegations: [
+      {
+        properties: {
+          serviceName: 'Microsoft.ContainerInstance/containerGroups'
+        }
+        name: 'Microsoft.ContainerInstance/containerGroups'
+      }
+    ]
+    networkSecurityGroup: {
+      id: sql_nsg_outputs_id
+    }
+  }
+  parent: myvnet
+  dependsOn: [
+    pesubnet
+  ]
+}
+
 output pesubnet_Id string = pesubnet.id
+
+output sql_aci_subnet_Id string = sql_aci_subnet.id
 
 output id string = myvnet.id
 
 output name string = myvnet.name
+
+// Resource: pesubnet-files-pe
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param privatelink_file_core_windows_net_outputs_name string
+
+param myvnet_outputs_pesubnet_id string
+
+param sql_stor_outputs_id string
+
+resource privatelink_file_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  name: privatelink_file_core_windows_net_outputs_name
+}
+
+resource pesubnet_files_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
+  name: take('pesubnet_files_pe-${uniqueString(resourceGroup().id)}', 64)
+  location: location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        properties: {
+          privateLinkServiceId: sql_stor_outputs_id
+          groupIds: [
+            'file'
+          ]
+        }
+        name: 'pesubnet-files-pe-connection'
+      }
+    ]
+    subnet: {
+      id: myvnet_outputs_pesubnet_id
+    }
+  }
+  tags: {
+    'aspire-resource-name': 'pesubnet-files-pe'
+  }
+}
+
+resource pesubnet_files_pe_dnsgroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink_file_core_windows_net'
+        properties: {
+          privateDnsZoneId: privatelink_file_core_windows_net.id
+        }
+      }
+    ]
+  }
+  parent: pesubnet_files_pe
+}
+
+output id string = pesubnet_files_pe.id
+
+output name string = pesubnet_files_pe.name
 
 // Resource: pesubnet-sql-pe
 @description('The location for the resource(s) to be deployed.')
@@ -492,6 +446,39 @@ output id string = privatelink_database_windows_net.id
 
 output name string = 'privatelink.database.windows.net'
 
+// Resource: privatelink-file-core-windows-net
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param myvnet_outputs_id string
+
+resource privatelink_file_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' = {
+  name: 'privatelink.file.core.windows.net'
+  location: 'global'
+  tags: {
+    'aspire-resource-name': 'privatelink-file-core-windows-net'
+  }
+}
+
+resource myvnet_link 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
+  name: 'myvnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: myvnet_outputs_id
+    }
+  }
+  tags: {
+    'aspire-resource-name': 'privatelink-file-core-windows-net-myvnet-link'
+  }
+  parent: privatelink_file_core_windows_net
+}
+
+output id string = privatelink_file_core_windows_net.id
+
+output name string = 'privatelink.file.core.windows.net'
+
 // Resource: sql
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
@@ -541,4 +528,114 @@ output name string = sql.name
 output id string = sql.id
 
 output sqlServerAdminName string = sql.properties.administrators.login
+
+// Resource: sql-admin-identity
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param sql_outputs_sqlserveradminname string
+
+resource sql_admin_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: sql_outputs_sqlserveradminname
+}
+
+output id string = sql_admin_identity.id
+
+output clientId string = sql_admin_identity.properties.clientId
+
+output principalId string = sql_admin_identity.properties.principalId
+
+output principalName string = sql_admin_identity.name
+
+output name string = sql_admin_identity.name
+
+// Resource: sql-admin-identity-roles-depscriptstorage
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param depscriptstorage_outputs_name string
+
+param principalId string
+
+resource depscriptstorage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: depscriptstorage_outputs_name
+}
+
+resource depscriptstorage_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(depscriptstorage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+    principalType: 'ServicePrincipal'
+  }
+  scope: depscriptstorage
+}
+
+// Resource: sql-admin-identity-roles-sql-stor
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+param sql_stor_outputs_name string
+
+param principalId string
+
+resource sql_stor 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: sql_stor_outputs_name
+}
+
+resource sql_stor_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(sql_stor.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+    principalType: 'ServicePrincipal'
+  }
+  scope: sql_stor
+}
+
+// Resource: sql-nsg
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+resource sql_nsg 'Microsoft.Network/networkSecurityGroups@2025-05-01' = {
+  name: take('sql_nsg-${uniqueString(resourceGroup().id)}', 80)
+  location: location
+  tags: {
+    'aspire-resource-name': 'sql-nsg'
+  }
+}
+
+resource sql_nsg_allow_outbound_443_AzureActiveDirectory 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
+  name: 'allow-outbound-443-AzureActiveDirectory'
+  properties: {
+    access: 'Allow'
+    destinationAddressPrefix: 'AzureActiveDirectory'
+    destinationPortRange: '443'
+    direction: 'Outbound'
+    priority: 100
+    protocol: 'Tcp'
+    sourceAddressPrefix: '*'
+    sourcePortRange: '*'
+  }
+  parent: sql_nsg
+}
+
+resource sql_nsg_allow_outbound_443_Sql 'Microsoft.Network/networkSecurityGroups/securityRules@2025-05-01' = {
+  name: 'allow-outbound-443-Sql'
+  properties: {
+    access: 'Allow'
+    destinationAddressPrefix: 'Sql'
+    destinationPortRange: '443'
+    direction: 'Outbound'
+    priority: 200
+    protocol: 'Tcp'
+    sourceAddressPrefix: '*'
+    sourcePortRange: '*'
+  }
+  parent: sql_nsg
+}
+
+output id string = sql_nsg.id
+
+output name string = sql_nsg.name
 
