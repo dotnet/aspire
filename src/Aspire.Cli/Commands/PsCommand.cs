@@ -100,7 +100,7 @@ internal sealed class PsCommand : BaseCommand
         {
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayPlainText("[]");
+                _interactionService.DisplayRawText("[]", ConsoleOutput.Standard);
             }
             else
             {
