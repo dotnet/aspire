@@ -391,6 +391,10 @@ public class Program
         builder.Services.AddTransient<DocsSearchCommand>();
         builder.Services.AddTransient<DocsGetCommand>();
         builder.Services.AddTransient<SecretCommand>();
+        builder.Services.AddTransient<SecretSetCommand>();
+        builder.Services.AddTransient<SecretGetCommand>();
+        builder.Services.AddTransient<SecretListCommand>();
+        builder.Services.AddTransient<SecretDeleteCommand>();
         builder.Services.AddTransient<SecretStoreResolver>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();

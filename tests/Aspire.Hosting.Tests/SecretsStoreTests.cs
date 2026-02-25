@@ -18,7 +18,9 @@ public class SecretsStoreTests
 
     private static UserSecretsManagerFactory CreateFactory()
     {
-        return new UserSecretsManagerFactory();
+        return new UserSecretsManagerFactory(
+            new FileSystemService(
+                new ConfigurationBuilder().Build()));
     }
 
     [Fact]

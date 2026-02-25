@@ -202,6 +202,10 @@ internal static class CliTestHelper
         services.AddTransient<DocsSearchCommand>();
         services.AddTransient<DocsGetCommand>();
         services.AddTransient<SecretCommand>();
+        services.AddTransient<SecretSetCommand>();
+        services.AddTransient<SecretGetCommand>();
+        services.AddTransient<SecretListCommand>();
+        services.AddTransient<SecretDeleteCommand>();
         services.AddTransient<SecretStoreResolver>();
         services.AddTransient(options.AppHostBackchannelFactory);
 

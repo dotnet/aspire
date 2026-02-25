@@ -317,7 +317,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         });
 
         // Create and register the user secrets manager
-        var userSecretsFactory = new UserSecretsManagerFactory();
+        var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
         _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);

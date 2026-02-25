@@ -504,9 +504,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets the UserSecretsId from a project file via MSBuild evaluation.
+    /// Gets the UserSecretsId from a project file.
     /// </summary>
-    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {

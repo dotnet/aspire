@@ -10,11 +10,10 @@ namespace Aspire.Shared.UserSecrets;
 
 /// <summary>
 /// Provides CRUD operations over a dotnet user-secrets JSON file.
-/// Modeled after aspnetcore's dotnet-user-secrets SecretsStore.
 /// </summary>
 internal sealed class SecretsStore
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    internal static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
@@ -25,7 +24,6 @@ internal sealed class SecretsStore
 
     /// <summary>
     /// Creates a new SecretsStore backed by the specified file path.
-    /// Loads existing secrets from the file if it exists.
     /// </summary>
     public SecretsStore(string secretsFilePath)
     {
@@ -46,8 +44,7 @@ internal sealed class SecretsStore
     public int Count => _secrets.Count;
 
     /// <summary>
-    /// Sets a secret value, overwriting any existing value for the key.
-    /// Call <see cref="Save"/> to persist changes.
+    /// Sets a secret value. Call <see cref="Save"/> to persist.
     /// </summary>
     public void Set(string key, string value) => _secrets[key] = value;
 
@@ -57,10 +54,8 @@ internal sealed class SecretsStore
     public string? Get(string key) => _secrets.GetValueOrDefault(key);
 
     /// <summary>
-    /// Removes a secret by key.
-    /// Call <see cref="Save"/> to persist changes.
+    /// Removes a secret by key. Call <see cref="Save"/> to persist.
     /// </summary>
-    /// <returns>True if the key was found and removed.</returns>
     public bool Remove(string key) => _secrets.Remove(key);
 
     /// <summary>
@@ -74,9 +69,12 @@ internal sealed class SecretsStore
     public IEnumerable<KeyValuePair<string, string>> AsEnumerable() => _secrets;
 
     /// <summary>
+    /// Returns all secret key-value pairs as a list.
+    /// </summary>
+    public List<KeyValuePair<string, string>> ToList() => [.. _secrets];
+
+    /// <summary>
     /// Persists the current secrets to disk.
-    /// Creates the directory if it doesn't exist.
-    /// Uses atomic write (temp file + move) on Unix.
     /// </summary>
     public void Save()
     {
@@ -98,8 +96,19 @@ internal sealed class SecretsStore
         if (!OperatingSystem.IsWindows())
         {
             var tempFilename = Path.GetTempFileName();
-            File.WriteAllText(tempFilename, json);
-            File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            try
+            {
+                File.WriteAllText(tempFilename, json);
+                File.Move(tempFilename, _secretsFilePath, overwrite: true);
+            }
+            finally
+            {
+                // Clean up temp file if move failed
+                if (File.Exists(tempFilename))
+                {
+                    File.Delete(tempFilename);
+                }
+            }
         }
         else
         {

@@ -13,7 +13,6 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -1144,14 +1143,5 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
-    }
-
-    /// <summary>
-    /// Computes a deterministic synthetic UserSecretsId from the AppHost file path.
-    /// </summary>
-    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, CancellationToken cancellationToken)
-    {
-        var id = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
-        return Task.FromResult<string?>(id);
     }
 }
