@@ -3,7 +3,7 @@
 
 using System.Text.Json.Nodes;
 
-namespace Aspire.Hosting.Pipelines.Internal;
+namespace Aspire.Shared.Json;
 
 /// <summary>
 /// Provides utility methods for flattening and unflattening JSON objects using colon-separated keys.
@@ -12,10 +12,7 @@ internal static class JsonFlattener
 {
     /// <summary>
     /// Flattens a JsonObject using colon-separated keys for configuration compatibility.
-    /// Handles both nested objects and arrays with indexed keys.
     /// </summary>
-    /// <param name="source">The source JsonObject to flatten.</param>
-    /// <returns>A flattened JsonObject.</returns>
     public static JsonObject FlattenJsonObject(JsonObject source)
     {
         var result = new JsonObject();
@@ -25,10 +22,7 @@ internal static class JsonFlattener
 
     /// <summary>
     /// Unflattens a JsonObject that uses colon-separated keys back into a nested structure.
-    /// Handles both nested objects and arrays with indexed keys.
     /// </summary>
-    /// <param name="source">The flattened JsonObject to unflatten.</param>
-    /// <returns>An unflattened JsonObject with nested structure.</returns>
     public static JsonObject UnflattenJsonObject(JsonObject source)
     {
         var result = new JsonObject();

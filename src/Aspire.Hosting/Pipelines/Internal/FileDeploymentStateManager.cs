@@ -6,6 +6,7 @@
 
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Shared.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
