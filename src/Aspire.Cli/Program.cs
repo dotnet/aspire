@@ -623,7 +623,9 @@ public class Program
             // Allows logging of exceptions to telemetry.
 
             // Don't log or display cancellation exceptions.
-            if (!(ex is OperationCanceledException && cts.IsCancellationRequested))
+            // Check both Ctrl+C cancellation (cts.IsCancellationRequested) and
+            // extension prompt cancellation (ExtensionOperationCanceledException).
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && ex is not ExtensionOperationCanceledException)
             {
                 logger.LogError(ex, "An unexpected error occurred.");
 
