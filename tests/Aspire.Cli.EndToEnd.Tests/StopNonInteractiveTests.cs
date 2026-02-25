@@ -65,7 +65,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Find("AppHost stopped successfully.");
 
         var waitForNoRunningAppHostsFound = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -187,7 +187,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Find("AppHost stopped successfully.");
 
         var waitForNoRunningAppHostsFound = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -334,7 +334,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Find("AppHost stopped successfully.");
 
         var waitForNoRunningAppHostsFound = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();

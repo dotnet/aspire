@@ -17,21 +17,6 @@
         <target state="translated">Der Name der Ressource, für die der Befehl ausgeführt werden soll.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">Es wurden keine AppHosts im Geltungsbereich gefunden. Es werden alle aktiven AppHosts angezeigt.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Es wurden keine ausgeführten AppHosts gefunden.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
         <target state="translated">Starten Sie eine laufende Ressource neu.</target>
@@ -42,14 +27,9 @@
         <target state="translated">Der Name der Ressource, die neu gestartet werden soll.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Suche nach aktiven AppHosts …</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select which AppHost to connect to:</source>
-        <target state="translated">Wählen Sie den AppHost aus, mit dem eine Verbindung hergestellt werden soll:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>connect to</source>
+        <target state="new">connect to</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

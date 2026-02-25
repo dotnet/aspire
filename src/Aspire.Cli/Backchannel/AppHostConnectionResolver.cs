@@ -17,6 +17,7 @@ internal sealed class AppHostConnectionResult
     public IAppHostAuxiliaryBackchannel? Connection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Connection))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool Success => Connection is not null;
 
     public string? ErrorMessage { get; init; }

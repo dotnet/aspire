@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -24,7 +25,7 @@ internal abstract class ResourceCommandBase : BaseCommand
 
     protected static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
-        Description = ResourceCommandStrings.ProjectOptionDescription
+        Description = SharedCommandStrings.ProjectOptionDescription
     };
 
     /// <summary>
@@ -83,15 +84,15 @@ internal abstract class ResourceCommandBase : BaseCommand
 
         var result = await ConnectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            ResourceCommandStrings.ScanningForRunningAppHosts,
-            ResourceCommandStrings.SelectAppHost,
-            ResourceCommandStrings.NoInScopeAppHostsShowingAll,
-            ResourceCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, ResourceCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            InteractionService.DisplayError(result.ErrorMessage ?? ResourceCommandStrings.NoRunningAppHostsFound);
+            InteractionService.DisplayError(result.ErrorMessage);
             return ExitCodeConstants.FailedToFindProject;
         }
 
