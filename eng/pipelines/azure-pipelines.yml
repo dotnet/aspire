@@ -51,10 +51,6 @@ variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
 
-  # True on main, release/*, internal/release/* — used to gate WinGet/Homebrew publishing.
-  #- name: _IsPublishBranch
-    #value: ${{ or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')) }}
-
   # Variable group containing VscePublishToken for VS Code Marketplace publishing
   - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
     - group: Aspire-Release-Secrets
@@ -300,8 +296,6 @@ extends:
               # stages (e.g. publish_winget) can use it. We use Aspire.Hosting.Docker
               # because it has no RID in its filename, so stripping the prefix cleanly
               # yields just the version (e.g. "13.2.0-preview.1.26074.3").
-              # NOTE: Aspire.Hosting.Orchestration includes a RID (e.g. linux-arm64)
-              # in its filename, which broke version extraction — do not switch back.
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
                   $shippingDir = "$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping"
@@ -367,8 +361,6 @@ extends:
       variables:
         aspireVersion: $[ stageDependencies.build.Windows.outputs['computeVersion.aspireVersion'] ]
         installerChannel: $[ stageDependencies.build.Windows.outputs['computeChannel.installerChannel'] ]
-        #aspireVersion: 13.2.0-preview.1.26110.8
-        #installerChannel: prerelease
       condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self

@@ -445,11 +445,11 @@ extends:
       # ----------------------------------------------------------------
       - stage: PublishInstallers
         displayName: 'Publish Installers'
-        dependsOn: []
-          #- PromoteToChannel
+        dependsOn:
+          - PromoteToChannel
         condition: |
           and(
-            or(succeeded('PromoteToChannel'), eq('${{ parameters.SkipChannelPromotion }}', 'true')),
+            in(dependencies.PromoteToChannel.result, 'Succeeded', 'SucceededWithIssues', 'Skipped'),
             or(eq('${{ parameters.SkipWinGetPublish }}', 'false'), eq('${{ parameters.SkipHomebrewPublish }}', 'false'))
           )
         jobs:
