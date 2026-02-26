@@ -147,7 +147,7 @@ internal sealed class RunCommand : BaseCommand
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // Validate that --format is only used with --detach
-        if (format is not null && !detach)
+        if (format == OutputFormat.Json && !detach)
         {
             InteractionService.DisplayError(RunCommandStrings.FormatRequiresDetach);
             return ExitCodeConstants.InvalidCommand;

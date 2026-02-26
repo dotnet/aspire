@@ -1,6 +1,9 @@
 # Reusable template for submitting a Homebrew cask PR to Homebrew/homebrew-cask.
 # Used by the release flow (release-publish-nuget.yml).
 # Analogous to publish-winget.yml for WinGet manifests.
+#
+# NOTE: Cask syntax validation and brew audit are performed during build
+# in prepare-homebrew-cask.yml. This template only handles submission.
 
 parameters:
   - name: caskArtifactPath
@@ -8,7 +11,8 @@ parameters:
     displayName: 'Path to the directory containing the generated .rb cask file'
   - name: version
     type: string
-    displayName: 'Package version (used in PR title)'
+    default: ''
+    displayName: 'Package version (used in PR title). If empty, extracted from cask file.'
   - name: channel
     type: string
     default: 'stable'
@@ -21,171 +25,163 @@ parameters:
     displayName: 'Skip actual submit (for testing)'
 
 steps:
-  - bash: |
-      set -euo pipefail
-      caskDir='${{ parameters.caskArtifactPath }}'
-      channel='${{ parameters.channel }}'
+  - powershell: |
+      $ErrorActionPreference = 'Stop'
+      $caskDir = '${{ parameters.caskArtifactPath }}'
+      $channel = '${{ parameters.channel }}'
 
-      if [ "$channel" = "prerelease" ]; then
-        caskFile="aspire@prerelease.rb"
-      else
-        caskFile="aspire.rb"
-      fi
+      if ($channel -eq 'prerelease') {
+        $caskFile = 'aspire@prerelease.rb'
+      } else {
+        $caskFile = 'aspire.rb'
+      }
 
-      caskPath="$caskDir/$caskFile"
+      $caskPath = Join-Path $caskDir $caskFile
 
-      echo "=== Homebrew Cask ==="
-      echo "Channel: $channel"
-      echo "Cask file: $caskPath"
-      echo "====================="
+      Write-Host "=== Homebrew Cask ==="
+      Write-Host "Channel: $channel"
+      Write-Host "Cask file: $caskPath"
+      Write-Host "====================="
 
-      if [ ! -f "$caskPath" ]; then
-        echo "##[error]Cask file not found: $caskPath"
-        ls -la "$caskDir" || true
+      if (!(Test-Path $caskPath)) {
+        Write-Host "##[error]Cask file not found: $caskPath"
+        Get-ChildItem -Path $caskDir -ErrorAction SilentlyContinue | Format-Table Name
         exit 1
-      fi
+      }
 
-      echo ""
-      echo "=== Cask Contents ==="
-      cat "$caskPath"
-      echo "====================="
+      Write-Host ""
+      Write-Host "=== Cask Contents ==="
+      Get-Content $caskPath
+      Write-Host "====================="
 
-      echo "##vso[task.setvariable variable=HomebrewCaskFile]$caskFile"
-      echo "##vso[task.setvariable variable=HomebrewCaskPath]$caskPath"
+      # Extract version from cask file content
+      $version = '${{ parameters.version }}'
+      if ([string]::IsNullOrWhiteSpace($version)) {
+        $match = Select-String -Path $caskPath -Pattern '^\s*version\s+"([^"]+)"' | Select-Object -First 1
+        if ($match) {
+          $version = $match.Matches[0].Groups[1].Value
+          Write-Host "Extracted version from cask: $version"
+        } else {
+          Write-Error "Could not extract version from cask file"
+          exit 1
+        }
+      } else {
+        Write-Host "Using provided version: $version"
+      }
+
+      Write-Host "##vso[task.setvariable variable=HomebrewCaskFile]$caskFile"
+      Write-Host "##vso[task.setvariable variable=HomebrewCaskPath]$caskPath"
+      Write-Host "##vso[task.setvariable variable=HomebrewVersion]$version"
     displayName: '🟣Locate Homebrew cask file'
 
-  - bash: |
-      set -euo pipefail
-      caskPath="$(HomebrewCaskPath)"
+  - powershell: |
+      $ErrorActionPreference = 'Stop'
+      $caskPath = '$(HomebrewCaskPath)'
+      $version = '$(HomebrewVersion)'
 
-      echo "Validating download URLs from cask file..."
+      Write-Host "Validating download URLs from cask file..."
 
-      # Extract url lines from the cask file (handles both `url "..."` and heredoc-style)
-      urls=()
-      while IFS= read -r line; do
-        # Match: url "https://..." — extract the URL portion
-        if [[ "$line" =~ url\ +\"([^\"]+)\" ]]; then
-          urls+=("${BASH_REMATCH[1]}")
-        fi
-      done < "$caskPath"
+      # Extract url lines from the cask file
+      $urls = @()
+      Get-Content $caskPath | ForEach-Object {
+        if ($_ -match 'url\s+"([^"]+)"') {
+          $urls += $Matches[1]
+        }
+      }
 
-      if [ ${#urls[@]} -eq 0 ]; then
-        echo "##[error]No URLs found in cask file: $caskPath"
+      if ($urls.Count -eq 0) {
+        Write-Host "##[error]No URLs found in cask file: $caskPath"
         exit 1
-      fi
+      }
 
       # Expand #{version} and #{arch} placeholders for both architectures
-      expandedUrls=()
-      version='${{ parameters.version }}'
-      for rawUrl in "${urls[@]}"; do
-        for arch in arm64 x64; do
-          expanded="${rawUrl//\#\{version\}/$version}"
-          expanded="${expanded//\#\{arch\}/$arch}"
-          expandedUrls+=("$expanded")
-        done
-      done
+      $failed = $false
+      foreach ($rawUrl in $urls) {
+        foreach ($arch in @('arm64', 'x64')) {
+          $expanded = $rawUrl -replace '#\{version\}', $version
+          $expanded = $expanded -replace '#\{arch\}', $arch
 
-      failed=0
-      for checkUrl in "${expandedUrls[@]}"; do
-        httpCode=$(curl -s -o /dev/null -w '%{http_code}' --head --max-time 15 "$checkUrl" || true)
-        if [[ "$httpCode" =~ ^2 ]] || [[ "$httpCode" =~ ^3 ]]; then
-          echo "  OK ($httpCode): $checkUrl"
-        else
-          echo "##[error]FAILED ($httpCode): $checkUrl"
-          failed=1
-        fi
-      done
+          try {
+            $response = Invoke-WebRequest -Uri $expanded -Method Head -MaximumRedirection 5 -TimeoutSec 15 -UseBasicParsing
+            Write-Host "  OK ($($response.StatusCode)): $expanded"
+          } catch {
+            $code = 'ERR'
+            if ($_.Exception.Response) { $code = $_.Exception.Response.StatusCode.value__ }
+            Write-Host "##[error]FAILED ($code): $expanded — $($_.Exception.Message)"
+            $failed = $true
+          }
+        }
+      }
 
-      if [ "$failed" -ne 0 ]; then
-        echo "##[error]One or more download URLs are not accessible. Aborting before PR submission."
+      if ($failed) {
+        Write-Error "One or more download URLs are not accessible. Aborting before PR submission."
         exit 1
-      fi
-      echo "All download URLs are accessible."
+      }
+      Write-Host "All download URLs are accessible."
     displayName: '🟣Validate download URLs from cask'
 
-  - bash: |
-      set -euo pipefail
-      caskPath="$(HomebrewCaskPath)"
-      caskFile="$(HomebrewCaskFile)"
+  - powershell: |
+      $ErrorActionPreference = 'Stop'
+      $version = '$(HomebrewVersion)'
+      $channel = '${{ parameters.channel }}'
+      $caskFile = '$(HomebrewCaskFile)'
+      $caskPath = '$(HomebrewCaskPath)'
+      $caskName = $caskFile -replace '\.rb$', ''
+      $token = $env:HOMEBREW_CASK_GITHUB_TOKEN
 
-      echo "Validating Ruby syntax..."
-      ruby -c "$caskPath"
-      echo "Ruby syntax OK"
-
-      echo ""
-      echo "Auditing cask via local tap..."
-      brew tap-new --no-git local/aspire
-      mkdir -p "$(brew --repository)/Library/Taps/local/homebrew-aspire/Casks"
-      cp "$caskPath" "$(brew --repository)/Library/Taps/local/homebrew-aspire/Casks/$caskFile"
-
-      auditCode=0
-      brew audit --cask "local/aspire/${caskFile%.rb}" || auditCode=$?
-
-      brew untap local/aspire
-
-      if [ $auditCode -ne 0 ]; then
-        echo "##[error]brew audit failed"
-        exit $auditCode
-      fi
-      echo "brew audit passed"
-    displayName: '🟣Validate cask before publish'
-
-  - bash: |
-      set -euo pipefail
-      version='${{ parameters.version }}'
-      channel='${{ parameters.channel }}'
-      caskFile="$(HomebrewCaskFile)"
-      caskPath="$(HomebrewCaskPath)"
-      caskName="${caskFile%.rb}"
-
-      if [ -z "$HOMEBREW_CASK_GITHUB_TOKEN" ]; then
-        echo "##[error]GitHub token for Homebrew cask PR is not set. Ensure the variable group is configured."
+      if ([string]::IsNullOrWhiteSpace($token)) {
+        Write-Error "GitHub token for Homebrew cask PR is not set. Ensure the variable group is configured."
         exit 1
-      fi
+      }
 
-      echo "Submitting cask PR to Homebrew/homebrew-cask"
+      Write-Host "Submitting cask PR to Homebrew/homebrew-cask"
 
       # Configure gh CLI
-      echo "$HOMEBREW_CASK_GITHUB_TOKEN" | gh auth login --with-token
+      $token | gh auth login --with-token
 
-      # Resolve the authenticated GitHub username once
-      botUser="$(gh api user --jq .login)"
-      echo "Authenticated as: $botUser"
+      $botUser = gh api user --jq '.login'
+      Write-Host "Authenticated as: $botUser"
 
       # Fork and clone (idempotent — reuses existing fork)
-      repoDir="$(Build.StagingDirectory)/homebrew-cask-repo"
-      gh repo fork Homebrew/homebrew-cask --clone --default-branch-only -- "$repoDir" 2>/dev/null \
-        || git clone "https://github.com/${botUser}/homebrew-cask.git" "$repoDir"
+      $repoDir = "$(Build.StagingDirectory)/homebrew-cask-repo"
+      gh repo fork Homebrew/homebrew-cask --clone --default-branch-only -- $repoDir 2>$null
+      if ($LASTEXITCODE -ne 0) {
+        git clone "https://github.com/${botUser}/homebrew-cask.git" $repoDir
+      }
 
-      cd "$repoDir"
-      git remote add upstream https://github.com/Homebrew/homebrew-cask.git 2>/dev/null || true
-      git fetch upstream master
-      git checkout -B "aspire-${version}" upstream/master
+      Push-Location $repoDir
+      try {
+        git remote add upstream https://github.com/Homebrew/homebrew-cask.git 2>$null
+        git fetch upstream master
+        git checkout -B "aspire-${version}" upstream/master
 
-      # Casks are organized by first letter: Casks/a/aspire.rb
-      firstLetter="${caskName:0:1}"
-      targetDir="Casks/$firstLetter"
-      mkdir -p "$targetDir"
-      cp "$caskPath" "$targetDir/$caskFile"
+        # Casks are organized by first letter: Casks/a/aspire.rb
+        $firstLetter = $caskName.Substring(0, 1)
+        $targetDir = "Casks/$firstLetter"
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        Copy-Item $caskPath "$targetDir/$caskFile"
 
-      git config user.name "dotnet-bot"
-      git config user.email "dotnet-bot@microsoft.com"
-      git add "$targetDir/$caskFile"
-      git commit -m "$caskName $version"
-      git push --force origin "aspire-${version}"
+        git config user.name "dotnet-bot"
+        git config user.email "dotnet-bot@microsoft.com"
+        git add "$targetDir/$caskFile"
+        git commit -m "$caskName $version"
+        git push --force origin "aspire-${version}"
 
-      # Create PR (or update existing)
-      existingPR=$(gh pr list --repo Homebrew/homebrew-cask --head "${botUser}:aspire-${version}" --json number --jq '.[0].number' 2>/dev/null || true)
-      if [ -n "$existingPR" ]; then
-        echo "PR #$existingPR already exists — updated branch"
-      else
-        gh pr create \
-          --repo Homebrew/homebrew-cask \
-          --title "$caskName $version" \
-          --body "Update $caskName to version $version." \
-          --head "${botUser}:aspire-${version}"
-        echo "PR created successfully"
-      fi
+        # Create PR (or update existing)
+        $existingPR = gh pr list --repo Homebrew/homebrew-cask --head "${botUser}:aspire-${version}" --json number --jq '.[0].number' 2>$null
+        if ($existingPR) {
+          Write-Host "PR #$existingPR already exists — updated branch"
+        } else {
+          gh pr create `
+            --repo Homebrew/homebrew-cask `
+            --title "$caskName $version" `
+            --body "Update $caskName to version $version." `
+            --head "${botUser}:aspire-${version}"
+          Write-Host "PR created successfully"
+        }
+      } finally {
+        Pop-Location
+      }
     displayName: '🟣Submit PR to Homebrew/homebrew-cask'
     condition: and(succeeded(), eq('${{ parameters.dryRun }}', 'false'))
     env:

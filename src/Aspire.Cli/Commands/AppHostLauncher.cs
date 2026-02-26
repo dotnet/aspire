@@ -41,7 +41,7 @@ internal sealed class AppHostLauncher(
     /// <summary>
     /// Shared option for output format (JSON or table) in detached AppHost mode.
     /// </summary>
-    internal static readonly Option<OutputFormat?> s_formatOption = new("--format")
+    internal static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
         Description = SharedCommandStrings.FormatOptionDescription
     };
@@ -85,12 +85,6 @@ internal sealed class AppHostLauncher(
         IEnumerable<string> additionalArgs,
         CancellationToken cancellationToken)
     {
-        // Route human-readable output to stderr when JSON is requested.
-        if (format == OutputFormat.Json)
-        {
-            interactionService.Console = ConsoleOutput.Error;
-        }
-
         // In JSON mode, avoid interactive prompts to keep stdout parseable.
         var multipleAppHostBehavior = format == OutputFormat.Json
             ? MultipleAppHostProjectsFoundBehavior.Throw
@@ -128,7 +122,7 @@ internal sealed class AppHostLauncher(
         logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
 
         // Start the child process and wait for the backchannel
-        var launchResult = await LaunchAndWaitForBackchannelAsync(executablePath, childArgs, expectedHash, format, cancellationToken);
+        var launchResult = await LaunchAndWaitForBackchannelAsync(executablePath, childArgs, expectedHash, cancellationToken);
 
         // Handle failure cases
         if (launchResult.Backchannel is null || launchResult.ChildProcess is null)
@@ -215,7 +209,6 @@ internal sealed class AppHostLauncher(
         string executablePath,
         List<string> childArgs,
         string expectedHash,
-        OutputFormat? format,
         CancellationToken cancellationToken)
     {
         Process? childProcess = null;
@@ -275,17 +268,9 @@ internal sealed class AppHostLauncher(
             return null;
         }
 
-        IAppHostAuxiliaryBackchannel? backchannel;
-        if (format == OutputFormat.Json)
-        {
-            backchannel = await WaitForBackchannelAsync();
-        }
-        else
-        {
-            backchannel = await interactionService.ShowStatusAsync(
-                RunCommandStrings.StartingAppHostInBackground,
-                WaitForBackchannelAsync);
-        }
+        var backchannel = await interactionService.ShowStatusAsync(
+            RunCommandStrings.StartingAppHostInBackground,
+            WaitForBackchannelAsync);
 
         return new LaunchResult(childProcess, backchannel, childExitedEarly, childExitCode);
     }

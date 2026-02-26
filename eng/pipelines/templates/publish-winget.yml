@@ -7,7 +7,8 @@ parameters:
     displayName: 'Path to the directory containing WinGet manifest .yaml files'
   - name: version
     type: string
-    displayName: 'Package version (used in PR title)'
+    default: ''
+    displayName: 'Package version (used in PR title). If empty, extracted from manifest directory structure.'
   - name: packageIdentifier
     type: string
     displayName: 'WinGet package identifier (e.g. Microsoft.Aspire or Microsoft.Aspire.Prerelease)'
@@ -36,6 +37,16 @@ steps:
 
       Write-Host "Manifest directory: $manifestDir"
       Write-Host "##vso[task.setvariable variable=WinGetManifestDir]$manifestDir"
+
+      # Extract version from manifest directory name (e.g., .../Microsoft.Aspire/13.2.0/)
+      $version = '${{ parameters.version }}'
+      if ([string]::IsNullOrWhiteSpace($version)) {
+        $version = Split-Path $manifestDir -Leaf
+        Write-Host "Extracted version from directory: $version"
+      } else {
+        Write-Host "Using provided version: $version"
+      }
+      Write-Host "##vso[task.setvariable variable=WinGetVersion]$version"
 
       Write-Host ""
       Write-Host "=== Manifest files ==="
@@ -137,7 +148,7 @@ steps:
   - powershell: |
       $ErrorActionPreference = 'Stop'
       $manifestDir = '$(WinGetManifestDir)'
-      $version = '${{ parameters.version }}'
+      $version = '$(WinGetVersion)'
       $packageId = '${{ parameters.packageIdentifier }}'
       $token = $env:WINGET_CREATE_GITHUB_TOKEN
 
