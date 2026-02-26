@@ -183,9 +183,9 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
                 var replacement = """
 // Add Azure Container App Environment and configure ACR purge task
 var infra = builder.AddAzureContainerAppEnvironment("infra");
-// Use an aggressive every-minute schedule for E2E testing; the task is actually triggered manually via az acr task run
+// Schedule once a month so it never fires during the test; the task is triggered manually via az acr task run
 infra.GetAzureContainerRegistry()
-    .WithPurgeTask("* * * * *", keep: 1);
+    .WithPurgeTask("0 0 1 * *", keep: 1);
 
 builder.Build().Run();
 """;
@@ -241,8 +241,23 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 11: Second deployment to push new images
-            output.WriteLine("Step 11: Starting second Azure deployment...");
+            // Step 11: Modify Python code to guarantee a new container image is pushed on second deploy
+            sequenceBuilder.ExecuteCallback(() =>
+            {
+                var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
+                var mainPyPath = Path.Combine(projectDir, "api", "main.py");
+
+                output.WriteLine($"Modifying {mainPyPath} to force new image...");
+
+                var content = File.ReadAllText(mainPyPath);
+                content += "\n# Force new image for E2E purge test\n";
+                File.WriteAllText(mainPyPath, content);
+
+                output.WriteLine("Modified main.py to force a new container image build");
+            });
+
+            // Step 12: Second deployment to push new images
+            output.WriteLine("Step 12: Starting second Azure deployment...");
             // Reset the pipeline searchers for second deploy
             var waitingForPipelineSucceeded2 = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
@@ -271,8 +286,8 @@ builder.Build().Run();
                 })
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 12: Verify there are now multiple tags (from both deploys)
-            output.WriteLine("Step 12: Verifying multiple tags exist after second deploy...");
+            // Step 13: Verify there are now multiple tags (from both deploys)
+            output.WriteLine("Step 13: Verifying multiple tags exist after second deploy...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"ACR: $ACR_NAME\" && " +
@@ -286,8 +301,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 13: Run the purge task manually to trigger image cleanup
-            output.WriteLine("Step 13: Running ACR purge task...");
+            // Step 14: Run the purge task manually to trigger image cleanup
+            output.WriteLine("Step 14: Running ACR purge task...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"Running purge task on ACR: $ACR_NAME\" && " +
@@ -304,8 +319,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 14: Verify images were purged - only 1 tag should remain per repo
-            output.WriteLine("Step 14: Verifying images were purged...");
+            // Step 15: Verify images were purged - only 1 tag should remain per repo
+            output.WriteLine("Step 15: Verifying images were purged...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"ACR: $ACR_NAME\" && " +
@@ -324,7 +339,7 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 15: Exit terminal
+            // Step 16: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
