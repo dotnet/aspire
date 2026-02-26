@@ -292,7 +292,7 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
 
-**For quarantined tests**, you need `/p:RunQuarantinedTests=true` during build and must omit the quarantine filter:
+**For quarantined tests**, you need `/p:RunQuarantinedTests=true` during both build **and** test to prevent the build system from filtering them out:
 
 ```bash
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQuarantinedTests=true
@@ -300,10 +300,12 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQua
 # Linux/macOS
 ./run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
+  /p:RunQuarantinedTests=true \
   -- --filter-method "*.<TestMethodName>"
 
 # Windows (PowerShell)
 ./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+  /p:RunQuarantinedTests=true `
   -- --filter-method "*.<TestMethodName>"
 ```
 
@@ -425,7 +427,9 @@ TEST_FILTER: '--filter-class "*.TestClassName"'
 TEST_FILTER: '--filter-method "*.Test1" --filter-method "*.Test2"'
 ```
 
-**For quarantined tests**: The build step already includes `/p:RunQuarantinedTests=true`, so quarantined tests are automatically included. You do NOT need to add any special flags.
+**For quarantined tests**: The workflow automatically disables the quarantine exclusion filter for both build and test phases (via `/p:_NonQuarantinedTestRunAdditionalArgs=""`), so quarantined tests are included regardless of their trait. You do NOT need to add any special flags.
+
+**Zero-test detection**: The workflow detects when zero tests execute (e.g., due to a misconfigured filter) and treats it as a failure. If you see "Zero tests executed" errors, verify that `TEST_FILTER` matches the actual test name and that quarantine settings are correct.
 
 ### 3.2: Push and Open Draft PR
 
@@ -798,7 +802,12 @@ UPDATE todos SET status = 'done' WHERE id = 'cleanup';
 
 ### Build System Quarantine Filtering
 
-`eng/Testing.props` auto-appends `--filter-not-trait "quarantined=true"` to test arguments at **build time**. Even if you pass `--filter-trait quarantined=true` on the command line, the build already excluded them. The reproduce workflow handles this by passing `/p:RunQuarantinedTests=true` as an MSBuild property during build.
+`eng/Testing.props` auto-appends `--filter-not-trait "quarantined=true"` to test arguments via the `TestRunnerAdditionalArguments` MSBuild property. This property is evaluated during `dotnet test` even with `--no-build`, so it must be handled in both build and test commands:
+
+- **Reproduce workflow**: Overrides `_NonQuarantinedTestRunAdditionalArgs` to empty, removing the quarantine exclusion filter for all tests
+- **Local reproduction**: Pass `/p:RunQuarantinedTests=true` to both `dotnet build` and `dotnet test`
+
+`Testing.props` also adds `--ignore-exit-code 8`, which masks zero-test runs as successes. The workflow and `run-test-repeatedly` scripts detect this by checking test output for the `Total:` count indicator.
 
 ### test-reproduce.yml Architecture
 
@@ -860,7 +869,8 @@ Description of the code change.
 - **Reproduce before fixing**: Always confirm the failure is reproducible before attempting a fix — try locally first, then CI. For contention-sensitive tests, existing quarantine logs may serve as sufficient evidence (see Step 1.5)
 - **Try local first**: Use `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) for fast feedback (~minutes). Fall back to CI when local reproduction fails (wrong OS, contention-sensitive, very low failure rate)
 - **Detect your OS**: Check with `uname -s` to decide if local reproduction is viable for the failing OS
-- **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default
+- **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default. Pass this property to both `dotnet build` and `dotnet test` commands for local reproduction. The CI reproduce workflow handles this automatically.
+- **Watch for zero-test runs**: If the test runner reports zero tests executed (exit code 8, masked by `--ignore-exit-code 8`), the filter or quarantine settings are misconfigured. The `run-test-repeatedly` scripts and reproduce workflow detect this automatically.
 - **Keep investigation notes in session workspace**: Use `plan.md` and `files/` in the session workspace, not a directory in the repo
 - **Use two branches**: Investigation branch (draft PR with disabled ci.yml) for reproduce/verify; fix branch (clean PR with only code changes) for the final submission
 - **Distinguish infrastructure vs test failures**: CI runners sometimes fail due to infrastructure issues (e.g., `Failed to install or invoke dotnet...` on Windows). These do NOT count as test reproductions. Always verify the error matches the expected test failure pattern.
