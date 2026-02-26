@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Azure.CognitiveServices;
 
 /// <summary>
-/// Represents Azure OpenAI roles for polyglot role assignment APIs.
+/// Represents ATS-compatible Azure OpenAI roles.
 /// </summary>
 internal enum AzureOpenAIRole
 {
