@@ -38,6 +38,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> ExecuteAsync(string[] args, DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -1176,5 +1177,10 @@ internal sealed class DotNetCliRunner(
         }
 
         return result;
+    }
+
+    public Task<int> ExecuteAsync(string[] args, DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(args, env: null, projectFile: null, workingDirectory, backchannelCompletionSource: null, options, cancellationToken);
     }
 }

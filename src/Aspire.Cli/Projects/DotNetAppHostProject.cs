@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -520,21 +519,11 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
         _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
 
-        using var process = Process.Start(new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            ArgumentList = { "user-secrets", "init", "--project", projectFile.FullName },
-            WorkingDirectory = projectFile.Directory!.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
-
-        if (process is not null)
-        {
-            await process.WaitForExitAsync(cancellationToken);
-        }
+        await _runner.ExecuteAsync(
+            ["user-secrets", "init", "--project", projectFile.FullName],
+            projectFile.Directory!,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
 
         // Re-query
         return await QueryUserSecretsIdAsync(projectFile, cancellationToken);

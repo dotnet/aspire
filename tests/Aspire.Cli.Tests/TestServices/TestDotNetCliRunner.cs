@@ -118,4 +118,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             ? Task.FromResult(AddProjectReferenceAsyncCallback(projectFile, referencedProject, options, cancellationToken))
             : Task.FromResult(0);
     }
+
+    public Task<int> ExecuteAsync(string[] args, DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        => Task.FromResult(0);
 }

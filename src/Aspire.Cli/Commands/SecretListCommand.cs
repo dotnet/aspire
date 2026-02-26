@@ -10,6 +10,7 @@ using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Shared.UserSecrets;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -65,7 +66,6 @@ internal sealed class SecretListCommand : BaseCommand
             }
 
             var json = obj.ToJsonString(SecretsStore.s_jsonOptions);
-            // Structured output always goes to stdout.
             _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
@@ -76,10 +76,19 @@ internal sealed class SecretListCommand : BaseCommand
             }
             else
             {
+                var table = new Table();
+                table.Border(TableBorder.Rounded);
+                table.AddColumn(new TableColumn("[bold]Key[/]").NoWrap());
+                table.AddColumn(new TableColumn("[bold]Value[/]"));
+
                 foreach (var (key, value) in secrets.OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase))
                 {
-                    _interactionService.DisplayPlainText($"{key} = {value}");
+                    table.AddRow(
+                        $"[cyan]{key.EscapeMarkup()}[/]",
+                        $"[yellow]{value.EscapeMarkup()}[/]");
                 }
+
+                AnsiConsole.Write(table);
             }
         }
 

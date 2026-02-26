@@ -16,10 +16,7 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class SecretCommand : BaseCommand
 {
-    internal static readonly Option<FileInfo?> s_appHostOption = new("--apphost")
-    {
-        Description = SharedCommandStrings.AppHostOptionDescription
-    };
+    internal static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
 
