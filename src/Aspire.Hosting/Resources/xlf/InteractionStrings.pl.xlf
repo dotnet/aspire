@@ -50,8 +50,8 @@
       <trans-unit id="DeleteParameterMessageWithUserSecrets">
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
-The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</source>
-        <target state="translated">Czy na pewno chcesz usunąć wartość parametru „{0}”?
+The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
+        <target state="needs-review-translation">Czy na pewno chcesz usunąć wartość parametru „{0}”?
 
 Wartość jest obecnie zapisana we [wpisach tajnych użytkownika](https://learn.microsoft.com/aspnet/core/security/app-secrets). Możesz też zdecydować się na jego usunięcie stamtąd.</target>
         <note>Contains markdown. {0} is the parameter name.</note>
@@ -107,8 +107,8 @@ Wartość jest obecnie zapisana we [wpisach tajnych użytkownika](https://learn.
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
-        <target state="translated">Wymaga skonfigurowania parametru „UserSecretsId” w pliku projektu AppHost. W katalogu AppHost uruchom „dotnet user-secrets init”, aby to skonfigurować.</target>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <target state="needs-review-translation">Wymaga skonfigurowania parametru „UserSecretsId” w pliku projektu AppHost. W katalogu AppHost uruchom „dotnet user-secrets init”, aby to skonfigurować.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -142,10 +142,10 @@ Wartość jest obecnie zapisana we [wpisach tajnych użytkownika](https://learn.
         <note />
       </trans-unit>
       <trans-unit id="SetParameterMessage">
-        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="translated">Podaj wartość parametru. Parametr możesz zapisać we [wpisach tajnych użytkownika](https://learn.microsoft.com/aspnet/core/security/app-secrets), aby użyć go później.
+        <target state="needs-review-translation">Podaj wartość parametru. Parametr możesz zapisać we [wpisach tajnych użytkownika](https://learn.microsoft.com/aspnet/core/security/app-secrets), aby użyć go później.
 
 Nowe wartości parametrów nie będą używane, dopóki nie zostaną ponownie uruchomione zasoby zależne.</target>
         <note>Contains markdown</note>
