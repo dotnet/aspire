@@ -43,6 +43,8 @@
       If we haven't detected the tests are run on build agents, then we presume we're running tests locally.
       -->
     <IsLocalDevLoop Condition=" '$(IsGitHubActionsRunner)' != 'true' and '$(IsAzdoCIRunner)' != 'true' and '$(IsHelix)' != 'true' and '$(IsAzdoHelixRunner)' != 'true' ">true</IsLocalDevLoop>
+
+    <SplitTestsOnCI Condition=" '$(SplitTestsOnCI)' == '' ">false</SplitTestsOnCI>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -108,5 +110,4 @@
 
     <Message Text="Project: $(MSBuildProjectName)$(_NewLine)Runner Context:$(_NewLine)$(_RunnerList)$(_NewLine)Runner support:$(_NewLine)$(_RequirementList)" />
   </Target>
-
 </Project>

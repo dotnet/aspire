@@ -9,55 +9,28 @@ on:
         type: string
 
 jobs:
-  # Duplicated jobs so their dependencies are not blocked on both the
-  # setup jobs
-
-  setup_for_tests_lin:
-    name: Setup for tests (Linux)
+  setup_for_tests:
+    name: Setup for tests
     runs-on: ubuntu-latest
     outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
-      cli_e2e_tests_matrix: ${{ steps.generate_tests_matrix.outputs.cli_e2e_tests_matrix }}
+      tests_matrix_requires_nugets: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets }}
+      tests_matrix_no_nugets: ${{ steps.split_matrix.outputs.tests_matrix_no_nugets }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
-          includeIntegrations: true
           includeTemplates: true
           includeCliE2E: ${{ github.event_name == 'pull_request' }}
 
-  setup_for_tests_macos:
-    name: Setup for tests (macOS)
-    runs-on: macos-latest
-    outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
-
-  setup_for_tests_win:
-    name: Setup for tests (Windows)
-    runs-on: windows-latest
-    outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
+      - name: Split matrix by requiresNugets
+        id: split_matrix
+        shell: bash
+        run: |
+          matrix='${{ steps.generate_tests_matrix.outputs.tests_matrix }}'
+          echo "tests_matrix_requires_nugets=$(echo "$matrix" | jq -c '{include: [.include[] | select(.requiresNugets == true)]}')" >> $GITHUB_OUTPUT
+          echo "tests_matrix_no_nugets=$(echo "$matrix" | jq -c '{include: [.include[] | select(.requiresNugets != true)]}')" >> $GITHUB_OUTPUT
 
   build_packages:
     name: Build packages
@@ -72,133 +45,42 @@ jobs:
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  integrations_test_lin:
+  tests_no_nugets:
+    name: Tests
     uses: ./.github/workflows/run-tests.yml
-    name: Integrations Linux
-    needs: setup_for_tests_lin
+    needs: setup_for_tests
+    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_no_nugets).include[0] != null }}
     strategy:
       fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_lin.outputs.integrations_tests_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_no_nugets) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: "ubuntu-latest"
-      # Docker tests are run on linux, and Hosting tests take longer to finish
-      testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      os: ${{ matrix.runs-on }}
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
-  integrations_test_macos:
+  tests_requires_nugets:
+    name: Tests (Requires Nugets)
     uses: ./.github/workflows/run-tests.yml
-    name: Integrations macos
-    needs: setup_for_tests_macos
+    needs: [setup_for_tests, build_packages]
+    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
     strategy:
       fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_macos.outputs.integrations_tests_matrix) }}
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: "macos-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-
-  integrations_test_win:
-    uses: ./.github/workflows/run-tests.yml
-    name: Integrations Windows
-    needs: setup_for_tests_win
-    strategy:
-      fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_win.outputs.integrations_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "windows-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-
-  templates_test_lin:
-    name: Templates Linux
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_lin, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  templates_test_macos:
-    name: Templates macos
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_macos, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_macos.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "macos-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  templates_test_win:
-    name: Templates Windows
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_win, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "windows-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  endtoend_tests:
-    name: EndToEnd Linux
-    uses: ./.github/workflows/run-tests.yml
-    needs: build_packages
-    with:
-      testShortName: EndToEnd
-      # EndToEnd is not run on Windows/macOS due to missing Docker support
-      os: ubuntu-latest
-      testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
-      requiresNugets: true
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-
-  cli_e2e_tests:
-    name: Cli E2E Linux
-    # Only run CLI E2E tests during PR builds
-    if: ${{ github.event_name == 'pull_request' }}
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_lin, build_packages, build_cli_archives]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.cli_e2e_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      os: ${{ matrix.runs-on }}
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   polyglot_validation:
     name: Polyglot SDK Validation
@@ -219,7 +101,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '20.x'
       - name: Install dependencies
         run: npm install
       - name: Run tests
@@ -237,17 +119,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
-      build_cli_archives,
-      cli_e2e_tests,
-      endtoend_tests,
       extension_tests_win,
-      integrations_test_lin,
-      integrations_test_macos,
-      integrations_test_win,
+      tests_no_nugets,
+      tests_requires_nugets,
       polyglot_validation,
-      templates_test_lin,
-      templates_test_macos,
-      templates_test_win
     ]
     steps:
       - name: Checkout code
@@ -298,15 +173,11 @@ jobs:
                contains(needs.*.result, 'cancelled') ||
                (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
                (github.event_name != 'pull_request' &&
-                (needs.endtoend_tests.result == 'skipped' ||
+                (needs.extension_tests_win.result == 'skipped' ||
+                 needs.tests_no_nugets.result == 'skipped' ||
+                 needs.tests_requires_nugets.result == 'skipped'))) }}
                  needs.extension_tests_win.result == 'skipped' ||
-                 needs.integrations_test_lin.result == 'skipped' ||
-                 needs.integrations_test_macos.result == 'skipped' ||
-                 needs.integrations_test_win.result == 'skipped' ||
-                 needs.polyglot_validation.result == 'skipped' ||
-                 needs.templates_test_lin.result == 'skipped' ||
-                 needs.templates_test_macos.result == 'skipped' ||
-                 needs.templates_test_win.result == 'skipped'))) }}
+                 needs.polyglot_validation.result == 'skipped')) }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1

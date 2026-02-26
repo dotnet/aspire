@@ -234,7 +234,8 @@ jobs:
         run: >
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
-          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          /p:ArchiveTests=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildAndArchive.binlog
           ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
           ${{ inputs.versionOverrideArg }}
 
@@ -296,6 +297,12 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # PR number for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background
           ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -334,6 +341,12 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # PR number for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "dotnet" `
