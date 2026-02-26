@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "1")]
 public class DistributedApplicationBuilderTests
 {
     [Theory]

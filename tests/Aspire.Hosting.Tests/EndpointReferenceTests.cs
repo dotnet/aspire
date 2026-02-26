@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "1")]
 public class EndpointReferenceTests
 {
     [Fact]

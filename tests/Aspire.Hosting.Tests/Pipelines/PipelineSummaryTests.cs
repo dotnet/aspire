@@ -7,6 +7,7 @@ using Aspire.Hosting.Pipelines;
 
 namespace Aspire.Hosting.Tests.Pipelines;
 
+[Trait("Partition", "4")]
 public class PipelineSummaryTests
 {
     [Fact]
