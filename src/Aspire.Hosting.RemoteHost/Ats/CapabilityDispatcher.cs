@@ -471,6 +471,11 @@ internal sealed class CapabilityDispatcher
         {
             throw;
         }
+        catch (InvalidCastException ex)
+        {
+            // Convert CLR cast failures to ATS error
+            throw CapabilityException.TypeMismatch(capabilityId, "unknown", "unknown", ex.Message);
+        }
         catch (Exception ex)
         {
             throw CapabilityException.InternalError(capabilityId, ex.Message, ex);
