@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 
@@ -44,7 +45,7 @@ public static class EntraIdResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new EntraIdApplicationResource(name);
-        return builder.AddResource(resource);
+        return ConfigureEntraIdResource(builder.AddResource(resource));
     }
 
     /// <summary>
@@ -64,7 +65,58 @@ public static class EntraIdResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(configSectionName);
 
         var resource = new EntraIdApplicationResource(name, configSectionName);
-        return builder.AddResource(resource);
+        return ConfigureEntraIdResource(builder.AddResource(resource));
+    }
+
+    private static IResourceBuilder<EntraIdApplicationResource> ConfigureEntraIdResource(
+        IResourceBuilder<EntraIdApplicationResource> resourceBuilder)
+    {
+        return resourceBuilder
+            .WithIconName("ShieldKeyhole")
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "EntraIdApplication",
+                State = KnownResourceStates.Running,
+                Properties = []
+            })
+            .OnInitializeResource(async (resource, evt, ct) =>
+            {
+                var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
+
+                var instance = resource.Instance.TrimEnd('/');
+                var tenantId = resource.TenantId;
+                var clientId = resource.ClientId;
+
+                // OpenID Configuration endpoint
+                if (tenantId is not null)
+                {
+                    urls.Add(new UrlSnapshot(
+                        "OpenID Config",
+                        $"{instance}/{tenantId}/v2.0/.well-known/openid-configuration",
+                        IsInternal: false)
+                    {
+                        DisplayProperties = new UrlDisplayPropertiesSnapshot($"OIDC {instance}")
+                    });
+                }
+
+                // Azure Portal app registration link
+                if (clientId is not null)
+                {
+                    urls.Add(new UrlSnapshot(
+                        "Azure Portal",
+                        $"https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/{clientId}/isMSAApp~/false",
+                        IsInternal: false)
+                    {
+                        DisplayProperties = new UrlDisplayPropertiesSnapshot("App registration")
+                    });
+                }
+
+                await evt.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
+                {
+                    Urls = [.. urls],
+                    State = KnownResourceStates.Running
+                }).ConfigureAwait(false);
+            });
     }
 
     /// <summary>
@@ -461,6 +513,9 @@ public static class EntraIdResourceExtensions
 
         var entra = source.Resource;
         var prefix = entra.ConfigSectionName;
+
+        // Create a reference relationship so the dashboard shows the connection
+        builder.WithReferenceRelationship(entra);
 
         builder.WithEnvironment(context =>
         {

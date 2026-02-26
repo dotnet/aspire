@@ -405,6 +405,71 @@ public class EntraIdResourceBuilderTests
     }
 
     [Fact]
+    public void AddEntraIdApplication_WithCertificateDistinguishedName()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddEntraIdApplication("entra-web")
+            .WithTenantId("test-tenant-id")
+            .WithClientId("test-client-id")
+            .WithCertificateDistinguishedName("CurrentUser/My", "CN=MyCert");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
+        Assert.Single(resource.ClientCredentials);
+        var cred = Assert.IsType<EntraIdStoreCertificateCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("StoreWithDistinguishedName", cred.SourceType);
+        Assert.Equal("CurrentUser/My", cred.StorePath);
+        Assert.Equal("CN=MyCert", cred.DistinguishedName);
+    }
+
+    [Fact]
+    public void AddEntraIdApplication_WithRawCredential()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddEntraIdApplication("entra-web")
+            .WithTenantId("test-tenant-id")
+            .WithClientId("test-client-id")
+            .WithCredential(new EntraIdSignedAssertionFileCredential
+            {
+                FilePath = "/var/run/secrets/token"
+            });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
+        Assert.Single(resource.ClientCredentials);
+        var cred = Assert.IsType<EntraIdSignedAssertionFileCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("SignedAssertionFilePath", cred.SourceType);
+        Assert.Equal("/var/run/secrets/token", cred.FilePath);
+    }
+
+    [Fact]
+    public void WithEntraIdAuthentication_CreatesReferenceRelationship()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var entra = appBuilder.AddEntraIdApplication("entra-api")
+            .WithTenantId("test-tenant-id")
+            .WithClientId("test-client-id");
+
+        var project = appBuilder.AddContainer("api", "myimage")
+            .WithEntraIdAuthentication(entra);
+
+        var relationships = project.Resource.Annotations
+            .OfType<ResourceRelationshipAnnotation>()
+            .ToList();
+
+        Assert.Contains(relationships, r => r.Resource == entra.Resource);
+    }
+
+    [Fact]
     public void AddEntraIdApplication_ThrowsWhenNameNull()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
