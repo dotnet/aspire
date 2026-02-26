@@ -29,6 +29,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.UserSecrets;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -186,6 +187,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        // Resolve the effective UserSecretsId: assembly attribute for .NET, env var for polyglot
+        var userSecretsId = AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
+            ?? _innerBuilder.Configuration[KnownConfigNames.AspireUserSecretsId];
+
+        // For polyglot AppHosts (no assembly attribute), add user secrets early so they have the
+        // same precedence as the default AddUserSecrets called by HostApplicationBuilder for .NET projects.
+        if (!string.IsNullOrEmpty(userSecretsId) &&
+            AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>() is null)
+        {
+            _innerBuilder.Configuration.AddUserSecrets(userSecretsId);
+        }
+
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
         _innerBuilder.Services.AddSingleton<BackchannelLoggerProvider>();
@@ -316,9 +329,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return _directoryService;
         });
 
-        // Create and register the user secrets manager
+        // Create and register the user secrets manager (uses the userSecretsId resolved at top of constructor)
         var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
-        _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
+
+        _userSecretsManager = !string.IsNullOrEmpty(userSecretsId)
+            ? userSecretsFactory.GetOrCreateFromId(userSecretsId)
+            : NoopUserSecretsManager.Instance;
+
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
 

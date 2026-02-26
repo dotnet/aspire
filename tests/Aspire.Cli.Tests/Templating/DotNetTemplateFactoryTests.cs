@@ -485,6 +485,9 @@ public class DotNetTemplateFactoryTests
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
+
+        public Task<int> InitUserSecretsAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => Task.FromResult(0);
     }
 
     private sealed class TestCertificateService : ICertificateService

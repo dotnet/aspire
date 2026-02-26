@@ -176,6 +176,9 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         public Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
             => Task.FromResult(RunningInstanceResult.NoRunningInstance);
 
+        public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+            => Task.FromResult<string?>(null);
+
         private static bool IsValidSingleFileAppHost(FileInfo candidateFile)
         {
             var siblingCsprojFiles = candidateFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);

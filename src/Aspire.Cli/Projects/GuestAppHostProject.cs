@@ -13,6 +13,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -346,6 +347,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
@@ -605,7 +609,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
+            // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
             var (jsonRpcSocketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
 
@@ -1143,5 +1150,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+    }
+
+    /// <summary>
+    /// Computes a deterministic synthetic UserSecretsId from the AppHost file path.
+    /// </summary>
+    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var id = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+        return Task.FromResult<string?>(id);
     }
 }
