@@ -469,6 +469,17 @@ public class EntraIdResourceBuilderTests
     }
 
     [Fact]
+    public void EntraIdStoreCertificateCredential_ThrowsWhenNeitherThumbprintNorDN()
+    {
+        var credential = new EntraIdStoreCertificateCredential
+        {
+            StorePath = "CurrentUser/My"
+        };
+
+        Assert.Throws<InvalidOperationException>(() => _ = credential.SourceType);
+    }
+
+    [Fact]
     public void AddEntraIdApplication_DoesNotImplementIResourceWithConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

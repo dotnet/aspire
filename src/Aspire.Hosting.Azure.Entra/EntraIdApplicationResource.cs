@@ -311,7 +311,19 @@ public sealed class EntraIdKeyVaultCertificateCredential : EntraIdClientCredenti
 public sealed class EntraIdStoreCertificateCredential : EntraIdClientCredential
 {
     /// <inheritdoc />
-    public override string SourceType => Thumbprint is not null ? "StoreWithThumbprint" : "StoreWithDistinguishedName";
+    public override string SourceType
+    {
+        get
+        {
+            if (Thumbprint is null && DistinguishedName is null)
+            {
+                throw new InvalidOperationException(
+                    $"Either {nameof(Thumbprint)} or {nameof(DistinguishedName)} must be set on {nameof(EntraIdStoreCertificateCredential)}.");
+            }
+
+            return Thumbprint is not null ? "StoreWithThumbprint" : "StoreWithDistinguishedName";
+        }
+    }
 
     /// <summary>
     /// Gets the certificate store path (e.g., <c>"CurrentUser/My"</c> or <c>"LocalMachine/My"</c>).
