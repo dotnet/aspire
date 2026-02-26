@@ -22,4 +22,6 @@ internal static class SecretCommandStrings
     internal static string SecretSetSuccess => s_resourceManager.GetString("SecretSetSuccess", System.Globalization.CultureInfo.CurrentUICulture) ?? "Secret '{0}' set successfully.";
     internal static string SecretDeleteSuccess => s_resourceManager.GetString("SecretDeleteSuccess", System.Globalization.CultureInfo.CurrentUICulture) ?? "Secret '{0}' deleted successfully.";
     internal static string NoSecretsConfigured => s_resourceManager.GetString("NoSecretsConfigured", System.Globalization.CultureInfo.CurrentUICulture) ?? "No secrets configured.";
+    internal static string KeyColumnHeader => s_resourceManager.GetString("KeyColumnHeader", System.Globalization.CultureInfo.CurrentUICulture) ?? "Key";
+    internal static string ValueColumnHeader => s_resourceManager.GetString("ValueColumnHeader", System.Globalization.CultureInfo.CurrentUICulture) ?? "Value";
 }

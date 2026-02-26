@@ -28,7 +28,6 @@ internal sealed class SecretSetCommand : BaseCommand
         Description = SecretCommandStrings.ValueArgumentDescription
     };
 
-    private readonly IInteractionService _interactionService;
     private readonly SecretStoreResolver _secretStoreResolver;
 
     public SecretSetCommand(
@@ -40,7 +39,6 @@ internal sealed class SecretSetCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("set", SecretCommandStrings.SetDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
         Arguments.Add(s_keyArgument);
@@ -50,21 +48,24 @@ internal sealed class SecretSetCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Argument arity guarantees non-null
         var key = parseResult.GetValue(s_keyArgument)!;
         var value = parseResult.GetValue(s_valueArgument)!;
         var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
 
+        // autoInit: true — when setting a secret, automatically initialize user secrets
+        // if not yet configured (e.g., run 'dotnet user-secrets init' for csproj projects)
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: true, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
+            InteractionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
         result.Store.Set(key, value);
         result.Store.Save();
 
-        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretSetSuccess, key.EscapeMarkup()));
+        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretSetSuccess, key.EscapeMarkup()));
         return ExitCodeConstants.Success;
     }
 }

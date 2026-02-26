@@ -23,7 +23,6 @@ internal sealed class SecretGetCommand : BaseCommand
         Description = SecretCommandStrings.KeyRetrieveArgumentDescription
     };
 
-    private readonly IInteractionService _interactionService;
     private readonly SecretStoreResolver _secretStoreResolver;
 
     public SecretGetCommand(
@@ -35,7 +34,6 @@ internal sealed class SecretGetCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("get", SecretCommandStrings.GetDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
         Arguments.Add(s_keyArgument);
@@ -44,25 +42,26 @@ internal sealed class SecretGetCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Argument arity guarantees non-null
         var key = parseResult.GetValue(s_keyArgument)!;
         var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
 
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: false, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
+            InteractionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
         var value = result.Store.Get(key);
         if (value is null)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretNotFound, key.EscapeMarkup()));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretNotFound, key.EscapeMarkup()));
             return ExitCodeConstants.ConfigNotFound;
         }
 
         // Write value to stdout (machine-readable)
-        _interactionService.DisplayPlainText(value);
+        InteractionService.DisplayPlainText(value);
         return ExitCodeConstants.Success;
     }
 }

@@ -189,7 +189,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Resolve the effective UserSecretsId: assembly attribute for .NET, env var for polyglot
         var userSecretsId = AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
-            ?? _innerBuilder.Configuration["ASPIRE_USER_SECRETS_ID"];
+            ?? _innerBuilder.Configuration[KnownConfigNames.AspireUserSecretsId];
 
         // For polyglot AppHosts (no assembly attribute), add user secrets early so they have the
         // same precedence as the default AddUserSecrets called by HostApplicationBuilder for .NET projects.

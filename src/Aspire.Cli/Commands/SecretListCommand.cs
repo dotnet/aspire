@@ -24,7 +24,6 @@ internal sealed class SecretListCommand : BaseCommand
         Description = SecretCommandStrings.FormatOptionDescription
     };
 
-    private readonly IInteractionService _interactionService;
     private readonly SecretStoreResolver _secretStoreResolver;
 
     public SecretListCommand(
@@ -36,7 +35,6 @@ internal sealed class SecretListCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("list", SecretCommandStrings.ListDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _secretStoreResolver = secretStoreResolver;
 
         Options.Add(SecretCommand.s_appHostOption);
@@ -51,13 +49,13 @@ internal sealed class SecretListCommand : BaseCommand
         // Route human-readable output to stderr when JSON is requested to keep stdout clean
         if (format == OutputFormat.Json)
         {
-            _interactionService.Console = ConsoleOutput.Error;
+            InteractionService.Console = ConsoleOutput.Error;
         }
 
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: false, cancellationToken);
         if (result is null)
         {
-            _interactionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
+            InteractionService.DisplayError(SecretCommandStrings.CouldNotFindAppHost);
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -72,20 +70,20 @@ internal sealed class SecretListCommand : BaseCommand
             }
 
             var json = obj.ToJsonString(SecretsStore.s_jsonOptions);
-            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
+            InteractionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
             if (secrets.Count == 0)
             {
-                _interactionService.DisplayMessage("information", SecretCommandStrings.NoSecretsConfigured);
+                InteractionService.DisplayMessage("information", SecretCommandStrings.NoSecretsConfigured);
             }
             else
             {
                 var table = new Table();
                 table.Border(TableBorder.Rounded);
-                table.AddColumn(new TableColumn("[bold]Key[/]").NoWrap());
-                table.AddColumn(new TableColumn("[bold]Value[/]"));
+                table.AddColumn(new TableColumn($"[bold]{SecretCommandStrings.KeyColumnHeader}[/]").NoWrap());
+                table.AddColumn(new TableColumn($"[bold]{SecretCommandStrings.ValueColumnHeader}[/]"));
 
                 foreach (var (key, value) in secrets.OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase))
                 {
