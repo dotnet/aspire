@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Diagnose Aspire environment issues and verify setup.</source>
-        <target state="needs-review-translation">Aspire 環境の問題を診断し、セットアップを確認します</target>
+        <target state="new">Diagnose Aspire environment issues and verify setup.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">ツール統合の結果を JSON として出力します</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">
