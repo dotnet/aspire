@@ -14,22 +14,22 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">Format danych wyjściowych (Tabela lub JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="new">No AppHost project found.</target>
+        <target state="translated">Nie znaleziono projektu AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="new">The name of the resource to display. If not specified, all resources are shown.</target>
+        <target state="translated">Nazwa zasobu do wyświetlenia. Jeśli nie zostanie określony, zostaną wyświetlone wszystkie zasoby.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="new">Resource '{0}' not found.</target>
+        <target state="translated">Nie znaleziono „{0}” zasobu.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

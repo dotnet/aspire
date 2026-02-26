@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="new">Describe resources in a running apphost.</target>
+        <target state="translated">実行中の AppHost のリソースを説明します。</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes.</source>
-        <target state="new">Continuously stream resource state changes.</target>
+        <target state="translated">リソースの状態の変化を継続的にストリームします。</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">出力形式 (テーブルまたは JSON)。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="new">No AppHost project found.</target>
+        <target state="translated">AppHost プロジェクトは見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="new">The name of the resource to display. If not specified, all resources are shown.</target>
+        <target state="translated">表示するリソースの名前。指定しない場合は、すべてのリソースが表示されます。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="new">Resource '{0}' not found.</target>
+        <target state="translated">リソース '{0}' が見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
