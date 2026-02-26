@@ -158,8 +158,7 @@ dependency-reduced-pom.xml
 # Publisher Outputs
 playground/**/publish/
 
-# TypeScript AppHost generated modules
-playground/**/.modules/
+# TypeScript AppHost
 playground/**/dist/
 
 # Verify
