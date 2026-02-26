@@ -56,8 +56,10 @@ This invokes `eng/TestEnumerationRunsheetBuilder/TestEnumerationRunsheetBuilder.
 - Writes a `.tests-metadata.json` file to `artifacts/helix/` containing:
   - `projectName`, `shortName`, `testProjectPath`
   - `supportedOSes` array (e.g., `["windows", "linux", "macos"]`)
-  - `requiresNugets`, `requiresTestSdk` flags
+  - `requiresNugets`, `requiresTestSdk`, `requiresCliArchive` flags
+  - `enablePlaywrightInstall` flag
   - `testSessionTimeout`, `testHangTimeout` values
+  - `uncollectedTestsSessionTimeout`, `uncollectedTestsHangTimeout` values
   - `splitTests` flag
 
 ### Phase 2: Test Partition Discovery
@@ -65,7 +67,7 @@ This invokes `eng/TestEnumerationRunsheetBuilder/TestEnumerationRunsheetBuilder.
 For projects with `SplitTestsOnCI=true`, the `GenerateTestPartitionsForCI` target runs `eng/scripts/split-test-projects-for-ci.ps1`, which:
 
 1. **Attempts partition extraction**: Uses `tools/ExtractTestPartitions` to scan the test assembly for `[Trait("Partition", "name")]` attributes on test classes
-2. **If partitions found**: Writes entries like `collection:PartitionName` plus `uncollected:*` (safety net for tests without partition traits)
+2. **If partitions found**: Writes entries like `collection:PartitionName` plus `uncollected:*` (safety net for tests without partition traits). Note: the term "collection" here refers to partition groups, not xUnit `[Collection]` attributes which serve a different purpose (shared test fixtures).
 3. **If no partitions found**: Falls back to class-based splitting using `--list-tests` output, writing entries like `class:Namespace.ClassName`
 
 Output: `.tests-partitions.json` file alongside the metadata file.
@@ -82,7 +84,7 @@ After all projects build, `eng/AfterSolutionBuild.targets` runs `eng/scripts/bui
    - **Regular tests**: One entry per project
    - **Partition-based splits**: One entry per partition + one for `uncollected:*`
    - **Class-based splits**: One entry per test class
-6. Outputs `artifacts/canonical-test-matrix.json` in canonical format (flat array with `requiresNugets` boolean per entry)
+6. Outputs `artifacts/canonical-test-matrix.json` in canonical format (flat array with `requiresNugets`, `requiresCliArchive` booleans per entry)
 
 **Canonical format:**
 ```json
@@ -119,7 +121,12 @@ Each CI platform has a thin script that transforms the canonical matrix:
 **GitHub Actions** (`eng/scripts/expand-test-matrix-github.ps1`):
 - Expands each entry for every OS in its `supportedOSes` array
 - Maps OS names to GitHub runners (`linux` → `ubuntu-latest`, etc.)
-- Outputs GitHub Actions matrix format: `{ "include": [...] }`
+- Splits entries into categories by dependency requirements:
+  - `no_nugets` — tests with no package dependencies
+  - `requires_nugets` — tests needing built NuGet packages
+  - `requires_cli_archive` — tests needing native CLI archives
+- Applies overflow splitting for the `no_nugets` category (threshold: 250 entries) to stay under the GitHub Actions 256-job-per-matrix limit
+- Outputs 4 GitHub Actions matrices: `no_nugets` (primary), `no_nugets_overflow`, `requires_nugets`, `requires_cli_archive`
 
 **Azure DevOps** (future):
 - Would map OS names to vmImage or pool names
@@ -131,13 +138,20 @@ This separation keeps 90% of the logic platform-agnostic while allowing each CI 
 
 In `.github/workflows/tests.yml`, the workflow:
 
-1. Receives a single combined matrix from the `enumerate-tests` action
-2. Splits the matrix by `requiresNugets` property using `jq`
-3. Runs two job groups with the split matrices:
+1. Receives 4 pre-split matrices from the `enumerate-tests` action (split by `expand-test-matrix-github.ps1`)
+2. Runs 4 job groups using the split matrices:
    - `tests_no_nugets`: Runs immediately after enumeration
+   - `tests_no_nugets_overflow`: Runs immediately (handles entries beyond the 250-entry threshold)
    - `tests_requires_nugets`: Waits for `build_packages` job
+   - `tests_requires_cli_archive`: Waits for both `build_packages` and `build_cli_archives` jobs
 
 Each job invokes `.github/workflows/run-tests.yml` with matrix parameters including `extraTestArgs` for filtering (e.g., `--filter-trait "Partition=X"`).
+
+> **Note:** The workflow automatically prepends `--filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"` before any `extraTestArgs`, ensuring quarantined and outerloop tests are always excluded from the main test run.
+
+#### GitHub Actions 256-Job Limit
+
+GitHub Actions enforces a maximum of 256 jobs per `strategy.matrix`. To stay within this limit, the `no_nugets` category (typically the largest) is split into primary and overflow buckets at a threshold of 250 entries. If the total entry count is below 250, the overflow matrix is empty and the overflow job is skipped.
 
 ## Enabling Test Splitting for a Project
 
@@ -152,8 +166,8 @@ To split a test project into parallel CI jobs, add these properties to the `.csp
   <!-- Optional: Custom timeouts -->
   <TestSessionTimeout>30m</TestSessionTimeout>
   <TestHangTimeout>15m</TestHangTimeout>
-  <UncollectedTestsSessionTimeout>20m</UncollectedTestsSessionTimeout>
-  <UncollectedTestsHangTimeout>10m</UncollectedTestsHangTimeout>
+  <UncollectedTestsSessionTimeout>15m</UncollectedTestsSessionTimeout>  <!-- default: 15m -->
+  <UncollectedTestsHangTimeout>10m</UncollectedTestsHangTimeout>        <!-- default: 10m -->
 </PropertyGroup>
 ```
 
@@ -207,6 +221,40 @@ For tests that need the built Aspire packages (e.g., template tests, end-to-end 
 ```
 
 These tests wait for the `build_packages` job before running.
+
+## Requiring CLI Native Archives
+
+For tests that need native CLI archives (e.g., CLI end-to-end tests):
+
+```xml
+<PropertyGroup>
+  <RequiresNugets>true</RequiresNugets>
+  <RequiresCliArchive>true</RequiresCliArchive>
+</PropertyGroup>
+```
+
+These tests wait for both the `build_packages` and `build_cli_archives` jobs before running. The workflow also sets `GH_TOKEN`, `GITHUB_PR_NUMBER`, and `GITHUB_PR_HEAD_SHA` environment variables for CLI E2E test scenarios.
+
+## Enabling Playwright
+
+For tests that require Playwright browser automation:
+
+```xml
+<PropertyGroup>
+  <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
+</PropertyGroup>
+```
+
+This flag is tracked in the test metadata and controls whether Playwright browsers are installed during the test build step.
+
+## Deployment Tests
+
+Deployment end-to-end tests have a separate flow from the standard test matrix:
+
+1. The `enumerate-tests` action builds the deployment test project with `GenerateTestPartitionsForCI`
+2. A separate `generate_deployment_matrix` step reads the generated partitions
+3. The deployment matrix is output independently from the main test matrices
+4. Deployment tests run in a dedicated workflow (`tests-deployment.yml`) with Azure credentials
 
 ## File Artifacts
 
