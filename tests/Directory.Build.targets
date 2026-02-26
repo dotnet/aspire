@@ -17,16 +17,6 @@
     <!-- don't capture on local runs -->
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
 
-    <_ShouldArchiveForHelixRun Condition="'$(IsAzdoHelixRunner)' == 'true' and
-        (($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnAzdoHelixWindows)' == 'true')
-        or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnAzdoHelixLinux)' == 'true'))">true</_ShouldArchiveForHelixRun>
-
-    <_ShouldArchiveForGithubActionsRun Condition="'$(IsGitHubActionsRunner)' == 'true' and '$(RequiresNugets)' == 'true'">true</_ShouldArchiveForGithubActionsRun>
-
-    <_ShouldArchiveTests
-      Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and
-                  ('$(_ShouldArchiveForHelixRun)' == 'true' or '$(_ShouldArchiveForGithubActionsRun)' == 'true') and
-                  '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">true</_ShouldArchiveTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -108,8 +98,19 @@
   <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />
   <Import Project="$(RepositoryEngineeringDir)Testing.targets" />
 
-  <!-- Must be after Testing.targets import where RunOnAzdoHelix is computed from RunOnAzdoHelixWindows/Linux -->
+  <!-- Must be after Testing.targets import where IsAzdoHelixRunner, IsGitHubActionsRunner, and RunOnAzdoHelix are computed -->
   <PropertyGroup>
     <ArchiveTests Condition="'$(ArchiveTests)' == '' and '$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true'">true</ArchiveTests>
+
+    <_ShouldArchiveForHelixRun Condition="'$(IsAzdoHelixRunner)' == 'true' and
+        (($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnAzdoHelixWindows)' == 'true')
+        or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnAzdoHelixLinux)' == 'true'))">true</_ShouldArchiveForHelixRun>
+
+    <_ShouldArchiveForGithubActionsRun Condition="'$(IsGitHubActionsRunner)' == 'true' and '$(RequiresNugets)' == 'true'">true</_ShouldArchiveForGithubActionsRun>
+
+    <_ShouldArchiveTests
+      Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and
+                  ('$(_ShouldArchiveForHelixRun)' == 'true' or '$(_ShouldArchiveForGithubActionsRun)' == 'true') and
+                  '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">true</_ShouldArchiveTests>
   </PropertyGroup>
 </Project>
