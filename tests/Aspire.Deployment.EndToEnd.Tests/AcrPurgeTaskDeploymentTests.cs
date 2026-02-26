@@ -231,7 +231,7 @@ builder.Build().Run();
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
-                var mainPyPath = Path.Combine(projectDir, "api", "main.py");
+                var mainPyPath = Path.Combine(projectDir, "app", "main.py");
 
                 output.WriteLine($"Modifying {mainPyPath} to force new image...");
 
