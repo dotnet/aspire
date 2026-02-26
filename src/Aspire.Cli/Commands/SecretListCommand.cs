@@ -75,9 +75,8 @@ internal sealed class SecretListCommand : BaseCommand
             else
             {
                 var table = new Table();
-                table.Border(TableBorder.Rounded);
-                table.AddColumn(new TableColumn($"[bold]{SecretCommandStrings.KeyColumnHeader}[/]").NoWrap());
-                table.AddColumn(new TableColumn($"[bold]{SecretCommandStrings.ValueColumnHeader}[/]"));
+                table.AddBoldColumn(SecretCommandStrings.KeyColumnHeader, noWrap: true);
+                table.AddBoldColumn(SecretCommandStrings.ValueColumnHeader);
 
                 foreach (var (key, value) in secrets.OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase))
                 {
@@ -86,7 +85,7 @@ internal sealed class SecretListCommand : BaseCommand
                         $"[yellow]{value.EscapeMarkup()}[/]");
                 }
 
-                AnsiConsole.Write(table);
+                InteractionService.DisplayRenderable(table);
             }
         }
 
