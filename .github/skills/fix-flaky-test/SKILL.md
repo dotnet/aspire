@@ -10,13 +10,12 @@ You are a specialized agent for reproducing and fixing flaky tests in the dotnet
 **Do NOT skip ahead to writing a code fix.** Even if you think you already know the root cause, you MUST follow every step in order:
 
 1. **Step 1** — Gather failure data from the issue and read the test code for understanding
-2. **Step 1.5** — Analyze existing quarantine failure logs (may reveal root cause without reproduction)
+2. **Step 1.5** — Analyze existing quarantine failure logs (may reveal root cause, informs reproduction strategy)
 3. **Step 2** — Try to reproduce locally using `run-test-repeatedly.sh`/`.ps1` (fast path) ← try this FIRST
-4. **Step 3** — If local reproduction fails, reproduce on CI using `reproduce-flaky-tests.yml` (can be skipped — see Step 1.5)
+4. **Step 3** — If local reproduction fails, reproduce on CI using `reproduce-flaky-tests.yml` (graduated: single-test → quarantine-project → log-based)
 5. **Step 4** — Analyze failure logs to confirm root cause
 6. **Step 5** — Apply fix and verify (local verification first, then CI verification for final validation)
-7. **Step 6** — Verify the fix did not introduce regressions in the CI workflow
-8. **Step 7** — Clean up investigation branch and create final PR
+7. **Step 6** — Clean up investigation branch and create final PR
 
 Each step has a **checkpoint** at the end. Do not proceed to the next step until the checkpoint is satisfied. Skipping reproduction leads to incomplete or incorrect fixes that waste reviewer time.
 
@@ -50,20 +49,22 @@ INSERT INTO todos (id, title, description, status) VALUES
   ('gather-data', 'Gather failure data', 'Read issue, find test code, determine failure rates per OS', 'pending'),
   ('analyze-existing', 'Analyze existing quarantine logs', 'Download logs from recent quarantine failures to understand the error', 'pending'),
   ('reproduce-local', 'Reproduce locally', 'Try local reproduction with run-test-repeatedly.sh/.ps1 (fast path)', 'pending'),
-  ('reproduce-ci', 'Reproduce on CI', 'If local fails, configure and run reproduce-flaky-tests.yml to confirm the failure', 'pending'),
+  ('reproduce-ci', 'Reproduce on CI', 'Configure and run reproduce-flaky-tests.yml: single-test first, then quarantine-project if needed', 'pending'),
   ('analyze', 'Analyze failure logs', 'Download CI logs or review local logs, identify root cause', 'pending'),
   ('fix', 'Apply fix', 'Write the code fix based on root cause analysis', 'pending'),
   ('verify', 'Verify fix on CI', 'Re-run reproduce workflow to confirm fix works', 'pending'),
+  ('verify-ci', 'Verify no CI regressions', 'Confirm fix does not introduce regressions in the CI workflow', 'pending'),
   ('cleanup', 'Clean up investigation', 'Close investigation PR, create clean fix PR', 'pending');
 
 INSERT INTO todo_deps (todo_id, depends_on) VALUES
   ('analyze-existing', 'gather-data'),
   ('reproduce-local', 'analyze-existing'),
   ('reproduce-ci', 'reproduce-local'),
-  ('analyze', 'reproduce-local'),
+  ('analyze', 'reproduce-ci'),
   ('fix', 'analyze'),
   ('verify', 'fix'),
-  ('cleanup', 'verify');
+  ('verify-ci', 'verify'),
+  ('cleanup', 'verify-ci');
 ```
 
 ### Store key parameters in session state:
@@ -79,6 +80,7 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES
   ('failure_rate_macos', '<rate or unknown>'),
   ('max_failure_rate', '<highest rate across OSes>'),
   ('reproduce_attempt', '1'),
+  ('reproduce_mode', 'single-test'),
   ('fix_attempt', '1'),
   ('reproduce_run_id', ''),
   ('verify_run_id', ''),
@@ -117,14 +119,14 @@ Use `plan.md` in the session workspace for running notes and observations. Only 
 The steps below are sequential and gated. Complete each step fully before moving to the next.
 
 1. Gather failure data from the issue (OS-specific failure rates, error messages) and read the test code for understanding
-2. Analyze existing quarantine failure logs — this often reveals the root cause without needing a separate reproduction
+2. Analyze existing quarantine failure logs — informs reproduction strategy and may reveal root cause
 3. **Try to reproduce locally** using `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) — this is the fast path (~minutes vs ~30 min for CI). Works when the current OS matches a failing OS.
-4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **fall back to CI reproduction** using `reproduce-flaky-tests.yml`
+4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **reproduce on CI** using `reproduce-flaky-tests.yml` with graduated escalation: single-test → quarantine-project → log-based analysis
 5. Analyze failure logs to identify root cause
 6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`/`.ps1`, then **always validate on CI** as final verification.
 7. Clean up: close investigation branch, create clean fix PR
 
-**Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause without a separate reproduction run.
+**Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause, but CI reproduction should still be attempted to establish a baseline failure rate.
 
 ## Step 1: Gather Failure Data
 
@@ -241,18 +243,16 @@ A test is likely **contention-sensitive** (fails only when running alongside oth
 4. **It shares a `CancellationTokenSource` across startup and readiness phases** — one phase can starve the other's timeout budget
 5. **The tracking issue shows 0% failure on macOS** (which often has less CI contention) but failures on Linux/Windows
 
-If you identify the test as contention-sensitive, the reproduce workflow (which runs the test in isolation) is unlikely to reproduce the failure. In this case, you may **skip Step 2** and proceed directly to Step 3 (root cause analysis) using the quarantine logs as your evidence.
+If you identify contention-sensitive indicators, **note this for Step 3** — single-test CI reproduction may fail, and you'll need to escalate to quarantine-project mode. Do NOT skip reproduction; the graduated escalation in Step 3 handles this.
 
 ### ✅ Step 1.5 Checkpoint
 
-Before deciding whether to skip reproduction:
+Before proceeding:
 - [ ] Downloaded and examined at least 1-2 quarantine failure logs for the test
 - [ ] Confirmed the error matches the pattern in the tracking issue
-- [ ] Assessed whether the test is contention-sensitive
+- [ ] Assessed whether the test is contention-sensitive (noted for Step 3 escalation strategy)
 
-**If contention-sensitive**: Mark `reproduce-local` and `reproduce-ci` as `done` in SQL, set `analyze` to `in_progress`, and proceed to Step 4 using the quarantine logs as your failure evidence.
-
-**If NOT contention-sensitive** (or you're unsure): Proceed to Step 2 for local reproduction.
+Proceed to Step 2 for local reproduction.
 
 ## Step 2: Try Local Reproduction (Fast Path)
 
@@ -566,15 +566,40 @@ Scale up progressively, focusing on the OS most likely to fail first (based on p
 |---------|---------------|-------------------|--------------------------|-------|
 | 1 | Highest-failure-rate OS only | From heuristic table | From heuristic table | Start narrow — one OS, sized by failure rate |
 | 2 | Same single OS | Same | 2× previous | Double `ITERATIONS_PER_RUNNER` only |
-| 3 | Add second-worst OS (if available) | Same | Same as attempt 2 | Expand OS coverage, keep iteration count |
 
 **Upper bounds**: Do not exceed `RUNNERS_PER_OS=10` or `ITERATIONS_PER_RUNNER=50` (total matrix entries must stay ≤ 256 per GitHub Actions limits).
 
-**If 2+ attempts at ≥95% confidence produce zero test failures**: The test is likely **contention-sensitive** — it only fails when running alongside other tests, which the reproduce workflow doesn't simulate. In this case:
-1. Fall back to analyzing existing quarantine failure logs (Step 1.5)
+**If 2 attempts produce zero test failures → escalate to quarantine-project mode (Step 3.6).**
+
+### 3.6: Quarantine-Project Mode (Contention Escalation)
+
+When single-test reproduction fails, the test likely only fails under contention with other tests. Escalate by running **all quarantined tests in the assembly**, which matches what `tests-quarantine.yml` does:
+
+Edit `.github/workflows/reproduce-flaky-tests.yml` — change the `TEST_FILTER` to target all quarantined tests:
+
+```yaml
+env:
+  TEST_PROJECT: "<same project>"
+  TEST_FILTER: '--filter-trait "quarantined=true"'  # Run all quarantined tests in this assembly
+  TARGET_OSES: "<same as before>"
+  RUNNERS_PER_OS: "3"
+  ITERATIONS_PER_RUNNER: "3"
+```
+
+This recreates the contention environment from the quarantine workflow. Push, trigger, and monitor as before.
+
+**If quarantine-project mode reproduces the failure**: Reproduction successful ✅. Proceed to Step 4. Note: verification (Step 5) should use the same quarantine-project mode to confirm the fix.
+
+**If quarantine-project mode also produces zero failures**: The test requires heavier contention than we can simulate on demand. In this case:
+1. Fall back to analyzing existing quarantine failure logs (from Step 1.5)
 2. Read the test code to identify contention indicators (shared ports, shared fixtures, sequential waits)
 3. Proceed to Step 4 using quarantine logs as your failure evidence
 4. The verification run (Step 5) will still validate your fix in isolation, which is useful even if you can't reproduce the original failure
+5. Note in the PR description that reproduction required full CI contention and the fix relies on log analysis + quarantine monitoring for confirmation
+
+```sql
+INSERT OR REPLACE INTO session_state (key, value) VALUES ('reproduce_mode', 'log-based');
+```
 
 **CRITICAL: Windows log encoding gotcha**
 
@@ -649,7 +674,7 @@ Before proceeding to Step 5, confirm you have:
 
 ## Step 5: Apply Fix and Verify
 
-> **⚠️ DO NOT remove the `[QuarantinedTest]` attribute or close the tracking issue.** Unquarantining is a separate process that happens after 21 days of zero failures in quarantine CI. Your fix PR should contain _only_ the code fix. See Step 6.4 for details.
+> **⚠️ DO NOT remove the `[QuarantinedTest]` attribute or close the tracking issue.** Unquarantining is a separate process that happens after 21 days of zero failures in quarantine CI. Your fix PR should contain _only_ the code fix. See Step 6.5 for details.
 
 ### 5.1: Apply the Fix
 
@@ -717,7 +742,7 @@ Use the **original failure rate** combined with your local confidence to size th
 
 For tests with very low failure rates (<5%), consider whether the verification is practical within CI budget constraints. If not, document the limitation and rely on the 21-day quarantine monitoring to confirm.
 
-**For contention-sensitive tests** (where reproduction in isolation didn't work): The verification run still validates that the fix doesn't break the test. Use the low-confidence column since you couldn't reproduce locally. The 21-day quarantine monitoring will provide the definitive confirmation under real contention.
+**For contention-sensitive tests** (where quarantine-project mode was needed for reproduction): Use the **same quarantine-project `TEST_FILTER`** for verification. This ensures the fix is validated under the same contention conditions where the failure was observed. If reproduction fell back to log-based analysis, use the low-confidence column and note in the PR that definitive confirmation relies on the 21-day quarantine monitoring.
 
 ### 5.4: Push and Verify on CI
 
@@ -857,7 +882,22 @@ gh pr create --repo dotnet/aspire \
 gh pr close <investigation-pr-number> --repo dotnet/aspire --delete-branch
 ```
 
-### 6.4: DO NOT Unquarantine or Close the Issue
+### 6.4: Verify No CI Regressions
+
+After opening the final PR, the regular CI pipeline (`ci.yml`) will run automatically. Monitor it to confirm the fix does not introduce regressions:
+
+```bash
+# Find the CI run for your PR
+gh pr checks <pr-number> --repo dotnet/aspire
+```
+
+If CI fails on unrelated tests, that's not your problem — note it in the PR. If CI fails on your changed files or the test project you modified, investigate and fix before marking the task complete.
+
+```sql
+UPDATE todos SET status = 'done' WHERE id = 'verify-ci';
+```
+
+### 6.5: DO NOT Unquarantine or Close the Issue
 
 **Important policy**: A code fix alone is not sufficient to unquarantine a test. The test must have **zero failures across all OSes for 21 consecutive days** in the quarantine CI runs before it can be unquarantined. See `docs/unquarantine-policy.md`.
 
@@ -953,7 +993,7 @@ Description of the code change.
 
 ## Important Constraints
 
-- **Reproduce before fixing**: Always confirm the failure is reproducible before attempting a fix — try locally first, then CI. For contention-sensitive tests, existing quarantine logs may serve as sufficient evidence (see Step 1.5)
+- **Reproduce before fixing**: Always confirm the failure is reproducible before attempting a fix — try locally first, then CI. Use graduated escalation: single-test → quarantine-project → log-based (see Steps 3.5 and 3.6)
 - **Try local first**: Use `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) for fast feedback (~minutes). Fall back to CI when local reproduction fails (wrong OS, contention-sensitive, very low failure rate)
 - **Detect your OS**: Check with `uname -s` to decide if local reproduction is viable for the failing OS
 - **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default. Pass this property to both `dotnet build` and `dotnet test` commands for local reproduction. The CI reproduce workflow handles this automatically.
@@ -963,6 +1003,7 @@ Description of the code change.
 - **Distinguish infrastructure vs test failures**: CI runners sometimes fail due to infrastructure issues (e.g., `Failed to install or invoke dotnet...` on Windows). These do NOT count as test reproductions. Always verify the error matches the expected test failure pattern.
 - **DO NOT unquarantine or close issue**: The test stays quarantined until 21 days of zero failures (see `docs/unquarantine-policy.md`)
 - **Scale verification to failure rate**: A 50% failure rate test needs fewer verification iterations than a 5% failure rate test. Use the verification heuristic table.
+- **Match verification mode to reproduction mode**: If reproduction required quarantine-project mode, use the same mode for verification. Store the mode in `session_state` (`reproduce_mode`).
 - **Target specific OSes**: Focus on the OS with the highest failure rate first. Only expand to multiple OSes when the rate is high (>20%) on multiple OSes or when initial attempts don't reproduce.
 - **Build-verify everything**: After fixes, after any test attribute changes
 - **Don't fix unrelated issues**: If you encounter unrelated test failures, ignore them
