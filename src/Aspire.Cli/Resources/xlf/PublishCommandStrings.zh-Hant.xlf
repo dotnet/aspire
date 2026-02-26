@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generate deployment artifacts for an apphost. (Preview)</source>
-        <target state="needs-review-translation">為 Aspire AppHost 產生部署成品。(預覽)</target>
+        <target state="new">Generate deployment artifacts for an apphost. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">請勿在執行之前組建或還原專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

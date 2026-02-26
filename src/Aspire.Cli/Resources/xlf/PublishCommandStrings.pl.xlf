@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generate deployment artifacts for an apphost. (Preview)</source>
-        <target state="needs-review-translation">Generuje artefakty wdrożenia dla hosta AppHost platformy Aspire. (Wersja zapoznawcza)</target>
+        <target state="new">Generate deployment artifacts for an apphost. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">Nie kompiluj ani nie przywracaj projektu przed uruchomieniem.</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

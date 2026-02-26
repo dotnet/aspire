@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ResourceCommandStrings.resx">
     <body>
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start an apphost in the background, or start a stopped resource.</source>
-        <target state="translated">停止しているリソースを開始します。</target>
+        <target state="new">Start an apphost in the background, or start a stopped resource.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
         <source>The name of the resource to start. If not specified, starts the AppHost in the background.</source>
-        <target state="translated">開始するリソースの名前。</target>
+        <target state="new">The name of the resource to start. If not specified, starts the AppHost in the background.</target>
         <note />
       </trans-unit>
     </body>
