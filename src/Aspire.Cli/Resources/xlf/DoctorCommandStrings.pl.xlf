@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">Format danych wyjściowych (Tabela lub JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">
