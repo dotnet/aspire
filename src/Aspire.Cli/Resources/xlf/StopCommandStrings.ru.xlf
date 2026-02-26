@@ -28,18 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
-        <target state="translated">Запущено несколько хостов приложений. Используйте параметр --project, чтобы указать, какой остановить, или выберите один из них:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">В текущем каталоге не найдены запущенные хосты приложений. Отображаются все запущенные хосты приложений:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found in scope.</source>
-        <target state="translated">Запущенные хосты приложений не найдены в области.</target>
+        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
+        <target state="translated">Запущено несколько хостов приложений. Используйте параметр --apphost, чтобы указать, какой остановить, или выберите один из них:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -47,14 +37,9 @@
         <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Выполняется сканирование на наличие запущенных хостов приложений...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHostToStop">
-        <source>Select an AppHost to stop:</source>
-        <target state="translated">Выберите хост приложений для остановки:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stop</source>
+        <target state="new">stop</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

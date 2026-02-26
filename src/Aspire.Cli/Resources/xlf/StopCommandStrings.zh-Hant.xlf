@@ -28,18 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
-        <target state="translated">多個 AppHost 正在執行。請使用 --project 指定要停止的 AppHost，或從中選取一個:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">目前目錄中找不到正在執行的 AppHost。顯示所有正在執行的 AppHost:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found in scope.</source>
-        <target state="translated">在範圍內找不到正在執行的 AppHost。</target>
+        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
+        <target state="translated">多個 AppHost 正在執行。請使用 --apphost 指定要停止的 AppHost，或從中選取一個:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -47,14 +37,9 @@
         <target state="translated">Aspire AppHost 專案檔案的路徑。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在掃描執行中的 AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHostToStop">
-        <source>Select an AppHost to stop:</source>
-        <target state="translated">選取要停止的 AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stop</source>
+        <target state="new">stop</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

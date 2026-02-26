@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../DescribeCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Запущенные хосты приложений не найдены. Сначала запустите один из них с помощью команды "aspire run".</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
         <target state="needs-review-translation">Отображать моментальные снимки ресурсов из запущенного хоста приложений Aspire.</target>
@@ -27,16 +22,6 @@
         <target state="translated">Проект хоста приложений не найден.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Хосты приложений не найдены в текущем каталоге. Отображаются все запущенные хосты приложений.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
         <target state="translated">Имя ресурса для отображения. Если не указано, отображаются все ресурсы.</target>
@@ -47,14 +32,9 @@
         <target state="translated">Ресурс "{0}" не найден.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Выполняется сканирование на наличие запущенных хостов приложений...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Выберите хост приложения:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>describe</source>
+        <target state="new">describe</target>
         <note />
       </trans-unit>
     </body>

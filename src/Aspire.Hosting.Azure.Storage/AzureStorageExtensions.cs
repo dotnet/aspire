@@ -686,13 +686,72 @@ public static class AzureStorageExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "StorageBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureStorageRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureStorageResource> target,
         params StorageBuiltInRole[] roles)
         where T : IResource
     {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, Array.Empty<StorageBuiltInRole>());
+        }
+
         return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Storage account. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Storage account.</param>
+    /// <param name="roles">The storage roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureStorageRole"/> value.</exception>
+    [AspireExport("withRoleAssignments", Description = "Assigns Azure Storage roles to a resource")]
+    internal static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureStorageResource> target,
+        params AzureStorageRole[] roles)
+        where T : IResource
+    {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<StorageBuiltInRole>());
+        }
+
+        var builtInRoles = new StorageBuiltInRole[roles.Length];
+        for (var i = 0; i < roles.Length; i++)
+        {
+            builtInRoles[i] = roles[i] switch
+            {
+                AzureStorageRole.ClassicStorageAccountContributor => StorageBuiltInRole.ClassicStorageAccountContributor,
+                AzureStorageRole.ClassicStorageAccountKeyOperatorServiceRole => StorageBuiltInRole.ClassicStorageAccountKeyOperatorServiceRole,
+                AzureStorageRole.StorageAccountBackupContributor => StorageBuiltInRole.StorageAccountBackupContributor,
+                AzureStorageRole.StorageAccountContributor => StorageBuiltInRole.StorageAccountContributor,
+                AzureStorageRole.StorageAccountKeyOperatorServiceRole => StorageBuiltInRole.StorageAccountKeyOperatorServiceRole,
+                AzureStorageRole.StorageBlobDataContributor => StorageBuiltInRole.StorageBlobDataContributor,
+                AzureStorageRole.StorageBlobDataOwner => StorageBuiltInRole.StorageBlobDataOwner,
+                AzureStorageRole.StorageBlobDataReader => StorageBuiltInRole.StorageBlobDataReader,
+                AzureStorageRole.StorageBlobDelegator => StorageBuiltInRole.StorageBlobDelegator,
+                AzureStorageRole.StorageFileDataPrivilegedContributor => StorageBuiltInRole.StorageFileDataPrivilegedContributor,
+                AzureStorageRole.StorageFileDataPrivilegedReader => StorageBuiltInRole.StorageFileDataPrivilegedReader,
+                AzureStorageRole.StorageFileDataSmbShareContributor => StorageBuiltInRole.StorageFileDataSmbShareContributor,
+                AzureStorageRole.StorageFileDataSmbShareReader => StorageBuiltInRole.StorageFileDataSmbShareReader,
+                AzureStorageRole.StorageFileDataSmbShareElevatedContributor => StorageBuiltInRole.StorageFileDataSmbShareElevatedContributor,
+                AzureStorageRole.StorageQueueDataContributor => StorageBuiltInRole.StorageQueueDataContributor,
+                AzureStorageRole.StorageQueueDataReader => StorageBuiltInRole.StorageQueueDataReader,
+                AzureStorageRole.StorageQueueDataMessageSender => StorageBuiltInRole.StorageQueueDataMessageSender,
+                AzureStorageRole.StorageQueueDataMessageProcessor => StorageBuiltInRole.StorageQueueDataMessageProcessor,
+                AzureStorageRole.StorageTableDataContributor => StorageBuiltInRole.StorageTableDataContributor,
+                AzureStorageRole.StorageTableDataReader => StorageBuiltInRole.StorageTableDataReader,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureStorageRole)} value.", nameof(roles))
+            };
+        }
+
+        return builder.WithRoleAssignments(target, builtInRoles);
     }
 
     private static IResourceBuilder<AzureBlobStorageResource> CreateBlobService(IResourceBuilder<AzureStorageResource> builder, string name)
@@ -758,4 +817,5 @@ public static class AzureStorageExtensions
                 connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });
     }
+
 }

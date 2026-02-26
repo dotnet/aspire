@@ -40,6 +40,26 @@ public static class TestExtensions
     }
 
     /// <summary>
+    /// Adds a child database to a Redis server resource (factory method pattern).
+    /// </summary>
+    /// <remarks>
+    /// This method tests the factory method codegen pattern where a method on builder type A
+    /// returns builder type B (e.g., SqlServerServerResource.AddDatabase returning SqlServerDatabaseResource).
+    /// </remarks>
+    [AspireExport("addTestChildDatabase", Description = "Adds a child database to a test Redis resource")]
+    public static IResourceBuilder<TestDatabaseResource> AddTestChildDatabase(
+        this IResourceBuilder<TestRedisResource> builder,
+        string name,
+        string? databaseName = null)
+    {
+        var resource = new TestDatabaseResource(name)
+        {
+            DatabaseName = databaseName
+        };
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
     /// Configures the Redis resource with persistence.
     /// </summary>
     [AspireExport("withPersistence", Description = "Configures the Redis resource with persistence")]

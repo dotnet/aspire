@@ -388,13 +388,13 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(logsOutput);
         Assert.Equal(3, logsOutput.Logs.Length);
 
-        // Resources are ordered alphabetically by Name in the output.
-        // Replicas share the same DisplayName, so the unique Name should be used instead
-        Assert.Equal("apiservice-abc123", logsOutput.Logs[0].ResourceName);
-        Assert.Equal("apiservice-def456", logsOutput.Logs[1].ResourceName);
-
+        // Logs are sorted by timestamp.
         // Unique display name should be used for the redis resource
-        Assert.Equal("redis", logsOutput.Logs[2].ResourceName);
+        Assert.Equal("redis", logsOutput.Logs[0].ResourceName);
+
+        // Replicas share the same DisplayName, so the unique Name should be used instead
+        Assert.Equal("apiservice-abc123", logsOutput.Logs[1].ResourceName);
+        Assert.Equal("apiservice-def456", logsOutput.Logs[2].ResourceName);
     }
 
     [Fact]
@@ -470,20 +470,20 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(logsOutput);
         Assert.Equal(3, logsOutput.Logs.Length);
 
-        // Resources are ordered alphabetically by Name
-        Assert.Equal("apiservice-abc123", logsOutput.Logs[0].ResourceName);
-        Assert.Equal("2025-01-15T10:30:01.000Z", logsOutput.Logs[0].Timestamp);
-        Assert.Equal("Hello from replica 1", logsOutput.Logs[0].Content);
+        // Logs are sorted by timestamp
+        Assert.Equal("redis", logsOutput.Logs[0].ResourceName);
+        Assert.Equal("2025-01-15T10:30:00.000Z", logsOutput.Logs[0].Timestamp);
+        Assert.Equal("Ready to accept connections", logsOutput.Logs[0].Content);
         Assert.False(logsOutput.Logs[0].IsError);
 
-        Assert.Equal("apiservice-def456", logsOutput.Logs[1].ResourceName);
-        Assert.Equal("2025-01-15T10:30:02.000Z", logsOutput.Logs[1].Timestamp);
-        Assert.Equal("Hello from replica 2", logsOutput.Logs[1].Content);
+        Assert.Equal("apiservice-abc123", logsOutput.Logs[1].ResourceName);
+        Assert.Equal("2025-01-15T10:30:01.000Z", logsOutput.Logs[1].Timestamp);
+        Assert.Equal("Hello from replica 1", logsOutput.Logs[1].Content);
         Assert.False(logsOutput.Logs[1].IsError);
 
-        Assert.Equal("redis", logsOutput.Logs[2].ResourceName);
-        Assert.Equal("2025-01-15T10:30:00.000Z", logsOutput.Logs[2].Timestamp);
-        Assert.Equal("Ready to accept connections", logsOutput.Logs[2].Content);
+        Assert.Equal("apiservice-def456", logsOutput.Logs[2].ResourceName);
+        Assert.Equal("2025-01-15T10:30:02.000Z", logsOutput.Logs[2].Timestamp);
+        Assert.Equal("Hello from replica 2", logsOutput.Logs[2].Content);
         Assert.False(logsOutput.Logs[2].IsError);
     }
 
@@ -509,19 +509,20 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(3, logsOutput.Logs.Length);
 
         // Timestamp should be null when --timestamps is not specified
-        Assert.Equal("apiservice-abc123", logsOutput.Logs[0].ResourceName);
+        // Logs are sorted by timestamp
+        Assert.Equal("redis", logsOutput.Logs[0].ResourceName);
         Assert.Null(logsOutput.Logs[0].Timestamp);
-        Assert.Equal("Hello from replica 1", logsOutput.Logs[0].Content);
+        Assert.Equal("Ready to accept connections", logsOutput.Logs[0].Content);
         Assert.False(logsOutput.Logs[0].IsError);
 
-        Assert.Equal("apiservice-def456", logsOutput.Logs[1].ResourceName);
+        Assert.Equal("apiservice-abc123", logsOutput.Logs[1].ResourceName);
         Assert.Null(logsOutput.Logs[1].Timestamp);
-        Assert.Equal("Hello from replica 2", logsOutput.Logs[1].Content);
+        Assert.Equal("Hello from replica 1", logsOutput.Logs[1].Content);
         Assert.False(logsOutput.Logs[1].IsError);
 
-        Assert.Equal("redis", logsOutput.Logs[2].ResourceName);
+        Assert.Equal("apiservice-def456", logsOutput.Logs[2].ResourceName);
         Assert.Null(logsOutput.Logs[2].Timestamp);
-        Assert.Equal("Ready to accept connections", logsOutput.Logs[2].Content);
+        Assert.Equal("Hello from replica 2", logsOutput.Logs[2].Content);
         Assert.False(logsOutput.Logs[2].IsError);
     }
 
@@ -542,12 +543,12 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
-        // Resources are ordered alphabetically by Name, timestamp prefix is ISO 8601 round-trip format
+        // Logs are sorted by timestamp, timestamp prefix is ISO 8601 round-trip format
         var logLines = outputWriter.Logs.Where(l => l.StartsWith("2025-", StringComparison.Ordinal)).ToList();
         Assert.Equal(3, logLines.Count);
-        Assert.Equal("2025-01-15T10:30:01.000Z [apiservice-abc123] Hello from replica 1", logLines[0]);
-        Assert.Equal("2025-01-15T10:30:02.000Z [apiservice-def456] Hello from replica 2", logLines[1]);
-        Assert.Equal("2025-01-15T10:30:00.000Z [redis] Ready to accept connections", logLines[2]);
+        Assert.Equal("2025-01-15T10:30:00.000Z [redis] Ready to accept connections", logLines[0]);
+        Assert.Equal("2025-01-15T10:30:01.000Z [apiservice-abc123] Hello from replica 1", logLines[1]);
+        Assert.Equal("2025-01-15T10:30:02.000Z [apiservice-def456] Hello from replica 2", logLines[2]);
     }
 
     [Fact]
@@ -568,11 +569,12 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
         // Without --timestamps, log lines start with "[resourceName]" with no timestamp prefix
+        // Logs are sorted by timestamp
         var logLines = outputWriter.Logs.Where(l => l.StartsWith("[", StringComparison.Ordinal)).ToList();
         Assert.Equal(3, logLines.Count);
-        Assert.Equal("[apiservice-abc123] Hello from replica 1", logLines[0]);
-        Assert.Equal("[apiservice-def456] Hello from replica 2", logLines[1]);
-        Assert.Equal("[redis] Ready to accept connections", logLines[2]);
+        Assert.Equal("[redis] Ready to accept connections", logLines[0]);
+        Assert.Equal("[apiservice-abc123] Hello from replica 1", logLines[1]);
+        Assert.Equal("[apiservice-def456] Hello from replica 2", logLines[2]);
     }
 
     private ServiceProvider CreateLogsTestServices(
@@ -617,6 +619,14 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
             ],
             LogLines =
             [
+                // Log lines are intentionally out of timestamp order to verify sorting
+                new ResourceLogLine
+                {
+                    ResourceName = "apiservice-def456",
+                    LineNumber = 1,
+                    Content = "2025-01-15T10:30:02Z Hello from replica 2",
+                    IsError = false
+                },
                 new ResourceLogLine
                 {
                     ResourceName = "redis",
@@ -629,13 +639,6 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
                     ResourceName = "apiservice-abc123",
                     LineNumber = 1,
                     Content = "2025-01-15T10:30:01Z Hello from replica 1",
-                    IsError = false
-                },
-                new ResourceLogLine
-                {
-                    ResourceName = "apiservice-def456",
-                    LineNumber = 1,
-                    Content = "2025-01-15T10:30:02Z Hello from replica 2",
                     IsError = false
                 }
             ]

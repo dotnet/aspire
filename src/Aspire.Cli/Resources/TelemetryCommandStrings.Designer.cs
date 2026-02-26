@@ -106,15 +106,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The path to the Aspire AppHost project file..
-        /// </summary>
-        internal static string ProjectOptionDescription {
-            get {
-                return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Stream telemetry in real-time as it arrives..
         /// </summary>
         internal static string FollowOptionDescription {
@@ -187,42 +178,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Scanning for running AppHosts....
-        /// </summary>
-        internal static string ScanningForRunningAppHosts {
-            get {
-                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Select an AppHost:.
-        /// </summary>
-        internal static string SelectAppHost {
-            get {
-                return ResourceManager.GetString("SelectAppHost", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No AppHosts found in current directory. Showing all running AppHosts..
-        /// </summary>
-        internal static string NoInScopeAppHostsShowingAll {
-            get {
-                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No running AppHost found. Use 'aspire run' to start one first..
-        /// </summary>
-        internal static string AppHostNotRunning {
-            get {
-                return ResourceManager.GetString("AppHostNotRunning", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled..
         /// </summary>
         internal static string DashboardApiNotAvailable {
@@ -255,6 +210,12 @@ namespace Aspire.Cli.Resources {
         internal static string UnexpectedContentType {
             get {
                 return ResourceManager.GetString("UnexpectedContentType", resourceCulture);
+            }
+        }
+
+        internal static string SelectAppHostAction {
+            get {
+                return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
             }
         }
     }

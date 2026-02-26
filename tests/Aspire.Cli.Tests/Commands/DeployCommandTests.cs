@@ -55,7 +55,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project invalid.csproj");
+        var result = command.Parse("deploy --apphost invalid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -89,7 +89,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project valid.csproj");
+        var result = command.Parse("deploy --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -123,7 +123,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --project valid.csproj");
+        var result = command.Parse("deploy --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
