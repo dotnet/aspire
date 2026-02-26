@@ -32,8 +32,8 @@ internal sealed class SecretCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("secret", SecretCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        Subcommands.Add(setCommand);
         Subcommands.Add(getCommand);
+        Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
     }
