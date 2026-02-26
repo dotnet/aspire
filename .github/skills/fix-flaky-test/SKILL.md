@@ -648,6 +648,8 @@ Before proceeding to Step 5, confirm you have:
 
 ## Step 5: Apply Fix and Verify
 
+> **⚠️ DO NOT remove the `[QuarantinedTest]` attribute or close the tracking issue.** Unquarantining is a separate process that happens after 21 days of zero failures in quarantine CI. Your fix PR should contain _only_ the code fix. See Step 6.4 for details.
+
 ### 5.1: Apply the Fix
 
 1. Make the code change
@@ -657,7 +659,9 @@ Before proceeding to Step 5, confirm you have:
    ```
 3. Keep `reproduce-flaky-tests.yml` configured for the same test
 
-### 5.2: Local Verification (Fast Check)
+### 5.2: Local Verification (Fast Pre-Check)
+
+> **Principle: Local runs are a fast pre-check, not a substitute for CI.** Running a test N times on one machine does not have the same statistical power as N runs across separate CI runners. Some flakiness stems from environmental variation (machine load, Docker daemon state, network conditions) that a single machine cannot reproduce. Local verification catches obvious regressions quickly and saves CI round-trips, but CI verification is always required as the final gate.
 
 If local reproduction succeeded in Step 2, run a quick local verification first:
 
@@ -678,21 +682,41 @@ If local verification fails, iterate on the fix before going to CI. This saves ~
 
 ### 5.3: Choose CI Verification Scale
 
-The verification run must be large enough to be confident the fix works. Use the **original failure rate** to determine scale — you need enough iterations that, if the bug were still present, it would have manifested with ≥95% probability.
+CI verification is always required. However, the scale should reflect your **local confidence** — how much evidence you already have that the fix is correct.
 
-**Verification iteration heuristic** (same math as reproduction — `n ≥ log(0.05) / log(1-p)`):
+#### Assessing Local Confidence
 
-| Original Failure Rate | Runners × Iterations per OS | Total per OS | 95% Detection Confidence |
-|---|---|---|---|
-| >50% | 3 × 3 | 9 | ✅ Would catch >99.8% of the time |
-| 20-50% | 5 × 5 | 25 | ✅ Would catch >99% of the time |
-| 10-20% | 5 × 10 | 50 | ✅ Would catch >99% of the time |
-| 5-10% | 10 × 10 | 100 | ✅ Would catch >95% of the time |
-| <5% | 10 × 25 | 250 | ✅ Would catch >95% of the time |
+Consider these factors to determine how aggressively to scale CI verification:
+
+**Higher confidence** (scale CI down):
+- Root cause matches a well-known flaky pattern (from the patterns reference)
+- Fix is a mechanical pattern application (e.g., replacing bare `HttpClient` with resilient one)
+- Local reproduction succeeded and the fix eliminated the failure
+- Current OS matches the primarily affected OS
+- Failure rate is high (>20%), making local runs more meaningful
+
+**Lower confidence** (scale CI up):
+- Root cause is a hypothesis, not confirmed by reproduction
+- Fix involves behavioral changes or new logic
+- Local reproduction failed (wrong OS, contention-sensitive, or very low failure rate)
+- Failure is OS-specific and you're on a different OS
+- Failure rate is low (<10%), meaning local runs provide weak signal
+
+#### CI Scale Heuristic
+
+Use the **original failure rate** combined with your local confidence to size the CI verification. The base scale ensures that if the bug were still present, it would manifest with ≥95% probability (`n ≥ log(0.05) / log(1-p)`):
+
+| Original Failure Rate | High Confidence (CI scale) | Low Confidence (CI scale) |
+|---|---|---|
+| >50% | 3 × 3 per OS (9 total) | 3 × 3 per OS (9 total) |
+| 20-50% | 3 × 5 per OS (15 total) | 5 × 5 per OS (25 total) |
+| 10-20% | 5 × 5 per OS (25 total) | 5 × 10 per OS (50 total) |
+| 5-10% | 5 × 10 per OS (50 total) | 10 × 10 per OS (100 total) |
+| <5% | 10 × 10 per OS (100 total) | 10 × 25 per OS (250 total) |
 
 For tests with very low failure rates (<5%), consider whether the verification is practical within CI budget constraints. If not, document the limitation and rely on the 21-day quarantine monitoring to confirm.
 
-**For contention-sensitive tests** (where reproduction in isolation didn't work): The verification run still validates that the fix doesn't break the test. Use the failure rate heuristic table above to size the verification — even though the reproduce workflow runs in isolation, a passing verification provides baseline confidence. The 21-day quarantine monitoring will provide the definitive confirmation under real contention.
+**For contention-sensitive tests** (where reproduction in isolation didn't work): The verification run still validates that the fix doesn't break the test. Use the low-confidence column since you couldn't reproduce locally. The 21-day quarantine monitoring will provide the definitive confirmation under real contention.
 
 ### 5.4: Push and Verify on CI
 
@@ -807,6 +831,12 @@ gh pr create --repo dotnet/aspire \
 | Post-fix (local) | <iterations>, <OS> | **<pass/fail>** |
 | Post-fix (CI) | <runners × iters × OSes> | **<link to run>** |
 
+### Verification Rationale
+<Brief explanation of CI scale choice: local confidence level, why that scale was appropriate for the failure rate, and acknowledgment that local runs are a pre-check — not equivalent to CI runs across separate runners.>
+
+### Notes
+- \`[QuarantinedTest]\` attribute kept — unquarantining will happen separately after 21 days of zero failures in quarantine CI
+
 ---
 *This fix was generated using the [fix-flaky-test skill](https://github.com/dotnet/aspire/blob/main/.github/skills/fix-flaky-test/SKILL.md).*"
 ```
@@ -826,13 +856,20 @@ gh pr close <investigation-pr-number> --repo dotnet/aspire --delete-branch
 - **DO NOT** close the tracking issue
 - A separate process monitors the quarantine CI and handles unquarantining when the 21-day criteria are met
 
-### ✅ Final Checkpoint
+### ✅ Final Validation Checklist
+
+Before opening the final PR, verify **every item**. This is a hard gate — do not skip any item.
 
 - [ ] Fix is verified on CI via the reproduce workflow (all iterations pass)
+- [ ] **`[QuarantinedTest]` attribute is still present** on the test method (not removed)
+- [ ] **Tracking issue is still open** (not closed)
 - [ ] Clean fix PR is open with only code changes (no workflow modifications)
+- [ ] PR description includes verification rationale (local confidence, CI scale reasoning)
 - [ ] Investigation draft PR is closed and branch deleted
 - [ ] No remaining in-progress CI runs on the investigation branch
 - [ ] Summary comment posted (see Response Format below)
+
+**Self-check**: Run `git diff` on the fix branch and scan for any unintended changes — removed test attributes, workflow file edits, or unrelated modifications.
 
 ```sql
 UPDATE todos SET status = 'done' WHERE id = 'cleanup';
