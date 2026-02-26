@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage CLI configuration including feature flags.</source>
-        <target state="needs-review-translation">構成設定を管理します。</target>
+        <target state="translated">機能フラグを含む CLI 構成を管理します。</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -184,7 +184,7 @@
       </trans-unit>
       <trans-unit id="SetFeatureHint">
         <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
-        <target state="new">Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</target>
+        <target state="translated">機能を有効または無効にするには、'aspire config set features.&lt;name&gt; true|false' を使用します。</target>
         <note />
       </trans-unit>
     </body>

@@ -1,20 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="needs-review-translation">실행 중인 Aspire AppHost의 리소스 스냅샷을 표시합니다.</target>
+        <target state="translated">실행 중인 AppHost의 리소스에 대해 설명합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes.</source>
-        <target state="new">Continuously stream resource state changes.</target>
+        <target state="translated">리소스 상태 변경 내용을 계속 스트리밍합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">컴퓨터 사용량에 대한 JSON형식의 출력입니다.</target>
+        <target state="translated">출력 형식(테이블 또는 JSON)입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">

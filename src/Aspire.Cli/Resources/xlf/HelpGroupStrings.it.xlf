@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Options">
         <source>Options:</source>
-        <target state="new">Options:</target>
+        <target state="translated">Opzioni:</target>
         <note />
       </trans-unit>
       <trans-unit id="OtherCommands">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="Usage">
         <source>Usage:</source>
-        <target state="new">Usage:</target>
+        <target state="translated">Utilizzo:</target>
         <note />
       </trans-unit>
       <trans-unit id="UsageSyntax">

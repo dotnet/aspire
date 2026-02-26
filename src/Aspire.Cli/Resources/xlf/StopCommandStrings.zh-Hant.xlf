@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">停止所有正在執行的 AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">停止正在執行的 Aspire apphost。</target>
+        <target state="translated">停止執行中的 apphost 或指定的資源。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">多個 AppHost 正在執行。請使用 {0} 指定要停止的 AppHost，或使用 {1} 停止全部。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="translated">多個 AppHost 正在執行。請使用 --apphost 指定要停止的 AppHost，或從中選取一個:</target>
+        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <target state="translated">無法同時使用 {0} 與 {1} 選項。</target>
         <note />
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">{0} 選項無法與資源參數一起使用。</target>
         <note />
       </trans-unit>
     </body>

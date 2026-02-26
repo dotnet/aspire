@@ -99,17 +99,17 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
         <source>The project could not be built. See logs at {0}</source>
-        <target state="new">The project could not be built. See logs at {0}</target>
+        <target state="translated">No se pudo compilar el proyecto. Consulte los registros en {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
         <source>The --apphost option specified a project that does not exist.</source>
-        <target state="translated">La opción --apphost especificó un proyecto que no existe.</target>
+        <target state="new">The --apphost option specified a project that does not exist.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --apphost option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">No se especificó la opción --apphost y se detectaron varios archivos de proyecto de host de aplicaciones.</target>
+        <target state="new">The --apphost option was not specified and multiple app host project files were detected.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="SeeLogsAt">
         <source>See logs at {0}</source>
-        <target state="new">See logs at {0}</target>
+        <target state="translated">Consulte los registros en {0}</target>
         <note>{0} is the log file path</note>
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">

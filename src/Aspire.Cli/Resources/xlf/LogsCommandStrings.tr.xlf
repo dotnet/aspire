@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">Çalışan bir Aspire apphost'taki kaynakların günlüklerini görüntüle.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Günlükleri JSON biçiminde (NDJSON) çıkar.</target>
+        <target state="translated">Çıktı biçimi (Tablo veya Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">'{0}' kaynağı bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
