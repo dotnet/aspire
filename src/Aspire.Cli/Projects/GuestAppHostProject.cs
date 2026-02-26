@@ -487,8 +487,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     {
         var envVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
 
-        // Support ASPIRE_ENVIRONMENT as a single env var that sets both DOTNET_ENVIRONMENT and ASPNETCORE_ENVIRONMENT
-        var environment = Environment.GetEnvironmentVariable("ASPIRE_ENVIRONMENT") ?? "Development";
+        // Support ASPIRE_ENVIRONMENT from the launch profile to set both DOTNET_ENVIRONMENT and ASPNETCORE_ENVIRONMENT
+        envVars.TryGetValue("ASPIRE_ENVIRONMENT", out var environment);
+        environment ??= "Development";
 
         // Set the environment for the AppHost server process
         envVars["DOTNET_ENVIRONMENT"] = environment;
