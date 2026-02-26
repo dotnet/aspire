@@ -62,7 +62,11 @@ internal sealed class PythonModuleBuilder
     /// </summary>
     public Dictionary<string, string> HandleRegistrations { get; } = new();
 
+    /// <summary>
+    /// Gets the method parameter type class definitions, keyed by parameter type name.
+    /// </summary>
     public Dictionary<string, StringBuilder> MethodParameters { get; } = new();
+
     /// <summary>
     /// Writes the complete Python module content.
     /// </summary>
@@ -314,7 +318,10 @@ internal sealed class PythonModuleBuilder
 
         """;
 
-        public const string DistributedApplicationBuilder = """
+    /// <summary>
+    /// The <c>DistributedApplicationBuilder</c> Python class definition for the generated SDK.
+    /// </summary>
+    public const string DistributedApplicationBuilder = """
         class DistributedApplicationBuilder:
             '''Type class for DistributedApplicationBuilder.'''
 
