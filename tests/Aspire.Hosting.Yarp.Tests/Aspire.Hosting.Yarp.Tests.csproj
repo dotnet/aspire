@@ -9,6 +9,7 @@
   <ItemGroup>
 
     <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Testing.Tests\DistributedApplicationHttpClientExtensionsForTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
