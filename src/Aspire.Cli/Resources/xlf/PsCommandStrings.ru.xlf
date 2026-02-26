@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">Перечислить запущенные хосты приложений.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">Формат вывода (таблица или JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">
