@@ -372,6 +372,44 @@ public class PlaywrightCliInstallerTests
         }
     }
 
+    [Fact]
+    public async Task InstallAsync_WhenVersionOverrideConfigured_UsesOverrideVersion()
+    {
+        var version = SemVersion.Parse("0.2.0", SemVersionStyles.Strict);
+        var npmRunner = new TestNpmRunner
+        {
+            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" }
+        };
+        var playwrightRunner = new TestPlaywrightCliRunner();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [PlaywrightCliInstaller.VersionOverrideKey] = "0.2.0"
+            })
+            .Build();
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, configuration, NullLogger<PlaywrightCliInstaller>.Instance);
+
+        await installer.InstallAsync(CancellationToken.None);
+
+        Assert.Equal("0.2.0", npmRunner.ResolvedVersionRange);
+    }
+
+    [Fact]
+    public async Task InstallAsync_WhenNoVersionOverride_UsesDefaultRange()
+    {
+        var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
+        var npmRunner = new TestNpmRunner
+        {
+            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" }
+        };
+        var playwrightRunner = new TestPlaywrightCliRunner();
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+        await installer.InstallAsync(CancellationToken.None);
+
+        Assert.Equal(PlaywrightCliInstaller.VersionRange, npmRunner.ResolvedVersionRange);
+    }
+
     private sealed class TestNpmRunner : INpmRunner
     {
         public NpmPackageInfo? ResolveResult { get; set; }
@@ -381,9 +419,13 @@ public class PlaywrightCliInstallerTests
 
         public bool PackCalled { get; private set; }
         public bool InstallGlobalCalled { get; private set; }
+        public string? ResolvedVersionRange { get; private set; }
 
         public Task<NpmPackageInfo?> ResolvePackageAsync(string packageName, string versionRange, CancellationToken cancellationToken)
-            => Task.FromResult(ResolveResult);
+        {
+            ResolvedVersionRange = versionRange;
+            return Task.FromResult(ResolveResult);
+        }
 
         public Task<string?> PackAsync(string packageName, string version, string outputDirectory, CancellationToken cancellationToken)
         {
