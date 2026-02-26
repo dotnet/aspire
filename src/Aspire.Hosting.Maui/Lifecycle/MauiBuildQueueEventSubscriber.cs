@@ -59,23 +59,35 @@ internal class MauiBuildQueueEventSubscriber(
             return;
         }
 
+        // Replace the default stop command with one that can cancel queued/building resources.
+        // This must happen here (not at app model build time) because the default lifecycle
+        // commands are added by DcpExecutor.EnsureRequiredAnnotations AFTER app model building.
+        EnsureStopCommandReplaced(resource, queueAnnotation);
+
         var semaphore = queueAnnotation.BuildSemaphore;
 
-        // If the semaphore is already held, show "Queued" state while waiting.
-        if (semaphore.CurrentCount == 0)
-        {
-            logger.LogInformation("Queued — waiting for another build of project '{ProjectName}' to complete.", parent.Name);
+        // Create a per-resource CTS so the stop command can cancel a queued/building resource.
+        using var resourceCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        queueAnnotation.ResourceCancellations[resource.Name] = resourceCts;
 
-            await notificationService.PublishUpdateAsync(resource, s => s with
-            {
-                State = s_queuedState
-            }).ConfigureAwait(false);
-        }
-
-        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var semaphoreAcquired = false;
 
         try
         {
+            // If the semaphore is already held, show "Queued" state while waiting.
+            if (semaphore.CurrentCount == 0)
+            {
+                logger.LogInformation("Queued — waiting for another build of project '{ProjectName}' to complete.", parent.Name);
+
+                await notificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    State = s_queuedState
+                }).ConfigureAwait(false);
+            }
+
+            await semaphore.WaitAsync(resourceCts.Token).ConfigureAwait(false);
+            semaphoreAcquired = true;
+
             logger.LogInformation("Building project '{ProjectName}' for {ResourceName}.", parent.Name, resource.Name);
 
             await notificationService.PublishUpdateAsync(resource, s => s with
@@ -83,15 +95,32 @@ internal class MauiBuildQueueEventSubscriber(
                 State = s_buildingState
             }).ConfigureAwait(false);
 
-            // Run the Build target as a subprocess. Because we are inside
-            // BeforeResourceStartedEvent the handler blocks DCP from starting the
-            // process, so the "Building" state persists for the entire build duration.
-            await RunBuildAsync(resource, logger, cancellationToken).ConfigureAwait(false);
+            await RunBuildAsync(resource, logger, resourceCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (resourceCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            // The per-resource CTS was cancelled by CancelResource (user clicked stop).
+            // Set a terminal state so the resource shows as stopped in the dashboard,
+            // and DON'T re-throw — the orchestrator's cancellation token is still valid,
+            // so we don't want to signal a failure that could affect other resources.
+            logger.LogInformation("Build cancelled for resource '{ResourceName}'.", resource.Name);
+
+            await notificationService.PublishUpdateAsync(resource, s => s with
+            {
+                State = new ResourceStateSnapshot("Exited", KnownResourceStateStyles.Info),
+                ExitCode = -1,
+                StopTimeStamp = DateTime.UtcNow,
+            }).ConfigureAwait(false);
         }
         finally
         {
-            semaphore.Release();
-            logger.LogDebug("Released build lock (resource '{ResourceName}').", resource.Name);
+            if (semaphoreAcquired)
+            {
+                semaphore.Release();
+                logger.LogDebug("Released build lock (resource '{ResourceName}').", resource.Name);
+            }
+
+            queueAnnotation.ResourceCancellations.TryRemove(resource.Name, out _);
         }
     }
 
@@ -209,4 +238,73 @@ internal class MauiBuildQueueEventSubscriber(
             logger.LogDebug(ex, "Failed to kill build process.");
         }
     }
+
+    /// <summary>
+    /// Replaces the default stop command with one that can cancel queued/building resources
+    /// via the <see cref="MauiBuildQueueAnnotation.CancelResource"/> method, while delegating
+    /// to the original stop command for the Running state.
+    /// </summary>
+    private static void EnsureStopCommandReplaced(IResource resource, MauiBuildQueueAnnotation queueAnnotation)
+    {
+        // Only replace once per resource (supports restart).
+        if (resource.Annotations.OfType<MauiStopCommandReplacedAnnotation>().Any())
+        {
+            return;
+        }
+
+        resource.Annotations.Add(new MauiStopCommandReplacedAnnotation());
+
+        var originalStop = resource.Annotations
+            .OfType<ResourceCommandAnnotation>()
+            .SingleOrDefault(a => a.Name == KnownResourceCommands.StopCommand);
+
+        if (originalStop is null)
+        {
+            return;
+        }
+
+        // Remove the original and add our replacement.
+        resource.Annotations.Remove(originalStop);
+
+        resource.Annotations.Add(new ResourceCommandAnnotation(
+            name: KnownResourceCommands.StopCommand,
+            displayName: "Stop",
+            updateState: context =>
+            {
+                var state = context.ResourceSnapshot.State?.Text;
+
+                // Show stop for Queued/Building states.
+                if (state is "Queued" or "Building")
+                {
+                    return ResourceCommandState.Enabled;
+                }
+
+                // For all other states, delegate to original logic.
+                return originalStop.UpdateState(context);
+            },
+            executeCommand: async context =>
+            {
+                // Cancel via the annotation — works for both Queued and Building.
+                var wasCancelled = queueAnnotation.CancelResource(context.ResourceName);
+
+                if (wasCancelled)
+                {
+                    return CommandResults.Success();
+                }
+
+                // Resource is past the queue (Running) — delegate to original stop.
+                return await originalStop.ExecuteCommand(context).ConfigureAwait(false);
+            },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
+            iconName: "Stop",
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
+    }
+
+    /// <summary>
+    /// Marker annotation to prevent replacing the stop command more than once.
+    /// </summary>
+    private sealed class MauiStopCommandReplacedAnnotation : IResourceAnnotation;
 }

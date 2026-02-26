@@ -454,6 +454,111 @@ public class MauiBuildQueueTests
         Assert.Null(annotation.Configuration);
     }
 
+    [Fact]
+    public async Task CancelQueuedResource_CompletesGracefullyAndDoesNotAcquireSemaphore()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        // Hold the semaphore with Android.
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+
+        // Queue MacCatalyst — it should be stuck waiting.
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+        Assert.False(task2.IsCompleted, "MacCatalyst should be queued.");
+
+        // Cancel the queued resource via the subscriber's CancelResource method.
+        env.CancelResource(env.MacCatalyst.Name);
+
+        // Should complete without throwing — the handler catches the cancellation
+        // and sets a terminal state instead of propagating the exception.
+        await task2.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Semaphore should still be held (count 0) — cancellation of queued resource
+        // should NOT release the semaphore because it never acquired it.
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(0, annotation!.BuildSemaphore.CurrentCount);
+
+        // Clean up: complete Android build.
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task CancelBuildingResource_ReleasesSemaphore()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        // Start Android build (it will hold the semaphore and wait for TCS).
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+
+        // Android should be building (semaphore held).
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(0, annotation!.BuildSemaphore.CurrentCount);
+
+        // Cancel via the subscriber — this cancels the CTS, which cancels the TCS via the registration.
+        env.CancelResource(env.Android.Name);
+
+        // Should complete without throwing — the handler catches the cancellation.
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Semaphore should be released after the building resource is cancelled.
+        Assert.Equal(1, annotation.BuildSemaphore.CurrentCount);
+    }
+
+    [Fact]
+    public async Task CancelQueuedResource_NextResourceProceeds()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        // Hold the semaphore with Android.
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+
+        // Queue MacCatalyst and iOS.
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(100);
+
+        var task3 = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.IOSSimulator, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+
+        // Cancel MacCatalyst.
+        env.CancelResource(env.MacCatalyst.Name);
+        // Should complete gracefully — no exception.
+        await task2.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Complete Android — iOS should proceed (MacCatalyst was cancelled without acquiring semaphore).
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // iOS should now be building.
+        await Task.Delay(200);
+        Assert.False(task3.IsCompleted, "iOS should be building now.");
+
+        env.Subscriber.CompleteBuild(env.IOSSimulator);
+        await task3.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
     // ───────────────────────────────────────────────────────────────────
     // Test infrastructure
     // ───────────────────────────────────────────────────────────────────
@@ -541,6 +646,13 @@ public class MauiBuildQueueTests
         public IServiceProvider Services => App.Services;
         public IDistributedApplicationEventing Eventing => App.Services.GetRequiredService<IDistributedApplicationEventing>();
         public ResourceNotificationService NotificationService => App.Services.GetRequiredService<ResourceNotificationService>();
+
+        /// <summary>Cancels a resource via the annotation's CancelResource method.</summary>
+        public bool CancelResource(string resourceName)
+        {
+            Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation);
+            return annotation!.CancelResource(resourceName);
+        }
 
         public static async Task<BuildQueueTestEnvironment> CreateAsync()
         {

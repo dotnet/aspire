@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Maui.Annotations;
@@ -15,4 +16,25 @@ internal sealed class MauiBuildQueueAnnotation : IResourceAnnotation
     /// Gets the semaphore used to serialize builds for this project.
     /// </summary>
     public SemaphoreSlim BuildSemaphore { get; } = new(1, 1);
+
+    /// <summary>
+    /// Per-resource CTS that allows the stop command to cancel a queued or building resource.
+    /// The key is the resource name.
+    /// </summary>
+    public ConcurrentDictionary<string, CancellationTokenSource> ResourceCancellations { get; } = new();
+
+    /// <summary>
+    /// Cancels a resource's queued or building state.
+    /// </summary>
+    /// <returns><c>true</c> if the resource was found and cancelled; <c>false</c> otherwise.</returns>
+    public bool CancelResource(string resourceName)
+    {
+        if (ResourceCancellations.TryRemove(resourceName, out var cts))
+        {
+            cts.Cancel();
+            return true;
+        }
+
+        return false;
+    }
 }
