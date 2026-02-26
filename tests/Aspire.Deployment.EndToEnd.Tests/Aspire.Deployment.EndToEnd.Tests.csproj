@@ -25,9 +25,9 @@
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
 
-    <!-- Each test class runs as a separate CI job via DeploymentEndToEndTestRunsheetBuilder -->
-    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
-    <ExtractTestClassNamesPrefix>Aspire.Deployment.EndToEnd.Tests</ExtractTestClassNamesPrefix>
+    <!-- Each test class runs as a separate CI job via GenerateTestPartitionsForCI -->
+    <SplitTestsOnCI>true</SplitTestsOnCI>
+    <TestClassNamePrefixForCI>Aspire.Deployment.EndToEnd.Tests</TestClassNamePrefixForCI>
 
     <!-- These tests require built NuGet packages -->
     <TestUsingWorkloads>true</TestUsingWorkloads>
