@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
+        <target state="translated">실행 중인 AppHost의 OpenTelemetry 데이터(로그, 범위, 추적)를 확인합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">

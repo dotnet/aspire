@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">실행 중인 모든 AppHost를 중지합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">여러 AppHost가 실행 중입니다. {0}을(를) 사용하여 중지할 항목을 지정하거나 {1}을(를) 사용하여 모두 중지하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <target state="translated">{0} 및 {1} 옵션은 함께 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">{0} 옵션은 리소스 인수와 함께 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
     </body>

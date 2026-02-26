@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <target state="translated">{0} ve {1} seçenekleri birlikte kullanılamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">

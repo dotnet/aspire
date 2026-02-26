@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">Показаны все выполняющиеся AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Запущено несколько экземпляров AppHost. Используйте {0}, чтобы указать, какой из них остановить, или {1}, чтобы остановить все.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <target state="translated">Параметры {0} и {1} не могут использоваться одновременно.</target>
         <note />
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">Вариант {0} нельзя использовать с аргументом ресурса.</target>
         <note />
       </trans-unit>
     </body>
