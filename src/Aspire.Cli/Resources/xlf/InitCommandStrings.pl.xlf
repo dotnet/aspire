@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase.</source>
-        <target state="needs-review-translation">Zainicjuj obsługę Aspire w istniejącym rozwiązaniu lub utwórz AppHost składający się z jednego pliku.</target>
+        <target state="new">Initialize Aspire in an existing codebase.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
