@@ -77,34 +77,28 @@ internal sealed class PsCommand : BaseCommand
 
         var format = parseResult.GetValue(s_formatOption);
 
-        // Scan for running AppHosts (same as ListAppHostsTool)
-        // Skip status display for JSON output to avoid contaminating stdout
-        List<IAppHostAuxiliaryBackchannel> connections;
+        // Route human-readable messages to stderr for JSON output so that
+        // stdout contains only machine-readable JSON.
         if (format == OutputFormat.Json)
         {
-            await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _backchannelMonitor.Connections.ToList();
+            _interactionService.Console = ConsoleOutput.Error;
         }
-        else
-        {
-            connections = await _interactionService.ShowStatusAsync(
-                PsCommandStrings.ScanningForRunningAppHosts,
-                async () =>
-                {
-                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return _backchannelMonitor.Connections.ToList();
-                });
-        }
+
+        // Scan for running AppHosts (same as ListAppHostsTool)
+        var connections = await _interactionService.ShowStatusAsync(
+            PsCommandStrings.ScanningForRunningAppHosts,
+            async () =>
+            {
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return _backchannelMonitor.Connections.ToList();
+            });
 
         if (connections.Count == 0)
         {
+            _interactionService.DisplayMessage("information", PsCommandStrings.NoRunningAppHostsFound);
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayPlainText("[]");
-            }
-            else
-            {
-                _interactionService.DisplayMessage("information", PsCommandStrings.NoRunningAppHostsFound);
+                _interactionService.DisplayRawText("[]", ConsoleOutput.Standard);
             }
             return ExitCodeConstants.Success;
         }

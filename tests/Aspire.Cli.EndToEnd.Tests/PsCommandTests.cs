@@ -173,25 +173,20 @@ public sealed class PsCommandTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Pattern for empty JSON array output
-        var waitForEmptyJsonArray = new CellPatternSearcher()
-            .Find("[]");
+        var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "ps-output.json");
 
-        var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "output-step1.json");
+        // Pattern for aspire ps when no AppHosts running (written to stderr / terminal)
+        var waitForNoRunningAppHosts = new CellPatternSearcher()
+            .Find("No running AppHosts found");
 
-        // Run aspire ps --format json without redirection and assert the expected
-        // output appears in the terminal via WaitUntil.
-        sequenceBuilder.Type("aspire ps --format json")
-            .Enter()
-            .WaitUntil(s => waitForEmptyJsonArray.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
-
-        // Run again with stdout redirected to a file and verify the file contains
-        // only the expected JSON (empty array) with no status messages.
+        // Run aspire ps --format json with stdout redirected to a file.
+        // Status messages appear in the terminal (stderr), JSON goes to the file (stdout).
         sequenceBuilder.Type($"aspire ps --format json > {outputFilePath}")
             .Enter()
+            .WaitUntil(s => waitForNoRunningAppHosts.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
+        // Verify the file contains only the expected JSON output (empty array).
         sequenceBuilder.ExecuteCallback(() =>
         {
             var content = File.ReadAllText(outputFilePath).Trim();
