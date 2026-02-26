@@ -68,7 +68,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"update --project AppHost.csproj");
+        var result = command.Parse($"update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -270,7 +270,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update --project AppHost.csproj");
+        var result = command.Parse("update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -341,7 +341,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update --project AppHost.csproj");
+        var result = command.Parse("update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

@@ -65,7 +65,7 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         // Pattern for aspire ps when no AppHosts running
         var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHosts found");
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();

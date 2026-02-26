@@ -61,6 +61,11 @@
       "dotnetRunMessages": true,
       "commandLineArgs": "--help"
     },
+    "logs": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "logs"
+    },
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,

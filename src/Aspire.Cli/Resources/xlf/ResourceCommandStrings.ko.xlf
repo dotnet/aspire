@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../ResourceCommandStrings.resx">
     <body>
@@ -17,19 +17,9 @@
         <target state="translated">명령을 실행할 대상 리소스의 이름입니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="translated">범위 내 AppHost를 찾을 수 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">실행 중인 AppHost를 찾을 수 없습니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
+      <trans-unit id="OptionNotValidWithResource">
+        <source>The '{0}' option is not valid when starting a resource.</source>
+        <target state="new">The '{0}' option is not valid when starting a resource.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -42,23 +32,18 @@
         <target state="translated">다시 시작할 리소스의 이름입니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">실행 중인 AppHost를 검색하는 중...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select which AppHost to connect to:</source>
-        <target state="translated">연결할 AppHost 선택:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>connect to</source>
+        <target state="new">connect to</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
-        <source>Start a stopped resource.</source>
+        <source>Start an apphost in the background, or start a stopped resource.</source>
         <target state="translated">중지된 리소스를 시작합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
-        <source>The name of the resource to start.</source>
+        <source>The name of the resource to start. If not specified, starts the AppHost in the background.</source>
         <target state="translated">시작할 리소스의 이름입니다.</target>
         <note />
       </trans-unit>

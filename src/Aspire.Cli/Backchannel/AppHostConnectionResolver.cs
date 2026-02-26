@@ -17,6 +17,7 @@ internal sealed class AppHostConnectionResult
     public IAppHostAuxiliaryBackchannel? Connection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Connection))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool Success => Connection is not null;
 
     public string? ErrorMessage { get; init; }
@@ -79,7 +80,7 @@ internal sealed class AppHostConnectionResolver(
         string notFoundMessage,
         CancellationToken cancellationToken)
     {
-        // Fast path: If --project was specified, check directly for its socket
+        // Fast path: If --apphost was specified, check directly for its socket
         if (projectFile is not null)
         {
             var targetPath = projectFile.FullName;

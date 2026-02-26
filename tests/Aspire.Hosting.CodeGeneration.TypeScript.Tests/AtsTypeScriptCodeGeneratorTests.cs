@@ -297,6 +297,31 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void FactoryMethod_ReturnsChildResourceType_NotParentType()
+    {
+        // Regression test: Factory methods on a builder (e.g., AddDatabase on SqlServerServerResource)
+        // must return the child resource type, not the parent/receiver type.
+        // Previously, the codegen always used the builder's own type for the return type,
+        // causing addDatabase() to return SqlServerServerResourcePromise instead of
+        // SqlServerDatabaseResourcePromise.
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        // addTestChildDatabase is a factory method on TestRedisResource that returns TestDatabaseResource.
+        // The generated internal method must return TestDatabaseResource, not TestRedisResource.
+        Assert.Contains("_addTestChildDatabaseInternal", aspireTs);
+        Assert.Contains("Promise<TestDatabaseResource>", aspireTs);
+
+        // The public fluent method must return TestDatabaseResourcePromise, not TestRedisResourcePromise.
+        Assert.Matches(@"addTestChildDatabase\([^)]*\):\s*TestDatabaseResourcePromise", aspireTs);
+
+        // Verify the thenable class also uses the child type's promise class.
+        // In TestRedisResourcePromise, addTestChildDatabase should return TestDatabaseResourcePromise.
+        Assert.Contains("new TestDatabaseResourcePromise(this._promise.then(obj => obj.addTestChildDatabase(", aspireTs);
+    }
+
+    [Fact]
     public async Task Scanner_WithPersistence_HasCorrectExpandedTargets()
     {
         // Verify the entire capability object for withPersistence

@@ -80,7 +80,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("run --project /tmp/doesnotexist.csproj");
+        var result = command.Parse("run --apphost /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -132,7 +132,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public void GetDetachedFailureMessage_ReturnsBuildSpecificMessage_ForBuildFailureExitCode()
     {
-        var message = RunCommand.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
+        var message = AppHostLauncher.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
 
         Assert.Equal(RunCommandStrings.AppHostFailedToBuild, message);
     }
@@ -140,7 +140,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public void GetDetachedFailureMessage_ReturnsExitCodeMessage_ForUnknownExitCode()
     {
-        var message = RunCommand.GetDetachedFailureMessage(123);
+        var message = AppHostLauncher.GetDetachedFailureMessage(123);
 
         Assert.Contains("123", message, StringComparison.Ordinal);
     }
@@ -152,7 +152,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var now = new DateTimeOffset(2026, 02, 12, 18, 00, 00, TimeSpan.Zero);
         var timeProvider = new FixedTimeProvider(now);
 
-        var path = RunCommand.GenerateChildLogFilePath(logsDirectory, timeProvider);
+        var path = AppHostLauncher.GenerateChildLogFilePath(logsDirectory, timeProvider);
         var fileName = Path.GetFileName(path);
 
         Assert.StartsWith(logsDirectory, path, StringComparison.OrdinalIgnoreCase);

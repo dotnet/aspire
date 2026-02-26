@@ -30,6 +30,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required DashboardDialogService DialogService { get; init; }
 
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -88,6 +91,10 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     private async Task LaunchManageDataAsync()
     {
+        // Close the Settings dialog first to avoid concurrent focus traps causing a
+        // "Maximum call stack size exceeded" error in the browser (see #14407).
+        await Dialog.CloseAsync();
+
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Dashboard.Resources.Dialogs.ManageDataDialogTitle)],

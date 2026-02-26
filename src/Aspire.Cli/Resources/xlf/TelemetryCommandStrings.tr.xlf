@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../TelemetryCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
         <target state="translated">Pano API'si kullanılamıyor. AppHost'un Pano özelliği etkin olarak çalıştığından emin olun.</target>
@@ -52,29 +47,14 @@
         <target state="translated">Pano telemetri API'sinden yapılandırılmış günlükleri görüntüleyin.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Geçerli dizinde AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
         <target state="translated">Kaynak adına göre filtreleyin.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">AppHost seçin:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>view telemetry for</source>
+        <target state="new">view telemetry for</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
