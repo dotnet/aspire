@@ -4,6 +4,7 @@
 # 1. Downloads signed packages from a specified build
 # 2. Publishes packages to NuGet.org
 # 3. Promotes the build to the Aspire GA channel via darc
+# 4. Submits WinGet manifests and Homebrew cask PRs
 #
 # For full documentation, see: docs/release-process.md
 
@@ -32,12 +33,24 @@ parameters:
     type: boolean
     default: false
 
+  - name: SkipWinGetPublish
+    displayName: 'Skip WinGet Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
+  - name: SkipHomebrewPublish
+    displayName: 'Skip Homebrew Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
   # Variable group containing secrets (VscePublishToken for future use)
   # Note: NuGet publishing uses service connection 'NuGet.org - dotnet/aspire' instead of API key
   - group: Aspire-Release-Secrets
+  # Variable group containing aspire-winget-bot-pat and aspire-homebrew-bot-pat for WinGet and Homebrew publishing
+  - group: Aspire-Secrets
 
 resources:
   repositories:
@@ -86,6 +99,14 @@ extends:
                   displayName: 'Publish PackageArtifacts with SBOM'
                   targetPath: '$(Pipeline.Workspace)/packages/PackageArtifacts'
                   artifactName: 'PackageArtifacts'
+                - output: pipelineArtifact
+                  displayName: 'Publish WinGet Manifests'
+                  targetPath: '$(Pipeline.Workspace)/installers/winget-manifests-stable'
+                  artifactName: 'winget-manifests-stable'
+                - output: pipelineArtifact
+                  displayName: 'Publish Homebrew Cask'
+                  targetPath: '$(Pipeline.Workspace)/installers/homebrew-cask-stable'
+                  artifactName: 'homebrew-cask-stable'
             steps:
               - checkout: none
 
@@ -102,6 +123,14 @@ extends:
                 displayName: 'Download PackageArtifacts from Source Build'
                 artifact: PackageArtifacts
                 patterns: '**/*.nupkg'
+
+              - download: aspire-build
+                displayName: 'Download WinGet Manifests from Source Build'
+                artifact: winget-manifests-stable
+
+              - download: aspire-build
+                displayName: 'Download Homebrew Cask from Source Build'
+                artifact: homebrew-cask-stable
 
               # Move artifacts to expected location for output
               - powershell: |
@@ -125,6 +154,37 @@ extends:
                   
                   Write-Host "✓ Artifacts prepared for SBOM generation"
                 displayName: 'Prepare Artifacts for Publishing'
+
+              # Copy installer artifacts to expected locations for output
+              - powershell: |
+                  $artifacts = @(
+                    @{ Name = 'winget-manifests-stable'; Source = '$(Pipeline.Workspace)/aspire-build/winget-manifests-stable'; Target = '$(Pipeline.Workspace)/installers/winget-manifests-stable' },
+                    @{ Name = 'homebrew-cask-stable'; Source = '$(Pipeline.Workspace)/aspire-build/homebrew-cask-stable'; Target = '$(Pipeline.Workspace)/installers/homebrew-cask-stable' }
+                  )
+
+                  foreach ($artifact in $artifacts) {
+                    Write-Host "Copying $($artifact.Name) from $($artifact.Source) to $($artifact.Target)"
+
+                    if (!(Test-Path $artifact.Target)) {
+                      New-Item -ItemType Directory -Path $artifact.Target -Force | Out-Null
+                    }
+
+                    $files = Get-ChildItem -Path $artifact.Source -Recurse -File
+                    Write-Host "  Found $($files.Count) files"
+                    foreach ($file in $files) {
+                      $relativePath = $file.FullName.Substring($artifact.Source.Length + 1)
+                      $destPath = Join-Path $artifact.Target $relativePath
+                      $destDir = Split-Path $destPath -Parent
+                      if (!(Test-Path $destDir)) {
+                        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                      }
+                      Copy-Item $file.FullName -Destination $destPath -Force
+                      Write-Host "    Copied: $relativePath"
+                    }
+                  }
+
+                  Write-Host "✓ Installer artifacts prepared"
+                displayName: 'Prepare Installer Artifacts'
 
       # ===== STAGE 2: RELEASE =====
       # This releaseJob consumes the artifacts with SBOM and publishes to NuGet.org
@@ -406,7 +466,65 @@ extends:
                   } else {
                     Write-Host " (EXECUTED)"
                   }
+                  Write-Host "║ WinGet:         (runs in parallel after this job)"
+                  Write-Host "║ Homebrew:       (runs in parallel after this job)"
                   Write-Host "╚═══════════════════════════════════════════════════════════════╝"
                   Write-Host ""
                 displayName: 'Print Summary'
                 condition: always()
+
+          # ===== WINGET PUBLISHING =====
+          - job: WinGetJob
+            displayName: 'Submit WinGet Release Manifests'
+            dependsOn: ReleaseJob
+            condition: |
+              and(
+                in(dependencies.ReleaseJob.result, 'Succeeded', 'SucceededWithIssues'),
+                eq('${{ parameters.SkipWinGetPublish }}', 'false')
+              )
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2026preview.scout.amd64
+              os: windows
+            templateContext:
+              type: releaseJob
+              isProduction: true
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: winget-manifests-stable
+                  targetPath: '$(Pipeline.Workspace)/winget/winget-manifests-stable'
+            steps:
+              - template: /eng/pipelines/templates/publish-winget.yml@self
+                parameters:
+                  manifestArtifactPath: $(Pipeline.Workspace)/winget/winget-manifests-stable
+                  packageIdentifier: Microsoft.Aspire
+                  dryRun: ${{ parameters.DryRun }}
+
+          # ===== HOMEBREW PUBLISHING =====
+          - job: HomebrewJob
+            displayName: 'Submit Homebrew Release Cask'
+            dependsOn: ReleaseJob
+            condition: |
+              and(
+                in(dependencies.ReleaseJob.result, 'Succeeded', 'SucceededWithIssues'),
+                eq('${{ parameters.SkipHomebrewPublish }}', 'false')
+              )
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2026preview.scout.amd64
+              os: windows
+            templateContext:
+              type: releaseJob
+              isProduction: true
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: homebrew-cask-stable
+                  targetPath: '$(Pipeline.Workspace)/homebrew/homebrew-cask-stable'
+            steps:
+              - template: /eng/pipelines/templates/publish-homebrew.yml@self
+                parameters:
+                  caskArtifactPath: $(Pipeline.Workspace)/homebrew/homebrew-cask-stable
+                  channel: stable
+                  dryRun: ${{ parameters.DryRun }}

@@ -50,6 +50,7 @@ pr:
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
+
   # Variable group containing VscePublishToken for VS Code Marketplace publishing
   - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
     - group: Aspire-Release-Secrets
@@ -290,6 +291,55 @@ extends:
                   publishVSCodeExtension: ${{ parameters.publishVSCodeExtension }}
                   vscePublishToken: $(VscePublishToken)
                   vscePublishPreRelease: ${{ parameters.vscePublishPreRelease }}
+
+              # Extract the Aspire version from a generated nupkg filename so downstream
+              # stages (e.g. publish_winget) can use it. We use Aspire.Hosting.Docker
+              # because it has no RID in its filename, so stripping the prefix cleanly
+              # yields just the version (e.g. "13.2.0-preview.1.26074.3").
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
+                  $shippingDir = "$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping"
+                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.Docker.*.nupkg" -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -notmatch '\.symbols\.' } |
+                    Select-Object -First 1
+
+                  if (-not $nupkg) {
+                    Write-Error "Could not find Aspire.Hosting.Docker nupkg in $shippingDir"
+                    exit 1
+                  }
+
+                  # Extract version: strip the known prefix and .nupkg suffix
+                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.Docker\.', '' -replace '\.nupkg$', ''
+
+                  if ($version -notmatch '^\d+\.\d+\.\d+') {
+                    Write-Error "Extracted version '$version' does not look like a valid semver. Check the nupkg name."
+                    exit 1
+                  }
+
+                  Write-Host "Detected Aspire version: $version (from $($nupkg.Name))"
+                  Write-Host "##vso[task.setvariable variable=aspireVersion;isOutput=true]$version"
+                name: computeVersion
+                displayName: 🟣Compute Aspire version from nupkg
+
+              # Determine stable vs prerelease for installer pipelines (WinGet, Homebrew).
+              # DotNetFinalVersionKind is 'release' for stable builds, empty otherwise.
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
+                  $versionKind = dotnet msbuild "$(Build.SourcesDirectory)/eng/Versions.props" -getProperty:DotNetFinalVersionKind
+                  $versionKind = $versionKind.Trim()
+                  Write-Host "DotNetFinalVersionKind: '$versionKind'"
+
+                  if ($versionKind -eq 'release') {
+                    $channel = 'stable'
+                  } else {
+                    $channel = 'prerelease'
+                  }
+
+                  Write-Host "Installer channel: $channel"
+                  Write-Host "##vso[task.setvariable variable=installerChannel;isOutput=true]$channel"
+                name: computeChannel
+                displayName: 🟣Determine installer channel
+
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
           parameters:
@@ -297,3 +347,58 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
+
+    # ----------------------------------------------------------------
+    # Generate and test installer packages (WinGet + Homebrew).
+    # Channel (stable/prerelease) is determined by the build stage.
+    # Artifacts are consumed by release-publish-nuget.yml for stable
+    # publishing. No publishing happens from this pipeline.
+    # ----------------------------------------------------------------
+    - stage: prepare_installers
+      displayName: Prepare Installers
+      dependsOn:
+        - build
+      variables:
+        aspireVersion: $[ stageDependencies.build.Windows.outputs['computeVersion.aspireVersion'] ]
+        installerChannel: $[ stageDependencies.build.Windows.outputs['computeChannel.installerChannel'] ]
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuild: false
+          enablePublishUsingPipelines: false
+          enablePublishBuildAssets: false
+          enablePublishBuildArtifacts: true
+          enableTelemetry: true
+          workspace:
+            clean: all
+          jobs:
+          - job: WinGet
+            displayName: WinGet Manifest
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-windows-2022
+              os: windows
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - template: /eng/pipelines/templates/prepare-winget-manifest.yml@self
+              parameters:
+                version: $(aspireVersion)
+                channel: $(installerChannel)
+
+          - job: Homebrew
+            displayName: Homebrew Cask
+            timeoutInMinutes: 30
+            pool:
+              name: Azure Pipelines
+              vmImage: macOS-latest-internal
+              os: macOS
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - template: /eng/pipelines/templates/prepare-homebrew-cask.yml@self
+              parameters:
+                version: $(aspireVersion)
+                channel: $(installerChannel)
