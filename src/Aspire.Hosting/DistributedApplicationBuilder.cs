@@ -193,8 +193,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // For polyglot AppHosts (no assembly attribute), add user secrets early so they have the
         // same precedence as the default AddUserSecrets called by HostApplicationBuilder for .NET projects.
+        // Only add in Development environment, matching the behavior of the default AddUserSecrets.
         if (!string.IsNullOrEmpty(userSecretsId) &&
-            AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>() is null)
+            AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>() is null &&
+            _innerBuilder.Environment.IsDevelopment())
         {
             _innerBuilder.Configuration.AddUserSecrets(userSecretsId);
         }
