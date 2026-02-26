@@ -138,17 +138,6 @@ public class EntraIdApplicationResource(string name, string configSectionName = 
     /// </remarks>
     public bool AllowWebApiToBeAuthorizedByACL { get; set; }
 
-    // ── Diagnostics ────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Gets or sets whether to enable logging of Personally Identifiable Information (PII).
-    /// </summary>
-    /// <remarks>
-    /// The default is <see langword="false"/>. Set to <see langword="true"/> for advanced debugging.
-    /// PII logs are never written to default outputs.
-    /// </remarks>
-    public bool EnablePiiLogging { get; set; }
-
     // ── Query parameters ───────────────────────────────────────────────────
 
     /// <summary>

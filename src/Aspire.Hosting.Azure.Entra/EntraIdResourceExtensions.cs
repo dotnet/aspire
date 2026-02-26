@@ -421,20 +421,6 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
-    /// Enables PII logging for advanced debugging.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EntraIdApplicationResource> WithPiiLogging(
-        this IResourceBuilder<EntraIdApplicationResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        builder.Resource.EnablePiiLogging = true;
-        return builder;
-    }
-
-    /// <summary>
     /// Adds an extra query parameter to send to the identity provider.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -577,12 +563,6 @@ public static class EntraIdResourceExtensions
             if (entra.AllowWebApiToBeAuthorizedByACL)
             {
                 context.EnvironmentVariables[$"{prefix}__AllowWebApiToBeAuthorizedByACL"] = "true";
-            }
-
-            // Diagnostics
-            if (entra.EnablePiiLogging)
-            {
-                context.EnvironmentVariables[$"{prefix}__EnablePiiLogging"] = "true";
             }
 
             // Extra query parameters

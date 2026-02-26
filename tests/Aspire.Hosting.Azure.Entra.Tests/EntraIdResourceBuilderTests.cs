@@ -234,24 +234,6 @@ public class EntraIdResourceBuilderTests
     }
 
     [Fact]
-    public void AddEntraIdApplication_WithPiiLogging()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        appBuilder.AddEntraIdApplication("entra-api")
-            .WithTenantId("test-tenant-id")
-            .WithClientId("test-client-id")
-            .WithPiiLogging();
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
-        Assert.True(resource.EnablePiiLogging);
-    }
-
-    [Fact]
     public void AddEntraIdApplication_WithExtraQueryParameter()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -391,8 +373,7 @@ public class EntraIdResourceBuilderTests
             .WithClientSecret(secret)
             .WithAudience("api://test-client-id")
             .WithAppHomeTenantId("home-tenant")
-            .WithClientCapability("cp1")
-            .WithPiiLogging();
+            .WithClientCapability("cp1");
 
         var project = appBuilder.AddContainer("api", "myimage")
             .WithEntraIdAuthentication(entra);
