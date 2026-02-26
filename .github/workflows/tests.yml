@@ -114,6 +114,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      requiresCliArchive: true
 
   polyglot_validation:
     name: Polyglot SDK Validation
@@ -211,6 +212,7 @@ jobs:
                 (needs.extension_tests_win.result == 'skipped' ||
                  needs.tests_no_nugets.result == 'skipped' ||
                  needs.tests_requires_nugets.result == 'skipped' ||
+                 needs.tests_requires_cli_archive.result == 'skipped' ||
                  needs.polyglot_validation.result == 'skipped')) ||
                (github.event_name != 'pull_request' &&
                 (needs.extension_tests_win.result == 'skipped' ||

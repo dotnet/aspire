@@ -124,68 +124,6 @@ public class SplitTestProjectsTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
-    public async Task FiltersSkippedCollections()
-    {
-        // Arrange
-        var assemblyPath = Path.Combine(_tempDir.Path, "TestAssembly.dll");
-        MockAssemblyBuilder.CreateAssemblyWithPartitions(
-            assemblyPath,
-            ("TestClass1", "PartitionA"),
-            ("TestClass2", "PartitionB"),
-            ("TestClass3", "SkipMe"));
-
-        var outputFile = Path.Combine(_tempDir.Path, "partitions.json");
-
-        // Act
-        var result = await RunScript(
-            assemblyPath,
-            runCommand: "echo",
-            testClassPrefix: "TestNamespace",
-            outputFile: outputFile,
-            collectionsToSkip: "SkipMe");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var partitions = ParsePartitionsJson(outputFile);
-        Assert.Contains("collection:PartitionA", partitions.TestPartitions);
-        Assert.Contains("collection:PartitionB", partitions.TestPartitions);
-        Assert.DoesNotContain("collection:SkipMe", partitions.TestPartitions);
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
-    public async Task FiltersMultipleSkippedCollections()
-    {
-        // Arrange
-        var assemblyPath = Path.Combine(_tempDir.Path, "TestAssembly.dll");
-        MockAssemblyBuilder.CreateAssemblyWithPartitions(
-            assemblyPath,
-            ("TestClass1", "Keep"),
-            ("TestClass2", "Skip1"),
-            ("TestClass3", "Skip2"));
-
-        var outputFile = Path.Combine(_tempDir.Path, "partitions.json");
-
-        // Act
-        var result = await RunScript(
-            assemblyPath,
-            runCommand: "echo",
-            testClassPrefix: "TestNamespace",
-            outputFile: outputFile,
-            collectionsToSkip: "Skip1;Skip2");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var partitions = ParsePartitionsJson(outputFile);
-        Assert.Contains("collection:Keep", partitions.TestPartitions);
-        Assert.DoesNotContain("collection:Skip1", partitions.TestPartitions);
-        Assert.DoesNotContain("collection:Skip2", partitions.TestPartitions);
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
     public async Task SortsPartitionsAlphabetically()
     {
         // Arrange
@@ -243,8 +181,7 @@ public class SplitTestProjectsTests : IDisposable
         string assemblyPath,
         string runCommand,
         string testClassPrefix,
-        string outputFile,
-        string? collectionsToSkip = null)
+        string outputFile)
     {
         using var cmd = new PowerShellCommand(_scriptPath, _output)
             .WithTimeout(TimeSpan.FromMinutes(3));
@@ -257,12 +194,6 @@ public class SplitTestProjectsTests : IDisposable
             "-TestPartitionsJsonFile", $"\"{outputFile}\"",
             "-RepoRoot", $"\"{_repoRoot}\""
         };
-
-        if (!string.IsNullOrEmpty(collectionsToSkip))
-        {
-            args.Add("-TestCollectionsToSkip");
-            args.Add($"\"{collectionsToSkip}\"");
-        }
 
         return await cmd.ExecuteAsync(args.ToArray());
     }

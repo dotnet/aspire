@@ -58,9 +58,6 @@
       <!-- Output files -->
       <_TestPartitionsJsonAbsolutePath>$([MSBuild]::NormalizePath('$(RepoRoot)', '$(TestArchiveTestsDir)$(MSBuildProjectName).tests-partitions.json'))</_TestPartitionsJsonAbsolutePath>
 
-      <!-- Collections to skip (if any) -->
-      <_CollectionsToSkip Condition="'$(TestCollectionsToSkipSplitting)' != ''">$(TestCollectionsToSkipSplitting)</_CollectionsToSkip>
-      <_CollectionsToSkip Condition="'$(TestCollectionsToSkipSplitting)' == ''"></_CollectionsToSkip>
     </PropertyGroup>
 
     <!-- Ensure output directory exists -->
@@ -71,13 +68,11 @@
 
     <PropertyGroup>
       <_PwshCommand>pwsh</_PwshCommand>
-      <_PwshCommand Condition="'$(OS)' == 'Windows_NT'">powershell</_PwshCommand>
       <_TestAssemblyPath>$(TargetDir)$(TargetFileName)</_TestAssemblyPath>
       <_DiscoveryCommand>$(_PwshCommand) -NoProfile -ExecutionPolicy Bypass -File &quot;$(_DiscoveryScriptPath)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -TestAssemblyPath &quot;$(_TestAssemblyPath)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -RunCommand &quot;$(RunCommand)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -TestClassNamePrefixForCI &quot;$(TestClassNamePrefixForCI)&quot;</_DiscoveryCommand>
-      <_DiscoveryCommand Condition="'$(_CollectionsToSkip)' != ''">$(_DiscoveryCommand) -TestCollectionsToSkip &quot;$(_CollectionsToSkip)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -TestPartitionsJsonFile &quot;$(_TestPartitionsJsonAbsolutePath)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -RepoRoot &quot;$(RepoRoot)&quot;</_DiscoveryCommand>
     </PropertyGroup>

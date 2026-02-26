@@ -29,9 +29,6 @@
 .PARAMETER TestClassNamePrefixForCI
   Namespace prefix used to recognize test classes (e.g., Aspire.Hosting.Tests).
 
-.PARAMETER TestCollectionsToSkip
-  Semicolon-separated partition names to exclude from dedicated jobs.
-
 .PARAMETER TestPartitionsJsonFile
   Path to write the .tests-partitions.json output file.
 
@@ -55,9 +52,6 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$TestClassNamePrefixForCI,
 
-  [Parameter(Mandatory=$false)]
-  [string]$TestCollectionsToSkip = "",
-
   [Parameter(Mandatory=$true)]
   [string]$TestPartitionsJsonFile,
 
@@ -79,13 +73,13 @@ $classes     = [System.Collections.Generic.HashSet[string]]::new()
 # This step is optional - if it fails, we'll fall back to class-based splitting
 $partitionsFile = Join-Path ([System.IO.Path]::GetTempPath()) "partitions-$([System.Guid]::NewGuid()).txt"
 try {
-  $toolPath = Join-Path $RepoRoot "artifacts/bin/ExtractTestPartitions/Debug/net8.0/ExtractTestPartitions.dll"
+  $toolPath = Join-Path $RepoRoot "artifacts/bin/ExtractTestPartitions/Release/net8.0/ExtractTestPartitions.dll"
 
   # Build the tool if it doesn't exist
   if (-not (Test-Path $toolPath)) {
     Write-Host "Building ExtractTestPartitions tool..."
     $toolProjectPath = Join-Path $RepoRoot "tools/ExtractTestPartitions/ExtractTestPartitions.csproj"
-    & dotnet build $toolProjectPath -c Debug --nologo -v quiet
+    & dotnet build $toolProjectPath -c Release --nologo -v quiet
     if ($LASTEXITCODE -ne 0) {
       Write-Host "Warning: Failed to build ExtractTestPartitions tool. Using class-based splitting."
     }
@@ -129,16 +123,8 @@ finally {
   }
 }
 
-# Apply collection filtering
-$skipList = @()
-if ($TestCollectionsToSkip) {
-  $skipList = $TestCollectionsToSkip -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-}
-
-$filteredCollections = @($collections | Where-Object { $skipList -notcontains $_ })
-
 # Determine mode: if we have partitions, use collection mode; otherwise fall back to class mode
-$mode = if ($filteredCollections.Count -gt 0) { 'collection' } else { 'class' }
+$mode = if ($collections.Count -gt 0) { 'collection' } else { 'class' }
 
 # Only run --list-tests if we need class-based splitting (no partitions found)
 if ($mode -eq 'class') {
@@ -152,14 +138,17 @@ if ($mode -eq 'class') {
   }
 
   # Extract class names from test listing
-  $classNamePattern = '^(\s*)' + [Regex]::Escape($TestClassNamePrefixForCI) + '\.([^\.]+)\.'
+  # Match everything up to the last segment (method name), capturing the full class name
+  $classNamePattern = '^\s*(' + [Regex]::Escape($TestClassNamePrefixForCI) + '\..+)\.[^\.]+$'
 
   foreach ($line in $testOutput) {
-    $lineStr = $line.ToString()
+    $lineStr = $line.ToString().Trim()
     # Extract class name from test name
-    # Format: "  Namespace.ClassName.MethodName(...)" or "Namespace.ClassName.MethodName"
-    if ($lineStr -match $classNamePattern) {
-      $className = "$TestClassNamePrefixForCI.$($Matches[2])"
+    # Format: "Namespace.SubNs.ClassName.MethodName(...)" or "Namespace.ClassName.MethodName"
+    # Strip any trailing parenthesized arguments: "Method(arg1, arg2)" → "Method"
+    $cleanLine = $lineStr -replace '\(.*\)$', ''
+    if ($cleanLine -match $classNamePattern) {
+      $className = $Matches[1]
       $classes.Add($className) | Out-Null
     }
   }
@@ -172,7 +161,7 @@ if ($mode -eq 'class') {
 $lines = [System.Collections.Generic.List[string]]::new()
 
 if ($mode -eq 'collection') {
-  foreach ($c in ($filteredCollections | Sort-Object)) {
+  foreach ($c in ($collections | Sort-Object)) {
     $lines.Add("collection:$c")
   }
   $lines.Add("uncollected:*")
@@ -192,6 +181,6 @@ try {
 }
 
 Write-Host "Mode: $mode"
-Write-Host "Collections discovered (after filtering): $($filteredCollections.Count)"
+Write-Host "Collections discovered: $($collections.Count)"
 Write-Host "Classes discovered: $($classes.Count)"
 Write-Host "Test partitions JSON: $TestPartitionsJsonFile"
