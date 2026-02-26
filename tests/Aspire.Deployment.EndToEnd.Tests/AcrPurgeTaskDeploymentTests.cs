@@ -288,20 +288,12 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 13: Run the purge task manually to trigger image cleanup
+            // az acr task run is synchronous - it waits for completion and streams output
             output.WriteLine("Step 13: Running ACR purge task...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"Running purge task on ACR: $ACR_NAME\" && " +
-                      "RUN_ID=$(az acr task run --name purgeOldImages --registry \"$ACR_NAME\" --query runId -o tsv) && " +
-                      "echo \"Purge task run ID: $RUN_ID\" && " +
-                      "echo \"Waiting for purge task to complete...\" && " +
-                      "while true; do " +
-                      "STATUS=$(az acr task show-run --name purgeOldImages --registry \"$ACR_NAME\" --run-id \"$RUN_ID\" --query status -o tsv); " +
-                      "echo \"Current purge task status: $STATUS\"; " +
-                      "if [ \"$STATUS\" = \"Succeeded\" ]; then break; fi; " +
-                      "if [ \"$STATUS\" = \"Failed\" ] || [ \"$STATUS\" = \"Canceled\" ]; then echo \"Purge task did not complete successfully\"; exit 1; fi; " +
-                      "sleep 10; " +
-                      "done")
+                      "az acr task run --name purgeOldImages --registry \"$ACR_NAME\"")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
