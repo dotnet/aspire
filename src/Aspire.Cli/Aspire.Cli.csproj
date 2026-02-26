@@ -61,7 +61,8 @@
 
   <!-- Experimental: Built-in Sigstore verification for npm packages (feature-flagged) -->
   <ItemGroup>
-    <PackageReference Include="Sigstore" VersionOverride="0.2.0-pr.2.22442367674.d7d1152.1" />
+    <PackageReference Include="Sigstore" VersionOverride="0.2.0-pr.3.22465746010.d3d7101.1" />
+    <PackageReference Include="Tuf" VersionOverride="0.2.0-pr.3.22465746010.d3d7101.1" />
   </ItemGroup>
 
   <!-- When BundlePayloadPath is set (by Bundle.proj), embed the tar.gz as a resource.
