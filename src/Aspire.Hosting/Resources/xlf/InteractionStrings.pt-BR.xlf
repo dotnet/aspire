@@ -107,7 +107,7 @@ O valor está atualmente salvo em [segredos do usuário](https://learn.microsof
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
         <target state="needs-review-translation">É necessário que um `UserSecretsId` seja configurado no arquivo de projeto AppHost. Execute `dotnet user-secrets init` no diretório AppHost para configurar.</target>
         <note />
       </trans-unit>

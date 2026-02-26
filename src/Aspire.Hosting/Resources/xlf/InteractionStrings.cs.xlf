@@ -107,7 +107,7 @@ Hodnota je aktuálně uložena v [tajných klíčích uživatele](https://learn.
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
         <target state="needs-review-translation">Vyžaduje konfiguraci UserSecretsId v souboru projektu AppHost. Konfiguraci provedete spuštěním příkazu dotnet user-secrets init v adresáři AppHost.</target>
         <note />
       </trans-unit>

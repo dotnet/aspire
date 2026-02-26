@@ -107,7 +107,7 @@ Değer şu anda [kullanıcı gizli dizinleri](https://learn.microsoft.com/aspnet
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
         <target state="needs-review-translation">AppHost proje dosyasında bir `UserSecretsId` yapılandırılması gerekir. Yapılandırmak için AppHost dizininde `dotnet user-secrets init` komutunu çalıştırın.</target>
         <note />
       </trans-unit>

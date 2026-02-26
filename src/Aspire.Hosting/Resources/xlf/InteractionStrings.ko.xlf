@@ -107,7 +107,7 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
         <target state="needs-review-translation">AppHost 프로젝트 파일에서 `UserSecretsId`를 구성해야 합니다. AppHost 디렉터리에서 `dotnet user-secrets init`을 실행하여 구성합니다.</target>
         <note />
       </trans-unit>
