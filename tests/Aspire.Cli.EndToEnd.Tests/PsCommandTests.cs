@@ -174,18 +174,24 @@ public sealed class PsCommandTests(ITestOutputHelper output)
         }
 
         var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "output-step1.json");
+        var stderrFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "stderr-output.txt");
 
-        // Run aspire ps --format json and redirect stdout to a file.
+        // Run aspire ps --format json and redirect stdout and stderr to separate files.
         // With zero running AppHosts, only JSON (an empty array) should be written to stdout.
-        sequenceBuilder.Type($"aspire ps --format json > output-step1.json")
+        // Status messages should be written to stderr only.
+        sequenceBuilder.Type($"aspire ps --format json > {outputFilePath} 2> {stderrFilePath}")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Verify that output-step1.json contains exactly "[]" (empty JSON array)
+        // and that status messages were written to stderr instead of stdout
         sequenceBuilder.ExecuteCallback(() =>
         {
-            var content = File.ReadAllText(outputFilePath).Trim();
-            Assert.Equal("[]", content);
+            var stdoutContent = File.ReadAllText(outputFilePath).Trim();
+            Assert.Equal("[]", stdoutContent);
+
+            var stderrContent = File.ReadAllText(stderrFilePath).Trim();
+            Assert.False(string.IsNullOrEmpty(stderrContent), "Expected status messages to be written to stderr");
         });
 
         // Exit the shell
