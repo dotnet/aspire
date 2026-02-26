@@ -30,6 +30,12 @@ internal class MauiBuildQueueEventSubscriber(
     private static readonly ResourceStateSnapshot s_queuedState = new("Queued", KnownResourceStateStyles.Info);
     private static readonly ResourceStateSnapshot s_buildingState = new("Building", KnownResourceStateStyles.Info);
 
+    /// <summary>
+    /// Maximum time to wait for a <c>dotnet build</c> process before cancelling.
+    /// Prevents a hung build from blocking the queue indefinitely.
+    /// </summary>
+    internal TimeSpan BuildTimeout { get; set; } = TimeSpan.FromMinutes(10);
+
     /// <inheritdoc/>
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
@@ -130,26 +136,34 @@ internal class MauiBuildQueueEventSubscriber(
 
         logger.LogInformation("Running: dotnet {Arguments}", string.Join(" ", args));
 
+        // Apply a timeout so that a hung build does not block the queue forever.
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(BuildTimeout);
+        var token = timeoutCts.Token;
+
         using var process = new Process { StartInfo = psi };
 
         process.Start();
 
         // Pipe stdout/stderr to the resource logger so output is visible in the dashboard.
-        var stdoutTask = PipeOutputAsync(process.StandardOutput, logger, LogLevel.Information, cancellationToken);
-        var stderrTask = PipeOutputAsync(process.StandardError, logger, LogLevel.Warning, cancellationToken);
+        var stdoutTask = PipeOutputAsync(process.StandardOutput, logger, LogLevel.Information, token);
+        var stderrTask = PipeOutputAsync(process.StandardError, logger, LogLevel.Warning, token);
 
         try
         {
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await process.WaitForExitAsync(token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             TryKillProcess(process, logger);
             throw;
         }
-
-        // Drain remaining output after the process exits.
-        await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+        finally
+        {
+            // Always drain remaining output — even on cancellation the process was killed
+            // and the streams will reach EOF, so the tasks will complete promptly.
+            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+        }
 
         if (process.ExitCode != 0)
         {
@@ -162,15 +176,22 @@ internal class MauiBuildQueueEventSubscriber(
 
     private static async Task PipeOutputAsync(System.IO.StreamReader reader, ILogger logger, LogLevel level, CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-            if (line is null)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                break;
-            }
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (line is null)
+                {
+                    break;
+                }
 
-            logger.Log(level, "{Line}", line);
+                logger.Log(level, "{Line}", line);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the build is cancelled or timed out.
         }
     }
 

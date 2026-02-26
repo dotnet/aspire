@@ -317,6 +317,103 @@ public class MauiBuildQueueTests
         await task1.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
+    [Fact]
+    public async Task ResourceRestart_CanBuildSameResourceTwice()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        // First build
+        env.Subscriber.CompleteBuildImmediately(env.Android);
+        await env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None);
+
+        // Semaphore released after first build
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(1, annotation!.BuildSemaphore.CurrentCount);
+
+        // Second build of same resource (restart scenario)
+        env.Subscriber.CompleteBuildImmediately(env.Android);
+        await env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None);
+
+        Assert.Equal(1, annotation.BuildSemaphore.CurrentCount);
+    }
+
+    [Fact]
+    public async Task MissingBuildQueueAnnotation_SkipsQueue()
+    {
+        // Create a parent without MauiBuildQueueAnnotation
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parent = new MauiProjectResource("mauiapp-no-annotation", "/fake/path.csproj");
+        appBuilder.CreateResourceBuilder(parent);
+
+        var android = new MauiAndroidEmulatorResource("android-no-annotation", parent);
+        appBuilder.AddResource(android);
+
+        var app = appBuilder.Build();
+        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+        var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        var execContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+
+        var subscriber = new TestableBuildQueueSubscriber(notificationService, loggerService);
+        await subscriber.SubscribeAsync(eventing, execContext, CancellationToken.None);
+
+        // Should return immediately — no annotation means no queue
+        await eventing.PublishAsync(
+            new BeforeResourceStartedEvent(android, app.Services),
+            CancellationToken.None);
+
+        await app.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task UnexpectedException_ReleasesSemaphore()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        env.Subscriber.FailBuildWith(env.Android, new ArgumentException("Unexpected error"));
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => env.Eventing.PublishAsync(
+                new BeforeResourceStartedEvent(env.Android, env.Services),
+                CancellationToken.None));
+
+        // Semaphore should be released even for unexpected exception types.
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(1, annotation!.BuildSemaphore.CurrentCount);
+    }
+
+    [Fact]
+    public void BuildInfoAnnotation_StoresAllProperties()
+    {
+        var annotation = new MauiBuildInfoAnnotation(
+            "/path/to/project.csproj",
+            "/path/to",
+            "net10.0-android",
+            "Debug");
+
+        Assert.Equal("/path/to/project.csproj", annotation.ProjectPath);
+        Assert.Equal("/path/to", annotation.WorkingDirectory);
+        Assert.Equal("net10.0-android", annotation.TargetFramework);
+        Assert.Equal("Debug", annotation.Configuration);
+    }
+
+    [Fact]
+    public void BuildInfoAnnotation_NullableProperties()
+    {
+        var annotation = new MauiBuildInfoAnnotation(
+            "/path/to/project.csproj",
+            "/path/to",
+            targetFramework: null,
+            configuration: null);
+
+        Assert.Null(annotation.TargetFramework);
+        Assert.Null(annotation.Configuration);
+    }
+
     // ───────────────────────────────────────────────────────────────────
     // Test infrastructure
     // ───────────────────────────────────────────────────────────────────
@@ -349,6 +446,13 @@ public class MauiBuildQueueTests
         public void FailBuild(IResource resource, string message)
         {
             _buildFailures[resource.Name] = new InvalidOperationException(message);
+            GetOrCreateCompletion(resource.Name).TrySetResult();
+        }
+
+        /// <summary>Pre-registers a resource whose build should fail with a specific exception.</summary>
+        public void FailBuildWith(IResource resource, Exception exception)
+        {
+            _buildFailures[resource.Name] = exception;
             GetOrCreateCompletion(resource.Name).TrySetResult();
         }
 
