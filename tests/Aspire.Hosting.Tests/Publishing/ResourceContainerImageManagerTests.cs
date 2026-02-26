@@ -576,9 +576,8 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Verify that the fake runtime was called to build the image
         Assert.True(fakeContainerRuntime.WasBuildImageCalled);
-        Assert.Single(fakeContainerRuntime.BuildImageCalls);
 
-        var buildCall = fakeContainerRuntime.BuildImageCalls[0];
+        var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
 
         // The context path should be normalized (no trailing slashes)
         Assert.False(buildCall.contextPath.EndsWith(Path.DirectorySeparatorChar.ToString()));
