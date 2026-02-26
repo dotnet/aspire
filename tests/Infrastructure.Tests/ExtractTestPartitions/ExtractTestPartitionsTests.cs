@@ -49,9 +49,9 @@ public class ExtractTestPartitionsTests : IClassFixture<ExtractTestPartitionsFix
     }
 
     [Fact]
-    public async Task ExtractsCollectionAttributes()
+    public async Task IgnoresCollectionAttributes()
     {
-        // Arrange
+        // Arrange - Collection attributes are for shared fixtures, not CI splitting
         var assemblyPath = Path.Combine(_tempDir.Path, "TestAssembly.dll");
         MockAssemblyBuilder.CreateAssemblyWithCollections(
             assemblyPath,
@@ -65,16 +65,12 @@ public class ExtractTestPartitionsTests : IClassFixture<ExtractTestPartitionsFix
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.True(File.Exists(outputFile), "Output file should be created");
-
-        var partitions = File.ReadAllLines(outputFile);
-        Assert.Equal(2, partitions.Length);
-        Assert.Contains("CollectionX", partitions);
-        Assert.Contains("CollectionY", partitions);
+        Assert.False(File.Exists(outputFile), "Output file should NOT be created for Collection-only attributes");
+        Assert.Contains("No partitions found", result.Output);
     }
 
     [Fact]
-    public async Task ExtractsBothAttributeTypes()
+    public async Task ExtractsOnlyTraitPartitionsFromMixedAttributes()
     {
         // Arrange
         var assemblyPath = Path.Combine(_tempDir.Path, "TestAssembly.dll");
@@ -88,14 +84,13 @@ public class ExtractTestPartitionsTests : IClassFixture<ExtractTestPartitionsFix
         // Act
         var result = await RunTool(assemblyPath, outputFile);
 
-        // Assert
+        // Assert - Only Trait("Partition") entries are extracted, not Collection attributes
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputFile), "Output file should be created");
 
         var partitions = File.ReadAllLines(outputFile);
-        Assert.Equal(2, partitions.Length);
+        Assert.Single(partitions);
         Assert.Contains("PartA", partitions);
-        Assert.Contains("CollB", partitions);
     }
 
     [Fact]
