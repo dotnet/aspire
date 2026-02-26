@@ -31,10 +31,8 @@ from ._base import (
 )
 from ._transport import (
     _register_handle_wrapper,
-    AspyreError,
-    CapabilityError,
-    ParameterTypeError,
-    CallbackCancelled,
+    _CallbackCancelled,
+    AspireError,
 )
 
 uncached_property = property
@@ -103,44 +101,6 @@ def _validate_dict_types(args: Any, arg_types: Any) -> bool:
         if not _validate_type(value, expected_type):
             return False
     return True
-
-
-@dataclass
-class Warnings:
-    experimental: str | None
-
-
-class AspyreExperimentalWarning(Warning):
-    '''Custom warning for experimental features in Aspire.'''
-
-
-def _experimental(arg_name: str, func_or_cls: str | type, code: str):
-    if isinstance(func_or_cls, str):
-        warn(
-            f"The '{arg_name}' option in '{func_or_cls}' is for evaluation purposes only and is subject "
-            f"to change or removal in future updates. (Code: {code})",
-            category=AspyreExperimentalWarning,
-        )
-    else:
-        warn(
-            f"The '{arg_name}' method of '{func_or_cls.__name__}' is for evaluation purposes only and is subject "
-            f"to change or removal in future updates. (Code: {code})",
-            category=AspyreExperimentalWarning,
-        )
-
-
-def _check_warnings(kwargs: Mapping[str, Any], annotations: Any, func_name: str):
-    type_hints = get_type_hints(annotations, include_extras=True)
-    for key in kwargs.keys():
-        if get_origin(type_hint := type_hints.get(key)) is Annotated:
-            annotated_warnings = cast(Warnings, get_args(type_hint)[1])
-            if annotated_warnings.experimental:
-                warn(
-                    f"The '{key}' option in '{func_name}' is for evaluation purposes only and is subject to change"
-                    f"or removal in future updates. (Code: {annotated_warnings.experimental})",
-                    category=AspyreExperimentalWarning,
-                )
-
 
 
 # ============================================================================
@@ -217,7 +177,7 @@ class DistributedApplicationBuilder:
         app = self.build()
         app.run(timeout=timeout)
 
-    def add_test_redis(self, name: str, /, *, port: int | None = None, **kwargs: Unpack["TestRedisResourceOptions"]) -> TestRedisResource:
+    def add_test_redis(self, name: str, *, port: int | None = None, **kwargs: Unpack["TestRedisResourceOptions"]) -> TestRedisResource:
         """Adds a test Redis resource"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['name'] = name
@@ -295,7 +255,7 @@ class TestCallbackContext:
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.cancellationToken',
             {'context': self._handle}
         )
-        raise CallbackCancelled(result)
+        raise _CallbackCancelled(result)
 
 
 class TestCollectionContext:
@@ -448,7 +408,7 @@ class TestResourceContext:
             {'context': self._handle, 'value': value}
         )
 
-    def get_value(self, /) -> str:
+    def get_value(self) -> str:
         """Invokes the GetValueAsync method"""
         rpc_args: dict[str, Any] = {'context': self._handle}
         result = self._client.invoke_capability(
@@ -457,7 +417,7 @@ class TestResourceContext:
         )
         return result
 
-    def set_value(self, value: str, /) -> None:
+    def set_value(self, value: str) -> None:
         """Invokes the SetValueAsync method"""
         rpc_args: dict[str, Any] = {'context': self._handle}
         rpc_args['value'] = value
@@ -466,7 +426,7 @@ class TestResourceContext:
             rpc_args
         )
 
-    def validate(self, /) -> bool:
+    def validate(self) -> bool:
         """Invokes the ValidateAsync method"""
         rpc_args: dict[str, Any] = {'context': self._handle}
         result = self._client.invoke_capability(
@@ -484,55 +444,55 @@ class Resource(ABC):
     """Abstract base class for Resource interface."""
 
     @abstractmethod
-    def with_optional_string(self, /, *, value: str | None = None, enabled: bool | None = None) -> Self:
+    def with_optional_string(self, *, value: str | None = None, enabled: bool | None = None) -> Self:
         """Adds an optional string parameter"""
 
     @abstractmethod
-    def with_config(self, config: TestConfigDto, /) -> Self:
+    def with_config(self, config: TestConfigDto) -> Self:
         """Configures the resource with a DTO"""
 
     @abstractmethod
-    def with_created_at(self, created_at: str, /) -> Self:
+    def with_created_at(self, created_at: str) -> Self:
         """Sets the created timestamp"""
 
     @abstractmethod
-    def with_modified_at(self, modified_at: str, /) -> Self:
+    def with_modified_at(self, modified_at: str) -> Self:
         """Sets the modified timestamp"""
 
     @abstractmethod
-    def with_correlation_id(self, correlation_id: str, /) -> Self:
+    def with_correlation_id(self, correlation_id: str) -> Self:
         """Sets the correlation ID"""
 
     @abstractmethod
-    def with_optional_callback(self, /, *, callback: Callable[[TestCallbackContext], None] | None = None) -> Self:
+    def with_optional_callback(self, *, callback: Callable[[TestCallbackContext], None] | None = None) -> Self:
         """Configures with optional callback"""
 
     @abstractmethod
-    def with_status(self, status: TestResourceStatus, /) -> Self:
+    def with_status(self, status: TestResourceStatus) -> Self:
         """Sets the resource status"""
 
     @abstractmethod
-    def with_nested_config(self, config: TestNestedDto, /) -> Self:
+    def with_nested_config(self, config: TestNestedDto) -> Self:
         """Configures with nested DTO"""
 
     @abstractmethod
-    def with_validator(self, validator: Callable[[TestResourceContext], bool], /) -> Self:
+    def with_validator(self, validator: Callable[[TestResourceContext], bool]) -> Self:
         """Adds validation callback"""
 
     @abstractmethod
-    def test_wait_for(self, dependency: Resource, /) -> Self:
+    def test_wait_for(self, dependency: Resource) -> Self:
         """Waits for another resource (test version)"""
 
     @abstractmethod
-    def with_dependency(self, dependency: ResourceWithConnectionString, /) -> Self:
+    def with_dependency(self, dependency: ResourceWithConnectionString) -> Self:
         """Adds a dependency on another resource"""
 
     @abstractmethod
-    def with_endpoints(self, endpoints: Iterable[str], /) -> Self:
+    def with_endpoints(self, endpoints: Iterable[str]) -> Self:
         """Sets the endpoints"""
 
     @abstractmethod
-    def with_cancellable_operation(self, operation: Callable[[int], None], /) -> Self:
+    def with_cancellable_operation(self, operation: Callable[[int], None]) -> Self:
         """Performs a cancellable operation"""
 
 
@@ -544,11 +504,11 @@ class ResourceWithEnvironment(Resource):
     """Abstract base class for ResourceWithEnvironment interface."""
 
     @abstractmethod
-    def test_with_env_callback(self, callback: Callable[[TestEnvironmentContext], None], /) -> Self:
+    def test_with_env_callback(self, callback: Callable[[TestEnvironmentContext], None]) -> Self:
         """Configures environment with callback (test version)"""
 
     @abstractmethod
-    def with_env_vars(self, vars: Mapping[str, str], /) -> Self:
+    def with_env_vars(self, vars: Mapping[str, str]) -> Self:
         """Sets environment variables"""
 
 
@@ -572,11 +532,11 @@ class ResourceWithConnectionString(Resource, ManifestExpressionProvider, ValuePr
     """Abstract base class for ResourceWithConnectionString interface."""
 
     @abstractmethod
-    def with_connection_string(self, connection_string: ReferenceExpression, /) -> Self:
+    def with_connection_string(self, connection_string: ReferenceExpression) -> Self:
         """Sets the connection string using a reference expression"""
 
     @abstractmethod
-    def with_connection_string_direct(self, connection_string: str, /) -> Self:
+    def with_connection_string_direct(self, connection_string: str) -> Self:
         """Sets connection string using direct interface target"""
 
 
@@ -614,7 +574,7 @@ class _BaseResource(Resource):
         """The underlying object reference handle."""
         return self._handle
 
-    def with_optional_string(self, /, *, value: str | None = None, enabled: bool | None = None) -> Self:
+    def with_optional_string(self, *, value: str | None = None, enabled: bool | None = None) -> Self:
         """Adds an optional string parameter"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         if value is not None:
@@ -628,7 +588,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_config(self, config: TestConfigDto, /) -> Self:
+    def with_config(self, config: TestConfigDto) -> Self:
         """Configures the resource with a DTO"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['config'] = config
@@ -639,7 +599,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_created_at(self, created_at: str, /) -> Self:
+    def with_created_at(self, created_at: str) -> Self:
         """Sets the created timestamp"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['createdAt'] = created_at
@@ -650,7 +610,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_modified_at(self, modified_at: str, /) -> Self:
+    def with_modified_at(self, modified_at: str) -> Self:
         """Sets the modified timestamp"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['modifiedAt'] = modified_at
@@ -661,7 +621,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_correlation_id(self, correlation_id: str, /) -> Self:
+    def with_correlation_id(self, correlation_id: str) -> Self:
         """Sets the correlation ID"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['correlationId'] = correlation_id
@@ -672,7 +632,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_optional_callback(self, /, *, callback: Callable[[TestCallbackContext], None] | None = None) -> Self:
+    def with_optional_callback(self, *, callback: Callable[[TestCallbackContext], None] | None = None) -> Self:
         """Configures with optional callback"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         if callback is not None:
@@ -684,7 +644,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_status(self, status: TestResourceStatus, /) -> Self:
+    def with_status(self, status: TestResourceStatus) -> Self:
         """Sets the resource status"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['status'] = status
@@ -695,7 +655,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_nested_config(self, config: TestNestedDto, /) -> Self:
+    def with_nested_config(self, config: TestNestedDto) -> Self:
         """Configures with nested DTO"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['config'] = config
@@ -706,7 +666,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_validator(self, validator: Callable[[TestResourceContext], bool], /) -> Self:
+    def with_validator(self, validator: Callable[[TestResourceContext], bool]) -> Self:
         """Adds validation callback"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['validator'] = self._client.register_callback(validator)
@@ -717,7 +677,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def test_wait_for(self, dependency: Resource, /) -> Self:
+    def test_wait_for(self, dependency: Resource) -> Self:
         """Waits for another resource (test version)"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['dependency'] = dependency
@@ -728,7 +688,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_dependency(self, dependency: ResourceWithConnectionString, /) -> Self:
+    def with_dependency(self, dependency: ResourceWithConnectionString) -> Self:
         """Adds a dependency on another resource"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['dependency'] = dependency
@@ -739,7 +699,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_endpoints(self, endpoints: Iterable[str], /) -> Self:
+    def with_endpoints(self, endpoints: Iterable[str]) -> Self:
         """Sets the endpoints"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['endpoints'] = endpoints
@@ -750,7 +710,7 @@ class _BaseResource(Resource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_cancellable_operation(self, operation: Callable[[int], None], /) -> Self:
+    def with_cancellable_operation(self, operation: Callable[[int], None]) -> Self:
         """Performs a cancellable operation"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['operation'] = self._client.register_callback(operation)
@@ -772,35 +732,35 @@ class _BaseResource(Resource):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalString', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'optional_string'")
+                raise TypeError("Invalid type for option 'optional_string'. Expected: OptionalStringParameters or Literal[True]")
         if _config := kwargs.pop("config", None):
             if _validate_type(_config, TestConfigDto):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["config"] = _config
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withConfig', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'config'")
+                raise TypeError("Invalid type for option 'config'. Expected: TestConfigDto")
         if _created_at := kwargs.pop("created_at", None):
             if _validate_type(_created_at, str):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["createdAt"] = _created_at
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withCreatedAt', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'created_at'")
+                raise TypeError("Invalid type for option 'created_at'. Expected: str")
         if _modified_at := kwargs.pop("modified_at", None):
             if _validate_type(_modified_at, str):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["modifiedAt"] = _modified_at
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withModifiedAt', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'modified_at'")
+                raise TypeError("Invalid type for option 'modified_at'. Expected: str")
         if _correlation_id := kwargs.pop("correlation_id", None):
             if _validate_type(_correlation_id, str):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["correlationId"] = _correlation_id
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withCorrelationId', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'correlation_id'")
+                raise TypeError("Invalid type for option 'correlation_id'. Expected: str")
         if _optional_callback := kwargs.pop("optional_callback", None):
             if _validate_type(_optional_callback, Callable[[TestCallbackContext], None]):
                 rpc_args: dict[str, Any] = {"builder": handle}
@@ -810,56 +770,56 @@ class _BaseResource(Resource):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalCallback', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'optional_callback'")
+                raise TypeError("Invalid type for option 'optional_callback'. Expected: Callable[[TestCallbackContext], None] or Literal[True]")
         if _status := kwargs.pop("status", None):
             if _validate_type(_status, TestResourceStatus):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["status"] = _status
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withStatus', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'status'")
+                raise TypeError("Invalid type for option 'status'. Expected: TestResourceStatus")
         if _nested_config := kwargs.pop("nested_config", None):
             if _validate_type(_nested_config, TestNestedDto):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["config"] = _nested_config
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withNestedConfig', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'nested_config'")
+                raise TypeError("Invalid type for option 'nested_config'. Expected: TestNestedDto")
         if _validator := kwargs.pop("validator", None):
             if _validate_type(_validator, Callable[[TestResourceContext], bool]):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["validator"] = client.register_callback(_validator)
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withValidator', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'validator'")
+                raise TypeError("Invalid type for option 'validator'. Expected: Callable[[TestResourceContext], bool]")
         if _test_wait_for := kwargs.pop("test_wait_for", None):
             if _validate_type(_test_wait_for, Resource):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["dependency"] = _test_wait_for
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/testWaitFor', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'test_wait_for'")
+                raise TypeError("Invalid type for option 'test_wait_for'. Expected: Resource")
         if _dependency := kwargs.pop("dependency", None):
             if _validate_type(_dependency, ResourceWithConnectionString):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["dependency"] = _dependency
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDependency', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'dependency'")
+                raise TypeError("Invalid type for option 'dependency'. Expected: ResourceWithConnectionString")
         if _endpoints := kwargs.pop("endpoints", None):
             if _validate_type(_endpoints, Iterable[str]):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["endpoints"] = _endpoints
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withEndpoints', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'endpoints'")
+                raise TypeError("Invalid type for option 'endpoints'. Expected: Iterable[str]")
         if _cancellable_operation := kwargs.pop("cancellable_operation", None):
             if _validate_type(_cancellable_operation, Callable[[int], None]):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["operation"] = client.register_callback(_cancellable_operation)
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'cancellable_operation'")
+                raise TypeError("Invalid type for option 'cancellable_operation'. Expected: Callable[[int], None]")
         self._handle = handle
         self._client = client
         if kwargs:
@@ -878,7 +838,7 @@ class ContainerResource(_BaseResource, ResourceWithEnvironment, ResourceWithArgs
     def __repr__(self) -> str:
         return "ContainerResource(handle={self._handle.handle_id})"
 
-    def test_with_env_callback(self, callback: Callable[[TestEnvironmentContext], None], /) -> Self:
+    def test_with_env_callback(self, callback: Callable[[TestEnvironmentContext], None]) -> Self:
         """Configures environment with callback (test version)"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['callback'] = self._client.register_callback(callback)
@@ -889,7 +849,7 @@ class ContainerResource(_BaseResource, ResourceWithEnvironment, ResourceWithArgs
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_env_vars(self, vars: Mapping[str, str], /) -> Self:
+    def with_env_vars(self, vars: Mapping[str, str]) -> Self:
         """Sets environment variables"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['variables'] = vars
@@ -907,14 +867,14 @@ class ContainerResource(_BaseResource, ResourceWithEnvironment, ResourceWithArgs
                 rpc_args["callback"] = client.register_callback(_test_with_env_callback)
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/testWithEnvironmentCallback', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'test_with_env_callback'")
+                raise TypeError("Invalid type for option 'test_with_env_callback'. Expected: Callable[[TestEnvironmentContext], None]")
         if _env_vars := kwargs.pop("env_vars", None):
             if _validate_type(_env_vars, Mapping[str, str]):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["variables"] = _env_vars
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withEnvironmentVariables', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'env_vars'")
+                raise TypeError("Invalid type for option 'env_vars'. Expected: Mapping[str, str]")
         super().__init__(handle, client, **kwargs)
 
 
@@ -932,7 +892,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
     def __repr__(self) -> str:
         return "TestRedisResource(handle={self._handle.handle_id})"
 
-    def with_persistence(self, /, *, mode: TestPersistenceMode | None = None) -> Self:
+    def with_persistence(self, *, mode: TestPersistenceMode | None = None) -> Self:
         """Configures the Redis resource with persistence"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         if mode is not None:
@@ -944,7 +904,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         self._handle = self._wrap_builder(result)
         return self
 
-    def get_tags(self, /) -> AspireList[str]:
+    def get_tags(self) -> AspireList[str]:
         """Gets the tags for the resource"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         result = self._client.invoke_capability(
@@ -953,7 +913,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         )
         return cast(AspireList[str], result)
 
-    def get_metadata(self, /) -> AspireDict[str, str]:
+    def get_metadata(self) -> AspireDict[str, str]:
         """Gets the metadata for the resource"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         result = self._client.invoke_capability(
@@ -962,7 +922,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         )
         return cast(AspireDict[str, str], result)
 
-    def with_connection_string(self, connection_string: ReferenceExpression, /) -> Self:
+    def with_connection_string(self, connection_string: ReferenceExpression) -> Self:
         """Sets the connection string using a reference expression"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['connectionString'] = connection_string
@@ -973,7 +933,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         self._handle = self._wrap_builder(result)
         return self
 
-    def get_endpoints(self, /) -> Iterable[str]:
+    def get_endpoints(self) -> Iterable[str]:
         """Gets the endpoints"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         result = self._client.invoke_capability(
@@ -982,7 +942,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         )
         return cast(Iterable[str], result)
 
-    def with_connection_string_direct(self, connection_string: str, /) -> Self:
+    def with_connection_string_direct(self, connection_string: str) -> Self:
         """Sets connection string using direct interface target"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['connectionString'] = connection_string
@@ -993,7 +953,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_redis_specific(self, option: str, /) -> Self:
+    def with_redis_specific(self, option: str) -> Self:
         """Redis-specific configuration"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['option'] = option
@@ -1004,7 +964,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         self._handle = self._wrap_builder(result)
         return self
 
-    def get_status(self, /, *, timeout: int | None = None) -> str:
+    def get_status(self, *, timeout: int | None = None) -> str:
         """Gets the status of the resource asynchronously"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         if timeout is not None:
@@ -1015,7 +975,7 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         )
         return cast(str, result)
 
-    def wait_for_ready(self, timeout: float, /, *, timeout: int | None = None) -> bool:
+    def wait_for_ready(self, timeout: float, *, timeout: int | None = None) -> bool:
         """Waits for the resource to be ready"""
         rpc_args: dict[str, Any] = {'builder': self._handle}
         rpc_args['timeout'] = timeout
@@ -1037,28 +997,28 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withPersistence', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'persistence'")
+                raise TypeError("Invalid type for option 'persistence'. Expected: TestPersistenceMode or Literal[True]")
         if _connection_string := kwargs.pop("connection_string", None):
             if _validate_type(_connection_string, ReferenceExpression):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["connectionString"] = _connection_string
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withConnectionString', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'connection_string'")
+                raise TypeError("Invalid type for option 'connection_string'. Expected: ReferenceExpression")
         if _connection_string_direct := kwargs.pop("connection_string_direct", None):
             if _validate_type(_connection_string_direct, str):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["connectionString"] = _connection_string_direct
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withConnectionStringDirect', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'connection_string_direct'")
+                raise TypeError("Invalid type for option 'connection_string_direct'. Expected: str")
         if _redis_specific := kwargs.pop("redis_specific", None):
             if _validate_type(_redis_specific, str):
                 rpc_args: dict[str, Any] = {"builder": handle}
                 rpc_args["option"] = _redis_specific
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withRedisSpecific', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'redis_specific'")
+                raise TypeError("Invalid type for option 'redis_specific'. Expected: str")
         super().__init__(handle, client, **kwargs)
 
 
@@ -1082,10 +1042,8 @@ def _get_client(*, debug: bool, heartbeat_interval: int | None) -> AspireClient:
     return client
 
 
-# TODO: These kwargs should be generated dynamically based on CreateBuilderOptions
 def create_builder(
     *,
-    debug: bool | None = None,
     args: Iterable[str] | None = None,
     project_directory: str | None = None,
     container_registry_override: str | None = None,
@@ -1093,6 +1051,8 @@ def create_builder(
     dashboard_application_name: str | None = None,
     allow_unsecured_transport: bool | None = None,
     enable_resource_logging: bool | None = None,
+    options: CreateBuilderOptions | None = None,
+    debug: bool | None = None,
     heartbeat_interval: int | None = None,
  ) -> AbstractContextManager[DistributedApplicationBuilder]:
     '''
@@ -1100,7 +1060,22 @@ def create_builder(
     This is the entry point for building Aspire applications.
 
     Args:
-        **options: Optional configuration options for the builder
+        args (Iterable[str]): Command-line arguments to pass to the AppHost. By default, this will be set to any additional arguments
+            passed to the Aspire command line (arguments specified after '--'). Specifying them here will override that default.
+        project_directory (str): The directory containing the AppHost project file. By default, this will  use the ASPIRE_PROJECT_DIRECTORY
+            environment variable if set, otherwise it will use the current working directory.
+        container_registry_override (str): When containers are used, use this value to override the container registry.
+        disable_dashboard (bool): Determines whether the dashboard is disabled.
+        dashboard_application_name (str): The application name to display in the dashboard.
+        allow_unsecured_transport (bool): Allows the use of HTTP urls for the AppHost resource endpoint.
+        enable_resource_logging (bool): Enables resource logging.
+        options (CreateBuilderOptions): An optional dict containing any of the above options. Specifying options here will override default behaviours,
+           but individual parameters will take precedence.
+        debug (bool): Whether to enable logging of the communication between the client and AppHost server.
+            Default behaviour will be determined by whether `--debug` is passed as an Aspire command-line argument, or
+            if the ASPIRE_DEBUG environment variable is set. Enabling or disabling here will override those defaults.
+            Messages will be logged as INFO, with the 'aspire_app' logger name (connection heartbeat messages will be logged at DEBUG).
+        heartbeat_interval (int): Optional interval in seconds for sending heartbeat messages to the AppHost. Default value is 5 seconds.
 
     Returns:
         A DistributedApplicationBuilder instance
@@ -1109,10 +1084,15 @@ def create_builder(
     client = _get_client(debug=is_debug, heartbeat_interval=heartbeat_interval)
 
     # Default args and project_directory if not provided
-    effective_options = CreateBuilderOptions(
-        Args = args if args is not None else sys.argv[1:],
-        ProjectDirectory = project_directory if project_directory is not None else os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd()),
-    )
+    effective_options = options or CreateBuilderOptions()
+    if args is not None:
+        effective_options['Args'] = args
+    elif not effective_options.get('Args'):
+        effective_options['Args'] = sys.argv[1:]
+    if project_directory is not None:
+        effective_options['ProjectDirectory'] = project_directory
+    elif not effective_options.get('ProjectDirectory'):
+        effective_options['ProjectDirectory'] = os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())
     if container_registry_override is not None:
         effective_options['ContainerRegistryOverride'] = container_registry_override
     if disable_dashboard is not None:
