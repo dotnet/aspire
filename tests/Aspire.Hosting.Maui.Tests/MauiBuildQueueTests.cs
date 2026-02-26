@@ -23,17 +23,8 @@ public class MauiBuildQueueTests
     [Fact]
     public void BuildQueueAnnotation_SemaphoreInitializedToOne()
     {
-        using var annotation = new MauiBuildQueueAnnotation();
-        Assert.Equal(1, annotation.BuildSemaphore.CurrentCount);
-    }
-
-    [Fact]
-    public void BuildQueueAnnotation_Dispose_ReleasesSemaphore()
-    {
         var annotation = new MauiBuildQueueAnnotation();
-        annotation.Dispose();
-
-        Assert.Throws<ObjectDisposedException>(() => annotation.BuildSemaphore.Wait(0));
+        Assert.Equal(1, annotation.BuildSemaphore.CurrentCount);
     }
 
     [Fact]
@@ -370,6 +361,40 @@ public class MauiBuildQueueTests
     }
 
     [Fact]
+    public async Task MissingBuildInfoAnnotation_SkipsBuildAndReleasesQueue()
+    {
+        // Use the real subscriber (not testable) to exercise the RunBuildAsync path
+        // where MauiBuildInfoAnnotation is absent.
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parent = new MauiProjectResource("mauiapp", "/fake/path.csproj");
+        parent.Annotations.Add(new MauiBuildQueueAnnotation());
+        appBuilder.CreateResourceBuilder(parent);
+
+        var android = new MauiAndroidEmulatorResource("android", parent);
+        appBuilder.AddResource(android);
+
+        var app = appBuilder.Build();
+        var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+        var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        var execContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+
+        // Use real subscriber — android has no MauiBuildInfoAnnotation
+        var subscriber = new MauiBuildQueueEventSubscriber(notificationService, loggerService);
+        await subscriber.SubscribeAsync(eventing, execContext, CancellationToken.None);
+
+        // Should complete without error — build is skipped, semaphore released
+        await eventing.PublishAsync(
+            new BeforeResourceStartedEvent(android, app.Services),
+            CancellationToken.None);
+
+        Assert.True(parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(1, annotation!.BuildSemaphore.CurrentCount);
+
+        await app.DisposeAsync();
+    }
+
+    [Fact]
     public async Task UnexpectedException_ReleasesSemaphore()
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
@@ -460,16 +485,21 @@ public class MauiBuildQueueTests
         {
             var tcs = GetOrCreateCompletion(resource.Name);
 
-            using var reg = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-            await tcs.Task.ConfigureAwait(false);
-
-            if (_buildFailures.TryRemove(resource.Name, out var ex))
+            try
             {
-                throw ex;
-            }
+                using var reg = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+                await tcs.Task.ConfigureAwait(false);
 
-            // Reset for potential re-start of the same resource.
-            _buildCompletions.TryRemove(resource.Name, out _);
+                if (_buildFailures.TryRemove(resource.Name, out var ex))
+                {
+                    throw ex;
+                }
+            }
+            finally
+            {
+                // Always clean up so the same resource can be restarted.
+                _buildCompletions.TryRemove(resource.Name, out _);
+            }
         }
 
         private TaskCompletionSource GetOrCreateCompletion(string name)
