@@ -332,8 +332,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Signal that build/preparation is complete
             context.BuildCompletionSource?.TrySetResult(true);
 
-            // Read launchSettings.json if it exists, or create defaults
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
             foreach (var kvp in certEnvVars)
@@ -487,6 +487,21 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
     }
 
+    private Dictionary<string, string> GetServerEnvironmentVariables(DirectoryInfo directory)
+    {
+        var envVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+        // Support ASPIRE_ENVIRONMENT from the launch profile to set both DOTNET_ENVIRONMENT and ASPNETCORE_ENVIRONMENT
+        envVars.TryGetValue("ASPIRE_ENVIRONMENT", out var environment);
+        environment ??= "Development";
+
+        // Set the environment for the AppHost server process
+        envVars["DOTNET_ENVIRONMENT"] = environment;
+        envVars["ASPNETCORE_ENVIRONMENT"] = environment;
+
+        return envVars;
+    }
+
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
         // For guest apphosts, look for apphost.run.json
@@ -600,8 +615,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Store output collector in context for exception handling
             context.OutputCollector = prepareOutput;
 
-            // Read launchSettings.json if it exists
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? [];
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
