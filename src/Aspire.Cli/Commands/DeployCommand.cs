@@ -16,6 +16,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PipelineCommandBase
 {
+    internal override HelpGroup HelpGroup => HelpGroup.Deployment;
+
     private readonly Option<bool> _clearCacheOption;
 
     public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DeployCommand> logger, IAnsiConsole ansiConsole)

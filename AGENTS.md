@@ -161,6 +161,21 @@ dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.cspr
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
+### CRITICAL: Do NOT use VSTest-style `--filter` with `dotnet test`
+
+This repo uses **Microsoft.Testing.Platform (MTP)** as the test runner, not VSTest. The classic `--filter` argument (before `--`) uses VSTest filter syntax and **will hang or behave unexpectedly** with MTP.
+
+```bash
+# WRONG - VSTest-style filter, will hang with MTP
+dotnet test tests/Project.Tests/Project.Tests.csproj --filter "FullyQualifiedName~ClassName"
+
+# CORRECT - MTP-native filters go after the -- separator
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-class "*.ClassName"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "*.MethodName"
+```
+
+All test filtering must use MTP-native switches placed **after `--`**. See the filter switches listed below for the full set of options.
+
 ### CRITICAL: Excluding Quarantined and Outerloop Tests
 
 When running tests in automated environments (including Copilot agent), **always exclude quarantined and outerloop tests** to avoid false negatives and long-running tests:
@@ -228,6 +243,8 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
     - Instead they are run in the `Quarantine` workflow (`tests-quarantine.yml`).
 - A github issue url is used with the attribute
+- To **reproduce or fix** a flaky/quarantined test, use the `fix-flaky-test` skill (`.github/skills/fix-flaky-test/SKILL.md`).
+- To **quarantine or unquarantine** a test, use the `test-management` skill (`.github/skills/test-management/SKILL.md`).
 
 Example: `[QuarantinedTest("..issue url..")]`
 
@@ -352,6 +369,8 @@ For most development tasks, following these instructions should be sufficient to
 The following specialized skills are available in `.github/skills/`:
 
 - **cli-e2e-testing**: Guide for writing Aspire CLI end-to-end tests using Hex1b terminal automation
+- **fix-flaky-test**: Reproduces and fixes flaky/quarantined tests using the CI reproduce workflow (`reproduce-flaky-tests.yml`). Use this when investigating, reproducing, or fixing a flaky or quarantined test.
+- **dashboard-testing**: Guide for writing tests for the Aspire Dashboard using xUnit and bUnit
 - **test-management**: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
 - **connection-properties**: Expert for creating and improving Connection Properties in Aspire resources
 - **dependency-update**: Guides dependency version updates by checking nuget.org, triggering the dotnet-migrate-package Azure DevOps pipeline, and monitoring runs
@@ -367,4 +386,3 @@ Additional instructions are automatically applied when editing files matching sp
 | `src/Aspire.Hosting*/README.md` | `.github/instructions/hosting-readme.instructions.md` - Hosting integration READMEs |
 | `src/Components/**/README.md` | `.github/instructions/client-readme.instructions.md` - Client integration READMEs |
 | `tools/QuarantineTools/*` | `.github/instructions/quarantine.instructions.md` - QuarantineTools usage |
-| `tests/agent-scenarios/**/prompt.md` | `.github/instructions/test-scenario-prompt.instructions.md` - Test scenario prompts |

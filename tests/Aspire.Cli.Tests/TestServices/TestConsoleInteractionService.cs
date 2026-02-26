@@ -10,6 +10,7 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestConsoleInteractionService : IInteractionService
 {
+    public ConsoleOutput Console { get; set; }
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
@@ -79,7 +80,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(string emojiName, string message)
     {
     }
 
@@ -113,7 +114,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
-    public void DisplayRawText(string text)
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
     }
 

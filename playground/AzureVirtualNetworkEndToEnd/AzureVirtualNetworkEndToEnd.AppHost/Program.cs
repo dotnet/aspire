@@ -3,6 +3,7 @@
 
 #pragma warning disable AZPROVISION001 // Azure.Provisioning.Network is experimental
 
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.Network;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -13,17 +14,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 var vnet = builder.AddAzureVirtualNetwork("vnet");
 
 var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23")
-    .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
-    .DenyInbound(from: "VirtualNetwork")
-    .DenyInbound(from: "Internet");
+    .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer, protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: AzureServiceTags.VirtualNetwork)
+    .DenyInbound(from: AzureServiceTags.Internet);
 
 // Create a NAT Gateway for deterministic outbound IP on the ACA subnet
 var natGateway = builder.AddNatGateway("nat");
 containerAppsSubnet.WithNatGateway(natGateway);
 
 var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27")
-    .AllowInbound(port: "443", from: "VirtualNetwork", protocol: SecurityRuleProtocol.Tcp)
-    .DenyInbound(from: "Internet");
+    .AllowInbound(port: "443", from: AzureServiceTags.VirtualNetwork, protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: AzureServiceTags.Internet);
 
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")

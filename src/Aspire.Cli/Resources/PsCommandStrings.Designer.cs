@@ -57,18 +57,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string ScanningForRunningAppHosts {
-            get {
-                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
-            }
-        }
-
-        public static string NoRunningAppHostsFound {
-            get {
-                return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
-            }
-        }
-
         public static string HeaderPath {
             get {
                 return ResourceManager.GetString("HeaderPath", resourceCulture);

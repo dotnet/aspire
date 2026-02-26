@@ -645,8 +645,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.False(fakeRuntime.WasPushImageCalled, "PushImageAsync should NOT have been called for local registry");
 
         // Verify the tag was applied correctly
-        Assert.Single(fakeRuntime.TagImageCalls);
-        var (localName, targetName) = fakeRuntime.TagImageCalls[0];
+        var (localName, targetName) = Assert.Single(fakeRuntime.TagImageCalls);
         Assert.StartsWith("servicea:", localName); // Local name includes a hash suffix
         Assert.StartsWith("servicea:", targetName); // Target name includes the deploy tag
     }

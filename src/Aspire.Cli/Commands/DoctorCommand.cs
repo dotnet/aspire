@@ -15,6 +15,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoctorCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
+
     private readonly IEnvironmentChecker _environmentChecker;
     private readonly IAnsiConsole _ansiConsole;
     private static readonly Option<OutputFormat> s_formatOption = new("--format")
@@ -42,12 +44,9 @@ internal sealed class DoctorCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var statusMessage = format == OutputFormat.Json ? string.Empty : DoctorCommandStrings.CheckingPrerequisites;
-
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(
-            statusMessage,
+            DoctorCommandStrings.CheckingPrerequisites,
             async () => await _environmentChecker.CheckAllAsync(cancellationToken));
 
         if (format == OutputFormat.Json)
@@ -83,7 +82,8 @@ internal sealed class DoctorCommand : BaseCommand
 
         var json = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.RelaxedEscaping.DoctorCheckResponse);
         // Use DisplayRawText to write directly to console without any formatting
-        InteractionService.DisplayRawText(json);
+        // Structured output always goes to stdout.
+        InteractionService.DisplayRawText(json, ConsoleOutput.Standard);
     }
 
     private void OutputHumanReadable(IReadOnlyList<EnvironmentCheckResult> results)

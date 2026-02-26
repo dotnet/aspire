@@ -16,6 +16,7 @@ using Aspire.Cli.Bundles;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Microsoft.AspNetCore.Certificates.Generation;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Diagnostics;
@@ -69,11 +70,11 @@ public class Program
         // Check for --debug or -d (backward compatibility)
         var debugMode = args.Any(a => a == "--debug" || a == "-d");
 
-        // Check for --debug-level or -v
+        // Check for --log-level or -l
         LogLevel? logLevel = null;
         for (var i = 0; i < args.Length; i++)
         {
-            if ((args[i] == "--debug-level" || args[i] == "-v") && i + 1 < args.Length)
+            if ((args[i] == "--log-level" || args[i] == "-l") && i + 1 < args.Length)
             {
                 if (Enum.TryParse<LogLevel>(args[i + 1], ignoreCase: true, out var parsedLevel))
                 {
@@ -252,22 +253,9 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner implementations - factory chooses based on embedded bundle
-        builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
-        {
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var bundleService = sp.GetRequiredService<IBundleService>();
-
-            if (bundleService.IsBundle)
-            {
-                return new BundleCertificateToolRunner(
-                    bundleService,
-                    loggerFactory.CreateLogger<BundleCertificateToolRunner>());
-            }
-
-            // Fall back to SDK-based runner
-            return new SdkCertificateToolRunner(loggerFactory.CreateLogger<SdkCertificateToolRunner>());
-        });
+        // Register certificate tool runner - uses native CertificateManager directly (no subprocess needed)
+        builder.Services.AddSingleton(sp => CertificateManager.Create(sp.GetRequiredService<ILogger<NativeCertificateToolRunner>>()));
+        builder.Services.AddSingleton<ICertificateToolRunner, NativeCertificateToolRunner>();
 
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
@@ -366,6 +354,7 @@ public class Program
         builder.Services.AddSingleton<IMcpTransportFactory, StdioMcpTransportFactory>();
 
         // Commands.
+        builder.Services.AddTransient<AppHostLauncher>();
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
@@ -375,7 +364,7 @@ public class Program
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
-        builder.Services.AddTransient<ResourcesCommand>();
+        builder.Services.AddTransient<DescribeCommand>();
         builder.Services.AddTransient<LogsCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
@@ -634,7 +623,9 @@ public class Program
             // Allows logging of exceptions to telemetry.
 
             // Don't log or display cancellation exceptions.
-            if (!(ex is OperationCanceledException && cts.IsCancellationRequested))
+            // Check both Ctrl+C cancellation (cts.IsCancellationRequested) and
+            // extension prompt cancellation (ExtensionOperationCanceledException).
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && ex is not ExtensionOperationCanceledException)
             {
                 logger.LogError(ex, "An unexpected error occurred.");
 

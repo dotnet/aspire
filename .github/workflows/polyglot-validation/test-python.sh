@@ -21,7 +21,7 @@ cd "$WORK_DIR"
 
 # Initialize Python AppHost
 echo "Creating Python apphost project..."
-aspire init -l python --non-interactive -d
+aspire init --language python --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."

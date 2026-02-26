@@ -534,7 +534,7 @@ jobs:
           ${CANCELLED_LIST}"
           fi
           
-          # Check for recordings and upload them (only for failed tests)
+          # Check for recordings and upload them
           RECORDINGS_DIR="cast_files"
           
           if [ -d "$RECORDINGS_DIR" ] && compgen -G "$RECORDINGS_DIR"/*.cast > /dev/null; then

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppContainers;
@@ -75,7 +76,7 @@ public static class AzureContainerAppExtensions
             infra.Add(tags);
 
             ProvisioningVariable? resourceToken = null;
-            if (appEnvResource.UseAzdNamingConvention)
+            if (appEnvResource.UseAzdNamingConvention || appEnvResource.UseCompactResourceNaming)
             {
                 resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
                 {
@@ -256,6 +257,30 @@ public static class AzureContainerAppExtensions
                                 $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
                             32);
                     }
+                    else if (appEnvResource.UseCompactResourceNaming)
+                    {
+                        Debug.Assert(resourceToken is not null);
+
+                        var volumeName = output.volume.Type switch
+                        {
+                            ContainerMountType.BindMount => $"bm{output.index}",
+                            ContainerMountType.Volume => output.volume.Source ?? $"v{output.index}",
+                            _ => throw new NotSupportedException()
+                        };
+
+                        // Remove '.' and '-' characters from volumeName
+                        volumeName = volumeName.Replace(".", "").Replace("-", "");
+
+                        share.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
+                            60);
+
+                        containerAppStorage.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}-{resourceToken}"),
+                            32);
+                    }
                 }
             }
 
@@ -290,6 +315,26 @@ public static class AzureContainerAppExtensions
 #pragma warning restore IDE0031
                 {
                     storageVolume.Name = BicepFunction.Interpolate($"vol{resourceToken}");
+                }
+            }
+            else if (appEnvResource.UseCompactResourceNaming)
+            {
+                Debug.Assert(resourceToken is not null);
+
+                if (storageVolume is not null)
+                {
+                    // Sanitize env name for storage accounts: lowercase alphanumeric only.
+                    // Reserve 2 chars for "sv" prefix + 13 for uniqueString = 15, leaving 9 for the env name.
+                    var sanitizedPrefix = new string(appEnvResource.Name.ToLowerInvariant()
+                        .Where(c => char.IsLetterOrDigit(c)).ToArray());
+                    if (sanitizedPrefix.Length > 9)
+                    {
+                        sanitizedPrefix = sanitizedPrefix[..9];
+                    }
+
+                    storageVolume.Name = BicepFunction.Take(
+                        BicepFunction.Interpolate($"{sanitizedPrefix}sv{resourceToken}"),
+                        24);
                 }
             }
 
@@ -367,6 +412,36 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
     {
         builder.Resource.UseAzdNamingConvention = true;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the container app environment to use compact resource naming that maximally preserves
+    /// the <c>uniqueString</c> suffix for length-constrained Azure resources such as storage accounts.
+    /// </summary>
+    /// <param name="builder">The <see cref="AzureContainerAppEnvironmentResource"/> to configure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// By default, the generated Azure resource names use long static suffixes (e.g. <c>storageVolume</c>,
+    /// <c>managedStorage</c>) that can consume most of the 24-character storage account name limit, truncating
+    /// the <c>uniqueString(resourceGroup().id)</c> portion that provides cross-deployment uniqueness.
+    /// </para>
+    /// <para>
+    /// When enabled, this method shortens the static portions of generated names so the full 13-character
+    /// <c>uniqueString</c> is preserved. This prevents naming collisions when deploying multiple environments
+    /// to different resource groups.
+    /// </para>
+    /// <para>
+    /// This option only affects volume-related storage resources. It does not change the naming of the
+    /// container app environment, container registry, log analytics workspace, or managed identity.
+    /// Use <see cref="WithAzdResourceNaming"/> to change those names as well.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREACANAMING001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithCompactResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
+    {
+        builder.Resource.UseCompactResourceNaming = true;
         return builder;
     }
 

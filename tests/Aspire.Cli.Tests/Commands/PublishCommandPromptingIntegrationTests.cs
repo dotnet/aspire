@@ -850,6 +850,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
 
+    public ConsoleOutput Console { get; set; }
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
@@ -939,14 +940,14 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void ShowStatus(string statusText, Action action) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
-    public void DisplayMessage(string emoji, string message) { }
+    public void DisplayMessage(string emojiName, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
     public void DisplayMarkdown(string markdown) { }
     public void DisplayMarkupLine(string markup) { }
 
@@ -955,7 +956,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";
-        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+        System.Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
     }
 }
 

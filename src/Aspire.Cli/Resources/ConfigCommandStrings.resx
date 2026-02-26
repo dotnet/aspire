@@ -107,7 +107,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Manage configuration settings.</value>
+    <value>Manage CLI configuration including feature flags.</value>
   </data>
   <data name="GetCommand_Description" xml:space="preserve">
     <value>Get a configuration value.</value>
@@ -215,5 +215,8 @@
   </data>
   <data name="InfoCommand_SettingsProperties" xml:space="preserve">
     <value>Settings file properties</value>
+  </data>
+  <data name="SetFeatureHint" xml:space="preserve">
+    <value>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</value>
   </data>
 </root>

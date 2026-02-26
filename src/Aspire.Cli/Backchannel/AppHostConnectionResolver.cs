@@ -17,6 +17,7 @@ internal sealed class AppHostConnectionResult
     public IAppHostAuxiliaryBackchannel? Connection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Connection))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool Success => Connection is not null;
 
     public string? ErrorMessage { get; init; }
@@ -35,6 +36,33 @@ internal sealed class AppHostConnectionResolver(
     ILogger logger)
 {
     /// <summary>
+    /// Resolves all running AppHost connections using socket-first discovery.
+    /// Used when stopping all running AppHosts (e.g., via --all flag).
+    /// </summary>
+    /// <param name="scanningMessage">Message to display while scanning for AppHosts.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>All resolved connections, or an empty array if none found.</returns>
+    public async Task<AppHostConnectionResult[]> ResolveAllConnectionsAsync(
+        string scanningMessage,
+        CancellationToken cancellationToken)
+    {
+        var connections = await interactionService.ShowStatusAsync(
+            scanningMessage,
+            async () =>
+            {
+                await backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return backchannelMonitor.Connections.ToList();
+            });
+
+        if (connections.Count == 0)
+        {
+            return [];
+        }
+
+        return connections.Select(c => new AppHostConnectionResult { Connection = c }).ToArray();
+    }
+
+    /// <summary>
     /// Resolves an AppHost connection using socket-first discovery.
     /// </summary>
     /// <param name="projectFile">Optional project file. If specified, uses fast path to find matching socket.</param>
@@ -52,7 +80,7 @@ internal sealed class AppHostConnectionResolver(
         string notFoundMessage,
         CancellationToken cancellationToken)
     {
-        // Fast path: If --project was specified, check directly for its socket
+        // Fast path: If --apphost was specified, check directly for its socket
         if (projectFile is not null)
         {
             var targetPath = projectFile.FullName;

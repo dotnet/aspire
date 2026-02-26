@@ -27,10 +27,7 @@ internal class ExecCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = ExecCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", ExecCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_resourceOption = new("--resource", "-r")
     {
         Description = ExecCommandStrings.TargetResourceArgumentDescription
@@ -69,7 +66,7 @@ internal class ExecCommand : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
 
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_resourceOption);
         Options.Add(s_startResourceOption);
         Options.Add(s_workdirOption);
@@ -130,7 +127,7 @@ internal class ExecCommand : BaseCommand
         {
             using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
@@ -199,7 +196,7 @@ internal class ExecCommand : BaseCommand
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            InteractionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                            InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method

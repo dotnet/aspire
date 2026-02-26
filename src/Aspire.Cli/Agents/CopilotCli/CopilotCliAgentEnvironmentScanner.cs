@@ -162,34 +162,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     private static bool HasAspireServerConfigured(DirectoryInfo homeDirectory)
     {
         var configFilePath = GetMcpConfigFilePath(homeDirectory);
-
-        if (!File.Exists(configFilePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-            var config = JsonNode.Parse(content)?.AsObject();
-
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey(AspireServerName);
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume aspire is not configured
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcpServers", AspireServerName);
     }
 
     /// <summary>
@@ -223,18 +196,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             Directory.CreateDirectory(configDirectory);
         }
 
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken);
 
         // Ensure "mcpServers" object exists
         if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)
@@ -278,18 +240,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             Directory.CreateDirectory(configDirectory);
         }
 
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken);
 
         // Ensure "mcpServers" object exists
         if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)
@@ -319,31 +270,6 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     private static bool HasPlaywrightServerConfigured(DirectoryInfo homeDirectory)
     {
         var configFilePath = GetMcpConfigFilePath(homeDirectory);
-        
-        if (!File.Exists(configFilePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-            var config = JsonNode.Parse(content)?.AsObject();
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey("playwright");
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcpServers", "playwright");
     }
 }

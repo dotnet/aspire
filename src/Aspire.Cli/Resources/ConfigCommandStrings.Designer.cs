@@ -382,5 +382,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InfoCommand_SettingsProperties", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use &apos;aspire config set features.&lt;name&gt; true|false&apos; to enable or disable a feature..
+        /// </summary>
+        public static string SetFeatureHint {
+            get {
+                return ResourceManager.GetString("SetFeatureHint", resourceCulture);
+            }
+        }
     }
 }

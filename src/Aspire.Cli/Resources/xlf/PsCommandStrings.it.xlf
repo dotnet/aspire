@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="it" original="../PsCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>List running Aspire apphosts.</source>
-        <target state="translated">Elenca apphost Aspire in esecuzione.</target>
+        <source>List running apphosts.</source>
+        <target state="new">List running apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -28,18 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format.</source>
-        <target state="translated">Output in formato JSON.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Non sono stati trovati AppHost in esecuzione.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Analisi per l'esecuzione di AppHosts in corso...</target>
+        <source>Output format (Table or Json).</source>
+        <target state="translated">Formato di output (Tabella o JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

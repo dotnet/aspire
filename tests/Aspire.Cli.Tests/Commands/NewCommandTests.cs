@@ -896,6 +896,8 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
 
 internal sealed class OrderTrackingInteractionService(List<string> operationOrder) : IInteractionService
 {
+    public ConsoleOutput Console { get; set; }
+
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         return action();
@@ -942,7 +944,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) { }
-    public void DisplayMessage(string emoji, string message) { }
+    public void DisplayMessage(string emojiName, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
@@ -950,7 +952,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
     public void DisplayMarkdown(string markdown) { }
     public void DisplayMarkupLine(string markup) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }

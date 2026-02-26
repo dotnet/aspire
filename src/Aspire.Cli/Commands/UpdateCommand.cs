@@ -20,6 +20,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class UpdateCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
     private readonly IAppHostProjectFactory _projectFactory;
@@ -29,10 +31,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = UpdateCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", UpdateCommandStrings.ProjectArgumentDescription);
     private static readonly Option<bool> s_selfOption = new("--self")
     {
         Description = "Update the Aspire CLI itself to the latest version"
@@ -63,7 +62,7 @@ internal sealed class UpdateCommand : BaseCommand
         _features = features;
         _configurationService = configurationService;
 
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_selfOption);
 
         // Customize description based on whether staging channel is enabled
@@ -139,7 +138,7 @@ internal sealed class UpdateCommand : BaseCommand
         // Otherwise, handle project update
         try
         {
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
             if (projectFile is null)
             {
@@ -269,7 +268,10 @@ internal sealed class UpdateCommand : BaseCommand
         // for future 'aspire new' and 'aspire init' commands.
         if (string.IsNullOrEmpty(channel))
         {
-            var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
+            var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+            var channels = isStagingEnabled
+                ? new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily }
+                : new[] { PackageChannelNames.Stable, PackageChannelNames.Daily };
             channel = await InteractionService.PromptForSelectionAsync(
                 "Select the channel to update to:",
                 channels,

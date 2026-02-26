@@ -957,7 +957,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         // For guest projects, we use the AppHost server's path to compute the socket path
         // The AppHost server is created in a subdirectory of the guest apphost directory

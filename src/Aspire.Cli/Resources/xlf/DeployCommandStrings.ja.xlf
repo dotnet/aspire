@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
-        <target state="translated">Aspire AppHost のコンテンツを定義された展開先にデプロイします。(プレビュー)</target>
+        <source>Deploy an apphost to its deployment targets. (Preview)</source>
+        <target state="translated">apphost をその展開先にデプロイします。(プレビュー)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

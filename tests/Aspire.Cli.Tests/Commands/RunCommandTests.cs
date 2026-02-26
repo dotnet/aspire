@@ -80,7 +80,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("run --project /tmp/doesnotexist.csproj");
+        var result = command.Parse("run --apphost /tmp/doesnotexist.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -88,9 +88,51 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunCommand_WithDetachFlag_DoesNotShowUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var testNotifier = new TestCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => testNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run --detach");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.False(testNotifier.NotifyWasCalled, "Update notification should not be shown when --detach is used");
+    }
+
+    [Fact]
+    public async Task RunCommand_WithoutDetachFlag_ShowsUpdateNotification()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var testNotifier = new TestCliUpdateNotifier();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
+            options.CliUpdateNotifierFactory = _ => testNotifier;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.True(testNotifier.NotifyWasCalled, "Update notification should be shown when --detach is not used");
+    }
+
+    [Fact]
     public void GetDetachedFailureMessage_ReturnsBuildSpecificMessage_ForBuildFailureExitCode()
     {
-        var message = RunCommand.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
+        var message = AppHostLauncher.GetDetachedFailureMessage(ExitCodeConstants.FailedToBuildArtifacts);
 
         Assert.Equal(RunCommandStrings.AppHostFailedToBuild, message);
     }
@@ -98,7 +140,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public void GetDetachedFailureMessage_ReturnsExitCodeMessage_ForUnknownExitCode()
     {
-        var message = RunCommand.GetDetachedFailureMessage(123);
+        var message = AppHostLauncher.GetDetachedFailureMessage(123);
 
         Assert.Contains("123", message, StringComparison.Ordinal);
     }
@@ -110,7 +152,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var now = new DateTimeOffset(2026, 02, 12, 18, 00, 00, TimeSpan.Zero);
         var timeProvider = new FixedTimeProvider(now);
 
-        var path = RunCommand.GenerateChildLogFilePath(logsDirectory, timeProvider);
+        var path = AppHostLauncher.GenerateChildLogFilePath(logsDirectory, timeProvider);
         var fileName = Path.GetFileName(path);
 
         Assert.StartsWith(logsDirectory, path, StringComparison.OrdinalIgnoreCase);
@@ -1452,4 +1494,5 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
         }
     }
+
 }
