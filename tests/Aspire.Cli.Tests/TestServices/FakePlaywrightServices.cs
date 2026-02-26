@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Agents.Playwright;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Npm;
 using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
@@ -58,4 +59,12 @@ internal static class FakeSigstoreNpmVerifierFactory
 {
     internal static SigstoreNpmVerifier Create()
         => new(new HttpClient(), NullLogger<SigstoreNpmVerifier>.Instance);
+}
+
+/// <summary>
+/// A fake <see cref="IFeatures"/> that returns default values for all feature flags.
+/// </summary>
+internal sealed class FakeFeatures : IFeatures
+{
+    public bool IsFeatureEnabled(string featureFlag, bool defaultValue) => defaultValue;
 }

@@ -21,7 +21,7 @@ public class PlaywrightCliInstallerTests
             ResolveResult = null
         };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -41,7 +41,7 @@ public class PlaywrightCliInstallerTests
             InstalledVersion = version,
             InstallSkillsResult = true
         };
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -65,7 +65,7 @@ public class PlaywrightCliInstallerTests
             InstalledVersion = installedVersion,
             InstallSkillsResult = true
         };
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -84,7 +84,7 @@ public class PlaywrightCliInstallerTests
             PackResult = null
         };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -110,7 +110,7 @@ public class PlaywrightCliInstallerTests
                 PackResult = tarballPath
             };
             var playwrightRunner = new TestPlaywrightCliRunner();
-            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -150,7 +150,7 @@ public class PlaywrightCliInstallerTests
             {
                 InstallSkillsResult = true
             };
-            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -186,7 +186,7 @@ public class PlaywrightCliInstallerTests
                 InstallGlobalResult = false
             };
             var playwrightRunner = new TestPlaywrightCliRunner();
-            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -226,7 +226,7 @@ public class PlaywrightCliInstallerTests
                 InstalledVersion = installedVersion,
                 InstallSkillsResult = true
             };
-            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -304,7 +304,7 @@ public class PlaywrightCliInstallerTests
         };
         var provenanceChecker = new TestNpmProvenanceChecker();
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -323,7 +323,7 @@ public class PlaywrightCliInstallerTests
         };
         var provenanceChecker = new TestNpmProvenanceChecker { ProvenanceOutcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -358,7 +358,7 @@ public class PlaywrightCliInstallerTests
                     [PlaywrightCliInstaller.DisablePackageValidationKey] = "true"
                 })
                 .Build();
-            var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), configuration, NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), configuration, NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -388,7 +388,7 @@ public class PlaywrightCliInstallerTests
                 [PlaywrightCliInstaller.VersionOverrideKey] = "0.2.0"
             })
             .Build();
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), configuration, NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), configuration, NullLogger<PlaywrightCliInstaller>.Instance);
 
         await installer.InstallAsync(CancellationToken.None);
 
@@ -404,7 +404,7 @@ public class PlaywrightCliInstallerTests
             ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" }
         };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), FakeSigstoreNpmVerifierFactory.Create(), playwrightRunner, new TestConsoleInteractionService(), new FakeFeatures(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         await installer.InstallAsync(CancellationToken.None);
 

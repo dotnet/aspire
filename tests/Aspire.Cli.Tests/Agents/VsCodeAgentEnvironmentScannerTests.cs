@@ -369,6 +369,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
             FakeSigstoreNpmVerifierFactory.Create(),
             new FakePlaywrightCliRunner(),
             new TestConsoleInteractionService(),
+            new FakeFeatures(),
             new ConfigurationBuilder().Build(),
             NullLogger<PlaywrightCliInstaller>.Instance);
     }

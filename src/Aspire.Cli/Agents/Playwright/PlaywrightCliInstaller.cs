@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Npm;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,7 @@ internal sealed class PlaywrightCliInstaller(
     SigstoreNpmVerifier sigstoreVerifier,
     IPlaywrightCliRunner playwrightCliRunner,
     IInteractionService interactionService,
+    IFeatures features,
     IConfiguration configuration,
     ILogger<PlaywrightCliInstaller> logger)
 {
@@ -59,14 +61,6 @@ internal sealed class PlaywrightCliInstaller(
     /// exact version is used instead of resolving the latest from the version range.
     /// </summary>
     internal const string VersionOverrideKey = "playwrightCliVersion";
-
-    /// <summary>
-    /// Configuration key that enables built-in Sigstore verification instead of relying on
-    /// <c>npm audit signatures</c>. When enabled, the package tarball is downloaded first,
-    /// then verified against the Sigstore attestation bundle from the npm registry natively
-    /// in .NET, eliminating the two-request trust divergence risk.
-    /// </summary>
-    internal const string EnableBuiltInSigstoreKey = "enableBuiltInSigstoreVerification";
 
     /// <summary>
     /// Installs the Playwright CLI with supply chain verification and generates skill files.
@@ -135,11 +129,11 @@ internal sealed class PlaywrightCliInstaller(
                 DisablePackageValidationKey);
         }
 
-        // Check if built-in Sigstore verification is enabled.
-        var useBuiltInSigstore = string.Equals(configuration[EnableBuiltInSigstoreKey], "true", StringComparison.OrdinalIgnoreCase);
+        // Check if built-in Sigstore verification is enabled via feature flag.
+        var useBuiltInSigstore = features.IsFeatureEnabled(KnownFeatures.BuiltInSigstoreVerificationEnabled, defaultValue: false);
         if (useBuiltInSigstore)
         {
-            logger.LogInformation("Built-in Sigstore verification enabled via '{ConfigKey}'.", EnableBuiltInSigstoreKey);
+            logger.LogInformation("Built-in Sigstore verification enabled via feature flag.");
             return await InstallWithBuiltInSigstoreAsync(packageInfo, validationDisabled, cancellationToken);
         }
 

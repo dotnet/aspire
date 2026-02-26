@@ -129,6 +129,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             FakeSigstoreNpmVerifierFactory.Create(),
             new FakePlaywrightCliRunner(),
             new TestConsoleInteractionService(),
+            new FakeFeatures(),
             new ConfigurationBuilder().Build(),
             NullLogger<PlaywrightCliInstaller>.Instance);
     }
