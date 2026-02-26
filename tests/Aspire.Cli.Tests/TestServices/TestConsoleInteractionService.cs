@@ -138,4 +138,8 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
+
+    public void DisplayTable(Table table)
+    {
+    }
 }

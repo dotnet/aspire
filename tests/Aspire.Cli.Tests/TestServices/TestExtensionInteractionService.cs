@@ -152,6 +152,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
+    public void DisplayTable(Table table)
+    {
+    }
+
     public Action<string>? OpenEditorCallback { get; set; }
 
     public void OpenEditor(string projectPath)

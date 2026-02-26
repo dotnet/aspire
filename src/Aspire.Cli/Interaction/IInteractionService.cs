@@ -24,6 +24,7 @@ internal interface IInteractionService
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
+    void DisplayTable(Table table);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 

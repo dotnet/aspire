@@ -984,6 +984,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
         => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
+    public void DisplayTable(Table table) => _innerService.DisplayTable(table);
 }
 
 // Test implementation of IProjectUpdater

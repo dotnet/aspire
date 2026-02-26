@@ -953,6 +953,8 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
+    public void DisplayTable(Table table) { }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";

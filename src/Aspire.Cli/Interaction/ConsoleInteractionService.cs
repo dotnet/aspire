@@ -281,6 +281,11 @@ internal class ConsoleInteractionService : IInteractionService
         }
     }
 
+    public void DisplayTable(Table table)
+    {
+        MessageConsole.Write(table);
+    }
+
     public void DisplayCancellationMessage()
     {
         MessageConsole.WriteLine();

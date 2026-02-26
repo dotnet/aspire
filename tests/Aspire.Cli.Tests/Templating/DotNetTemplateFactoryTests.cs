@@ -446,6 +446,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
+        public void DisplayTable(Table table) { }
     }
 
     private sealed class TestDotNetCliRunner : IDotNetCliRunner

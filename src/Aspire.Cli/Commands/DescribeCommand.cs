@@ -238,11 +238,11 @@ internal sealed class DescribeCommand : BaseCommand
             .ToList();
 
         var table = new Table();
-        table.AddColumn("Name");
-        table.AddColumn("Type");
-        table.AddColumn("State");
-        table.AddColumn("Health");
-        table.AddColumn("Endpoints");
+        table.AddColumn(DescribeCommandStrings.HeaderName);
+        table.AddColumn(DescribeCommandStrings.HeaderType);
+        table.AddColumn(DescribeCommandStrings.HeaderState);
+        table.AddColumn(DescribeCommandStrings.HeaderHealth);
+        table.AddColumn(DescribeCommandStrings.HeaderEndpoints);
 
         foreach (var (snapshot, displayName) in orderedItems)
         {
@@ -276,7 +276,7 @@ internal sealed class DescribeCommand : BaseCommand
             table.AddRow(displayName, type, stateText, healthText, endpoints);
         }
 
-        AnsiConsole.Write(table);
+        _interactionService.DisplayTable(table);
     }
 
     private void DisplayResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)

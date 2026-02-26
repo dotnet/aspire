@@ -271,13 +271,13 @@ internal sealed class ConfigCommand : BaseCommand
             return ExitCodeConstants.Success;
         }
 
-        private static void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage)
+        private void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage)
         {
             var table = new Table();
             table.Title = new TableTitle($"[bold]{title.EscapeMarkup()}[/]");
             table.Border(TableBorder.Rounded);
-            table.AddColumn(new TableColumn("[bold]Key[/]").NoWrap());
-            table.AddColumn(new TableColumn("[bold]Value[/]"));
+            table.AddColumn(new TableColumn($"[bold]{ConfigCommandStrings.HeaderKey.EscapeMarkup()}[/]").NoWrap());
+            table.AddColumn(new TableColumn($"[bold]{ConfigCommandStrings.HeaderValue.EscapeMarkup()}[/]"));
 
             if (config.Count > 0)
             {
@@ -293,7 +293,7 @@ internal sealed class ConfigCommand : BaseCommand
                 table.AddRow($"[dim]{emptyMessage.EscapeMarkup()}[/]", "");
             }
 
-            AnsiConsole.Write(table);
+            InteractionService.DisplayTable(table);
         }
     }
 

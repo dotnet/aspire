@@ -32,6 +32,31 @@
         <target state="translated">Obtenez le contenu complet d’une page de documentation grâce à son identifiant.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderScore">
+        <source>Score</source>
+        <target state="new">Score</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSection">
+        <source>Section</source>
+        <target state="new">Section</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSlug">
+        <source>Slug</source>
+        <target state="new">Slug</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSummary">
+        <source>Summary</source>
+        <target state="new">Summary</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderTitle">
+        <source>Title</source>
+        <target state="new">Title</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of search results to return (default: 5, max: 10).</source>
         <target state="translated">Nombre maximal de résultats de recherche à retourner (par défaut : 5, max : 10).</target>

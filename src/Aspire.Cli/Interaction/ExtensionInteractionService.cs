@@ -343,6 +343,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     }
 
+    public void DisplayTable(Table table)
+    {
+        _consoleInteractionService.DisplayTable(table);
+    }
+
     public void LogMessage(LogLevel logLevel, string message)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken));

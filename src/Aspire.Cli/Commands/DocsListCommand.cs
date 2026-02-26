@@ -76,9 +76,9 @@ internal sealed class DocsListCommand : BaseCommand
             InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.FoundDocumentationPages, docs.Count));
 
             var table = new Table();
-            table.AddColumn("Title");
-            table.AddColumn("Slug");
-            table.AddColumn("Summary");
+            table.AddColumn(DocsCommandStrings.HeaderTitle);
+            table.AddColumn(DocsCommandStrings.HeaderSlug);
+            table.AddColumn(DocsCommandStrings.HeaderSummary);
 
             foreach (var doc in docs)
             {
@@ -88,7 +88,7 @@ internal sealed class DocsListCommand : BaseCommand
                     Markup.Escape(doc.Summary ?? "-"));
             }
 
-            AnsiConsole.Write(table);
+            InteractionService.DisplayTable(table);
         }
 
         return ExitCodeConstants.Success;
