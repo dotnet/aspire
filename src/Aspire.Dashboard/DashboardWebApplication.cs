@@ -403,8 +403,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
             }
 
-            // Only show MCP security warning if MCP endpoint is configured
+            // Only show MCP security warning if MCP endpoint is configured and MCP is not disabled
             if (_mcpEndPointAccessor != null &&
+                !_dashboardOptionsMonitor.CurrentValue.Mcp.Disabled.GetValueOrDefault() &&
                 _dashboardOptionsMonitor.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured)
             {
                 _logger.LogWarning("MCP server is unsecured. Untrusted apps can access sensitive information.");
