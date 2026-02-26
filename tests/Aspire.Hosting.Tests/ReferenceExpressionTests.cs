@@ -4,7 +4,7 @@
 using System.Globalization;
 
 namespace Aspire.Hosting.Tests;
-[Trait("Partition", "1")]
+[Trait("Partition", "5")]
 public class ReferenceExpressionTests
 {
     [Theory]

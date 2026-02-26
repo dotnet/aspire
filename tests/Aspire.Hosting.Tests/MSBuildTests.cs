@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Aspire.Hosting.Tests;
 
-[Trait("Partition", "3")]
+[Trait("Partition", "6")]
 public class MSBuildTests
 {
     /// <summary>

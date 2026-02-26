@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-[Trait("Partition", "1")]
+[Trait("Partition", "5")]
 public class WithUrlsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

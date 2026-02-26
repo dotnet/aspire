@@ -10,7 +10,7 @@ using Microsoft.Extensions.Http.Resilience;
 
 namespace Aspire.Hosting.Tests;
 
-[Trait("Partition", "3")]
+[Trait("Partition", "6")]
 public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

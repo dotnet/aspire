@@ -13,7 +13,7 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Tests.Health;
 
-[Trait("Partition", "3")]
+[Trait("Partition", "6")]
 public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
