@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Maui;
@@ -13,9 +14,9 @@ namespace Aspire.Hosting.Tests;
 
 /// <summary>
 /// Tests for the MAUI build queue that serializes builds per-project.
-/// These tests construct the MauiBuildQueueEventSubscriber directly and register
-/// only that subscriber, avoiding the Android/iOS environment subscribers that
-/// depend on services not available in unit tests.
+/// Uses a <see cref="TestableBuildQueueSubscriber"/> that overrides
+/// <see cref="MauiBuildQueueEventSubscriber.RunBuildAsync"/> with a
+/// controllable <see cref="TaskCompletionSource"/> per resource.
 /// </summary>
 public class MauiBuildQueueTests
 {
@@ -48,12 +49,33 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
+        // Start the event but don't complete the build yet — semaphore should be held.
+        var eventTask = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None));
+
+        await Task.Delay(200);
+
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(0, annotation!.BuildSemaphore.CurrentCount);
+
+        env.Subscriber.CompleteBuild(env.Android);
+        await eventTask.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task SingleResource_ReleasesSemaphoreAfterBuild()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        env.Subscriber.CompleteBuildImmediately(env.Android);
+
         await env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
             CancellationToken.None);
 
         Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
-        Assert.Equal(0, annotation!.BuildSemaphore.CurrentCount);
+        Assert.Equal(1, annotation!.BuildSemaphore.CurrentCount);
     }
 
     [Fact]
@@ -61,21 +83,26 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
-        await env.Eventing.PublishAsync(
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
 
-        var secondTask = Task.Run(() => env.Eventing.PublishAsync(
+        await Task.Delay(200);
+
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
             CancellationToken.None));
 
         await Task.Delay(300);
-        Assert.False(secondTask.IsCompleted, "Second resource should be blocked by the queue.");
+        Assert.False(task2.IsCompleted, "Second resource should be blocked by the queue.");
 
-        // Simulate MSBuild completing — write "Build succeeded" to the resource log.
-        env.SimulateBuildComplete(env.Android);
+        // Complete first build — second should start.
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
 
-        await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
+        // Complete second build.
+        env.Subscriber.CompleteBuild(env.MacCatalyst);
+        await task2.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -83,9 +110,11 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
-        await env.Eventing.PublishAsync(
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
+
+        await Task.Delay(200);
 
         var queuedSeen = new TaskCompletionSource<bool>();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -109,10 +138,8 @@ public class MauiBuildQueueTests
         var result = await queuedSeen.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(result);
 
-        await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
-        });
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -141,12 +168,18 @@ public class MauiBuildQueueTests
 
         var result = await buildingSeen.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(result);
+
+        env.Subscriber.CompleteBuild(env.Android);
     }
 
     [Fact]
     public async Task ResourcesFromDifferentProjects_RunConcurrently()
     {
         await using var env = await BuildQueueTestEnvironment.CreateWithTwoProjectsAsync();
+
+        // Both resources complete their builds immediately.
+        env.Subscriber.CompleteBuildImmediately(env.Android);
+        env.Subscriber.CompleteBuildImmediately(env.Android2!);
 
         var task1 = env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
@@ -160,27 +193,20 @@ public class MauiBuildQueueTests
     }
 
     [Fact]
-    public async Task FailedResource_ReleasesQueue()
+    public async Task FailedBuild_ReleasesQueueAndThrows()
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
-        await env.Eventing.PublishAsync(
-            new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+        env.Subscriber.FailBuild(env.Android, "Compilation error");
 
-        var secondTask = Task.Run(() => env.Eventing.PublishAsync(
-            new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
-            CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => env.Eventing.PublishAsync(
+                new BeforeResourceStartedEvent(env.Android, env.Services),
+                CancellationToken.None));
 
-        await Task.Delay(200);
-        Assert.False(secondTask.IsCompleted);
-
-        await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-        });
-
-        await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
+        // Semaphore should be released even after failure.
+        Assert.True(env.Parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var annotation));
+        Assert.Equal(1, annotation!.BuildSemaphore.CurrentCount);
     }
 
     [Fact]
@@ -188,32 +214,32 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
-        await env.Eventing.PublishAsync(
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
+
+        await Task.Delay(200);
 
         using var cts = new CancellationTokenSource();
-        var secondTask = Task.Run(() => env.Eventing.PublishAsync(
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
             cts.Token));
 
         await Task.Delay(200);
-
         cts.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => secondTask.WaitAsync(TimeSpan.FromSeconds(5)));
+            () => task2.WaitAsync(TimeSpan.FromSeconds(5)));
 
-        await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
-        });
+        // Complete first build — semaphore should still work for a third resource.
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
 
-        var thirdTask = env.Eventing.PublishAsync(
+        env.Subscriber.CompleteBuildImmediately(env.IOSSimulator);
+        var task3 = env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.IOSSimulator, env.Services),
             CancellationToken.None);
-
-        await thirdTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await task3.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -230,7 +256,7 @@ public class MauiBuildQueueTests
             lock (completionOrder) { completionOrder.Add("android"); }
         });
 
-        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.Delay(200);
 
         var task2 = Task.Run(async () =>
         {
@@ -252,17 +278,19 @@ public class MauiBuildQueueTests
 
         await Task.Delay(200);
 
-        Assert.Single(completionOrder);
+        Assert.Empty(completionOrder);
         Assert.False(task2.IsCompleted);
         Assert.False(task3.IsCompleted);
 
-        env.SimulateBuildComplete(env.Android);
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Single(completionOrder);
 
+        env.Subscriber.CompleteBuild(env.MacCatalyst);
         await task2.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, completionOrder.Count);
 
-        env.SimulateBuildComplete(env.MacCatalyst);
-
+        env.Subscriber.CompleteBuild(env.IOSSimulator);
         await task3.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(3, completionOrder.Count);
     }
@@ -272,21 +300,83 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
-        await env.Eventing.PublishAsync(
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
 
-        // Parent MauiProjectResource is NOT IMauiPlatformResource — should not block
+        await Task.Delay(200);
+
+        // Parent MauiProjectResource is NOT IMauiPlatformResource — should pass through.
         var parentTask = env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Parent, env.Services),
             CancellationToken.None);
 
         await parentTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        env.Subscriber.CompleteBuild(env.Android);
+        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    // ───────────────────────────────────────────────────────────────────
+    // Test infrastructure
+    // ───────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A subscriber that overrides <see cref="RunBuildAsync"/> with a controllable
+    /// <see cref="TaskCompletionSource"/> so tests can decide when (and whether) each
+    /// resource's build completes.
+    /// </summary>
+    private sealed class TestableBuildQueueSubscriber(
+        ResourceNotificationService notificationService,
+        ResourceLoggerService loggerService) : MauiBuildQueueEventSubscriber(notificationService, loggerService)
+    {
+        private readonly ConcurrentDictionary<string, TaskCompletionSource> _buildCompletions = new();
+        private readonly ConcurrentDictionary<string, Exception> _buildFailures = new();
+
+        /// <summary>Completes the build for the given resource, unblocking the event handler.</summary>
+        public void CompleteBuild(IResource resource)
+        {
+            GetOrCreateCompletion(resource.Name).TrySetResult();
+        }
+
+        /// <summary>Pre-registers a resource whose build should complete immediately.</summary>
+        public void CompleteBuildImmediately(IResource resource)
+        {
+            GetOrCreateCompletion(resource.Name).TrySetResult();
+        }
+
+        /// <summary>Pre-registers a resource whose build should fail with an exception.</summary>
+        public void FailBuild(IResource resource, string message)
+        {
+            _buildFailures[resource.Name] = new InvalidOperationException(message);
+            GetOrCreateCompletion(resource.Name).TrySetResult();
+        }
+
+        internal override async Task RunBuildAsync(IResource resource, ILogger logger, CancellationToken cancellationToken)
+        {
+            var tcs = GetOrCreateCompletion(resource.Name);
+
+            using var reg = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+            await tcs.Task.ConfigureAwait(false);
+
+            if (_buildFailures.TryRemove(resource.Name, out var ex))
+            {
+                throw ex;
+            }
+
+            // Reset for potential re-start of the same resource.
+            _buildCompletions.TryRemove(resource.Name, out _);
+        }
+
+        private TaskCompletionSource GetOrCreateCompletion(string name)
+        {
+            return _buildCompletions.GetOrAdd(name, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        }
     }
 
     /// <summary>
     /// Test environment that creates resources manually and registers only the
-    /// <see cref="MauiBuildQueueEventSubscriber"/>, avoiding the Android/iOS
+    /// <see cref="TestableBuildQueueSubscriber"/>, avoiding the Android/iOS
     /// environment subscribers that require services unavailable in unit tests.
     /// </summary>
     private sealed class BuildQueueTestEnvironment : IAsyncDisposable
@@ -296,21 +386,12 @@ public class MauiBuildQueueTests
         public required MauiAndroidEmulatorResource Android { get; init; }
         public required MauiMacCatalystPlatformResource MacCatalyst { get; init; }
         public required MauiiOSSimulatorResource IOSSimulator { get; init; }
+        public required TestableBuildQueueSubscriber Subscriber { get; init; }
         public MauiAndroidEmulatorResource? Android2 { get; init; }
 
         public IServiceProvider Services => App.Services;
         public IDistributedApplicationEventing Eventing => App.Services.GetRequiredService<IDistributedApplicationEventing>();
         public ResourceNotificationService NotificationService => App.Services.GetRequiredService<ResourceNotificationService>();
-        public ResourceLoggerService LoggerService => App.Services.GetRequiredService<ResourceLoggerService>();
-
-        /// <summary>
-        /// Simulates MSBuild completing by writing "Build succeeded" to the resource's log stream.
-        /// </summary>
-        public void SimulateBuildComplete(IResource resource)
-        {
-            var logger = LoggerService.GetLogger(resource);
-            logger.LogInformation("Build succeeded.");
-        }
 
         public static async Task<BuildQueueTestEnvironment> CreateAsync()
         {
@@ -330,7 +411,7 @@ public class MauiBuildQueueTests
             appBuilder.AddResource(iosSimulator);
 
             var app = appBuilder.Build();
-            await InitializeSubscriberAsync(app);
+            var subscriber = await InitializeSubscriberAsync(app);
 
             return new BuildQueueTestEnvironment
             {
@@ -338,7 +419,8 @@ public class MauiBuildQueueTests
                 Parent = parent,
                 Android = android,
                 MacCatalyst = macCatalyst,
-                IOSSimulator = iosSimulator
+                IOSSimulator = iosSimulator,
+                Subscriber = subscriber
             };
         }
 
@@ -365,7 +447,7 @@ public class MauiBuildQueueTests
             appBuilder.AddResource(iosSimulator);
 
             var app = appBuilder.Build();
-            await InitializeSubscriberAsync(app);
+            var subscriber = await InitializeSubscriberAsync(app);
 
             return new BuildQueueTestEnvironment
             {
@@ -374,19 +456,21 @@ public class MauiBuildQueueTests
                 Android = android1,
                 MacCatalyst = macCatalyst,
                 IOSSimulator = iosSimulator,
-                Android2 = android2
+                Android2 = android2,
+                Subscriber = subscriber
             };
         }
 
-        private static async Task InitializeSubscriberAsync(DistributedApplication app)
+        private static async Task<TestableBuildQueueSubscriber> InitializeSubscriberAsync(DistributedApplication app)
         {
             var notificationService = app.Services.GetRequiredService<ResourceNotificationService>();
             var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
             var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
             var execContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
 
-            var subscriber = new MauiBuildQueueEventSubscriber(notificationService, loggerService);
+            var subscriber = new TestableBuildQueueSubscriber(notificationService, loggerService);
             await subscriber.SubscribeAsync(eventing, execContext, CancellationToken.None);
+            return subscriber;
         }
 
         public async ValueTask DisposeAsync()

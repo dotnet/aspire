@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
@@ -17,21 +18,21 @@ namespace Aspire.Hosting.Maui.Lifecycle;
 /// the same project. MSBuild cannot handle concurrent builds of the same project file,
 /// so this subscriber uses a semaphore to ensure only one platform builds at a time.
 /// Resources waiting for their turn show a "Queued" state in the dashboard.
-/// The semaphore is released when MSBuild output indicates the build completed,
-/// or when the resource reaches a terminal state.
+/// The build is run as a separate <c>dotnet build</c> subprocess so that the exit code
+/// provides reliable build-completion detection and the "Building" state persists in the
+/// dashboard for the full build duration. Once the build completes, DCP launches the app
+/// with just the Run target.
 /// </remarks>
-internal sealed class MauiBuildQueueEventSubscriber(
+internal class MauiBuildQueueEventSubscriber(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : IDistributedApplicationEventingSubscriber
 {
     private static readonly ResourceStateSnapshot s_queuedState = new("Queued", KnownResourceStateStyles.Info);
     private static readonly ResourceStateSnapshot s_buildingState = new("Building", KnownResourceStateStyles.Info);
-    private CancellationToken _appLifetimeToken;
 
     /// <inheritdoc/>
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        _appLifetimeToken = cancellationToken;
         eventing.Subscribe<BeforeResourceStartedEvent>(OnBeforeResourceStartedAsync);
         return Task.CompletedTask;
     }
@@ -49,7 +50,6 @@ internal sealed class MauiBuildQueueEventSubscriber(
 
         if (!parent.TryGetLastAnnotation<MauiBuildQueueAnnotation>(out var queueAnnotation))
         {
-            // Annotation is added eagerly in AddMauiProject — should always be present.
             return;
         }
 
@@ -68,46 +68,19 @@ internal sealed class MauiBuildQueueEventSubscriber(
 
         await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Building project '{ProjectName}' for {ResourceName}.", parent.Name, resource.Name);
-
-        await notificationService.PublishUpdateAsync(resource, s => s with
-        {
-            State = s_buildingState
-        }).ConfigureAwait(false);
-
-        // Fire-and-forget: release the semaphore when the build completes.
-        // We detect build completion by watching the resource logs for MSBuild output
-        // ("Build succeeded" or "Build FAILED"), or fall back to terminal states.
-        _ = ReleaseSemaphoreOnBuildCompleteAsync(resource, semaphore, logger, _appLifetimeToken);
-    }
-
-    private async Task ReleaseSemaphoreOnBuildCompleteAsync(
-        IResource resource,
-        SemaphoreSlim semaphore,
-        ILogger logger,
-        CancellationToken cancellationToken)
-    {
         try
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            logger.LogInformation("Building project '{ProjectName}' for {ResourceName}.", parent.Name, resource.Name);
 
-            // Race two signals: build logs showing completion, or terminal resource state.
-            var logTask = WaitForBuildCompletionInLogsAsync(resource.Name, cts.Token);
-            var stateTask = notificationService.WaitForResourceAsync(
-                resource.Name,
-                re => KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text),
-                cts.Token);
+            await notificationService.PublishUpdateAsync(resource, s => s with
+            {
+                State = s_buildingState
+            }).ConfigureAwait(false);
 
-            await Task.WhenAny(logTask, stateTask).ConfigureAwait(false);
-            await cts.CancelAsync().ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // AppHost shutting down — release the lock.
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Error waiting for build of resource '{ResourceName}' to complete.", resource.Name);
+            // Run the Build target as a subprocess. Because we are inside
+            // BeforeResourceStartedEvent the handler blocks DCP from starting the
+            // process, so the "Building" state persists for the entire build duration.
+            await RunBuildAsync(resource, logger, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -116,19 +89,103 @@ internal sealed class MauiBuildQueueEventSubscriber(
         }
     }
 
-    private async Task WaitForBuildCompletionInLogsAsync(string resourceName, CancellationToken cancellationToken)
+    /// <summary>
+    /// Runs <c>dotnet build</c> as a subprocess and pipes its output to the resource logger.
+    /// </summary>
+    internal virtual async Task RunBuildAsync(IResource resource, ILogger logger, CancellationToken cancellationToken)
     {
-        await foreach (var batch in loggerService.WatchAsync(resourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
+        if (!resource.TryGetLastAnnotation<MauiBuildInfoAnnotation>(out var buildInfo))
         {
-            foreach (var line in batch)
+            logger.LogWarning("No build info annotation found for resource '{ResourceName}'. Skipping build.", resource.Name);
+            return;
+        }
+
+        var args = new List<string> { "build", buildInfo.ProjectPath };
+
+        if (!string.IsNullOrEmpty(buildInfo.TargetFramework))
+        {
+            args.Add("-f");
+            args.Add(buildInfo.TargetFramework);
+        }
+
+        if (!string.IsNullOrEmpty(buildInfo.Configuration))
+        {
+            args.Add("--configuration");
+            args.Add(buildInfo.Configuration);
+        }
+
+        var psi = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = buildInfo.WorkingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        foreach (var arg in args)
+        {
+            psi.ArgumentList.Add(arg);
+        }
+
+        logger.LogInformation("Running: dotnet {Arguments}", string.Join(" ", args));
+
+        using var process = new Process { StartInfo = psi };
+
+        process.Start();
+
+        // Pipe stdout/stderr to the resource logger so output is visible in the dashboard.
+        var stdoutTask = PipeOutputAsync(process.StandardOutput, logger, LogLevel.Information, cancellationToken);
+        var stderrTask = PipeOutputAsync(process.StandardError, logger, LogLevel.Warning, cancellationToken);
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKillProcess(process, logger);
+            throw;
+        }
+
+        // Drain remaining output after the process exits.
+        await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Build failed for resource '{resource.Name}' with exit code {process.ExitCode}.");
+        }
+
+        logger.LogInformation("Build succeeded for resource '{ResourceName}'.", resource.Name);
+    }
+
+    private static async Task PipeOutputAsync(System.IO.StreamReader reader, ILogger logger, LogLevel level, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line is null)
             {
-                // MSBuild outputs "Build succeeded" or "Build FAILED" at the end of a build.
-                if (line.Content.Contains("Build succeeded", StringComparison.OrdinalIgnoreCase) ||
-                    line.Content.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
+                break;
             }
+
+            logger.Log(level, "{Line}", line);
+        }
+    }
+
+    private static void TryKillProcess(Process process, ILogger logger)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to kill build process.");
         }
     }
 }
