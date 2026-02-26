@@ -7,6 +7,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Interaction;
 
@@ -341,6 +342,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
+    }
+
+    public void DisplayRenderable(IRenderable renderable)
+    {
+        _consoleInteractionService.DisplayRenderable(renderable);
     }
 
     public void LogMessage(LogLevel logLevel, string message)

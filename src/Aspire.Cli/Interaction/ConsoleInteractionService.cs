@@ -6,6 +6,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Interaction;
 
@@ -279,6 +280,11 @@ internal class ConsoleInteractionService : IInteractionService
                 MessageConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
+    }
+
+    public void DisplayRenderable(IRenderable renderable)
+    {
+        MessageConsole.Write(renderable);
     }
 
     public void DisplayCancellationMessage()

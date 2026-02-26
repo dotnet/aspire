@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Backchannel;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Interaction;
 
@@ -24,6 +25,7 @@ internal interface IInteractionService
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
+    void DisplayRenderable(IRenderable renderable);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 

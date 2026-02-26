@@ -16,6 +16,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.Templating;
 
@@ -446,6 +447,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
+        public void DisplayRenderable(IRenderable renderable) { }
     }
 
     private sealed class TestDotNetCliRunner : IDotNetCliRunner
