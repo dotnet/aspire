@@ -7,6 +7,7 @@ using Aspire.Hosting.Maui;
 using Aspire.Hosting.Maui.Annotations;
 using Aspire.Hosting.Maui.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests;
 
@@ -56,7 +57,7 @@ public class MauiBuildQueueTests
     }
 
     [Fact]
-    public async Task SecondResource_BlocksUntilFirstReachesRunning()
+    public async Task SecondResource_BlocksUntilBuildCompletes()
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
@@ -71,11 +72,8 @@ public class MauiBuildQueueTests
         await Task.Delay(300);
         Assert.False(secondTask.IsCompleted, "Second resource should be blocked by the queue.");
 
-        // Simulate build completing and app launching — transitions to Running.
-        await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
-        });
+        // Simulate MSBuild completing — write "Build succeeded" to the resource log.
+        env.SimulateBuildComplete(env.Android);
 
         await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
     }
@@ -208,7 +206,7 @@ public class MauiBuildQueueTests
 
         await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
         });
 
         var thirdTask = env.Eventing.PublishAsync(
@@ -258,18 +256,12 @@ public class MauiBuildQueueTests
         Assert.False(task2.IsCompleted);
         Assert.False(task3.IsCompleted);
 
-        await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
-        });
+        env.SimulateBuildComplete(env.Android);
 
         await task2.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, completionOrder.Count);
 
-        await env.NotificationService.PublishUpdateAsync(env.MacCatalyst, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
-        });
+        env.SimulateBuildComplete(env.MacCatalyst);
 
         await task3.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(3, completionOrder.Count);
@@ -309,6 +301,16 @@ public class MauiBuildQueueTests
         public IServiceProvider Services => App.Services;
         public IDistributedApplicationEventing Eventing => App.Services.GetRequiredService<IDistributedApplicationEventing>();
         public ResourceNotificationService NotificationService => App.Services.GetRequiredService<ResourceNotificationService>();
+        public ResourceLoggerService LoggerService => App.Services.GetRequiredService<ResourceLoggerService>();
+
+        /// <summary>
+        /// Simulates MSBuild completing by writing "Build succeeded" to the resource's log stream.
+        /// </summary>
+        public void SimulateBuildComplete(IResource resource)
+        {
+            var logger = LoggerService.GetLogger(resource);
+            logger.LogInformation("Build succeeded.");
+        }
 
         public static async Task<BuildQueueTestEnvironment> CreateAsync()
         {
