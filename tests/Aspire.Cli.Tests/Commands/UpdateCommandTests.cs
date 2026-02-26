@@ -12,6 +12,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -984,7 +985,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
         => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
-    public void DisplayTable(Table table) => _innerService.DisplayTable(table);
+    public void DisplayRenderable(IRenderable renderable) => _innerService.DisplayRenderable(renderable);
 }
 
 // Test implementation of IProjectUpdater

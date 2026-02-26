@@ -6,6 +6,7 @@ using Aspire.Cli.Interaction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -152,7 +153,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
-    public void DisplayTable(Table table)
+    public void DisplayRenderable(IRenderable renderable)
     {
     }
 

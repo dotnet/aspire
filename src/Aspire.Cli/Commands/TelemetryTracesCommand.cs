@@ -230,11 +230,11 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
 
         var table = new Table();
-        table.AddColumn(TelemetryCommandStrings.HeaderTraceId);
-        table.AddColumn(TelemetryCommandStrings.HeaderResource);
-        table.AddColumn(TelemetryCommandStrings.HeaderDuration);
-        table.AddColumn(TelemetryCommandStrings.HeaderSpans);
-        table.AddColumn(TelemetryCommandStrings.HeaderStatus);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderTraceId);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderResource);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderDuration);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderSpans);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderStatus);
 
         // Group by traceId to show trace summary
         var traceInfos = new Dictionary<string, (string Resource, TimeSpan Duration, int SpanCount, bool HasError)>();
@@ -277,7 +277,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
             table.AddRow(traceIdKey, info.Resource, durationStr, info.SpanCount.ToString(CultureInfo.InvariantCulture), statusText);
         }
 
-        interactionService.DisplayTable(table);
+        interactionService.DisplayRenderable(table);
         interactionService.DisplayMarkupLine($"[grey]Showing {traceInfos.Count} of {response?.TotalCount ?? traceInfos.Count} traces[/]");
     }
 

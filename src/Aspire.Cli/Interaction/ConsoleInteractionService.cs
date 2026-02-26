@@ -6,6 +6,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Interaction;
 
@@ -281,9 +282,9 @@ internal class ConsoleInteractionService : IInteractionService
         }
     }
 
-    public void DisplayTable(Table table)
+    public void DisplayRenderable(IRenderable renderable)
     {
-        MessageConsole.Write(table);
+        MessageConsole.Write(renderable);
     }
 
     public void DisplayCancellationMessage()

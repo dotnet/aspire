@@ -15,6 +15,7 @@ using Aspire.Cli.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -957,7 +958,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayMarkupLine(string markup) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
-    public void DisplayTable(Table table) { }
+    public void DisplayRenderable(IRenderable renderable) { }
 }
 
 internal sealed class NewCommandTestPackagingService : IPackagingService

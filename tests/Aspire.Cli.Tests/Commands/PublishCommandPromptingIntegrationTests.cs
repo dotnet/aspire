@@ -11,6 +11,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.InternalTesting;
@@ -953,7 +954,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
-    public void DisplayTable(Table table) { }
+    public void DisplayRenderable(IRenderable renderable) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {

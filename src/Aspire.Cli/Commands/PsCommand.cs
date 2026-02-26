@@ -166,10 +166,10 @@ internal sealed class PsCommand : BaseCommand
         }
 
         var table = new Table();
-        table.AddColumn(PsCommandStrings.HeaderPath);
-        table.AddColumn(PsCommandStrings.HeaderPid);
-        table.AddColumn(PsCommandStrings.HeaderCliPid);
-        table.AddColumn(PsCommandStrings.HeaderDashboard);
+        table.AddBoldColumn(PsCommandStrings.HeaderPath);
+        table.AddBoldColumn(PsCommandStrings.HeaderPid);
+        table.AddBoldColumn(PsCommandStrings.HeaderCliPid);
+        table.AddBoldColumn(PsCommandStrings.HeaderDashboard);
 
         foreach (var appHost in appHosts)
         {
@@ -184,7 +184,7 @@ internal sealed class PsCommand : BaseCommand
                 Markup.Escape(dashboard));
         }
 
-        _interactionService.DisplayTable(table);
+        _interactionService.DisplayRenderable(table);
     }
 
     private static string ShortenPath(string path)

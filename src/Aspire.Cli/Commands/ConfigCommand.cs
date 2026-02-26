@@ -232,17 +232,27 @@ internal sealed class ConfigCommand : BaseCommand
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 
+            // Compute max column widths across both tables for consistent alignment
+            var keyWidth = MaxWidth(ConfigCommandStrings.HeaderKey, localConfig.Keys, globalConfig.Keys);
+            var valueWidth = MaxWidth(ConfigCommandStrings.HeaderValue, localConfig.Values, globalConfig.Values);
+
             // Display Local Configuration
             RenderConfigTable(
                 ConfigCommandStrings.LocalConfigurationHeader,
                 localConfig,
-                ConfigCommandStrings.NoLocalConfigurationFound);
+                ConfigCommandStrings.NoLocalConfigurationFound,
+                keyWidth,
+                valueWidth);
+
+            InteractionService.DisplayEmptyLine();
 
             // Display Global Configuration
             RenderConfigTable(
                 ConfigCommandStrings.GlobalConfigurationHeader,
                 globalConfig,
-                ConfigCommandStrings.NoGlobalConfigurationFound);
+                ConfigCommandStrings.NoGlobalConfigurationFound,
+                keyWidth,
+                valueWidth);
 
             // Display Available Features
             var allConfiguredFeatures = localConfig.Concat(globalConfig)
@@ -269,15 +279,25 @@ internal sealed class ConfigCommand : BaseCommand
             }
 
             return ExitCodeConstants.Success;
+
+            static int MaxWidth(string header, IEnumerable<string> localValues, IEnumerable<string> globalValues)
+            {
+                const int minColumnWidth = 30;
+
+                return localValues.Concat(globalValues)
+                    .Select(s => s.Length)
+                    .Append(header.Length)
+                    .Append(minColumnWidth)
+                    .Max();
+            }
         }
 
-        private void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage)
+        private void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage, int keyWidth, int valueWidth)
         {
             var table = new Table();
             table.Title = new TableTitle($"[bold]{title.EscapeMarkup()}[/]");
-            table.Border(TableBorder.Rounded);
-            table.AddColumn(new TableColumn($"[bold]{ConfigCommandStrings.HeaderKey.EscapeMarkup()}[/]").NoWrap());
-            table.AddColumn(new TableColumn($"[bold]{ConfigCommandStrings.HeaderValue.EscapeMarkup()}[/]"));
+            table.AddBoldColumn(ConfigCommandStrings.HeaderKey, width: keyWidth);
+            table.AddBoldColumn(ConfigCommandStrings.HeaderValue, width: valueWidth);
 
             if (config.Count > 0)
             {
@@ -293,7 +313,7 @@ internal sealed class ConfigCommand : BaseCommand
                 table.AddRow($"[dim]{emptyMessage.EscapeMarkup()}[/]", "");
             }
 
-            InteractionService.DisplayTable(table);
+            InteractionService.DisplayRenderable(table);
         }
     }
 

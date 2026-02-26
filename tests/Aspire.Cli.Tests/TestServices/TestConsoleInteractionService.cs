@@ -5,6 +5,7 @@ using System.Collections;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -139,7 +140,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
-    public void DisplayTable(Table table)
+    public void DisplayRenderable(IRenderable renderable)
     {
     }
 }

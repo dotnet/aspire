@@ -91,10 +91,10 @@ internal sealed class DocsSearchCommand : BaseCommand
 
             // Results are already sorted by score (highest first) from the search service
             var table = new Table();
-            table.AddColumn(DocsCommandStrings.HeaderTitle);
-            table.AddColumn(DocsCommandStrings.HeaderSlug);
-            table.AddColumn(DocsCommandStrings.HeaderSection);
-            table.AddColumn(DocsCommandStrings.HeaderScore);
+            table.AddBoldColumn(DocsCommandStrings.HeaderTitle);
+            table.AddBoldColumn(DocsCommandStrings.HeaderSlug);
+            table.AddBoldColumn(DocsCommandStrings.HeaderSection);
+            table.AddBoldColumn(DocsCommandStrings.HeaderScore);
 
             foreach (var result in response.Results)
             {
@@ -105,7 +105,7 @@ internal sealed class DocsSearchCommand : BaseCommand
                     result.Score.ToString("F2", CultureInfo.InvariantCulture)); // Two decimal places
             }
 
-            InteractionService.DisplayTable(table);
+            InteractionService.DisplayRenderable(table);
         }
 
         return ExitCodeConstants.Success;
