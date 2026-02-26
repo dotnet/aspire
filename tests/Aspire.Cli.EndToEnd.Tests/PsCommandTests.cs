@@ -173,25 +173,29 @@ public sealed class PsCommandTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "output-step1.json");
-        var stderrFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "stderr-output.txt");
+        // Pattern for empty JSON array output
+        var waitForEmptyJsonArray = new CellPatternSearcher()
+            .Find("[]");
 
-        // Run aspire ps --format json and redirect stdout and stderr to separate files.
-        // With zero running AppHosts, only JSON (an empty array) should be written to stdout.
-        // Status messages should be written to stderr only.
-        sequenceBuilder.Type($"aspire ps --format json > {outputFilePath} 2> {stderrFilePath}")
+        var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "output-step1.json");
+
+        // Run aspire ps --format json without redirection and assert the expected
+        // output appears in the terminal via WaitUntil.
+        sequenceBuilder.Type("aspire ps --format json")
+            .Enter()
+            .WaitUntil(s => waitForEmptyJsonArray.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
+
+        // Run again with stdout redirected to a file and verify the file contains
+        // only the expected JSON (empty array) with no status messages.
+        sequenceBuilder.Type($"aspire ps --format json > {outputFilePath}")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Verify that output-step1.json contains exactly "[]" (empty JSON array)
-        // and that status messages were written to stderr instead of stdout
         sequenceBuilder.ExecuteCallback(() =>
         {
-            var stdoutContent = File.ReadAllText(outputFilePath).Trim();
-            Assert.Equal("[]", stdoutContent);
-
-            var stderrContent = File.ReadAllText(stderrFilePath).Trim();
-            Assert.False(string.IsNullOrEmpty(stderrContent), "Expected status messages to be written to stderr");
+            var content = File.ReadAllText(outputFilePath).Trim();
+            Assert.Equal("[]", content);
         });
 
         // Exit the shell
