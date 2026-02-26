@@ -175,10 +175,15 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "ps-output.json");
 
+        // Pattern for the scanning status message (written to stderr / terminal)
+        var waitForScanningMessage = new CellPatternSearcher()
+            .Find("Scanning for running AppHosts");
+
         // Run aspire ps --format json with stdout redirected to a file.
         // Status messages appear in the terminal (stderr), JSON goes to the file (stdout).
         sequenceBuilder.Type($"aspire ps --format json > {outputFilePath}")
             .Enter()
+            .WaitUntil(s => waitForScanningMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         // Verify the file contains only the expected JSON output (empty array).
