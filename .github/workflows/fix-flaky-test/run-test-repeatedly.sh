@@ -12,7 +12,7 @@ STOP_ON_FAILURE=true
 # ---------- usage ----------
 usage() {
     cat <<'EOF'
-Usage: ./run-test-repeatedly.sh [OPTIONS] -- <test command...>
+Usage: .github/workflows/fix-flaky-test/run-test-repeatedly.sh [OPTIONS] -- <test command...>
 
 Runs <test command> repeatedly to validate flaky test fixes.
 Everything after '--' is executed verbatim each iteration.
@@ -23,8 +23,8 @@ Options:
   --help        Show this help message
 
 Examples:
-  ./run-test-repeatedly.sh -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
-  ./run-test-repeatedly.sh -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+  .github/workflows/fix-flaky-test/run-test-repeatedly.sh -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
+  .github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 EOF
     exit 0
 }
