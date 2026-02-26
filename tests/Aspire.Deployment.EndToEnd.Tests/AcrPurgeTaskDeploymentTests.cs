@@ -14,8 +14,8 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 60 minutes to allow for two Azure deployments and purge verification.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(60);
+    // Timeout set to 30 minutes to allow for two Azure deployments and purge verification.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(30);
 
     [Fact]
     public async Task DeployPythonStarterWithPurgeTask()
@@ -154,21 +154,7 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-            // Step 6: Add Aspire.Hosting.Azure.ContainerRegistry package
-            output.WriteLine("Step 6: Adding Azure Container Registry hosting package...");
-            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ContainerRegistry")
-                .Enter();
-
-            if (DeploymentE2ETestHelpers.IsRunningInCI)
-            {
-                sequenceBuilder
-                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter();
-            }
-
-            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
-
-            // Step 7: Modify apphost.cs to add ACA environment with purge task
+            // Step 6: Modify apphost.cs to add ACA environment with purge task
             // Python template uses single-file AppHost (apphost.cs in project root)
             sequenceBuilder.ExecuteCallback(() =>
             {
@@ -196,13 +182,13 @@ builder.Build().Run();
                 output.WriteLine($"Modified apphost.cs at: {appHostFilePath}");
             });
 
-            // Step 8: Set environment variables for deployment
+            // Step 7: Set environment variables for deployment
             sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 9: First deployment to Azure
-            output.WriteLine("Step 9: Starting first Azure deployment...");
+            // Step 8: First deployment to Azure
+            output.WriteLine("Step 8: Starting first Azure deployment...");
             var pipelineSucceeded = false;
             sequenceBuilder
                 .Type("aspire deploy --clear-cache")
@@ -225,8 +211,8 @@ builder.Build().Run();
                 })
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 10: Get the ACR name and count tags before second deploy
-            output.WriteLine("Step 10: Getting ACR name and counting initial tags...");
+            // Step 9: Get the ACR name and count tags before second deploy
+            output.WriteLine("Step 9: Getting ACR name and counting initial tags...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"ACR: $ACR_NAME\" && " +
@@ -241,7 +227,7 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 11: Modify Python code to guarantee a new container image is pushed on second deploy
+            // Step 10: Modify Python code to guarantee a new container image is pushed on second deploy
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
@@ -256,8 +242,8 @@ builder.Build().Run();
                 output.WriteLine("Modified main.py to force a new container image build");
             });
 
-            // Step 12: Second deployment to push new images
-            output.WriteLine("Step 12: Starting second Azure deployment...");
+            // Step 11: Second deployment to push new images
+            output.WriteLine("Step 11: Starting second Azure deployment...");
             // Reset the pipeline searchers for second deploy
             var waitingForPipelineSucceeded2 = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
@@ -286,8 +272,8 @@ builder.Build().Run();
                 })
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 13: Verify there are now multiple tags (from both deploys)
-            output.WriteLine("Step 13: Verifying multiple tags exist after second deploy...");
+            // Step 12: Verify there are now multiple tags (from both deploys)
+            output.WriteLine("Step 12: Verifying multiple tags exist after second deploy...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"ACR: $ACR_NAME\" && " +
@@ -301,8 +287,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 14: Run the purge task manually to trigger image cleanup
-            output.WriteLine("Step 14: Running ACR purge task...");
+            // Step 13: Run the purge task manually to trigger image cleanup
+            output.WriteLine("Step 13: Running ACR purge task...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"Running purge task on ACR: $ACR_NAME\" && " +
@@ -319,8 +305,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 15: Verify images were purged - only 1 tag should remain per repo
-            output.WriteLine("Step 15: Verifying images were purged...");
+            // Step 14: Verify images were purged - only 1 tag should remain per repo
+            output.WriteLine("Step 14: Verifying images were purged...");
             sequenceBuilder
                 .Type($"ACR_NAME=$(az acr list -g \"{resourceGroupName}\" --query \"[0].name\" -o tsv) && " +
                       "echo \"ACR: $ACR_NAME\" && " +
@@ -339,7 +325,7 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 16: Exit terminal
+            // Step 15: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
