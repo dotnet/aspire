@@ -488,6 +488,8 @@ gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <fix-branch
 
 This dispatches the workflow from `main` but runs the version from your branch, so your env var edits will be used.
 
+**If the workflow dispatch fails** (e.g. HTTP 403 "Resource not accessible by integration"): your GitHub token lacks `actions:write` permission on the repository. This is a non-fatal blocker — continue with the investigation, but you **must** document this in every PR you open (both investigation and fix PRs). Include the exact error, and provide the manual trigger command so a reviewer or maintainer can run it. See the PR template in Step 6.2 for the required format.
+
 ### 3.4: Monitor and Cancel
 
 **Monitor the run using polling** (CI runs take 10-30+ minutes):
@@ -733,6 +735,8 @@ Then trigger the reproduce workflow to verify:
 gh workflow run reproduce-flaky-tests.yml --repo dotnet/aspire --ref <fix-branch>-investigate
 ```
 
+If the workflow dispatch fails due to permissions (HTTP 403), see the guidance in Step 3.3. Continue to Step 6 but document the failure in the PR description.
+
 Store the verification run ID:
 ```sql
 INSERT OR REPLACE INTO session_state (key, value) VALUES ('verify_run_id', '<run-id>');
@@ -830,6 +834,12 @@ gh pr create --repo dotnet/aspire \
 | Post-fix (local) | <iterations>, <OS> | **<pass/fail>** |
 | Post-fix (CI) | <runners × iters × OSes> | **<link to run>** |
 
+> **If any verification step was skipped or failed** (e.g. workflow dispatch permission error), replace the CI row with a clear explanation:
+> - What step failed and the exact error (e.g. \\\`HTTP 403: Resource not accessible by integration\\\`)
+> - Why it could not be completed (e.g. agent token lacks \\\`actions:write\\\` permission)
+> - The manual command a reviewer can run to complete verification
+> - A link to the investigation PR/branch with the pre-configured reproduce workflow
+
 ### Verification Rationale
 <Brief explanation of CI scale choice: local confidence level, why that scale was appropriate for the failure rate, and acknowledgment that local runs are a pre-check — not equivalent to CI runs across separate runners.>
 
@@ -859,11 +869,12 @@ gh pr close <investigation-pr-number> --repo dotnet/aspire --delete-branch
 
 Before opening the final PR, verify **every item**. This is a hard gate — do not skip any item.
 
-- [ ] Fix is verified on CI via the reproduce workflow (all iterations pass)
+- [ ] Fix is verified on CI via the reproduce workflow (all iterations pass), **OR** if CI could not be triggered (e.g. permissions error), the PR description documents the failure, the exact error, and provides the manual trigger command for a reviewer
 - [ ] **`[QuarantinedTest]` attribute is still present** on the test method (not removed)
 - [ ] **Tracking issue is still open** (not closed)
 - [ ] Clean fix PR is open with only code changes (no workflow modifications)
 - [ ] PR description includes verification rationale (local confidence, CI scale reasoning)
+- [ ] PR description documents any skipped or failed steps with exact errors and manual remediation commands
 - [ ] Investigation draft PR is closed and branch deleted
 - [ ] No remaining in-progress CI runs on the investigation branch
 - [ ] Summary comment posted (see Response Format below)
