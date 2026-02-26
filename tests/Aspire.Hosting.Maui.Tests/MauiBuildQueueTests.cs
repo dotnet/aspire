@@ -122,15 +122,18 @@ public class MauiBuildQueueTests
             }
         }, cts.Token);
 
-        _ = Task.Run(() => env.Eventing.PublishAsync(
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.MacCatalyst, env.Services),
             CancellationToken.None));
 
         var result = await queuedSeen.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(result);
 
+        // Clean up: complete both builds and await their tasks.
         env.Subscriber.CompleteBuild(env.Android);
         await task1.WaitAsync(TimeSpan.FromSeconds(5));
+        env.Subscriber.CompleteBuild(env.MacCatalyst);
+        await task2.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -153,7 +156,7 @@ public class MauiBuildQueueTests
             }
         }, cts.Token);
 
-        _ = Task.Run(() => env.Eventing.PublishAsync(
+        var eventTask = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
             CancellationToken.None));
 
@@ -161,6 +164,7 @@ public class MauiBuildQueueTests
         Assert.True(result);
 
         env.Subscriber.CompleteBuild(env.Android);
+        await eventTask.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -168,17 +172,25 @@ public class MauiBuildQueueTests
     {
         await using var env = await BuildQueueTestEnvironment.CreateWithTwoProjectsAsync();
 
-        // Both resources complete their builds immediately.
-        env.Subscriber.CompleteBuildImmediately(env.Android);
-        env.Subscriber.CompleteBuildImmediately(env.Android2!);
-
-        var task1 = env.Eventing.PublishAsync(
+        // Start both events WITHOUT completing builds — both should enter Building concurrently.
+        var task1 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
 
-        var task2 = env.Eventing.PublishAsync(
+        var task2 = Task.Run(() => env.Eventing.PublishAsync(
             new BeforeResourceStartedEvent(env.Android2!, env.Services),
-            CancellationToken.None);
+            CancellationToken.None));
+
+        await Task.Delay(300);
+
+        // Both should be building simultaneously — neither should have completed,
+        // proving they are NOT serialized across different projects.
+        Assert.False(task1.IsCompleted, "Task1 should still be building.");
+        Assert.False(task2.IsCompleted, "Task2 should still be building.");
+
+        // Complete both builds.
+        env.Subscriber.CompleteBuild(env.Android);
+        env.Subscriber.CompleteBuild(env.Android2!);
 
         await Task.WhenAll(task1, task2).WaitAsync(TimeSpan.FromSeconds(5));
     }
@@ -276,14 +288,17 @@ public class MauiBuildQueueTests
         env.Subscriber.CompleteBuild(env.Android);
         await task1.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Single(completionOrder);
+        Assert.Equal("android", completionOrder[0]);
 
         env.Subscriber.CompleteBuild(env.MacCatalyst);
         await task2.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, completionOrder.Count);
+        Assert.Equal("maccatalyst", completionOrder[1]);
 
         env.Subscriber.CompleteBuild(env.IOSSimulator);
         await task3.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(3, completionOrder.Count);
+        Assert.Equal("ios", completionOrder[2]);
     }
 
     [Fact]
