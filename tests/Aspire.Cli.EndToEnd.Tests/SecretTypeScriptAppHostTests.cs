@@ -33,10 +33,10 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
             .Find("> C#");
 
         var waitingForTypeScriptSelected = new CellPatternSearcher()
-            .Find("> TypeScript");
+            .Find("> TypeScript (Node.js)");
 
         var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created TypeScript");
+            .Find("Created apphost.ts");
 
         sequenceBuilder.PrepareEnvironment(workspace, counter);
 
