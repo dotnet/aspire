@@ -406,7 +406,7 @@ public class PlaywrightCliInstallerTests
         public ProvenanceVerificationOutcome ProvenanceOutcome { get; set; } = ProvenanceVerificationOutcome.Verified;
         public bool ProvenanceCalled { get; private set; }
 
-        public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, CancellationToken cancellationToken)
+        public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, CancellationToken cancellationToken)
         {
             ProvenanceCalled = true;
             return Task.FromResult(new ProvenanceVerificationResult

@@ -42,7 +42,18 @@ internal enum ProvenanceVerificationOutcome
     /// <summary>
     /// The attested source repository does not match the expected value.
     /// </summary>
-    SourceRepositoryMismatch
+    SourceRepositoryMismatch,
+
+    /// <summary>
+    /// The attested workflow path does not match the expected value.
+    /// </summary>
+    WorkflowMismatch,
+
+    /// <summary>
+    /// The SLSA build type does not match the expected GitHub Actions build type,
+    /// indicating the package was not built by the expected CI system.
+    /// </summary>
+    BuildTypeMismatch
 }
 
 /// <summary>
@@ -69,6 +80,13 @@ internal sealed class NpmProvenanceData
     /// Gets the workflow reference (e.g., "refs/tags/v0.1.1").
     /// </summary>
     public string? WorkflowRef { get; init; }
+
+    /// <summary>
+    /// Gets the SLSA build type URI which identifies the CI system used to build the package
+    /// (e.g., "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1" for GitHub Actions).
+    /// This implicitly confirms the OIDC token issuer (e.g., <c>https://token.actions.githubusercontent.com</c>).
+    /// </summary>
+    public string? BuildType { get; init; }
 }
 
 /// <summary>
@@ -99,12 +117,15 @@ internal sealed class ProvenanceVerificationResult
 internal interface INpmProvenanceChecker
 {
     /// <summary>
-    /// Verifies that the SLSA provenance attestation for a package was built from the expected source repository.
+    /// Verifies that the SLSA provenance attestation for a package was built from the expected source repository,
+    /// using the expected workflow, and with the expected build system.
     /// </summary>
     /// <param name="packageName">The npm package name (e.g., "@playwright/cli").</param>
     /// <param name="version">The exact version to verify.</param>
     /// <param name="expectedSourceRepository">The expected source repository URL (e.g., "https://github.com/microsoft/playwright-cli").</param>
+    /// <param name="expectedWorkflowPath">The expected workflow file path (e.g., ".github/workflows/publish.yml").</param>
+    /// <param name="expectedBuildType">The expected SLSA build type URI identifying the CI system.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A <see cref="ProvenanceVerificationResult"/> indicating the outcome and any extracted provenance data.</returns>
-    Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, CancellationToken cancellationToken);
+    Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, CancellationToken cancellationToken);
 }

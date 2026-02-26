@@ -25,9 +25,9 @@ internal sealed class PlaywrightCliInstaller(
     internal const string PackageName = "@playwright/cli";
 
     /// <summary>
-    /// The version range to resolve. Updated periodically with Aspire releases.
+    /// The version range to resolve. Accepts any version from 0.1.1 onwards.
     /// </summary>
-    internal const string VersionRange = "0.1.1";
+    internal const string VersionRange = ">=0.1.1";
 
     /// <summary>
     /// The expected source repository for provenance verification.
@@ -35,10 +35,27 @@ internal sealed class PlaywrightCliInstaller(
     internal const string ExpectedSourceRepository = "https://github.com/microsoft/playwright-cli";
 
     /// <summary>
+    /// The expected workflow file path in the source repository.
+    /// </summary>
+    internal const string ExpectedWorkflowPath = ".github/workflows/publish.yml";
+
+    /// <summary>
+    /// The expected SLSA build type, which identifies GitHub Actions as the CI system
+    /// and implicitly confirms the OIDC token issuer is <c>https://token.actions.githubusercontent.com</c>.
+    /// </summary>
+    internal const string ExpectedBuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1";
+
+    /// <summary>
     /// Configuration key that disables package validation when set to "true".
     /// This is a break-glass mechanism for debugging npm service issues and must never be the default.
     /// </summary>
     internal const string DisablePackageValidationKey = "disablePlaywrightCliPackageValidation";
+
+    /// <summary>
+    /// Configuration key that overrides the version to install. When set, the specified
+    /// exact version is used instead of resolving the latest from the version range.
+    /// </summary>
+    internal const string VersionOverrideKey = "playwrightCliVersion";
 
     /// <summary>
     /// Installs the Playwright CLI with supply chain verification and generates skill files.
@@ -48,8 +65,16 @@ internal sealed class PlaywrightCliInstaller(
     public async Task<bool> InstallAsync(CancellationToken cancellationToken)
     {
         // Step 1: Resolve the target version and integrity hash from the npm registry.
-        logger.LogDebug("Resolving {Package}@{Range} from npm registry", PackageName, VersionRange);
-        var packageInfo = await npmRunner.ResolvePackageAsync(PackageName, VersionRange, cancellationToken);
+        var versionOverride = configuration[VersionOverrideKey];
+        var effectiveRange = !string.IsNullOrEmpty(versionOverride) ? versionOverride : VersionRange;
+
+        if (!string.IsNullOrEmpty(versionOverride))
+        {
+            logger.LogDebug("Using version override from '{ConfigKey}': {Version}", VersionOverrideKey, versionOverride);
+        }
+
+        logger.LogDebug("Resolving {Package}@{Range} from npm registry", PackageName, effectiveRange);
+        var packageInfo = await npmRunner.ResolvePackageAsync(PackageName, effectiveRange, cancellationToken);
 
         if (packageInfo is null)
         {
@@ -115,6 +140,8 @@ internal sealed class PlaywrightCliInstaller(
                 PackageName,
                 packageInfo.Version.ToString(),
                 ExpectedSourceRepository,
+                ExpectedWorkflowPath,
+                ExpectedBuildType,
                 cancellationToken);
 
             if (!provenanceResult.IsVerified)

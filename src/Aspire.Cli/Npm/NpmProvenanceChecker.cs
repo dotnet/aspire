@@ -16,7 +16,7 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
     internal const string SlsaProvenancePredicateType = "https://slsa.dev/provenance/v1";
 
     /// <inheritdoc />
-    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, CancellationToken cancellationToken)
+    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, CancellationToken cancellationToken)
     {
         // Gate 1: Fetch attestations from the npm registry.
         string json;
@@ -85,6 +85,36 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
             };
         }
 
+        // Gate 4: Verify the workflow path matches.
+        if (!string.Equals(provenance.WorkflowPath, expectedWorkflowPath, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "Provenance verification failed: expected workflow path {Expected} but attestation says {Actual}",
+                expectedWorkflowPath,
+                provenance.WorkflowPath);
+
+            return new ProvenanceVerificationResult
+            {
+                Outcome = ProvenanceVerificationOutcome.WorkflowMismatch,
+                Provenance = provenance
+            };
+        }
+
+        // Gate 5: Verify the build type matches (confirms CI system and OIDC token issuer).
+        if (!string.Equals(provenance.BuildType, expectedBuildType, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "Provenance verification failed: expected build type {Expected} but attestation says {Actual}",
+                expectedBuildType,
+                provenance.BuildType);
+
+            return new ProvenanceVerificationResult
+            {
+                Outcome = ProvenanceVerificationOutcome.BuildTypeMismatch,
+                Provenance = provenance
+            };
+        }
+
         return new ProvenanceVerificationResult
         {
             Outcome = ProvenanceVerificationOutcome.Verified,
@@ -131,9 +161,9 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
             }
 
             var statement = JsonNode.Parse(decodedBytes);
-            var workflow = statement
-                ?["predicate"]
-                ?["buildDefinition"]
+            var predicate = statement?["predicate"];
+            var buildDefinition = predicate?["buildDefinition"];
+            var workflow = buildDefinition
                 ?["externalParameters"]
                 ?["workflow"];
 
@@ -141,19 +171,21 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
             var workflowPath = workflow?["path"]?.GetValue<string>();
             var workflowRef = workflow?["ref"]?.GetValue<string>();
 
-            var builderId = statement
-                ?["predicate"]
+            var builderId = predicate
                 ?["runDetails"]
                 ?["builder"]
                 ?["id"]
                 ?.GetValue<string>();
+
+            var buildType = buildDefinition?["buildType"]?.GetValue<string>();
 
             var provenance = new NpmProvenanceData
             {
                 SourceRepository = repository,
                 WorkflowPath = workflowPath,
                 WorkflowRef = workflowRef,
-                BuilderId = builderId
+                BuilderId = builderId,
+                BuildType = buildType
             };
 
             if (repository is null)

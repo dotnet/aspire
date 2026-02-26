@@ -21,6 +21,8 @@ public class NpmProvenanceCheckerTests
         Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Value.Outcome);
         Assert.Equal("https://github.com/microsoft/playwright-cli", result.Value.Provenance.SourceRepository);
         Assert.Equal(".github/workflows/publish.yml", result.Value.Provenance.WorkflowPath);
+        Assert.Equal("https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1", result.Value.Provenance.BuildType);
+        Assert.Equal("https://github.com/actions/runner/github-hosted", result.Value.Provenance.BuilderId);
     }
 
     [Fact]
@@ -136,7 +138,7 @@ public class NpmProvenanceCheckerTests
         Assert.Equal(ProvenanceVerificationOutcome.PayloadDecodeFailed, result.Value.Outcome);
     }
 
-    private static string BuildAttestationJson(string sourceRepository)
+    private static string BuildAttestationJson(string sourceRepository, string workflowPath = ".github/workflows/publish.yml", string buildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1")
     {
         var statement = new JsonObject
         {
@@ -146,13 +148,21 @@ public class NpmProvenanceCheckerTests
             {
                 ["buildDefinition"] = new JsonObject
                 {
+                    ["buildType"] = buildType,
                     ["externalParameters"] = new JsonObject
                     {
                         ["workflow"] = new JsonObject
                         {
                             ["repository"] = sourceRepository,
-                            ["path"] = ".github/workflows/publish.yml"
+                            ["path"] = workflowPath
                         }
+                    }
+                },
+                ["runDetails"] = new JsonObject
+                {
+                    ["builder"] = new JsonObject
+                    {
+                        ["id"] = "https://github.com/actions/runner/github-hosted"
                     }
                 }
             }
