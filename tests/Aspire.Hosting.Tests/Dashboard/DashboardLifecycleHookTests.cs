@@ -48,7 +48,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s).DefaultTimeout();
 
         string resourceId = default!;
-        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync().DefaultTimeout())
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        await foreach (var item in resourceLoggerService.WatchAnySubscribersAsync(cts.Token))
         {
             if (item.Name.StartsWith(KnownResourceNames.AspireDashboard) && item.AnySubscribers)
             {
