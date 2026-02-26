@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="Description">
         <source>Wait for a resource to reach a target status.</source>
-        <target state="new">Wait for a resource to reach a target status.</target>
+        <target state="translated">Aguarde até que um recurso alcance um status de destino.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidStatusValue">
         <source>Invalid status value '{0}'. Valid values are: healthy, up, down.</source>
-        <target state="new">Invalid status value '{0}'. Valid values are: healthy, up, down.</target>
+        <target state="translated">Valor de status inválido "{0}". Os valores válidos são: íntegro, para cima, para baixo.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to wait for.</source>
-        <target state="new">The name of the resource to wait for.</target>
+        <target state="translated">O nome do recurso a ser aguardado.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceEnteredFailedState">
         <source>Resource '{0}' entered a failed state: {1}.</source>
-        <target state="new">Resource '{0}' entered a failed state: {1}.</target>
+        <target state="translated">O recurso "{0}" entrou em um estado de falha: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">O recurso "{0}" não foi encontrado.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceReachedTargetStatus">
         <source>Resource '{0}' is {1}. ({2:F1}s)</source>
-        <target state="new">Resource '{0}' is {1}. ({2:F1}s)</target>
+        <target state="translated">O recurso "{0}" é {1}. ({2:F1}s)</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
@@ -39,27 +39,27 @@
       </trans-unit>
       <trans-unit id="StatusOptionDescription">
         <source>The target status to wait for (healthy, up, down). Defaults to healthy.</source>
-        <target state="new">The target status to wait for (healthy, up, down). Defaults to healthy.</target>
+        <target state="translated">O status de destino a ser aguardado (íntegro, para cima, para baixo). O padrão é íntegro.</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutMustBePositive">
         <source>Timeout must be a positive number of seconds.</source>
-        <target state="new">Timeout must be a positive number of seconds.</target>
+        <target state="translated">O tempo limite deve ser um número positivo de segundos.</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutOptionDescription">
         <source>Maximum time to wait in seconds. Defaults to 120.</source>
-        <target state="new">Maximum time to wait in seconds. Defaults to 120.</target>
+        <target state="translated">Tempo máximo de espera em segundos. O padrão é 120.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitTimedOut">
         <source>Timed out waiting for resource '{0}' to be {1} after {2}s.</source>
-        <target state="new">Timed out waiting for resource '{0}' to be {1} after {2}s.</target>
+        <target state="translated">Tempo limite atingido ao aguardar o recurso "{0}" ser {1} após {2}s.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForResource">
         <source>Waiting for resource '{0}' to be {1}...</source>
-        <target state="new">Waiting for resource '{0}' to be {1}...</target>
+        <target state="translated">Aguardando o recurso "{0}" ser {1}...</target>
         <note />
       </trans-unit>
     </body>

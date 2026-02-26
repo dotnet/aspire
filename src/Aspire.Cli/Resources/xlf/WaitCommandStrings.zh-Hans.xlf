@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="Description">
         <source>Wait for a resource to reach a target status.</source>
-        <target state="new">Wait for a resource to reach a target status.</target>
+        <target state="translated">等待资源达到目标状态。</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidStatusValue">
         <source>Invalid status value '{0}'. Valid values are: healthy, up, down.</source>
-        <target state="new">Invalid status value '{0}'. Valid values are: healthy, up, down.</target>
+        <target state="translated">无效状态值“{0}”。有效值为: healthy、up、down。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to wait for.</source>
-        <target state="new">The name of the resource to wait for.</target>
+        <target state="translated">要等待的资源的名称。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceEnteredFailedState">
         <source>Resource '{0}' entered a failed state: {1}.</source>
-        <target state="new">Resource '{0}' entered a failed state: {1}.</target>
+        <target state="translated">资源“{0}”进入失败状态: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">未找到资源“{0}”。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceReachedTargetStatus">
         <source>Resource '{0}' is {1}. ({2:F1}s)</source>
-        <target state="new">Resource '{0}' is {1}. ({2:F1}s)</target>
+        <target state="translated">资源“{0}”已{1}。({2:F1}秒)</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
@@ -39,27 +39,27 @@
       </trans-unit>
       <trans-unit id="StatusOptionDescription">
         <source>The target status to wait for (healthy, up, down). Defaults to healthy.</source>
-        <target state="new">The target status to wait for (healthy, up, down). Defaults to healthy.</target>
+        <target state="translated">要等待的目标状态(healthy、up、down)。默认值为 healthy。</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutMustBePositive">
         <source>Timeout must be a positive number of seconds.</source>
-        <target state="new">Timeout must be a positive number of seconds.</target>
+        <target state="translated">超时时间必须是正数(以秒为单位)。</target>
         <note />
       </trans-unit>
       <trans-unit id="TimeoutOptionDescription">
         <source>Maximum time to wait in seconds. Defaults to 120.</source>
-        <target state="new">Maximum time to wait in seconds. Defaults to 120.</target>
+        <target state="translated">最长等待时间(秒)。默认为 120。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitTimedOut">
         <source>Timed out waiting for resource '{0}' to be {1} after {2}s.</source>
-        <target state="new">Timed out waiting for resource '{0}' to be {1} after {2}s.</target>
+        <target state="translated">等待 {2} 秒后，资源“{0}”未能{1}，操作超时。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForResource">
         <source>Waiting for resource '{0}' to be {1}...</source>
-        <target state="new">Waiting for resource '{0}' to be {1}...</target>
+        <target state="translated">正在等待资源“{0}”{1}...</target>
         <note />
       </trans-unit>
     </body>
