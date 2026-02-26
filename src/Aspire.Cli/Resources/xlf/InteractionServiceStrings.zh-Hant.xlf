@@ -99,17 +99,17 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
         <source>The project could not be built. See logs at {0}</source>
-        <target state="new">The project could not be built. See logs at {0}</target>
+        <target state="translated">無法建置專案。請參閱 {0} 中的記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
         <source>The --apphost option specified a project that does not exist.</source>
-        <target state="translated">--apphost 選項指定的專案不存在。</target>
+        <target state="new">The --apphost option specified a project that does not exist.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --apphost option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">未指定 --apphost 選項，且偵測到多個應用程式主機專案檔案。</target>
+        <target state="new">The --apphost option was not specified and multiple app host project files were detected.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="SeeLogsAt">
         <source>See logs at {0}</source>
-        <target state="new">See logs at {0}</target>
+        <target state="translated">請參閱 {0} 中的記錄</target>
         <note>{0} is the log file path</note>
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">실행 중인 Aspire AppHost에서 리소스의 로그를 표시합니다.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">JSON 형식(NDJSON)으로 로그를 출력합니다.</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">

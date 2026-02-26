@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">Muestra los registros de los recursos en un host de aplicaciones Aspire en ejecución.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Registros de salida en formato JSON (NDJSON).</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">

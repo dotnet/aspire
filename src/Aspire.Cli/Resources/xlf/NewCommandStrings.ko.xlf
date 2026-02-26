@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template.</source>
-        <target state="needs-review-translation">새 Aspire 프로젝트를 만듭니다.</target>
+        <target state="new">Create a new app from an Aspire starter template.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
