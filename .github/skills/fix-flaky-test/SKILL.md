@@ -252,13 +252,13 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q
 
 ### 2.3: Run with run-test-repeatedly script
 
-Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) script at the repo root. It runs the test command repeatedly with process cleanup between iterations.
+Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) script in `.github/workflows/fix-flaky-test/`. It runs the test command repeatedly with process cleanup between iterations.
 
 **Linux/macOS:**
 
 ```bash
 # Basic usage — run a single test 20 times (stop on first failure)
-./run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>" \
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
@@ -268,7 +268,7 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
 
 ```powershell
 # Basic usage — run a single test 20 times (stop on first failure)
-./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
   -- --filter-method "*.<TestMethodName>" `
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
@@ -279,12 +279,12 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQuarantinedTests=true
 
 # Linux/macOS
-./run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
 
 # Windows (PowerShell)
-./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
   -- --filter-method "*.<TestMethodName>"
 ```
 
@@ -571,11 +571,11 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-restore -
 
 # Quick local check — same iteration count as reproduction
 # Linux/macOS:
-./run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
 # Windows (PowerShell):
-# ./run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build -- --filter-method "*.<TestMethodName>"
+# ./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build -- --filter-method "*.<TestMethodName>"
 ```
 
 If local verification fails, iterate on the fix before going to CI. This saves ~30 minutes per CI round-trip.
