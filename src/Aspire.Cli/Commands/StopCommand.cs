@@ -32,10 +32,7 @@ internal sealed class StopCommand : BaseCommand
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = StopCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", StopCommandStrings.ProjectArgumentDescription);
 
     private static readonly Option<bool> s_allOption = new("--all")
     {
@@ -61,20 +58,20 @@ internal sealed class StopCommand : BaseCommand
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_allOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var stopAll = parseResult.GetValue(s_allOption);
 
         // Validate mutual exclusivity of --all and --project
         if (stopAll && passedAppHostProjectFile is not null)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndProjectMutuallyExclusive, s_allOption.Name, s_projectOption.Name));
+            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.AllAndProjectMutuallyExclusive, s_allOption.Name, s_appHostOption.Name));
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -114,12 +111,12 @@ internal sealed class StopCommand : BaseCommand
 
         // Scan for all running AppHosts
         var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
-            StopCommandStrings.ScanningForRunningAppHosts,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             cancellationToken);
 
         if (allConnections.Length == 0)
         {
-            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(SharedCommandStrings.AppHostNotRunning);
             return ExitCodeConstants.FailedToFindProject;
         }
 
@@ -139,7 +136,7 @@ internal sealed class StopCommand : BaseCommand
         }
 
         // Multiple in-scope AppHosts or none in scope: error with guidance
-        _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.MultipleAppHostsNonInteractive, s_projectOption.Name, s_allOption.Name));
+        _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, StopCommandStrings.MultipleAppHostsNonInteractive, s_appHostOption.Name, s_allOption.Name));
         return ExitCodeConstants.FailedToFindProject;
     }
 
@@ -150,15 +147,15 @@ internal sealed class StopCommand : BaseCommand
     {
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            StopCommandStrings.ScanningForRunningAppHosts,
-            StopCommandStrings.SelectAppHostToStop,
-            StopCommandStrings.NoInScopeAppHostsShowingAll,
-            StopCommandStrings.NoRunningAppHostsFound,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, StopCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayMessage("information", StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayMessage("information", result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
@@ -178,12 +175,12 @@ internal sealed class StopCommand : BaseCommand
     private async Task<int> StopAllAppHostsAsync(CancellationToken cancellationToken)
     {
         var allConnections = await _connectionResolver.ResolveAllConnectionsAsync(
-            StopCommandStrings.ScanningForRunningAppHosts,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             cancellationToken);
 
         if (allConnections.Length == 0)
         {
-            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            _interactionService.DisplayError(SharedCommandStrings.AppHostNotRunning);
             return ExitCodeConstants.FailedToFindProject;
         }
 

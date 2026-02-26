@@ -304,6 +304,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
+
         using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);

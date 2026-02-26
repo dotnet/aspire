@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../DescribeCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Nenhum AppHost em execução encontrado. Use "aspire run" para iniciar um primeiro.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
         <target state="needs-review-translation">Exiba instantâneos de recursos de um apphost do Aspire em execução.</target>
@@ -27,16 +22,6 @@
         <target state="translated">Nenhum projeto AppHost encontrado.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Nenhum AppHosts encontrado no diretório atual. Mostrando todos os AppHosts em execução.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
         <target state="translated">O nome do recurso a ser exibido. Se não for especificado, todos os recursos serão mostrados.</target>
@@ -47,14 +32,9 @@
         <target state="translated">O recurso “{0}” não foi encontrado.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Verificando se há AppHosts em execução...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Selecione um AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>describe</source>
+        <target state="new">describe</target>
         <note />
       </trans-unit>
     </body>

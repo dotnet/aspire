@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../DescribeCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">找不到正在运行的 AppHost。请先使用 "aspire run" 启动一个。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
         <target state="needs-review-translation">显示正在运行的 Aspire 应用主机中的资源快照。</target>
@@ -27,16 +22,6 @@
         <target state="translated">找不到 AppHost 项目。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">当前目录中未找到 AppHost。显示所有正在运行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Aspire AppHost 项目文件的路径。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
         <target state="translated">要显示的资源名称。如果未指定，则显示所有资源。</target>
@@ -47,14 +32,9 @@
         <target state="translated">找不到资源“{0}”。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">选择 AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>describe</source>
+        <target state="new">describe</target>
         <note />
       </trans-unit>
     </body>

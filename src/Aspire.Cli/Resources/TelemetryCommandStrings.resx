@@ -132,9 +132,6 @@
   <data name="ResourceArgumentDescription" xml:space="preserve">
     <value>Filter by resource name.</value>
   </data>
-  <data name="ProjectOptionDescription" xml:space="preserve">
-    <value>The path to the Aspire AppHost project file.</value>
-  </data>
   <data name="FollowOptionDescription" xml:space="preserve">
     <value>Stream telemetry in real-time as it arrives.</value>
   </data>
@@ -159,18 +156,6 @@
   <data name="LimitMustBePositive" xml:space="preserve">
     <value>The --limit value must be a positive number.</value>
   </data>
-  <data name="ScanningForRunningAppHosts" xml:space="preserve">
-    <value>Scanning for running AppHosts...</value>
-  </data>
-  <data name="SelectAppHost" xml:space="preserve">
-    <value>Select an AppHost:</value>
-  </data>
-  <data name="NoInScopeAppHostsShowingAll" xml:space="preserve">
-    <value>No AppHosts found in current directory. Showing all running AppHosts.</value>
-  </data>
-  <data name="AppHostNotRunning" xml:space="preserve">
-    <value>No running AppHost found. Use 'aspire run' to start one first.</value>
-  </data>
   <data name="DashboardApiNotAvailable" xml:space="preserve">
     <value>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</value>
   </data>
@@ -182,5 +167,8 @@
   </data>
   <data name="UnexpectedContentType" xml:space="preserve">
     <value>Dashboard API returned unexpected content type. Expected JSON response.</value>
+  </data>
+  <data name="SelectAppHostAction" xml:space="preserve">
+    <value>view telemetry for</value>
   </data>
 </root>
