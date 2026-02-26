@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase.</source>
-        <target state="new">Initialize Aspire in an existing codebase.</target>
+        <target state="translated">기존 코드베이스에서 Aspire를 초기화합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
