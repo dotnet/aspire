@@ -182,6 +182,9 @@ jobs:
           
           The following terminal recordings are available for commit \`${SHORT_SHA}\`:
           
+          <details>
+          <summary>View recordings</summary>
+          
           | Test | Recording |
           |------|-----------|"
             
@@ -212,6 +215,8 @@ jobs:
             done
             
             COMMENT_BODY="${COMMENT_BODY}
+          
+          </details>
           
           ---
           <sub>📹 Recordings uploaded automatically from [CI run #${RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID})</sub>"
