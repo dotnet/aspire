@@ -338,26 +338,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
     }
 
-    /// <summary>
-    /// Gets or adds an existing VNet reference to the infrastructure, avoiding duplicates.
-    /// </summary>
-    private static VirtualNetwork GetOrAddExistingVnet(
-        AzureResourceInfrastructure infra,
-        AzureVirtualNetworkResource vnet)
-    {
-        var existingVnets = infra.GetProvisionableResources().OfType<VirtualNetwork>();
-        var existing = existingVnets.FirstOrDefault(v => v.BicepIdentifier == "existingVnet");
-        if (existing is not null)
-        {
-            return existing;
-        }
-
-        var vnetRef = VirtualNetwork.FromExisting("existingVnet");
-        vnetRef.Name = vnet.NameOutput.AsProvisioningParameter(infra);
-        infra.Add(vnetRef);
-        return vnetRef;
-    }
-
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();

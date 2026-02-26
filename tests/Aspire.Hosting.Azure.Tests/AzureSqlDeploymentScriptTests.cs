@@ -103,6 +103,54 @@ public class AzureSqlDeploymentScriptTests
         await VerifyAllAzureBicep(builder);
     }
 
+    [Fact]
+    public async Task SqlWithPrivateEndpoint_StorageBeforePrivateEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var peSubnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+
+        var sqlServer = builder.AddAzureSqlServer("sql");
+        var db = sqlServer.AddDatabase("db");
+
+        // Call WithAdminDeploymentScriptStorage BEFORE AddPrivateEndpoint
+        var storage = builder.AddAzureStorage("depscriptstorage");
+        sqlServer.WithAdminDeploymentScriptStorage(storage);
+
+        peSubnet.AddPrivateEndpoint(sqlServer);
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(db);
+
+        await VerifyAllAzureBicep(builder);
+    }
+
+    [Fact]
+    public async Task SqlWithPrivateEndpoint_SubnetBeforePrivateEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var peSubnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+        var aciSubnet = vnet.AddSubnet("acisubnet", "10.0.2.0/29");
+
+        var sqlServer = builder.AddAzureSqlServer("sql");
+        var db = sqlServer.AddDatabase("db");
+
+        // Call WithAdminDeploymentScriptSubnet BEFORE AddPrivateEndpoint
+        sqlServer.WithAdminDeploymentScriptSubnet(aciSubnet);
+
+        peSubnet.AddPrivateEndpoint(sqlServer);
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(db);
+
+        await VerifyAllAzureBicep(builder);
+    }
+
     private static async Task VerifyAllAzureBicep(IDistributedApplicationBuilder builder)
     {
         var app = builder.Build();

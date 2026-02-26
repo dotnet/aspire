@@ -423,8 +423,8 @@ public static class AzureSqlExtensions
             return builder;
         }
 
-        // Set the user's implicitStorage. The BeforeStartEvent handler will remove the
-        // original default implicitStorage since it no longer matches.
+        // Set the user's storage. The BeforeStartEvent handler will remove the
+        // original default storage since it no longer matches.
         builder.Resource.DeploymentScriptStorage = storage.Resource;
 
         if (builder.Resource.AdminIdentity is { } adminIdentity)
@@ -474,6 +474,12 @@ public static class AzureSqlExtensions
                     appModel.Resources.Remove(sql.AdminIdentity);
                     sql.AdminIdentity = null;
                 }
+
+                if (sql.DeploymentScriptNetworkSecurityGroup is not null)
+                {
+                    appModel.Resources.Remove(sql.DeploymentScriptNetworkSecurityGroup);
+                    sql.DeploymentScriptNetworkSecurityGroup = null;
+                }
                 return;
             }
 
@@ -518,7 +524,12 @@ public static class AzureSqlExtensions
         }
         else
         {
-            // TODO: remove the NSG
+            // User provided an explicit subnet — remove the auto-created NSG since they manage their own
+            if (sql.DeploymentScriptNetworkSecurityGroup is { } nsg)
+            {
+                appModel.Resources.Remove(nsg);
+                sql.DeploymentScriptNetworkSecurityGroup = null;
+            }
         }
     }
 
