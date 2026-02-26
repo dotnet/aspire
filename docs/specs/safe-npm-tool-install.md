@@ -117,8 +117,7 @@ Our verification chain relies on these trust anchors:
 
 ## Verification Chain Summary
 
-```
-                    ┌─────────────────────────────┐
+```text
                     │   Hardcoded expectations     │
                     │   • Package: @playwright/cli │
                     │   • Version range: 0.1.1     │
