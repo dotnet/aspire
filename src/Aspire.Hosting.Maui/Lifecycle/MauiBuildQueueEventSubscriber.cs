@@ -23,6 +23,7 @@ internal sealed class MauiBuildQueueEventSubscriber(
     ResourceLoggerService loggerService) : IDistributedApplicationEventingSubscriber
 {
     private static readonly ResourceStateSnapshot s_queuedState = new("Queued", KnownResourceStateStyles.Info);
+    private static readonly ResourceStateSnapshot s_buildingState = new("Building", KnownResourceStateStyles.Info);
     private CancellationToken _appLifetimeToken;
 
     /// <inheritdoc/>
@@ -65,10 +66,16 @@ internal sealed class MauiBuildQueueEventSubscriber(
 
         await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogDebug("Acquired build lock for project '{ProjectName}'.", parent.Name);
+        logger.LogInformation("Building project '{ProjectName}' for {ResourceName}.", parent.Name, resource.Name);
 
-        // Fire-and-forget: release the semaphore when the resource reaches a terminal state.
-        // Use the app lifetime token so the watcher outlives the event handler.
+        await notificationService.PublishUpdateAsync(resource, s => s with
+        {
+            State = s_buildingState
+        }).ConfigureAwait(false);
+
+        // Fire-and-forget: release the semaphore when the resource reaches Running or a terminal state.
+        // We release on Running (not just terminal states) because some platforms like iOS and Mac Catalyst
+        // stay in Running state indefinitely — we only need to hold the lock during the build phase.
         _ = ReleaseSemaphoreOnCompletionAsync(resource, semaphore, logger, _appLifetimeToken);
     }
 
@@ -80,9 +87,12 @@ internal sealed class MauiBuildQueueEventSubscriber(
     {
         try
         {
+            // Release when the resource transitions to Running (build completed, app launched)
+            // or a terminal state (build failed or process exited).
             await notificationService.WaitForResourceAsync(
                 resource.Name,
-                re => KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text),
+                re => re.Snapshot.State?.Text == KnownResourceStates.Running
+                    || KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text),
                 cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -96,7 +106,7 @@ internal sealed class MauiBuildQueueEventSubscriber(
         finally
         {
             semaphore.Release();
-            logger.LogDebug("Released build lock for project '{ParentName}'.", resource.Name);
+            logger.LogDebug("Released build lock for project '{ProjectName}' (resource '{ResourceName}').", resource.Name, resource.Name);
         }
     }
 }

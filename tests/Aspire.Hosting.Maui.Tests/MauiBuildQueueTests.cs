@@ -56,7 +56,7 @@ public class MauiBuildQueueTests
     }
 
     [Fact]
-    public async Task SecondResource_BlocksUntilFirstCompletes()
+    public async Task SecondResource_BlocksUntilFirstReachesRunning()
     {
         await using var env = await BuildQueueTestEnvironment.CreateAsync();
 
@@ -71,9 +71,10 @@ public class MauiBuildQueueTests
         await Task.Delay(300);
         Assert.False(secondTask.IsCompleted, "Second resource should be blocked by the queue.");
 
+        // Simulate build completing and app launching — transitions to Running.
         await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
         });
 
         await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
@@ -112,8 +113,36 @@ public class MauiBuildQueueTests
 
         await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
         });
+    }
+
+    [Fact]
+    public async Task SingleResource_ShowsBuildingState()
+    {
+        await using var env = await BuildQueueTestEnvironment.CreateAsync();
+
+        var buildingSeen = new TaskCompletionSource<bool>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var evt in env.NotificationService.WatchAsync(cts.Token))
+            {
+                if (evt.Resource.Name == env.Android.Name && evt.Snapshot.State?.Text == "Building")
+                {
+                    buildingSeen.TrySetResult(true);
+                    return;
+                }
+            }
+        }, cts.Token);
+
+        _ = Task.Run(() => env.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(env.Android, env.Services),
+            CancellationToken.None));
+
+        var result = await buildingSeen.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(result);
     }
 
     [Fact]
@@ -179,7 +208,7 @@ public class MauiBuildQueueTests
 
         await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
         });
 
         var thirdTask = env.Eventing.PublishAsync(
@@ -231,7 +260,7 @@ public class MauiBuildQueueTests
 
         await env.NotificationService.PublishUpdateAsync(env.Android, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
         });
 
         await task2.WaitAsync(TimeSpan.FromSeconds(5));
@@ -239,7 +268,7 @@ public class MauiBuildQueueTests
 
         await env.NotificationService.PublishUpdateAsync(env.MacCatalyst, s => s with
         {
-            State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Success)
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
         });
 
         await task3.WaitAsync(TimeSpan.FromSeconds(5));
