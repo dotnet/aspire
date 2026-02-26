@@ -9,7 +9,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -65,7 +64,7 @@ internal sealed class SecretSetCommand : BaseCommand
         result.Store.Set(key, value);
         result.Store.Save();
 
-        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretSetSuccess, key.EscapeMarkup()));
+        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretSetSuccess, key));
         return ExitCodeConstants.Success;
     }
 }

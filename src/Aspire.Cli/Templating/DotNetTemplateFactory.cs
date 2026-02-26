@@ -276,7 +276,7 @@ internal class DotNetTemplateFactory(
 
         if (useLocalhostTld ?? false)
         {
-            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
             extraArgs.Add("--localhost-tld");
         }
     }
@@ -296,7 +296,7 @@ internal class DotNetTemplateFactory(
 
         if (useRedisCache ?? false)
         {
-            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseRedisCache_UsingRedisCache);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, TemplatingStrings.UseRedisCache_UsingRedisCache);
             extraArgs.Add("--use-redis-cache");
         }
     }
@@ -335,7 +335,7 @@ internal class DotNetTemplateFactory(
                 await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
             }
 
-            interactionService.DisplayMessage("check_mark", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
 
             extraArgs.Add("--test-framework");
             extraArgs.Add(testFramework);
@@ -489,11 +489,11 @@ internal class DotNetTemplateFactory(
                 return new TemplateResult(ExitCodeConstants.FailedToInstallTemplates);
             }
 
-            interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
+            interactionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
 
             var newProjectCollector = new OutputCollector();
             var newProjectExitCode = await interactionService.ShowStatusAsync(
-                $":rocket:  {TemplatingStrings.CreatingNewProject}",
+                TemplatingStrings.CreatingNewProject,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -511,7 +511,7 @@ internal class DotNetTemplateFactory(
                                 cancellationToken);
 
                     return result;
-                });
+                }, emoji: KnownEmojis.Rocket);
 
             if (newProjectExitCode != 0)
             {
@@ -535,7 +535,7 @@ internal class DotNetTemplateFactory(
             // working directory, create one in the newly created project's output directory.
             await templateNuGetConfigService.PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }

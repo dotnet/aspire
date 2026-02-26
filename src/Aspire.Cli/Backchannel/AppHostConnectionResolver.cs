@@ -162,7 +162,7 @@ internal sealed class AppHostConnectionResolver(
         else if (outOfScopeConnections.Count > 0)
         {
             // No in-scope AppHosts, but there are out-of-scope ones - let user pick
-            interactionService.DisplayMessage("information", noInScopeMessage);
+            interactionService.DisplayMessage(KnownEmojis.Information, noInScopeMessage);
 
             // Order by most recently started first
             var choices = outOfScopeConnections

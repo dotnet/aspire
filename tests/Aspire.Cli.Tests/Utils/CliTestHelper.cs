@@ -209,6 +209,9 @@ internal static class CliTestHelper
         services.AddTransient<SecretListCommand>();
         services.AddTransient<SecretDeleteCommand>();
         services.AddTransient<SecretStoreResolver>();
+#if DEBUG
+        services.AddTransient<RenderCommand>();
+#endif
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;

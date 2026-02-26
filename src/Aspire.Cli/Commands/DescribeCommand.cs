@@ -127,7 +127,7 @@ internal sealed class DescribeCommand : BaseCommand
         if (!result.Success)
         {
             // No running AppHosts is not an error - similar to Unix 'ps' returning empty
-            _interactionService.DisplayMessage("information", result.ErrorMessage);
+            _interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
