@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="needs-review-translation">Afficher les instantanés de ressource d’un Apphost Aspire en cours d’exécution.</target>
+        <target state="new">Describe resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -14,22 +14,22 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Générer la sortie au format JSON pour traitement automatique.</target>
+        <target state="new">Output format (Table or Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="translated">Désolé, aucun projet AppHost n’a été trouvé.</target>
+        <target state="new">No AppHost project found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="translated">Le nom de la ressource à afficher. Si aucun nom n’est spécifié, toutes les ressources sont affichées.</target>
+        <target state="new">The name of the resource to display. If not specified, all resources are shown.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="translated">Ressource « {0} » introuvable.</target>
+        <target state="new">Resource '{0}' not found.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

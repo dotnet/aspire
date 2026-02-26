@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage CLI configuration including feature flags.</source>
-        <target state="needs-review-translation">構成設定を管理します。</target>
+        <target state="new">Manage CLI configuration including feature flags.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
