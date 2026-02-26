@@ -347,6 +347,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars["ASPIRE_USER_SECRETS_ID"] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
@@ -606,7 +609,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars["ASPIRE_USER_SECRETS_ID"] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
+            // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
             var (jsonRpcSocketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
 
