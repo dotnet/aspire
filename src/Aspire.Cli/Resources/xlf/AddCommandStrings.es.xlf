@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
-        <target state="needs-review-translation">Agregue una integración de hospedaje a Aspire AppHost.</target>
+        <target state="translated">Agregue una integración de hospedaje al apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="PackageInstallationFailed">
         <source>The package installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The package installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">La instalación del paquete falló con el código de salida {0}. Consulte los registros en {1}</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="needs-review-translation">La ruta al archivo del proyecto al que se agregará la integración.</target>
+        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -74,11 +74,11 @@
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
           <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
-          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+          <target state="translated">Se detuvo una instancia de AppHost en ejecución para permitir la modificación del paquete.</target><note />
         </trans-unit>
       <trans-unit id="UnableToStopRunningInstances">
         <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
-        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <target state="translated">No se pueden detener una o varias instancias de AppHost en ejecución. Detenga la aplicación e inténtelo de nuevo.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">

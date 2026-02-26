@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
-        <target state="needs-review-translation">Aggiungere un'integrazione di hosting all'AppHost Aspire.</target>
+        <target state="new">Add a hosting integration to the apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="PackageInstallationFailed">
         <source>The package installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The package installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">L'installazione del pacchetto non è riuscita con codice di uscita {0}. Consultare i log in {1}</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="needs-review-translation">Percorso del file di progetto a cui aggiungere l'integrazione.</target>
+        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">

@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>AppHost failed to build.</source>
-        <target state="new">AppHost failed to build.</target>
+        <target state="translated">AppHost se nepovedlo sestavit.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="needs-review-translation">Spusťte hostitele aplikací Aspire ve vývojovém režimu.</target>
+        <target state="new">Run an Aspire AppHost interactively for development.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="needs-review-translation">Výsledek výstupu ve formátu JSON (platný jenom s parametrem --detach).</target>
+        <target state="new">Output format for detached AppHost results.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
@@ -139,12 +139,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">Před spuštěním nevytvářejte ani neobnovujte projekt.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">Možnost --no-build nelze použít, pokud je povolen režim sldování.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">Projekt nelze spustit. Protokoly najdete na {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

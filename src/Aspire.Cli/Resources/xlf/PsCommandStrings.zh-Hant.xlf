@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="needs-review-translation">列出正在執行的 Aspire apphost。</target>
+        <target state="new">List running apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">以 JSON 格式輸出。</target>
+        <target state="translated">輸出格式 (資料表或 Json)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

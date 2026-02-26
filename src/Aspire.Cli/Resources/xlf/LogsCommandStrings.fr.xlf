@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="needs-review-translation">Afficher les journaux des ressources dans un Apphost Aspire en cours d’exécution.</target>
+        <target state="new">Display logs from resources in a running apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="needs-review-translation">Générer les journaux au format JSON (NDJSON).</target>
+        <target state="translated">Format de sortie (Tableau ou JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">Ressource i» {0} »ntrouvable.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">

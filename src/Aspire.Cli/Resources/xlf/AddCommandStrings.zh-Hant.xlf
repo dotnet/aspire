@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
-        <target state="needs-review-translation">將主機整合新增到 Aspire AppHost。</target>
+        <target state="translated">將主機整合新增到 AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="PackageInstallationFailed">
         <source>The package installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The package installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">套件安裝失敗，結束代碼為 {0}。請參閱 {1} 中的記錄</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="needs-review-translation">要新增整合的專案檔路徑。</target>
+        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -74,11 +74,11 @@
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
           <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
-          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+          <target state="translated">已停止執行中的 Aspire AppHost 執行個體，以便修改套件。</target><note />
         </trans-unit>
       <trans-unit id="UnableToStopRunningInstances">
         <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
-        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <target state="translated">無法停止一個或多個正在執行的 Aspire AppHost 執行個體。請先停止應用程式，然後再試一次。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">

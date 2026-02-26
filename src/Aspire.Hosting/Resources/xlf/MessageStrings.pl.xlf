@@ -57,6 +57,11 @@
         <target state="translated">Weryfikacja polecenia „{0}” nie powiodła się: {1}. Instrukcje instalacji znajdziesz pod adresem: {2}</target>
         <note />
       </trans-unit>
+      <trans-unit id="PersistentContainerWithoutUserSecrets">
+        <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</source>
+        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceMayFailToStart">
         <source>Resource '{0}' may fail to start: {1}</source>
         <target state="translated">Uruchomienie zasobu „{0}” może się nie powieść: {1}</target>

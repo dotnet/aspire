@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template.</source>
-        <target state="needs-review-translation">Crear un nuevo proyecto Aspire.</target>
+        <target state="translated">Cree una nueva aplicación a partir de una plantilla de inicio de Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
