@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">Остановить запущенный хост приложений Aspire.</target>
+        <target state="translated">Остановить запущенный хост приложений или указанный ресурс.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="translated">Запущено несколько хостов приложений. Используйте параметр --apphost, чтобы указать, какой остановить, или выберите один из них:</target>
+        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
