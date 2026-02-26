@@ -449,7 +449,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    private static bool TryParsePackageVersionFromStdout(string stdout, [NotNullWhen(true)] out string? version)
+    internal static bool TryParsePackageVersionFromStdout(string stdout, [NotNullWhen(true)] out string? version)
     {
         var lines = stdout.Split(Environment.NewLine);
         var successLine = lines.SingleOrDefault(x => x.StartsWith("Success: Aspire.ProjectTemplates"));
@@ -461,9 +461,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         var templateVersion = successLine.Split(" ") switch { // Break up the success line.
-            { Length: > 2 } chunks => chunks[1].Split("::") switch { // Break up the template+version string
+            { Length: > 2 } chunks => chunks[1].Split("@") switch { // Break up the template+version string (@ separator for .NET 10.0+)
                 { Length: 2 } versionChunks => versionChunks[1], // The version in the second chunk
-                _ => null
+                _ => chunks[1].Split("::") switch { // Fallback to :: separator for older SDK versions
+                    { Length: 2 } versionChunks => versionChunks[1],
+                    _ => null
+                }
             },
             _ => null
         };
