@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Npm;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ internal sealed class PlaywrightCliInstaller(
     INpmRunner npmRunner,
     INpmProvenanceChecker provenanceChecker,
     IPlaywrightCliRunner playwrightCliRunner,
+    IInteractionService interactionService,
     IConfiguration configuration,
     ILogger<PlaywrightCliInstaller> logger)
 {
@@ -63,6 +65,13 @@ internal sealed class PlaywrightCliInstaller(
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>True if installation succeeded or was skipped (already up-to-date), false on failure.</returns>
     public async Task<bool> InstallAsync(CancellationToken cancellationToken)
+    {
+        return await interactionService.ShowStatusAsync(
+            "Installing Playwright CLI...",
+            () => InstallCoreAsync(cancellationToken));
+    }
+
+    private async Task<bool> InstallCoreAsync(CancellationToken cancellationToken)
     {
         // Step 1: Resolve the target version and integrity hash from the npm registry.
         var versionOverride = configuration[VersionOverrideKey];
