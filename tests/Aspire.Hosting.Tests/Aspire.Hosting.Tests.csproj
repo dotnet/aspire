@@ -11,6 +11,10 @@
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
 
+    <!-- Run only on Linux in GitHub Actions to stay under the 256-job matrix limit -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+
     <!-- Split tests into partitions for CI parallelization -->
     <SplitTestsOnCI>true</SplitTestsOnCI>
     <TestClassNamePrefixForCI>Aspire.Hosting.Tests</TestClassNamePrefixForCI>
