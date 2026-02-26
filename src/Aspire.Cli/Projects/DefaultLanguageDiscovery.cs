@@ -39,7 +39,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.Python",
             DetectionPatterns: ["apphost.py"],
             CodeGenerator: "Python",
-            GeneratedFolderName: "aspyre",
+            GeneratedFolderName: "aspire_app",
             AppHostFileName: "apphost.py",
             IsExperimental: true),
         new LanguageInfo(

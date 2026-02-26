@@ -43,6 +43,11 @@ internal sealed class PythonModuleBuilder
     public Dictionary<string, StringBuilder> ResourceOptions { get; } = new();
 
     /// <summary>
+    /// A list of all keyword argument names supported for a Resource builder, used to prevent naming conflicts.
+    /// </summary>
+    public Dictionary<string, List<string>> ResourceOptionNames { get; } = new();
+
+    /// <summary>
     /// Gets the resource class definitions
     /// </summary>
     public Dictionary<string, StringBuilder> ResourceClasses { get; } = new();
@@ -230,10 +235,8 @@ internal sealed class PythonModuleBuilder
         )
         from ._transport import (
             _register_handle_wrapper,
-            AspyreError,
-            CapabilityError,
-            ParameterTypeError,
-            CallbackCancelled,
+            _CallbackCancelled,
+            AspireError,
         )
 
         """;
@@ -309,44 +312,6 @@ internal sealed class PythonModuleBuilder
                     return False
             return True
 
-
-        @dataclass
-        class Warnings:
-            experimental: str | None
-
-
-        class AspyreExperimentalWarning(Warning):
-            '''Custom warning for experimental features in Aspire.'''
-
-
-        def _experimental(arg_name: str, func_or_cls: str | type, code: str):
-            if isinstance(func_or_cls, str):
-                warn(
-                    f"The '{arg_name}' option in '{func_or_cls}' is for evaluation purposes only and is subject "
-                    f"to change or removal in future updates. (Code: {code})",
-                    category=AspyreExperimentalWarning,
-                )
-            else:
-                warn(
-                    f"The '{arg_name}' method of '{func_or_cls.__name__}' is for evaluation purposes only and is subject "
-                    f"to change or removal in future updates. (Code: {code})",
-                    category=AspyreExperimentalWarning,
-                )
-
-
-        def _check_warnings(kwargs: Mapping[str, Any], annotations: Any, func_name: str):
-            type_hints = get_type_hints(annotations, include_extras=True)
-            for key in kwargs.keys():
-                if get_origin(type_hint := type_hints.get(key)) is Annotated:
-                    annotated_warnings = cast(Warnings, get_args(type_hint)[1])
-                    if annotated_warnings.experimental:
-                        warn(
-                            f"The '{key}' option in '{func_name}' is for evaluation purposes only and is subject to change"
-                            f"or removal in future updates. (Code: {annotated_warnings.experimental})",
-                            category=AspyreExperimentalWarning,
-                        )
-
-
         """;
 
         public const string DistributedApplicationBuilder = """
@@ -403,10 +368,8 @@ internal sealed class PythonModuleBuilder
             return client
 
 
-        # TODO: These kwargs should be generated dynamically based on CreateBuilderOptions
         def create_builder(
             *,
-            debug: bool | None = None,
             args: Iterable[str] | None = None,
             project_directory: str | None = None,
             container_registry_override: str | None = None,
@@ -414,6 +377,8 @@ internal sealed class PythonModuleBuilder
             dashboard_application_name: str | None = None,
             allow_unsecured_transport: bool | None = None,
             enable_resource_logging: bool | None = None,
+            options: CreateBuilderOptions | None = None,
+            debug: bool | None = None,
             heartbeat_interval: int | None = None,
          ) -> AbstractContextManager[DistributedApplicationBuilder]:
             '''
@@ -421,7 +386,22 @@ internal sealed class PythonModuleBuilder
             This is the entry point for building Aspire applications.
 
             Args:
-                **options: Optional configuration options for the builder
+                args (Iterable[str]): Command-line arguments to pass to the AppHost. By default, this will be set to any additional arguments
+                    passed to the Aspire command line (arguments specified after '--'). Specifying them here will override that default.
+                project_directory (str): The directory containing the AppHost project file. By default, this will  use the ASPIRE_PROJECT_DIRECTORY
+                    environment variable if set, otherwise it will use the current working directory.
+                container_registry_override (str): When containers are used, use this value to override the container registry.
+                disable_dashboard (bool): Determines whether the dashboard is disabled.
+                dashboard_application_name (str): The application name to display in the dashboard.
+                allow_unsecured_transport (bool): Allows the use of HTTP urls for the AppHost resource endpoint.
+                enable_resource_logging (bool): Enables resource logging.
+                options (CreateBuilderOptions): An optional dict containing any of the above options. Specifying options here will override default behaviours,
+                   but individual parameters will take precedence.
+                debug (bool): Whether to enable logging of the communication between the client and AppHost server.
+                    Default behaviour will be determined by whether `--debug` is passed as an Aspire command-line argument, or
+                    if the ASPIRE_DEBUG environment variable is set. Enabling or disabling here will override those defaults.
+                    Messages will be logged as INFO, with the 'aspire_app' logger name (connection heartbeat messages will be logged at DEBUG).
+                heartbeat_interval (int): Optional interval in seconds for sending heartbeat messages to the AppHost. Default value is 5 seconds.
 
             Returns:
                 A DistributedApplicationBuilder instance
@@ -430,10 +410,15 @@ internal sealed class PythonModuleBuilder
             client = _get_client(debug=is_debug, heartbeat_interval=heartbeat_interval)
 
             # Default args and project_directory if not provided
-            effective_options = CreateBuilderOptions(
-                Args = args if args is not None else sys.argv[1:],
-                ProjectDirectory = project_directory if project_directory is not None else os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd()),
-            )
+            effective_options = options or CreateBuilderOptions()
+            if args is not None:
+                effective_options['Args'] = args
+            elif not effective_options.get('Args'):
+                effective_options['Args'] = sys.argv[1:]
+            if project_directory is not None:
+                effective_options['ProjectDirectory'] = project_directory
+            elif not effective_options.get('ProjectDirectory'):
+                effective_options['ProjectDirectory'] = os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())
             if container_registry_override is not None:
                 effective_options['ContainerRegistryOverride'] = container_registry_override
             if disable_dashboard is not None:

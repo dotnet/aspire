@@ -38,7 +38,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             # Aspire Python AppHost
             # For more information, see: https://aspire.dev
 
-            from aspyre import create_builder
+            from aspire_app import create_builder
 
             with create_builder() as builder:
                 # Add your resources here, for example:

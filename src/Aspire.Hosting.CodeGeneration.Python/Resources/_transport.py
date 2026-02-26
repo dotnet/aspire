@@ -6,15 +6,22 @@ import base64
 from datetime import date, datetime, timedelta, time as dt_time, timezone
 import json
 import logging
+import secrets
 import signal
 import socket
 import sys
 import threading
 import time
-import traceback
-from typing import Any, Callable, Mapping, Protocol, TypedDict, Union, cast, runtime_checkable, TYPE_CHECKING
+from typing import Any, Callable, Mapping, Protocol, TypedDict, Union, cast, runtime_checkable
 
-_logger = logging.getLogger("aspyre")
+_logger = logging.getLogger("aspire_app")
+
+# Maximum allowed message size (64 MB) to prevent memory exhaustion from malicious Content-Length
+MAX_MESSAGE_SIZE = 64 * 1024 * 1024
+
+# Maximum number of headers and total header size to prevent header-flooding attacks
+MAX_HEADER_COUNT = 16
+MAX_HEADER_BYTES = 8 * 1024
 
 # ============================================================================
 # Platform-specific Socket Implementation
@@ -164,20 +171,8 @@ else:
     # On Unix, use socket.socket directly as the pipe socket type
     _PipeSocket = socket.socket  # type: ignore[misc]
 
-    def _default_unix_socket_path(name: str) -> str:
-        """Get the default Unix socket path for a given name."""
-        import os
-        runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
-        if runtime_dir and os.path.isdir(runtime_dir):
-            return os.path.join(runtime_dir, f"{name}.sock")
-        return f"/tmp/{name}.sock"
-
     def _connect_pipe(socket_path: str, timeout_sec: float) -> _PipeSocket:
         """Connect to a Unix domain socket with timeout."""
-        # Format socket path if it's just a name (no path separators)
-        if "/" not in socket_path:
-            socket_path = _default_unix_socket_path(socket_path)
-
         _logger.debug("Connecting to: %s", socket_path)
 
         start_time = time.time()
@@ -224,6 +219,53 @@ class AtsErrorCodes:
     ARGUMENT_OUT_OF_RANGE = "ARGUMENT_OUT_OF_RANGE"
     CALLBACK_ERROR = "CALLBACK_ERROR"
     INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+# Marker string for detecting generic .NET builder type names.
+_BUILDER_GENERIC_MARKER = "Builder`1["
+
+
+def _simplify_type_name(typestring: str) -> str:
+    """Simplify a .NET type name for readability in error messages."""
+    # Collapse any embedded newlines/whitespace so patterns can match
+    collapsed = " ".join(typestring.split())
+    # Check for generic builder pattern like "IResourceBuilder`1[Namespace.Type]"
+    idx = collapsed.find(_BUILDER_GENERIC_MARKER)
+    if idx >= 0:
+        inner = collapsed[idx + len(_BUILDER_GENERIC_MARKER):]
+        # Skip any extra opening brackets (e.g. "[[")
+        inner = inner.lstrip("[").strip()
+        # Take only the qualified name (before any comma/assembly info or closing brackets)
+        inner = inner.split(",")[0].split("]")[0].strip()
+        # Get simple class name from fully-qualified name
+        inner_type = inner.rsplit(".", 1)[-1]
+        # Strip leading 'I' from interface names (e.g., IResourceWithConnectionString -> ResourceWithConnectionString)
+        if len(inner_type) > 1 and inner_type[0] == "I" and inner_type[1].isupper():
+            inner_type = inner_type[1:]
+        return inner_type
+    return typestring.split(".")[-1]  # Fallback: take simple name from fully-qualified type
+
+
+def format_type_error(error: AtsErrorData) -> Exception:
+    """Formats an ATS type error into a Python exception with a helpful message."""
+    try:
+        details = error["details"]  # type: ignore[index]
+        parameter = details["parameter"]  # type: ignore[index]
+        expected = _simplify_type_name(details["expected"])  # type: ignore[index]
+        actual = _simplify_type_name(details["actual"])  # type: ignore[index]
+
+        message_prefix = ""
+        if capability := error.get("capability"):
+            message_prefix = f" in '{capability.split('/')[-1]}'"
+        message = f"Type mismatch{message_prefix} for parameter '{parameter}': expected {expected}, got {actual}"
+
+        return TypeError(message)
+    except KeyError:
+        if message := error.get("message"):
+            return TypeError(message)
+        if capability := error.get("capability"):
+            return TypeError(f"Type mismatch in capability '{capability}'")
+        return TypeError("Parameter type mismatch.")
 
 
 def is_ats_error(value: Any) -> bool:
@@ -325,7 +367,7 @@ def wrap_if_handle(value: Any, client: AspireClient | None = None, kwargs: Mappi
 # Errors
 # ============================================================================
 
-class AspyreError(Exception):
+class AspireError(Exception):
     """Base class for Aspire errors."""
 
     def __init__(self, error: AtsErrorData) -> None:
@@ -337,22 +379,13 @@ class AspyreError(Exception):
         """Machine-readable error code"""
         return self.error.get("code", "UNKNOWN")
 
-
-class CapabilityError(AspyreError):
-    """Error thrown when an ATS capability invocation fails."""
-
     @property
-    def capability(self) -> str:
+    def capability(self) -> str | None:
         """The capability that failed (if applicable)"""
-        return cast(str, self.error.get("capability"))
+        return self.error.get("capability")
 
 
-class ParameterTypeError(CapabilityError, TypeError):
-    """Error thrown when a capability parameter is invalid."""
-    pass
-
-
-class CallbackCancelled(Exception):
+class _CallbackCancelled(Exception):
     """Error thrown when a callback invocation is cancelled."""
     pass
 
@@ -552,7 +585,7 @@ class AspireClient:
             callbacks = list(self._disconnect_callbacks)
             if should_notify:
                 if error:
-                    _logger.info("Closing connection to AppHost with error: %s", error)
+                    _logger.error("Closing connection to AppHost with error: %s", error)
                 else:
                     _logger.info("Closing connection to AppHost")
 
@@ -629,12 +662,24 @@ class AspireClient:
                 return line[:-2]  # Remove \r\n
 
     def _read_headers(self) -> dict[str, str]:
-        """Read HTTP-style headers until empty line"""
+        """Read HTTP-style headers until empty line.
+
+        Enforces limits on header count and total size to prevent
+        memory exhaustion from a malicious peer.
+        """
         headers: dict[str, str] = {}
+        total_bytes = 0
         while True:
             line = self._read_line()
             if not line:  # Empty line signals end of headers
                 break
+
+            total_bytes += len(line) + 2  # account for \r\n
+            if len(headers) >= MAX_HEADER_COUNT:
+                raise ConnectionError(f"Too many headers (limit {MAX_HEADER_COUNT})")
+            if total_bytes > MAX_HEADER_BYTES:
+                raise ConnectionError(f"Headers too large (limit {MAX_HEADER_BYTES} bytes)")
+
             # Parse "Header-Name: value"
             if b":" in line:
                 name, value = line.split(b":", 1)
@@ -651,6 +696,12 @@ class AspireClient:
 
                 if content_length == 0:
                     continue
+
+                if content_length > MAX_MESSAGE_SIZE:
+                    raise ConnectionError(
+                        f"Message too large: {content_length} bytes "
+                        f"(limit {MAX_MESSAGE_SIZE} bytes)"
+                    )
 
                 # Read message content
                 message_bytes = self._recv_exactly(content_length)
@@ -683,7 +734,6 @@ class AspireClient:
         except ConnectionError as e:
             self._close_connection(e)
         except Exception as e:
-            _logger.error("Error in receive loop: %s", e)
             self._close_connection(ConnectionError(f"Receive loop error: {e}"))
 
     def _heartbeat_loop(self) -> None:
@@ -740,10 +790,10 @@ class AspireClient:
                     _logger.debug("Callback result: %s", result)
                 else:
                     error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
-            except CallbackCancelled as e:
+            except _CallbackCancelled as e:
                 try:
                     cancellation_token = e.args[0]
-                    _logger.info("Callback cancelled: %s", e, cancellation_token)
+                    _logger.debug("Callback cancelled: %s", e, cancellation_token)
                     self._send_request("cancelToken", cancellation_token)
                 except Exception:
                     pass  # Ignore errors during cancellation
@@ -751,7 +801,22 @@ class AspireClient:
 
             except Exception as e:
                 _logger.warning("Exception in callback: %s", e)
-                error = {"code": -32603, "message": f"{e}\n{traceback.format_exc()}"}
+                # Include type and origin (file:line) for diagnosability,
+                # but omit the full stack trace and error message to avoid
+                # leaking sensitive internal details to the server.
+                tb = e.__traceback__
+                if tb is not None:
+                    # Walk to the innermost frame (actual error site)
+                    while tb.tb_next is not None:
+                        tb = tb.tb_next
+                    filename = tb.tb_frame.f_code.co_filename
+                    # Send only the basename to avoid leaking full filesystem paths
+                    basename = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+                    lineno = tb.tb_lineno
+                    location = f" at {basename}:{lineno}"
+                else:
+                    location = ""
+                error = {"code": -32603, "message": f"Internal callback error: {type(e).__name__}{location}"}
 
             # Send response
             if request_id is not None:
@@ -823,7 +888,9 @@ class AspireClient:
 
         # Check for structured error response
         if is_ats_error(result):
-            raise CapabilityError(result["$error"])
+            if result["$error"].get("code") == AtsErrorCodes.TYPE_MISMATCH:
+                raise format_type_error(result["$error"])
+            raise AspireError(result["$error"])
 
         # Wrap handles automatically
         return wrap_if_handle(result, self, kwargs)
@@ -931,7 +998,7 @@ class AspireClient:
 
         with self._lock:
             self._callback_id_counter += 1
-            callback_id = f"callback_{self._callback_id_counter}_{id(callback)}"
+            callback_id = f"callback_{secrets.token_hex(16)}"
 
         def wrapper(args: Any, client: AspireClient) -> Any:
             # .NET sends args as object { p0: value0, p1: value1, ... }
@@ -964,4 +1031,3 @@ class AspireClient:
     def connected(self) -> bool:
         """Check if connected to the server"""
         return self._connected
-

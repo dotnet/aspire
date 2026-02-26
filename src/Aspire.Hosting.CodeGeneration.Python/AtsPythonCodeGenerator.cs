@@ -714,7 +714,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        raise CallbackCancelled(result)");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        raise _CallbackCancelled(result)");
                 sb.AppendLine();
                 return;
             }
@@ -809,7 +809,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
-        sb.Append(", /");
         if (optionalParams.Count > 0)
         {
             sb.Append(", *");
@@ -948,6 +947,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var optionsBaseClass = "_BaseResourceOptions";
         var baseClass = "_BaseResource";
         var isBaseResource = builder.BuilderClassName == baseClass;
+        var baseBuilderClassName = baseClass;
         if (!isBaseResource)
         {
             var baseType = builder.TargetType?.BaseType;
@@ -963,6 +963,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                     optionsBaseClass = $"{baseTypeName}Options";
                 }
             }
+            baseBuilderClassName = baseClass;
             var implementedInterfaces = builder.TargetType?.ImplementedInterfaces.Where(i => !baseTypeInterfaces.Contains(i.TypeId)).ToList();
             if (implementedInterfaces is { Count: > 0 })
             {
@@ -1027,6 +1028,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sbConstructor.AppendLine(CultureInfo.InvariantCulture, $"    def __init__(self, handle: Handle, client: AspireClient, **kwargs: Unpack[{optionsBaseClass}]) -> None:");
         }
 
+        // Initialize option names, inheriting from base class
+        var optionNames = new List<string>();
+        if (!isBaseResource && _moduleBuilder.ResourceOptionNames.TryGetValue(baseBuilderClassName, out var baseOptionNames))
+        {
+            optionNames.AddRange(baseOptionNames);
+        }
+        _moduleBuilder.ResourceOptionNames[builder.BuilderClassName] = optionNames;
+
         // Group getters and setters by property name to create properties
         // Only include properties that are not covered by base class hierarchy
         var getters = builder.Capabilities.Where(c =>
@@ -1053,7 +1062,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var capability in methods)
         {
-            GenerateBuilderMethod(sb, capability, false, sbOptions, sbConstructor);
+            GenerateBuilderMethod(sb, capability, false, sbOptions, sbConstructor, builder.BuilderClassName);
             sb.AppendLine();
         }
 
@@ -1072,7 +1081,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     }
 
     private void GenerateBuilderMethod(System.Text.StringBuilder sb, AtsCapabilityInfo capability, bool isInterface,
-        System.Text.StringBuilder? options = null, System.Text.StringBuilder? constructor = null)
+        System.Text.StringBuilder? options = null, System.Text.StringBuilder? constructor = null, string? builderClassName = null)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
         var parameters = capability.Parameters.ToList();
@@ -1105,6 +1114,12 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             }
             options.AppendLine(CultureInfo.InvariantCulture, $"    {optionName}: {formattedOtions}");
             BuildOptionConstructor(constructor, capability, optionName, optionTypeVariations);
+
+            // Track option name for conflict detection
+            if (builderClassName != null && _moduleBuilder.ResourceOptionNames.TryGetValue(builderClassName, out var optionNamesList))
+            {
+                optionNamesList.Add(optionName);
+            }
         }
 
         // Generate method signature
@@ -1115,7 +1130,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
-        sb.Append(", /");
         if (optionalParams.Count > 0)
         {
             sb.Append(", *");
@@ -1668,7 +1682,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         List<AtsParameterInfo> parameters,
         List<AtsParameterInfo> requiredParameters,
         List<AtsParameterInfo> optionalParameters)
-    {        
+    {
         var requiredParamsTypes = string.Join(", ", requiredParameters.Select(MapParameterToPython));
         var optionalParamsTypes = string.Join(", ", optionalParameters.Select(MapParameterToPython));
         var parameterMappingName = GetMethodParametersName(capability.MethodName);
@@ -1829,7 +1843,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (last)
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            else:");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                raise TypeError(\"Invalid type for option '{optionName}'\")");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                raise TypeError(\"Invalid type for option '{optionName}'. Expected: {String.Join(" or ", variations.Select(v => v.OptionType))}\")");
         }
         else
         {
