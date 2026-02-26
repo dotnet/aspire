@@ -1714,8 +1714,8 @@ internal static class AtsCapabilityScanner
                 }
             }
 
-            // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable (array)
-            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>))
+            // Handle IReadOnlyList<T>, IReadOnlyCollection<T>, IEnumerable<T> - immutable (array)
+            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>) || genericDef == typeof(IEnumerable<>))
             {
                 if (genericArgs.Length == 1)
                 {
@@ -2021,8 +2021,8 @@ internal static class AtsCapabilityScanner
                 return null;
             }
 
-            // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable (serialized copy as array)
-            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>))
+            // Handle IReadOnlyList<T>, IReadOnlyCollection<T>, IEnumerable<T> - immutable (serialized copy as array)
+            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>) || genericDef == typeof(IEnumerable<>))
             {
                 if (genericArgs.Length == 1)
                 {
