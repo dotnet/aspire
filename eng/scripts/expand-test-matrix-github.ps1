@@ -111,6 +111,34 @@ if ($canonicalMatrix.tests) {
 
 Write-Host "Expanded matrix: $($allEntries.Count) total entries"
 
+# Validate matrix sizes per group to guard against GitHub Actions' 256-job limit
+$maxMatrixSize = 256
+$warnThreshold = 240
+
+$noNugetEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true -and $_.splitTests -ne $true })
+$noNugetSplitEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true -and $_.splitTests -eq $true })
+$nugetEntries = @($allEntries | Where-Object { $_.requiresNugets -eq $true })
+
+Write-Host "  - No nugets (regular): $($noNugetEntries.Count)"
+Write-Host "  - No nugets (split): $($noNugetSplitEntries.Count)"
+Write-Host "  - Requires nugets: $($nugetEntries.Count)"
+
+$groups = @(
+  @{ name = 'tests_no_nugets'; count = $noNugetEntries.Count },
+  @{ name = 'tests_no_nugets_split'; count = $noNugetSplitEntries.Count },
+  @{ name = 'tests_requires_nugets'; count = $nugetEntries.Count }
+)
+
+foreach ($group in $groups) {
+  if ($group.count -gt $maxMatrixSize) {
+    Write-Error "Matrix group '$($group.name)' has $($group.count) entries, exceeding the GitHub Actions limit of $maxMatrixSize. Split tests further or reduce OS variants."
+    exit 1
+  }
+  if ($group.count -gt $warnThreshold) {
+    Write-Warning "Matrix group '$($group.name)' has $($group.count) entries, approaching the GitHub Actions limit of $maxMatrixSize."
+  }
+}
+
 # Create GitHub Actions format
 $combinedMatrix = @{ include = $allEntries }
 $combinedJson = ConvertTo-Json $combinedMatrix -Compress -Depth 10

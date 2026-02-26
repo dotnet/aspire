@@ -95,6 +95,7 @@ function New-RegularTestEntry {
     shortname = $Metadata.shortName
     testProjectPath = $Metadata.testProjectPath
     workitemprefix = $Metadata.projectName
+    splitTests = $false
   }
 
   # Add metadata if available
@@ -134,6 +135,7 @@ function New-CollectionTestEntry {
     testProjectPath = $Metadata.testProjectPath
     workitemprefix = "$($Metadata.projectName)_$suffix"
     collection = $CollectionName
+    splitTests = $true
   }
 
   # Use uncollected timeouts if available, otherwise use regular
@@ -193,6 +195,7 @@ function New-ClassTestEntry {
     testProjectPath = $Metadata.testProjectPath
     workitemprefix = "$($Metadata.projectName)_$shortClassName"
     classname = $ClassName
+    splitTests = $true
   }
 
   if ($Metadata.PSObject.Properties['testSessionTimeout']) { $entry['testSessionTimeout'] = $Metadata.testSessionTimeout }

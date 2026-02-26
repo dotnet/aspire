@@ -66,29 +66,13 @@ static void ExtractPartitions(string assemblyPath, string outputFile)
 
         foreach (var type in types)
         {
-            // Check if type has Collection or Trait attributes
+            // Only detect [Trait("Partition", "name")] attributes for splitting.
+            // xUnit [Collection] attributes are for shared fixtures, not CI splitting.
             var attributes = type.GetCustomAttributesData();
 
             foreach (var attr in attributes)
             {
                 var attrTypeName = attr.AttributeType.FullName ?? attr.AttributeType.Name;
-
-                // Check for Collection attribute (xunit standard)
-                // NOTE: Collection attributes are detected for completeness, but xunit's --filter-trait
-                // only works with [Trait("Partition", "name")]. Tests should use Trait for splitting.
-                if (attrTypeName.EndsWith(".CollectionAttribute") || attrTypeName == "CollectionAttribute")
-                {
-                    if (attr.ConstructorArguments.Count > 0)
-                    {
-                        var collectionName = attr.ConstructorArguments[0].Value as string;
-                        if (!string.IsNullOrWhiteSpace(collectionName))
-                        {
-                            partitions.Add(collectionName);
-                            Console.WriteLine($"Found Collection: {collectionName} on {type.Name}");
-                        }
-                    }
-                    continue;
-                }
 
                 // Check for Trait attribute with Partition key
                 if (!attrTypeName.EndsWith(".TraitAttribute") && attrTypeName != "TraitAttribute")
