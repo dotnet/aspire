@@ -67,7 +67,7 @@ jobs:
   tests_requires_nugets:
     name: Tests (Requires Nugets)
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages]
+    needs: [setup_for_tests, build_packages, build_cli_archives]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
     strategy:
       fail-fast: false

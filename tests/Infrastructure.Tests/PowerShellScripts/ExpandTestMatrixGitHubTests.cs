@@ -448,6 +448,83 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         Assert.Contains(expanded.Include, e => e.RunsOn == "macos-latest");
     }
 
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task FullPipeline_SplitTestsExpandPerOS()
+    {
+        // This test validates the full pipeline: build-test-matrix → expand-test-matrix-github
+        // with a realistic multi-project scenario to catch regressions where OS coverage
+        // is silently dropped (e.g., a split test project losing multi-OS expansion).
+        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        // Regular project on all 3 OSes
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "RegularProject.tests-metadata.json"),
+            projectName: "RegularProject",
+            testProjectPath: "tests/RegularProject/RegularProject.csproj",
+            shortName: "Regular");
+
+        // Split test project on all 3 OSes (like Templates)
+        TestDataBuilder.CreateSplitTestsMetadataJson(
+            Path.Combine(artifactsDir, "SplitMultiOS.tests-metadata.json"),
+            projectName: "SplitMultiOS",
+            testProjectPath: "tests/SplitMultiOS/SplitMultiOS.csproj",
+            shortName: "SplitMultiOS",
+            supportedOSes: ["windows", "linux", "macos"]);
+
+        TestDataBuilder.CreateClassBasedPartitionsJson(
+            Path.Combine(artifactsDir, "SplitMultiOS.tests-partitions.json"),
+            "Namespace.ClassA", "Namespace.ClassB");
+
+        // Linux-only project requiring NuGets (like EndToEnd)
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "LinuxE2E.tests-metadata.json"),
+            projectName: "LinuxE2E",
+            testProjectPath: "tests/LinuxE2E/LinuxE2E.csproj",
+            shortName: "LinuxE2E",
+            requiresNugets: true,
+            supportedOSes: ["linux"]);
+
+        // Run build-test-matrix.ps1
+        var buildMatrixScript = Path.Combine(FindRepoRoot(), "eng", "scripts", "build-test-matrix.ps1");
+        var canonicalFile = Path.Combine(_tempDir.Path, "canonical.json");
+
+        using var buildCmd = new PowerShellCommand(buildMatrixScript, _output)
+            .WithTimeout(TimeSpan.FromMinutes(2));
+        var buildResult = await buildCmd.ExecuteAsync(
+            "-ArtifactsDir", $"\"{artifactsDir}\"",
+            "-OutputMatrixFile", $"\"{canonicalFile}\"");
+        buildResult.EnsureSuccessful("build-test-matrix.ps1 failed");
+
+        // Run expand-test-matrix-github.ps1
+        var expandedFile = Path.Combine(_tempDir.Path, "expanded.json");
+        var expandResult = await RunScript(canonicalFile, outputMatrixFile: expandedFile);
+        expandResult.EnsureSuccessful("expand-test-matrix-github.ps1 failed");
+
+        var expanded = ParseGitHubMatrix(expandedFile);
+
+        // Regular project: 1 project × 3 OSes = 3
+        var regularEntries = expanded.Include.Where(e => e.ProjectName == "RegularProject").ToArray();
+        Assert.Equal(3, regularEntries.Length);
+
+        // Split project: 2 classes × 3 OSes = 6
+        var splitEntries = expanded.Include.Where(e => e.ProjectName == "SplitMultiOS").ToArray();
+        Assert.Equal(6, splitEntries.Length);
+        Assert.Equal(2, splitEntries.Count(e => e.RunsOn == "ubuntu-latest"));
+        Assert.Equal(2, splitEntries.Count(e => e.RunsOn == "windows-latest"));
+        Assert.Equal(2, splitEntries.Count(e => e.RunsOn == "macos-latest"));
+
+        // Linux-only E2E: 1 project × 1 OS = 1
+        var e2eEntries = expanded.Include.Where(e => e.ProjectName == "LinuxE2E").ToArray();
+        Assert.Single(e2eEntries);
+        Assert.Equal("ubuntu-latest", e2eEntries[0].RunsOn);
+        Assert.True(e2eEntries[0].RequiresNugets);
+
+        // Total: 3 + 6 + 1 = 10
+        Assert.Equal(10, expanded.Include.Length);
+    }
+
     private async Task<CommandResult> RunScript(
         string canonicalMatrixFile,
         string? outputMatrixFile = null)
