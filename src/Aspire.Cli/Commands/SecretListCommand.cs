@@ -48,6 +48,12 @@ internal sealed class SecretListCommand : BaseCommand
         var projectFile = parseResult.GetValue(SecretCommand.s_appHostOption);
         var format = parseResult.GetValue(s_formatOption);
 
+        // Route human-readable output to stderr when JSON is requested to keep stdout clean
+        if (format == OutputFormat.Json)
+        {
+            _interactionService.Console = ConsoleOutput.Error;
+        }
+
         var result = await _secretStoreResolver.ResolveAsync(projectFile, autoInit: false, cancellationToken);
         if (result is null)
         {
