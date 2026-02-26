@@ -50,10 +50,10 @@
       <trans-unit id="DeleteParameterMessageWithUserSecrets">
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
-The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</source>
-        <target state="translated">Opravdu chcete odstranit hodnotu parametru {0}?
+The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
+        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
 
-Hodnota je aktuálně uložena v [tajných klíčích uživatele](https://learn.microsoft.com/aspnet/core/security/app-secrets). Můžete se také rozhodnout ji odtud odstranit.</target>
+The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
@@ -107,8 +107,8 @@ Hodnota je aktuálně uložena v [tajných klíčích uživatele](https://learn.
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
-        <target state="translated">Vyžaduje konfiguraci UserSecretsId v souboru projektu AppHost. Konfiguraci provedete spuštěním příkazu dotnet user-secrets init v adresáři AppHost.</target>
+        <source>Run `aspire secret set` in the AppHost directory to configure secrets.</source>
+        <target state="new">Run `aspire secret set` in the AppHost directory to configure secrets.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -142,12 +142,12 @@ Hodnota je aktuálně uložena v [tajných klíčích uživatele](https://learn.
         <note />
       </trans-unit>
       <trans-unit id="SetParameterMessage">
-        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="translated">Zadejte prosím hodnotu parametru. Parametr lze uložit do [tajných kódů uživatele](https://learn.microsoft.com/aspnet/core/security/app-secrets) pro budoucí použití.
+        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
-Nové hodnoty parametrů se nedají použít, dokud se nerestartují závislé prostředky.</target>
+New parameter values may not be used until dependent resources are restarted.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">
