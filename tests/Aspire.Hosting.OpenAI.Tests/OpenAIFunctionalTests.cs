@@ -33,6 +33,11 @@ public class OpenAIFunctionalTests
                       .AddModel("chat", "gpt-4o-mini")
                       .WithHealthCheck("blocking_check");
 
+        // Remove the default status page health check from the parent OpenAI resource
+        // to avoid flaky failures caused by external HTTP calls to status.openai.com on CI.
+        var statusPageHealthCheck = Enumerable.Single(resource.Resource.Parent.Annotations, x => x is HealthCheckAnnotation hca && hca.Key == "resource_check");
+        resource.Resource.Parent.Annotations.Remove(statusPageHealthCheck);
+
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
 
