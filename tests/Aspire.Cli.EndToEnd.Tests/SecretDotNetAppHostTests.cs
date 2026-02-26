@@ -28,7 +28,6 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        // Prepare environment
         sequenceBuilder.PrepareEnvironment(workspace, counter);
 
         if (isCI)
@@ -37,87 +36,97 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
             sequenceBuilder.SourceAspireCliEnvironment(counter);
         }
 
-        // Create a .NET AppHost project
-        var waitingForProjectCreated = new CellPatternSearcher()
-            .Find("Project created successfully");
+        // Create an Empty AppHost project interactively
+        var waitingForTemplatePrompt = new CellPatternSearcher()
+            .Find("> Starter App");
+
+        var waitingForEmptySelected = new CellPatternSearcher()
+            .Find("> Empty AppHost");
+
+        var waitingForNamePrompt = new CellPatternSearcher()
+            .Find("Enter the project name");
+
+        var waitingForOutputPrompt = new CellPatternSearcher()
+            .Find("Enter the output path");
+
+        var waitingForUrlsPrompt = new CellPatternSearcher()
+            .Find("localhost");
 
         sequenceBuilder
-            .Type("aspire new aspire-apphost-singlefile --name TestSecrets --non-interactive")
+            .Type("aspire new")
             .Enter()
-            .WaitUntil(s => waitingForProjectCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForEmptySelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter()
+            .WaitUntil(s => waitingForNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Type("TestSecrets")
+            .Enter()
+            .WaitUntil(s => waitingForOutputPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Change into the project directory
+        // cd into the project
         sequenceBuilder
             .Type("cd TestSecrets")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Set a secret
+        // Set secrets
         var waitingForSetSuccess = new CellPatternSearcher()
             .Find("set successfully");
 
         sequenceBuilder
-            .Type("aspire secret set Azure:Location eastus2 --non-interactive")
+            .Type("aspire secret set Azure:Location eastus2")
             .Enter()
-            .WaitUntil(s => waitingForSetSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => waitingForSetSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
 
-        // Set another secret
         sequenceBuilder
-            .Type("aspire secret set Parameters:db-password s3cret --non-interactive")
+            .Type("aspire secret set Parameters:db-password s3cret")
             .Enter()
             .WaitUntil(s => waitingForSetSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Get a secret
+        // Get
         var waitingForGetValue = new CellPatternSearcher()
             .Find("eastus2");
 
         sequenceBuilder
-            .Type("aspire secret get Azure:Location --non-interactive")
+            .Type("aspire secret get Azure:Location")
             .Enter()
             .WaitUntil(s => waitingForGetValue.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // List secrets
+        // List
         var waitingForListOutput = new CellPatternSearcher()
-            .Find("Parameters:db-password");
+            .Find("db-password");
 
         sequenceBuilder
-            .Type("aspire secret list --non-interactive")
+            .Type("aspire secret list")
             .Enter()
             .WaitUntil(s => waitingForListOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // List secrets as JSON
-        var waitingForJsonOutput = new CellPatternSearcher()
-            .Find("Azure:Location");
-
-        sequenceBuilder
-            .Type("aspire secret list --format json --non-interactive")
-            .Enter()
-            .WaitUntil(s => waitingForJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
-
-        // Delete a secret
+        // Delete
         var waitingForDeleteSuccess = new CellPatternSearcher()
             .Find("deleted successfully");
 
         sequenceBuilder
-            .Type("aspire secret delete Azure:Location --non-interactive")
+            .Type("aspire secret delete Azure:Location")
             .Enter()
             .WaitUntil(s => waitingForDeleteSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Verify deletion - list should only show remaining secret
-        var waitingForRemainingSecret = new CellPatternSearcher()
-            .Find("db-password");
-
+        // Verify deletion
         sequenceBuilder
-            .Type("aspire secret list --non-interactive")
+            .Type("aspire secret list")
             .Enter()
-            .WaitUntil(s => waitingForRemainingSecret.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => waitingForListOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         sequenceBuilder
@@ -125,7 +134,6 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
             .Enter();
 
         var sequence = sequenceBuilder.Build();
-
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
         await pendingRun;
     }

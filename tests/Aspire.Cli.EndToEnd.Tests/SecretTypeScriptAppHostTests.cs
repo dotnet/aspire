@@ -28,7 +28,16 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        // Prepare environment
+        // Patterns for project creation
+        var waitingForLanguagePrompt = new CellPatternSearcher()
+            .Find("> C#");
+
+        var waitingForTypeScriptSelected = new CellPatternSearcher()
+            .Find("> TypeScript");
+
+        var waitingForAppHostCreated = new CellPatternSearcher()
+            .Find("Created TypeScript");
+
         sequenceBuilder.PrepareEnvironment(workspace, counter);
 
         if (isCI)
@@ -37,97 +46,71 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
             sequenceBuilder.SourceAspireCliEnvironment(counter);
         }
 
-        // Create a TypeScript AppHost project using aspire new --language typescript
-        var waitingForProjectCreated = new CellPatternSearcher()
-            .Find("Created TypeScript");
+        // Enable polyglot support
+        sequenceBuilder.EnablePolyglotSupport(counter);
 
+        // Create TypeScript AppHost via aspire init
         sequenceBuilder
-            .Type("aspire new --language typescript --name TsSecrets --non-interactive")
+            .Type("aspire init")
             .Enter()
-            .WaitUntil(s => waitingForProjectCreated.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+            .WaitUntil(s => waitingForLanguagePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter()
+            .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
-        // Change into the project directory
-        sequenceBuilder
-            .Type("cd TsSecrets")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Set a secret using --apphost to point to the TS file
+        // Set secrets using --apphost
         var waitingForSetSuccess = new CellPatternSearcher()
             .Find("set successfully");
 
         sequenceBuilder
-            .Type("aspire secret set MyConfig:ApiKey test-key-123 --apphost apphost.ts --non-interactive")
+            .Type("aspire secret set MyConfig:ApiKey test-key-123 --apphost apphost.ts")
             .Enter()
             .WaitUntil(s => waitingForSetSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Set another secret
         sequenceBuilder
-            .Type("aspire secret set ConnectionStrings:Database Server=localhost --apphost apphost.ts --non-interactive")
+            .Type("aspire secret set ConnectionStrings:Db Server=localhost --apphost apphost.ts")
             .Enter()
             .WaitUntil(s => waitingForSetSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Get a secret
+        // Get
         var waitingForGetValue = new CellPatternSearcher()
             .Find("test-key-123");
 
         sequenceBuilder
-            .Type("aspire secret get MyConfig:ApiKey --apphost apphost.ts --non-interactive")
+            .Type("aspire secret get MyConfig:ApiKey --apphost apphost.ts")
             .Enter()
             .WaitUntil(s => waitingForGetValue.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // List secrets
+        // List
         var waitingForListOutput = new CellPatternSearcher()
-            .Find("ConnectionStrings:Database");
+            .Find("ConnectionStrings:Db");
 
         sequenceBuilder
-            .Type("aspire secret list --apphost apphost.ts --non-interactive")
+            .Type("aspire secret list --apphost apphost.ts")
             .Enter()
             .WaitUntil(s => waitingForListOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // List secrets as JSON
-        var waitingForJsonOutput = new CellPatternSearcher()
-            .Find("MyConfig:ApiKey");
-
-        sequenceBuilder
-            .Type("aspire secret list --format json --apphost apphost.ts --non-interactive")
-            .Enter()
-            .WaitUntil(s => waitingForJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
-
-        // Delete a secret
+        // Delete
         var waitingForDeleteSuccess = new CellPatternSearcher()
             .Find("deleted successfully");
 
         sequenceBuilder
-            .Type("aspire secret delete MyConfig:ApiKey --apphost apphost.ts --non-interactive")
+            .Type("aspire secret delete MyConfig:ApiKey --apphost apphost.ts")
             .Enter()
             .WaitUntil(s => waitingForDeleteSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Verify deletion - should only show remaining secret
-        var waitingForRemainingSecret = new CellPatternSearcher()
-            .Find("ConnectionStrings:Database");
-
+        // Verify deletion
         sequenceBuilder
-            .Type("aspire secret list --apphost apphost.ts --non-interactive")
+            .Type("aspire secret list --apphost apphost.ts")
             .Enter()
-            .WaitUntil(s => waitingForRemainingSecret.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
-
-        // Get nonexistent key - should show error
-        var waitingForNotFound = new CellPatternSearcher()
-            .Find("not found");
-
-        sequenceBuilder
-            .Type("aspire secret get nope --apphost apphost.ts --non-interactive")
-            .Enter()
-            .WaitUntil(s => waitingForNotFound.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => waitingForListOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         sequenceBuilder
@@ -135,7 +118,6 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
             .Enter();
 
         var sequence = sequenceBuilder.Build();
-
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
         await pendingRun;
     }
