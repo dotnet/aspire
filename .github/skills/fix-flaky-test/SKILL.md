@@ -575,7 +575,7 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-restore -
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
 # Windows (PowerShell):
-# .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build -- --filter-method "*.<TestMethodName>"
+# ./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build -- --filter-method "*.<TestMethodName>"
 ```
 
 If local verification fails, iterate on the fix before going to CI. This saves ~30 minutes per CI round-trip.
