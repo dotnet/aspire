@@ -18,11 +18,24 @@ internal sealed class FakeNpmRunner : INpmRunner
     public Task<string?> PackAsync(string packageName, string version, string outputDirectory, CancellationToken cancellationToken)
         => Task.FromResult<string?>(null);
 
-    public Task<bool> AuditSignaturesAsync(CancellationToken cancellationToken)
+    public Task<bool> AuditSignaturesAsync(string packageName, string version, CancellationToken cancellationToken)
         => Task.FromResult(true);
 
     public Task<bool> InstallGlobalAsync(string tarballPath, CancellationToken cancellationToken)
         => Task.FromResult(true);
+}
+
+/// <summary>
+/// A fake implementation of <see cref="INpmProvenanceChecker"/> for testing.
+/// </summary>
+internal sealed class FakeNpmProvenanceChecker : INpmProvenanceChecker
+{
+    public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, CancellationToken cancellationToken)
+        => Task.FromResult(new ProvenanceVerificationResult
+        {
+            Outcome = ProvenanceVerificationOutcome.Verified,
+            Provenance = new NpmProvenanceData { SourceRepository = expectedSourceRepository }
+        });
 }
 
 /// <summary>

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.Playwright;
@@ -364,7 +365,9 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     {
         return new PlaywrightCliInstaller(
             new FakeNpmRunner(),
+            new FakeNpmProvenanceChecker(),
             new FakePlaywrightCliRunner(),
+            new ConfigurationBuilder().Build(),
             NullLogger<PlaywrightCliInstaller>.Instance);
     }
 

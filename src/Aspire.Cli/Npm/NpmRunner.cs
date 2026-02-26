@@ -96,7 +96,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
     }
 
     /// <inheritdoc />
-    public async Task<bool> AuditSignaturesAsync(CancellationToken cancellationToken)
+    public async Task<bool> AuditSignaturesAsync(string packageName, string version, CancellationToken cancellationToken)
     {
         var npmPath = FindNpmPath();
         if (npmPath is null)
@@ -104,12 +104,58 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
             return false;
         }
 
-        var output = await RunNpmCommandAsync(
-            npmPath,
-            ["audit", "signatures"],
-            cancellationToken);
+        // npm audit signatures requires a project context (node_modules + package-lock.json).
+        // For global tool installs there is no project, so we create a temporary one.
+        // The package must be installed from the registry (not a local tarball) because
+        // npm audit signatures skips packages with "resolved: file:..." in the lockfile.
+        var tempDir = Path.Combine(Path.GetTempPath(), $"aspire-npm-audit-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
 
-        return output is not null;
+        try
+        {
+            // Create minimal package.json
+            var packageJson = Path.Combine(tempDir, "package.json");
+            await File.WriteAllTextAsync(
+                packageJson,
+                """{"name":"aspire-verify","version":"1.0.0","private":true}""",
+                cancellationToken).ConfigureAwait(false);
+
+            // Install the package from the registry to get proper attestation metadata
+            var installOutput = await RunNpmCommandInDirectoryAsync(
+                npmPath,
+                ["install", $"{packageName}@{version}", "--ignore-scripts"],
+                tempDir,
+                cancellationToken);
+
+            if (installOutput is null)
+            {
+                logger.LogDebug("Failed to install {Package}@{Version} into temporary project for audit", packageName, version);
+                return false;
+            }
+
+            // Run npm audit signatures in the temporary project directory
+            var auditOutput = await RunNpmCommandInDirectoryAsync(
+                npmPath,
+                ["audit", "signatures"],
+                tempDir,
+                cancellationToken);
+
+            return auditOutput is not null;
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, recursive: true);
+                }
+            }
+            catch (IOException ex)
+            {
+                logger.LogDebug(ex, "Failed to clean up temporary audit directory: {TempDir}", tempDir);
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -138,6 +184,51 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
         }
 
         return npmPath;
+    }
+
+    private async Task<string?> RunNpmCommandInDirectoryAsync(string npmPath, string[] args, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var argsString = string.Join(" ", args);
+        logger.LogDebug("Running npm {Args} in {WorkingDirectory}", argsString, workingDirectory);
+
+        try
+        {
+            var startInfo = new ProcessStartInfo(npmPath)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = workingDirectory
+            };
+
+            foreach (var arg in args)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
+
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode != 0)
+            {
+                var errorOutput = await errorTask.ConfigureAwait(false);
+                logger.LogDebug("npm {Args} returned non-zero exit code {ExitCode}: {Error}", argsString, process.ExitCode, errorOutput.Trim());
+                return null;
+            }
+
+            return await outputTask.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            logger.LogDebug(ex, "Failed to run npm {Args}", argsString);
+            return null;
+        }
     }
 
     private async Task<string?> RunNpmCommandAsync(string npmPath, string[] args, CancellationToken cancellationToken)

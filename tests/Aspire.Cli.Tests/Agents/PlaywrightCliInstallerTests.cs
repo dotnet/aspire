@@ -4,6 +4,7 @@
 using System.Security.Cryptography;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Npm;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
@@ -19,7 +20,7 @@ public class PlaywrightCliInstallerTests
             ResolveResult = null
         };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -39,7 +40,7 @@ public class PlaywrightCliInstallerTests
             InstalledVersion = version,
             InstallSkillsResult = true
         };
-        var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -63,7 +64,7 @@ public class PlaywrightCliInstallerTests
             InstalledVersion = installedVersion,
             InstallSkillsResult = true
         };
-        var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -82,7 +83,7 @@ public class PlaywrightCliInstallerTests
             PackResult = null
         };
         var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+        var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
         var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -108,7 +109,7 @@ public class PlaywrightCliInstallerTests
                 PackResult = tarballPath
             };
             var playwrightRunner = new TestPlaywrightCliRunner();
-            var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -148,7 +149,7 @@ public class PlaywrightCliInstallerTests
             {
                 InstallSkillsResult = true
             };
-            var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -184,7 +185,7 @@ public class PlaywrightCliInstallerTests
                 InstallGlobalResult = false
             };
             var playwrightRunner = new TestPlaywrightCliRunner();
-            var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -224,7 +225,7 @@ public class PlaywrightCliInstallerTests
                 InstalledVersion = installedVersion,
                 InstallSkillsResult = true
             };
-            var installer = new PlaywrightCliInstaller(npmRunner, playwrightRunner, NullLogger<PlaywrightCliInstaller>.Instance);
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
 
             var result = await installer.InstallAsync(CancellationToken.None);
 
@@ -291,6 +292,86 @@ public class PlaywrightCliInstallerTests
         }
     }
 
+    [Fact]
+    public async Task InstallAsync_WhenAuditSignaturesFails_ReturnsFalse()
+    {
+        var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
+        var npmRunner = new TestNpmRunner
+        {
+            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" },
+            AuditResult = false
+        };
+        var provenanceChecker = new TestNpmProvenanceChecker();
+        var playwrightRunner = new TestPlaywrightCliRunner();
+        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+        var result = await installer.InstallAsync(CancellationToken.None);
+
+        Assert.False(result);
+        Assert.False(provenanceChecker.ProvenanceCalled);
+    }
+
+    [Fact]
+    public async Task InstallAsync_WhenProvenanceCheckFails_ReturnsFalse()
+    {
+        var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
+        var npmRunner = new TestNpmRunner
+        {
+            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" },
+            AuditResult = true
+        };
+        var provenanceChecker = new TestNpmProvenanceChecker { ProvenanceOutcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch };
+        var playwrightRunner = new TestPlaywrightCliRunner();
+        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, playwrightRunner, new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+        var result = await installer.InstallAsync(CancellationToken.None);
+
+        Assert.False(result);
+        Assert.True(provenanceChecker.ProvenanceCalled);
+        Assert.False(npmRunner.PackCalled);
+    }
+
+    [Fact]
+    public async Task InstallAsync_WhenValidationDisabled_SkipsAllValidationChecks()
+    {
+        var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"test-playwright-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var tarballPath = Path.Combine(tempDir, "package.tgz");
+        await File.WriteAllBytesAsync(tarballPath, [10, 20, 30]);
+
+        // Use a mismatched integrity hash — validation is disabled so it should still succeed.
+        try
+        {
+            var npmRunner = new TestNpmRunner
+            {
+                ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-wronghash" },
+                AuditResult = false,
+                PackResult = tarballPath
+            };
+            var provenanceChecker = new TestNpmProvenanceChecker { ProvenanceOutcome = ProvenanceVerificationOutcome.AttestationFetchFailed };
+            var playwrightRunner = new TestPlaywrightCliRunner { InstallSkillsResult = true };
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [PlaywrightCliInstaller.DisablePackageValidationKey] = "true"
+                })
+                .Build();
+            var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, playwrightRunner, configuration, NullLogger<PlaywrightCliInstaller>.Instance);
+
+            var result = await installer.InstallAsync(CancellationToken.None);
+
+            Assert.True(result);
+            Assert.False(provenanceChecker.ProvenanceCalled);
+            Assert.True(npmRunner.PackCalled);
+            Assert.True(npmRunner.InstallGlobalCalled);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private sealed class TestNpmRunner : INpmRunner
     {
         public NpmPackageInfo? ResolveResult { get; set; }
@@ -310,13 +391,31 @@ public class PlaywrightCliInstallerTests
             return Task.FromResult(PackResult);
         }
 
-        public Task<bool> AuditSignaturesAsync(CancellationToken cancellationToken)
+        public Task<bool> AuditSignaturesAsync(string packageName, string version, CancellationToken cancellationToken)
             => Task.FromResult(AuditResult);
 
         public Task<bool> InstallGlobalAsync(string tarballPath, CancellationToken cancellationToken)
         {
             InstallGlobalCalled = true;
             return Task.FromResult(InstallGlobalResult);
+        }
+    }
+
+    private sealed class TestNpmProvenanceChecker : INpmProvenanceChecker
+    {
+        public ProvenanceVerificationOutcome ProvenanceOutcome { get; set; } = ProvenanceVerificationOutcome.Verified;
+        public bool ProvenanceCalled { get; private set; }
+
+        public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, CancellationToken cancellationToken)
+        {
+            ProvenanceCalled = true;
+            return Task.FromResult(new ProvenanceVerificationResult
+            {
+                Outcome = ProvenanceOutcome,
+                Provenance = ProvenanceOutcome is ProvenanceVerificationOutcome.Verified
+                    ? new NpmProvenanceData { SourceRepository = expectedSourceRepository }
+                    : new NpmProvenanceData()
+            });
         }
     }
 

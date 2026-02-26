@@ -46,11 +46,16 @@ internal interface INpmRunner
     Task<string?> PackAsync(string packageName, string version, string outputDirectory, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Runs npm audit signatures to verify package provenance.
+    /// Verifies Sigstore attestation signatures for a package by installing it into a temporary
+    /// project and running npm audit signatures. This is necessary because npm audit signatures
+    /// requires a project context (node_modules + package-lock.json) that doesn't exist for
+    /// global tool installations.
     /// </summary>
+    /// <param name="packageName">The npm package name to verify (e.g., "@playwright/cli").</param>
+    /// <param name="version">The exact version to verify.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>True if the audit passed, false otherwise.</returns>
-    Task<bool> AuditSignaturesAsync(CancellationToken cancellationToken);
+    Task<bool> AuditSignaturesAsync(string packageName, string version, CancellationToken cancellationToken);
 
     /// <summary>
     /// Installs a package globally from a local tarball file.
