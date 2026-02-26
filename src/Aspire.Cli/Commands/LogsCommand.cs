@@ -161,12 +161,9 @@ internal sealed class LogsCommand : BaseCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : SharedCommandStrings.ScanningForRunningAppHosts;
-
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            scanningMessage,
+            SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, LogsCommandStrings.SelectAppHostAction),
             SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
@@ -223,7 +220,9 @@ internal sealed class LogsCommand : BaseCommand
         CancellationToken cancellationToken)
     {
         // Collect all logs, parsing into LogEntry with resolved resource names sorted by timestamp
-        var entries = await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false);
+        var entries = await _interactionService.ShowStatusAsync(
+            LogsCommandStrings.GettingLogs,
+            async () => await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false));
 
         // Apply tail filter (tail.Value is guaranteed >= 1 by earlier validation)
         if (tail.HasValue && entries.Count > tail.Value)
@@ -274,7 +273,9 @@ internal sealed class LogsCommand : BaseCommand
         // If tail is specified, show last N lines first before streaming
         if (tail.HasValue)
         {
-            var entries = await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false);
+            var entries = await _interactionService.ShowStatusAsync(
+                LogsCommandStrings.GettingLogs,
+                async () => await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false));
 
             // Output last N lines
             var tailedEntries = entries.Count > tail.Value

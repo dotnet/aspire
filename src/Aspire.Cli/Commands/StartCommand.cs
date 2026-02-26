@@ -68,7 +68,7 @@ internal sealed class StartCommand : BaseCommand
         // If a resource name is provided, start that specific resource
         if (!string.IsNullOrEmpty(resourceName))
         {
-            if (format is not null)
+            if (format == OutputFormat.Json)
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.OptionNotValidWithResource, "--format"));
                 return ExitCodeConstants.InvalidCommand;
