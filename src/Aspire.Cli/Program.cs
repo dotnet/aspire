@@ -329,6 +329,7 @@ public class Program
         // Npm and Playwright CLI operations.
         builder.Services.AddSingleton<Aspire.Cli.Npm.INpmRunner, Aspire.Cli.Npm.NpmRunner>();
         builder.Services.AddHttpClient<Aspire.Cli.Npm.INpmProvenanceChecker, Aspire.Cli.Npm.NpmProvenanceChecker>();
+        builder.Services.AddHttpClient<Aspire.Cli.Npm.SigstoreNpmVerifier>();
         builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.IPlaywrightCliRunner, Aspire.Cli.Agents.Playwright.PlaywrightCliRunner>();
         builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.PlaywrightCliInstaller>();
 

@@ -16,6 +16,7 @@ namespace Aspire.Cli.Agents.Playwright;
 internal sealed class PlaywrightCliInstaller(
     INpmRunner npmRunner,
     INpmProvenanceChecker provenanceChecker,
+    SigstoreNpmVerifier sigstoreVerifier,
     IPlaywrightCliRunner playwrightCliRunner,
     IInteractionService interactionService,
     IConfiguration configuration,
@@ -58,6 +59,14 @@ internal sealed class PlaywrightCliInstaller(
     /// exact version is used instead of resolving the latest from the version range.
     /// </summary>
     internal const string VersionOverrideKey = "playwrightCliVersion";
+
+    /// <summary>
+    /// Configuration key that enables built-in Sigstore verification instead of relying on
+    /// <c>npm audit signatures</c>. When enabled, the package tarball is downloaded first,
+    /// then verified against the Sigstore attestation bundle from the npm registry natively
+    /// in .NET, eliminating the two-request trust divergence risk.
+    /// </summary>
+    internal const string EnableBuiltInSigstoreKey = "enableBuiltInSigstoreVerification";
 
     /// <summary>
     /// Installs the Playwright CLI with supply chain verification and generates skill files.
@@ -124,6 +133,14 @@ internal sealed class PlaywrightCliInstaller(
                 "Sigstore attestation, provenance, and integrity checks will be skipped. " +
                 "This should only be used for debugging npm service issues.",
                 DisablePackageValidationKey);
+        }
+
+        // Check if built-in Sigstore verification is enabled.
+        var useBuiltInSigstore = string.Equals(configuration[EnableBuiltInSigstoreKey], "true", StringComparison.OrdinalIgnoreCase);
+        if (useBuiltInSigstore)
+        {
+            logger.LogInformation("Built-in Sigstore verification enabled via '{ConfigKey}'.", EnableBuiltInSigstoreKey);
+            return await InstallWithBuiltInSigstoreAsync(packageInfo, validationDisabled, cancellationToken);
         }
 
         if (!validationDisabled)
@@ -218,6 +235,95 @@ internal sealed class PlaywrightCliInstaller(
         finally
         {
             // Clean up temporary directory.
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, recursive: true);
+                }
+            }
+            catch (IOException ex)
+            {
+                logger.LogDebug(ex, "Failed to clean up temporary directory: {TempDir}", tempDir);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Alternative installation path using built-in Sigstore verification.
+    /// Downloads the tarball first, then verifies the Sigstore attestation natively in .NET,
+    /// and finally installs globally from the verified tarball.
+    /// </summary>
+    private async Task<bool> InstallWithBuiltInSigstoreAsync(
+        NpmPackageInfo packageInfo,
+        bool validationDisabled,
+        CancellationToken cancellationToken)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"aspire-playwright-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Download the tarball via npm pack.
+            logger.LogDebug("Downloading {Package}@{Version} to {TempDir}", PackageName, packageInfo.Version, tempDir);
+            var tarballPath = await npmRunner.PackAsync(PackageName, packageInfo.Version.ToString(), tempDir, cancellationToken);
+
+            if (tarballPath is null)
+            {
+                logger.LogWarning("Failed to download {Package}@{Version}", PackageName, packageInfo.Version);
+                return false;
+            }
+
+            if (!validationDisabled)
+            {
+                // Verify the tarball using built-in Sigstore verification.
+                // This performs: certificate chain validation, transparency log inclusion proof,
+                // SCT verification, DSSE signature verification, subject digest match,
+                // and provenance metadata checks — all in a single trust path.
+                logger.LogDebug("Verifying {Package}@{Version} using built-in Sigstore verification", PackageName, packageInfo.Version);
+                var result = await sigstoreVerifier.VerifyAsync(
+                    tarballPath,
+                    PackageName,
+                    packageInfo.Version.ToString(),
+                    ExpectedSourceRepository,
+                    ExpectedWorkflowPath,
+                    ExpectedBuildType,
+                    cancellationToken);
+
+                if (!result.IsVerified)
+                {
+                    logger.LogWarning(
+                        "Built-in Sigstore verification failed for {Package}@{Version}: {Reason}",
+                        PackageName,
+                        packageInfo.Version,
+                        result.FailureReason);
+                    return false;
+                }
+
+                logger.LogInformation(
+                    "Built-in Sigstore verification passed for {Package}@{Version} (signer: {Signer}, repo: {Repo})",
+                    PackageName,
+                    packageInfo.Version,
+                    result.SignerIdentity,
+                    result.SourceRepository);
+            }
+
+            // Install globally from the verified tarball.
+            logger.LogDebug("Installing {Package}@{Version} globally", PackageName, packageInfo.Version);
+            var installSuccess = await npmRunner.InstallGlobalAsync(tarballPath, cancellationToken);
+
+            if (!installSuccess)
+            {
+                logger.LogWarning("Failed to install {Package}@{Version} globally", PackageName, packageInfo.Version);
+                return false;
+            }
+
+            // Generate skill files.
+            logger.LogDebug("Generating Playwright CLI skill files");
+            return await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
+        }
+        finally
+        {
             try
             {
                 if (Directory.Exists(tempDir))

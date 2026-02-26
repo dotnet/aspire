@@ -21,6 +21,8 @@
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+    <!-- Experimental: Disable strong naming to allow project reference to unsigned Sigstore library -->
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <!-- Set the nuget properties when building as a global tool. -->
@@ -55,6 +57,11 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
     <PackageReference Include="ModelContextProtocol" />
+  </ItemGroup>
+
+  <!-- Experimental: Built-in Sigstore verification for npm packages (feature-flagged) -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Sigstore\src\Sigstore\Sigstore.csproj" />
   </ItemGroup>
 
   <!-- When BundlePayloadPath is set (by Bundle.proj), embed the tar.gz as a resource.

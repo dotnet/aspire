@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Npm;
+using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
 namespace Aspire.Cli.Tests.TestServices;
@@ -48,4 +49,13 @@ internal sealed class FakePlaywrightCliRunner : IPlaywrightCliRunner
 
     public Task<bool> InstallSkillsAsync(CancellationToken cancellationToken)
         => Task.FromResult(true);
+}
+
+/// <summary>
+/// Creates a dummy <see cref="SigstoreNpmVerifier"/> for tests that don't exercise the built-in Sigstore path.
+/// </summary>
+internal static class FakeSigstoreNpmVerifierFactory
+{
+    internal static SigstoreNpmVerifier Create()
+        => new(new HttpClient(), NullLogger<SigstoreNpmVerifier>.Instance);
 }

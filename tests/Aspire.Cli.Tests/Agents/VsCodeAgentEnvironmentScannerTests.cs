@@ -366,6 +366,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         return new PlaywrightCliInstaller(
             new FakeNpmRunner(),
             new FakeNpmProvenanceChecker(),
+            FakeSigstoreNpmVerifierFactory.Create(),
             new FakePlaywrightCliRunner(),
             new TestConsoleInteractionService(),
             new ConfigurationBuilder().Build(),
