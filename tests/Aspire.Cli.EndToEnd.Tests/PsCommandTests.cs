@@ -175,15 +175,13 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "ps-output.json");
 
-        // Pattern for the scanning status message (written to stderr / terminal)
-        var waitForScanningMessage = new CellPatternSearcher()
-            .Find("Scanning for running AppHosts");
-
         // Run aspire ps --format json with stdout redirected to a file.
-        // Status messages appear in the terminal (stderr), JSON goes to the file (stdout).
+        // Status messages go to stderr (Spectre.Console spinner, cleared on completion),
+        // JSON output goes to stdout (redirected to the file).
+        // We only wait for the success prompt since the Spectre status spinner is
+        // transient and erased before WaitUntil polling can observe it.
         sequenceBuilder.Type($"aspire ps --format json > {outputFilePath}")
             .Enter()
-            .WaitUntil(s => waitForScanningMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         // Verify the file contains only the expected JSON output (empty array).
