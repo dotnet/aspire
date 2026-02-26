@@ -155,7 +155,7 @@ internal sealed class DescribeCommand : BaseCommand
         // Filter by resource name if specified
         if (resourceName is not null)
         {
-            snapshots = snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)).ToList();
+            snapshots = ResourceSnapshotMapper.ResolveResources(resourceName, snapshots).ToList();
         }
 
         // Check if resource was not found
@@ -200,9 +200,13 @@ internal sealed class DescribeCommand : BaseCommand
             allResources[snapshot.Name] = snapshot;
 
             // Filter by resource name if specified
-            if (resourceName is not null && !string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase))
+            if (resourceName is not null)
             {
-                continue;
+                var resolved = ResourceSnapshotMapper.ResolveResources(resourceName, allResources.Values.ToList());
+                if (!resolved.Any(r => string.Equals(r.Name, snapshot.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
             }
 
             var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources.Values.ToList(), dashboardBaseUrl);
