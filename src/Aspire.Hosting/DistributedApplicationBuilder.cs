@@ -29,7 +29,6 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.UserSecrets;
-using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
@@ -188,6 +187,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        // Resolve the effective UserSecretsId: assembly attribute for .NET, env var for polyglot
+        var userSecretsId = AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
+            ?? _innerBuilder.Configuration["ASPIRE_USER_SECRETS_ID"];
+
+        // For polyglot AppHosts (no assembly attribute), add user secrets early so they have the
+        // same precedence as the default AddUserSecrets called by HostApplicationBuilder for .NET projects.
+        if (!string.IsNullOrEmpty(userSecretsId) &&
+            AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>() is null)
+        {
+            _innerBuilder.Configuration.AddUserSecrets(userSecretsId);
+        }
+
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
         _innerBuilder.Services.AddSingleton<BackchannelLoggerProvider>();
@@ -318,25 +329,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return _directoryService;
         });
 
-        // Create and register the user secrets manager
+        // Create and register the user secrets manager (uses the userSecretsId resolved at top of constructor)
         var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
 
-        // Check for UserSecretsId from assembly attribute first, then fall back to ASPIRE_USER_SECRETS_ID
-        // from configuration (supports polyglot AppHosts that pass a synthetic ID via env var)
-        var userSecretsId = AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
-            ?? _innerBuilder.Configuration["ASPIRE_USER_SECRETS_ID"];
-
-        if (!string.IsNullOrEmpty(userSecretsId))
-        {
-            // Add the secrets file as a configuration source so IConfiguration can read values
-            var secretsPath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
-            _innerBuilder.Configuration.AddJsonFile(secretsPath, optional: true, reloadOnChange: false);
-            _userSecretsManager = userSecretsFactory.GetOrCreateFromId(userSecretsId);
-        }
-        else
-        {
-            _userSecretsManager = NoopUserSecretsManager.Instance;
-        }
+        _userSecretsManager = !string.IsNullOrEmpty(userSecretsId)
+            ? userSecretsFactory.GetOrCreateFromId(userSecretsId)
+            : NoopUserSecretsManager.Instance;
 
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
