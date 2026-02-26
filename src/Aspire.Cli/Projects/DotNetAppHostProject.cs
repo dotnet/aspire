@@ -519,8 +519,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
         _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
 
+        // Use --file for file-based apphosts (.cs), --project for csproj/fsproj/vbproj
+        var fileFlag = s_projectExtensions.Contains(projectFile.Extension.ToLowerInvariant())
+            ? "--project"
+            : "--file";
+
         await _runner.ExecuteAsync(
-            ["user-secrets", "init", "--project", projectFile.FullName],
+            ["user-secrets", "init", fileFlag, projectFile.FullName],
             projectFile.Directory!,
             new DotNetCliRunnerInvocationOptions(),
             cancellationToken);
