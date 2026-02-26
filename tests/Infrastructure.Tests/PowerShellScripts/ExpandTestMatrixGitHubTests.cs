@@ -346,6 +346,9 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
         var nugetsExpanded = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
         Assert.Empty(nugetsExpanded.Include);
+
+        var cliArchiveExpanded = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
+        Assert.Empty(cliArchiveExpanded.Include);
     }
 
     [Fact]
@@ -558,6 +561,59 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task SplitsCliArchiveIntoSeparateCategory()
+    {
+        // Arrange - CLI archive tests get their own category separate from requires-nugets
+        var cliArchiveEntry = TestDataBuilder.CreateMatrixEntry(
+            name: "CliE2E",
+            projectName: "CliE2E",
+            testProjectPath: "tests/CliE2E/CliE2E.csproj",
+            requiresNugets: true,
+            requiresCliArchive: true,
+            supportedOSes: ["linux"]);
+
+        var nugetsEntry = TestDataBuilder.CreateMatrixEntry(
+            name: "NugetsProject",
+            projectName: "NugetsProject",
+            testProjectPath: "tests/NugetsProject/NugetsProject.csproj",
+            requiresNugets: true,
+            supportedOSes: ["linux"]);
+
+        var noNugetsEntry = TestDataBuilder.CreateMatrixEntry(
+            name: "RegularProject",
+            projectName: "RegularProject",
+            testProjectPath: "tests/RegularProject/RegularProject.csproj",
+            supportedOSes: ["linux"]);
+
+        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
+        TestDataBuilder.CreateCanonicalMatrixJson(
+            canonicalMatrix,
+            tests: [cliArchiveEntry, nugetsEntry, noNugetsEntry]);
+
+        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+
+        // Act
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var noNugets = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var nugets = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
+        var cliArchive = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
+
+        Assert.Single(noNugets.Include);
+        Assert.Equal("RegularProject", noNugets.Include[0].ProjectName);
+
+        Assert.Single(nugets.Include);
+        Assert.Equal("NugetsProject", nugets.Include[0].ProjectName);
+
+        Assert.Single(cliArchive.Include);
+        Assert.Equal("CliE2E", cliArchive.Include[0].ProjectName);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task FullPipeline_SplitTestsExpandPerOS()
     {
         // This test validates the full pipeline: build-test-matrix → expand-test-matrix-github
@@ -594,6 +650,16 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             requiresNugets: true,
             supportedOSes: ["linux"]);
 
+        // Linux-only project requiring CLI archive (like Cli.EndToEnd.Tests)
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "CliE2E.tests-metadata.json"),
+            projectName: "CliE2E",
+            testProjectPath: "tests/CliE2E/CliE2E.csproj",
+            shortName: "CliE2E",
+            requiresNugets: true,
+            requiresCliArchive: true,
+            supportedOSes: ["linux"]);
+
         // Run build-test-matrix.ps1
         var buildMatrixScript = Path.Combine(FindRepoRoot(), "eng", "scripts", "build-test-matrix.ps1");
         var canonicalFile = Path.Combine(_tempDir.Path, "canonical.json");
@@ -610,10 +676,11 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var expandResult = await RunScript(canonicalFile, outputMatrixFile: outputPrefix + ".json");
         expandResult.EnsureSuccessful("expand-test-matrix-github.ps1 failed");
 
-        // Read both no-nugets buckets (primary + overflow) and requires-nugets
+        // Read all output matrices
         var noNugets = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
         var noNugetsOverflow = ParseGitHubMatrix(outputPrefix + "_no_nugets_overflow.json");
         var nugetsMatrix = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
+        var cliArchiveMatrix = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
 
         // Combine no-nugets primary + overflow for full validation
         var allNoNugets = noNugets.Include.Concat(noNugetsOverflow.Include).ToArray();
@@ -635,9 +702,16 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         Assert.Equal("ubuntu-latest", e2eEntries[0].RunsOn);
         Assert.True(e2eEntries[0].RequiresNugets);
 
-        // Total no-nugets: 3 + 6 = 9, Total nugets: 1
+        // CLI E2E: 1 project × 1 OS = 1, in requires-cli-archive matrix
+        var cliE2eEntries = cliArchiveMatrix.Include.Where(e => e.ProjectName == "CliE2E").ToArray();
+        Assert.Single(cliE2eEntries);
+        Assert.Equal("ubuntu-latest", cliE2eEntries[0].RunsOn);
+        Assert.True(cliE2eEntries[0].RequiresCliArchive);
+
+        // Total no-nugets: 3 + 6 = 9, Total nugets: 1, Total cli-archive: 1
         Assert.Equal(9, allNoNugets.Length);
         Assert.Single(nugetsMatrix.Include);
+        Assert.Single(cliArchiveMatrix.Include);
     }
 
     private async Task<CommandResult> RunScript(

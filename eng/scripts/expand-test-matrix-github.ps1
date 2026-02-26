@@ -7,10 +7,11 @@
   and transforms it for GitHub Actions consumption by:
   1. Expanding each entry for every OS in its supportedOSes array
   2. Mapping OS names to GitHub runner names (linux -> ubuntu-latest, etc.)
-  3. Splitting entries into two categories (no_nugets, requires_nugets) with
-     auto-overflow at a configurable threshold to stay within GitHub Actions'
-     256-job-per-matrix limit
-  4. Outputting 4 GitHub Actions matrices: primary + overflow for each category
+  3. Splitting entries into three categories (no_nugets, requires_nugets,
+     requires_cli_archive) with auto-overflow on no_nugets at a configurable
+     threshold to stay within GitHub Actions' 256-job-per-matrix limit
+  4. Outputting 4 GitHub Actions matrices: no_nugets primary + overflow,
+     requires_nugets, and requires_cli_archive
 
   This is the platform-specific layer for GitHub Actions. Azure DevOps would
   have a similar script with different runner mappings and output format.
@@ -21,7 +22,7 @@
 .PARAMETER OutputMatrixFile
   Output file path prefix for the matrices. When set, writes 4 files:
   {prefix}_no_nugets.json, {prefix}_no_nugets_overflow.json,
-  {prefix}_requires_nugets.json, {prefix}_requires_nugets_overflow.json.
+  {prefix}_requires_nugets.json, {prefix}_requires_cli_archive.json.
 
 .PARAMETER OutputToGitHubEnv
   If set, outputs to GITHUB_OUTPUT environment file instead of files.
@@ -159,16 +160,30 @@ if ($canonicalMatrix.tests) {
 
 Write-Host "Expanded matrix: $($allEntries.Count) total entries"
 
-# Split into two categories based on dependency requirements
-$noNugetEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true })
-$nugetEntries = @($allEntries | Where-Object { $_.requiresNugets -eq $true })
+# Split into three categories based on dependency requirements
+$cliArchiveEntries = @($allEntries | Where-Object { $_.requiresCliArchive -eq $true })
+$nugetEntries = @($allEntries | Where-Object { $_.requiresNugets -eq $true -and $_.requiresCliArchive -ne $true })
+$noNugetEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true -and $_.requiresCliArchive -ne $true })
 
 Write-Host "  - No nugets: $($noNugetEntries.Count)"
 Write-Host "  - Requires nugets: $($nugetEntries.Count)"
+Write-Host "  - Requires CLI archive: $($cliArchiveEntries.Count)"
 
-# Split each category into primary + overflow buckets
+# Split no_nugets into primary + overflow buckets (the largest category)
 $noNugetBuckets = Split-WithOverflow -GroupName 'tests_no_nugets' -Entries $noNugetEntries
-$nugetBuckets = Split-WithOverflow -GroupName 'tests_requires_nugets' -Entries $nugetEntries
+
+# Validate that other categories don't exceed the limit
+if ($nugetEntries.Count -gt $maxMatrixSize) {
+  Write-Error "tests_requires_nugets has $($nugetEntries.Count) entries, exceeding the GitHub Actions limit of $maxMatrixSize."
+  exit 1
+}
+if ($cliArchiveEntries.Count -gt $maxMatrixSize) {
+  Write-Error "tests_requires_cli_archive has $($cliArchiveEntries.Count) entries, exceeding the GitHub Actions limit of $maxMatrixSize."
+  exit 1
+}
+
+$nugetMatrix = ConvertTo-Json @{ include = $nugetEntries } -Compress -Depth 10
+$cliArchiveMatrix = ConvertTo-Json @{ include = $cliArchiveEntries } -Compress -Depth 10
 
 # Output results
 $emptyMatrix = '{"include":[]}'
@@ -178,8 +193,8 @@ if ($OutputToGitHubEnv) {
   if ($env:GITHUB_OUTPUT) {
     "tests_matrix_no_nugets=$($noNugetBuckets.primary)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     "tests_matrix_no_nugets_overflow=$($noNugetBuckets.overflow)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-    "tests_matrix_requires_nugets=$($nugetBuckets.primary)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-    "tests_matrix_requires_nugets_overflow=$($nugetBuckets.overflow)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    "tests_matrix_requires_nugets=$nugetMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    "tests_matrix_requires_cli_archive=$cliArchiveMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     Write-Host "✓ Matrices written to GITHUB_OUTPUT"
   } else {
     Write-Error "GITHUB_OUTPUT environment variable not set"
@@ -188,20 +203,20 @@ if ($OutputToGitHubEnv) {
 } else {
   # Output to file if path provided
   if ($OutputMatrixFile) {
-    # Strip .json extension if present to use as a prefix for the 4 output files
+    # Strip .json extension if present to use as a prefix for the output files
     $prefix = $OutputMatrixFile -replace '\.json$', ''
     $noNugetBuckets.primary | Set-Content -Path "${prefix}_no_nugets.json" -Encoding UTF8
     $noNugetBuckets.overflow | Set-Content -Path "${prefix}_no_nugets_overflow.json" -Encoding UTF8
-    $nugetBuckets.primary | Set-Content -Path "${prefix}_requires_nugets.json" -Encoding UTF8
-    $nugetBuckets.overflow | Set-Content -Path "${prefix}_requires_nugets_overflow.json" -Encoding UTF8
+    $nugetMatrix | Set-Content -Path "${prefix}_requires_nugets.json" -Encoding UTF8
+    $cliArchiveMatrix | Set-Content -Path "${prefix}_requires_cli_archive.json" -Encoding UTF8
     Write-Host "✓ Matrices written to: ${prefix}_*.json"
   } else {
     # Output to console for debugging
     Write-Host ""
     Write-Host "No nugets (primary): $($noNugetBuckets.primary)"
     Write-Host "No nugets (overflow): $($noNugetBuckets.overflow)"
-    Write-Host "Requires nugets (primary): $($nugetBuckets.primary)"
-    Write-Host "Requires nugets (overflow): $($nugetBuckets.overflow)"
+    Write-Host "Requires nugets: $nugetMatrix"
+    Write-Host "Requires CLI archive: $cliArchiveMatrix"
   }
 }
 

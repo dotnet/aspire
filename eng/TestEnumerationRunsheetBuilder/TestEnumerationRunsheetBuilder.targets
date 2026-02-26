@@ -64,6 +64,10 @@
       <_RequiresTestSdk>false</_RequiresTestSdk>
       <_RequiresTestSdk Condition="'$(RequiresTestSdk)' == 'true'">true</_RequiresTestSdk>
 
+      <!-- Determine requiresCliArchive based on project properties -->
+      <_RequiresCliArchive>false</_RequiresCliArchive>
+      <_RequiresCliArchive Condition="'$(RequiresCliArchive)' == 'true'">true</_RequiresCliArchive>
+
       <!-- Determine enablePlaywrightInstall based on project properties -->
       <_EnablePlaywrightInstall>false</_EnablePlaywrightInstall>
       <_EnablePlaywrightInstall Condition="'$(EnablePlaywrightInstall)' == 'true'">true</_EnablePlaywrightInstall>
@@ -94,6 +98,7 @@
   "testProjectPath": "$(_RelativeProjectPath)",
   "requiresNugets": "$(_RequiresNugets.ToLowerInvariant())",
   "requiresTestSdk": "$(_RequiresTestSdk.ToLowerInvariant())",
+  "requiresCliArchive": "$(_RequiresCliArchive.ToLowerInvariant())",
   "enablePlaywrightInstall": "$(_EnablePlaywrightInstall.ToLowerInvariant())",
   "splitTests": "$(SplitTestsOnCI)",
   "supportedOSes": [$(_SupportedOSesJson)],
@@ -113,7 +118,7 @@
     <MakeDir Directories="$(_MetadataOutputDir)" />
     <WriteLinesToFile File="$(_MetadataFile)" Overwrite="true" Lines="$(_MetadataJson)" />
 
-    <Message Text="Wrote test metadata: $(_MetadataFile) (requiresNugets=$(_RequiresNugets), requiresTestSdk=$(_RequiresTestSdk), enablePlaywright=$(_EnablePlaywrightInstall), supportedOSes=$(_SupportedOSesJson), path=$(_RelativeProjectPath))" Importance="Low" />
+    <Message Text="Wrote test metadata: $(_MetadataFile) (requiresNugets=$(_RequiresNugets), requiresTestSdk=$(_RequiresTestSdk), requiresCliArchive=$(_RequiresCliArchive), enablePlaywright=$(_EnablePlaywrightInstall), supportedOSes=$(_SupportedOSesJson), path=$(_RelativeProjectPath))" Importance="Low" />
   </Target>
 
 </Project>

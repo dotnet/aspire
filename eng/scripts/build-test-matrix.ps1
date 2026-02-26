@@ -77,6 +77,7 @@ function Complete-EntryWithDefaults {
   # Normalize boolean values
   $Entry['requiresNugets'] = if ($Entry.Contains('requiresNugets')) { ConvertTo-Boolean $Entry['requiresNugets'] } else { $false }
   $Entry['requiresTestSdk'] = if ($Entry.Contains('requiresTestSdk')) { ConvertTo-Boolean $Entry['requiresTestSdk'] } else { $false }
+  $Entry['requiresCliArchive'] = if ($Entry.Contains('requiresCliArchive')) { ConvertTo-Boolean $Entry['requiresCliArchive'] } else { $false }
 
   return $Entry
 }
@@ -104,6 +105,7 @@ function New-RegularTestEntry {
     if ($Metadata.PSObject.Properties['testHangTimeout']) { $entry['testHangTimeout'] = $Metadata.testHangTimeout }
     if ($Metadata.PSObject.Properties['requiresNugets']) { $entry['requiresNugets'] = $Metadata.requiresNugets }
     if ($Metadata.PSObject.Properties['requiresTestSdk']) { $entry['requiresTestSdk'] = $Metadata.requiresTestSdk }
+    if ($Metadata.PSObject.Properties['requiresCliArchive']) { $entry['requiresCliArchive'] = $Metadata.requiresCliArchive }
     if ($Metadata.PSObject.Properties['extraTestArgs'] -and $Metadata.extraTestArgs) { $entry['extraTestArgs'] = $Metadata.extraTestArgs }
   }
 
@@ -158,6 +160,7 @@ function New-CollectionTestEntry {
 
   if ($Metadata.PSObject.Properties['requiresNugets']) { $entry['requiresNugets'] = $Metadata.requiresNugets }
   if ($Metadata.PSObject.Properties['requiresTestSdk']) { $entry['requiresTestSdk'] = $Metadata.requiresTestSdk }
+  if ($Metadata.PSObject.Properties['requiresCliArchive']) { $entry['requiresCliArchive'] = $Metadata.requiresCliArchive }
 
   # Add test filter for collection-based splitting
   if ($IsUncollected) {
@@ -202,6 +205,7 @@ function New-ClassTestEntry {
   if ($Metadata.PSObject.Properties['testHangTimeout']) { $entry['testHangTimeout'] = $Metadata.testHangTimeout }
   if ($Metadata.PSObject.Properties['requiresNugets']) { $entry['requiresNugets'] = $Metadata.requiresNugets }
   if ($Metadata.PSObject.Properties['requiresTestSdk']) { $entry['requiresTestSdk'] = $Metadata.requiresTestSdk }
+  if ($Metadata.PSObject.Properties['requiresCliArchive']) { $entry['requiresCliArchive'] = $Metadata.requiresCliArchive }
 
   # Add test filter for class-based splitting
   $entry['extraTestArgs'] = "--filter-class `"$ClassName`""

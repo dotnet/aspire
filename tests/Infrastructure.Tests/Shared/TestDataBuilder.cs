@@ -29,6 +29,7 @@ public static class TestDataBuilder
         string? testHangTimeout = null,
         bool requiresNugets = false,
         bool requiresTestSdk = false,
+        bool requiresCliArchive = false,
         string? extraTestArgs = null,
         string[]? supportedOSes = null)
     {
@@ -42,6 +43,7 @@ public static class TestDataBuilder
             TestHangTimeout = testHangTimeout,
             RequiresNugets = requiresNugets ? "true" : null,
             RequiresTestSdk = requiresTestSdk ? "true" : null,
+            RequiresCliArchive = requiresCliArchive ? "true" : null,
             ExtraTestArgs = extraTestArgs,
             SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"]
         };
@@ -180,6 +182,7 @@ public static class TestDataBuilder
         string testHangTimeout = "10m",
         bool requiresNugets = false,
         bool requiresTestSdk = false,
+        bool requiresCliArchive = false,
         string[]? supportedOSes = null)
     {
         return new CanonicalMatrixEntry
@@ -197,6 +200,7 @@ public static class TestDataBuilder
             TestHangTimeout = testHangTimeout,
             RequiresNugets = requiresNugets,
             RequiresTestSdk = requiresTestSdk,
+            RequiresCliArchive = requiresCliArchive,
             SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"]
         };
     }
@@ -232,6 +236,9 @@ public static class TestDataBuilder
 
         [JsonPropertyName("requiresTestSdk")]
         public string? RequiresTestSdk { get; set; }
+
+        [JsonPropertyName("requiresCliArchive")]
+        public string? RequiresCliArchive { get; set; }
 
         [JsonPropertyName("extraTestArgs")]
         public string? ExtraTestArgs { get; set; }
@@ -299,6 +306,9 @@ public class CanonicalMatrixEntry
 
     [JsonPropertyName("requiresTestSdk")]
     public bool RequiresTestSdk { get; set; }
+
+    [JsonPropertyName("requiresCliArchive")]
+    public bool RequiresCliArchive { get; set; }
 
     [JsonPropertyName("splitTests")]
     public bool SplitTests { get; set; }

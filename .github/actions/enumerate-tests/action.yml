@@ -38,11 +38,11 @@ outputs:
     description: Test matrix for tests that do not require NuGet packages (overflow bucket)
     value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets_overflow }}
   tests_matrix_requires_nugets:
-    description: Test matrix for tests that require NuGet packages (primary bucket)
+    description: Test matrix for tests that require NuGet packages
     value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_nugets }}
-  tests_matrix_requires_nugets_overflow:
-    description: Test matrix for tests that require NuGet packages (overflow bucket)
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_nugets_overflow }}
+  tests_matrix_requires_cli_archive:
+    description: Test matrix for tests that require CLI native archives
+    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_cli_archive }}
   deployment_tests_matrix:
     description: Deployment E2E tests matrix
     value: ${{ steps.generate_deployment_matrix.outputs.deployment_tests_matrix }}
@@ -125,7 +125,7 @@ runs:
           "tests_matrix_no_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tests_matrix_no_nugets_overflow=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tests_matrix_requires_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tests_matrix_requires_nugets_overflow=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tests_matrix_requires_cli_archive=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host "No canonical test matrix found, using empty matrices"
         }
 

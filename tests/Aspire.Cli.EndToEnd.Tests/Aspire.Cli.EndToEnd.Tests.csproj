@@ -11,6 +11,7 @@
 
     <SplitTestsOnCI>true</SplitTestsOnCI>
     <RequiresNugets>true</RequiresNugets>
+    <RequiresCliArchive>true</RequiresCliArchive>
 
     <!-- Disable strong name signing because Hex1b package is not signed -->
     <SignAssembly>false</SignAssembly>
