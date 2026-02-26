@@ -83,10 +83,21 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES
   ('reproduce_run_id', ''),
   ('verify_run_id', ''),
   ('investigation_branch', ''),
-  ('fix_branch', '');
+  ('fix_branch', ''),
+  ('user_interaction', 'false');
 ```
 
 **Always update todo status as you work** — set to `in_progress` before starting, `done` when complete. Query `SELECT * FROM todos;` to check progress. Store CI run IDs and attempt counts in `session_state`.
+
+### Tracking User Interaction
+
+If at any point during the investigation you use the `ask_user` tool to get input from the user, immediately update the session state:
+
+```sql
+INSERT OR REPLACE INTO session_state (key, value) VALUES ('user_interaction', 'true');
+```
+
+This flag determines whether the final PR is labeled as `[automated]` (see Step 6.2).
 
 ### Investigation Notes
 
@@ -763,12 +774,41 @@ git diff main -- .github/workflows/  # Should be empty
 git push
 ```
 
-Open a non-draft PR with the fix:
+**Determine the PR title prefix**: Check whether any user interaction occurred during the investigation:
+
+```sql
+SELECT value FROM session_state WHERE key = 'user_interaction';
+```
+
+- If `user_interaction` is `'false'`: prefix the PR title with `[automated] `
+- If `user_interaction` is `'true'`: no prefix
+
+Open a non-draft PR with the fix. The PR body **must** include a note that it was created using the fix-flaky-test skill:
 
 ```bash
 gh pr create --repo dotnet/aspire \
-  --title "Fix flaky test: <description>" \
-  --body "<use the Response Format template below>"
+  --title "<prefix>Fix flaky test: <description>" \
+  --body "## Flaky Test Fix
+
+### Test
+- **Method**: \`<fully qualified test name>\`
+- **Issue**: #<issue-number>
+
+### Root Cause
+<1-2 sentence description of the root cause>
+
+### Fix
+<1-2 sentence description of what was changed>
+
+### Verification
+| Run | Config | Result |
+|-----|--------|--------|
+| Pre-fix (local) | <iterations>, <OS> | **<pass/fail>** |
+| Post-fix (local) | <iterations>, <OS> | **<pass/fail>** |
+| Post-fix (CI) | <runners × iters × OSes> | **<link to run>** |
+
+---
+*This fix was generated using the [fix-flaky-test skill](https://github.com/dotnet/aspire/blob/main/.github/skills/fix-flaky-test/SKILL.md).*"
 ```
 
 ### 6.3: Close the Investigation PR
