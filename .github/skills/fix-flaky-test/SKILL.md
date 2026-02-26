@@ -258,7 +258,7 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
 
 ```bash
 # Basic usage — run a single test 20 times (stop on first failure)
-.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>" \
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
@@ -268,7 +268,7 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
 
 ```powershell
 # Basic usage — run a single test 20 times (stop on first failure)
-.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
   -- --filter-method "*.<TestMethodName>" `
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
@@ -279,12 +279,12 @@ Use the `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Win
 dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj -v:q /p:RunQuarantinedTests=true
 
 # Linux/macOS
-.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
 
 # Windows (PowerShell)
-.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
+./.github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build `
   -- --filter-method "*.<TestMethodName>"
 ```
 
@@ -571,7 +571,7 @@ dotnet build tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-restore -
 
 # Quick local check — same iteration count as reproduction
 # Linux/macOS:
-.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
+./.github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 20 -- \
   dotnet test tests/<TestProject>.Tests/<TestProject>.Tests.csproj --no-build \
   -- --filter-method "*.<TestMethodName>"
 # Windows (PowerShell):
