@@ -7,7 +7,10 @@
   and transforms it for GitHub Actions consumption by:
   1. Expanding each entry for every OS in its supportedOSes array
   2. Mapping OS names to GitHub runner names (linux -> ubuntu-latest, etc.)
-  3. Outputting the GitHub Actions matrix format: { "include": [...] }
+  3. Splitting entries into two categories (no_nugets, requires_nugets) with
+     auto-overflow at a configurable threshold to stay within GitHub Actions'
+     256-job-per-matrix limit
+  4. Outputting 4 GitHub Actions matrices: primary + overflow for each category
 
   This is the platform-specific layer for GitHub Actions. Azure DevOps would
   have a similar script with different runner mappings and output format.
@@ -16,7 +19,9 @@
   Path to the canonical test matrix JSON file (output of build-test-matrix.ps1).
 
 .PARAMETER OutputMatrixFile
-  Output file path for the combined matrix.
+  Output file path prefix for the matrices. When set, writes 4 files:
+  {prefix}_no_nugets.json, {prefix}_no_nugets_overflow.json,
+  {prefix}_requires_nugets.json, {prefix}_requires_nugets_overflow.json.
 
 .PARAMETER OutputToGitHubEnv
   If set, outputs to GITHUB_OUTPUT environment file instead of files.
@@ -49,6 +54,10 @@ $runnerMap = @{
 
 # Valid OS values
 $validOSes = @('windows', 'linux', 'macos')
+
+# GitHub Actions limits
+$maxMatrixSize = 256
+$overflowThreshold = 250
 
 function Expand-MatrixEntriesByOS {
   param(
@@ -93,6 +102,45 @@ function Expand-MatrixEntriesByOS {
   return $expandedEntries
 }
 
+# Splits an array into primary (first $overflowThreshold entries) and overflow (rest).
+# Returns a hashtable with 'primary' and 'overflow' keys, each containing a matrix JSON string.
+function Split-WithOverflow {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$GroupName,
+
+    [Parameter(Mandatory=$true)]
+    [AllowEmptyCollection()]
+    [array]$Entries
+  )
+
+  $primary = @()
+  $overflow = @()
+
+  if ($Entries.Count -le $overflowThreshold) {
+    $primary = $Entries
+  } else {
+    $primary = @($Entries[0..($overflowThreshold - 1)])
+    $overflow = @($Entries[$overflowThreshold..($Entries.Count - 1)])
+    Write-Host "  ↳ '$GroupName' overflow: $($primary.Count) primary + $($overflow.Count) overflow"
+  }
+
+  # Validate that neither bucket exceeds the hard limit
+  if ($primary.Count -gt $maxMatrixSize) {
+    Write-Error "'$GroupName' primary bucket has $($primary.Count) entries, exceeding the GitHub Actions limit of $maxMatrixSize."
+    exit 1
+  }
+  if ($overflow.Count -gt $maxMatrixSize) {
+    Write-Error "'$GroupName' overflow bucket has $($overflow.Count) entries, exceeding the GitHub Actions limit of $maxMatrixSize. Add more overflow buckets or reduce test count."
+    exit 1
+  }
+
+  return @{
+    primary  = ConvertTo-Json @{ include = $primary } -Compress -Depth 10
+    overflow = ConvertTo-Json @{ include = $overflow } -Compress -Depth 10
+  }
+}
+
 # Read canonical matrix
 if (-not (Test-Path $CanonicalMatrixFile)) {
   Write-Error "Canonical matrix file not found: $CanonicalMatrixFile"
@@ -111,44 +159,28 @@ if ($canonicalMatrix.tests) {
 
 Write-Host "Expanded matrix: $($allEntries.Count) total entries"
 
-# Validate matrix sizes per group to guard against GitHub Actions' 256-job limit
-$maxMatrixSize = 256
-$warnThreshold = 240
-
-$noNugetEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true -and $_.splitTests -ne $true })
-$noNugetSplitEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true -and $_.splitTests -eq $true })
+# Split into two categories based on dependency requirements
+$noNugetEntries = @($allEntries | Where-Object { $_.requiresNugets -ne $true })
 $nugetEntries = @($allEntries | Where-Object { $_.requiresNugets -eq $true })
 
-Write-Host "  - No nugets (regular): $($noNugetEntries.Count)"
-Write-Host "  - No nugets (split): $($noNugetSplitEntries.Count)"
+Write-Host "  - No nugets: $($noNugetEntries.Count)"
 Write-Host "  - Requires nugets: $($nugetEntries.Count)"
 
-$groups = @(
-  @{ name = 'tests_no_nugets'; count = $noNugetEntries.Count },
-  @{ name = 'tests_no_nugets_split'; count = $noNugetSplitEntries.Count },
-  @{ name = 'tests_requires_nugets'; count = $nugetEntries.Count }
-)
-
-foreach ($group in $groups) {
-  if ($group.count -gt $maxMatrixSize) {
-    Write-Error "Matrix group '$($group.name)' has $($group.count) entries, exceeding the GitHub Actions limit of $maxMatrixSize. Split tests further or reduce OS variants."
-    exit 1
-  }
-  if ($group.count -gt $warnThreshold) {
-    Write-Warning "Matrix group '$($group.name)' has $($group.count) entries, approaching the GitHub Actions limit of $maxMatrixSize."
-  }
-}
-
-# Create GitHub Actions format
-$combinedMatrix = @{ include = $allEntries }
-$combinedJson = ConvertTo-Json $combinedMatrix -Compress -Depth 10
+# Split each category into primary + overflow buckets
+$noNugetBuckets = Split-WithOverflow -GroupName 'tests_no_nugets' -Entries $noNugetEntries
+$nugetBuckets = Split-WithOverflow -GroupName 'tests_requires_nugets' -Entries $nugetEntries
 
 # Output results
+$emptyMatrix = '{"include":[]}'
+
 if ($OutputToGitHubEnv) {
   # Output to GitHub Actions environment
   if ($env:GITHUB_OUTPUT) {
-    "tests_matrix=$combinedJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-    Write-Host "✓ Matrix written to GITHUB_OUTPUT"
+    "tests_matrix_no_nugets=$($noNugetBuckets.primary)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    "tests_matrix_no_nugets_overflow=$($noNugetBuckets.overflow)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    "tests_matrix_requires_nugets=$($nugetBuckets.primary)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    "tests_matrix_requires_nugets_overflow=$($nugetBuckets.overflow)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    Write-Host "✓ Matrices written to GITHUB_OUTPUT"
   } else {
     Write-Error "GITHUB_OUTPUT environment variable not set"
     exit 1
@@ -156,13 +188,20 @@ if ($OutputToGitHubEnv) {
 } else {
   # Output to file if path provided
   if ($OutputMatrixFile) {
-    $combinedJson | Set-Content -Path $OutputMatrixFile -Encoding UTF8
-    Write-Host "✓ Matrix written to: $OutputMatrixFile"
+    # Strip .json extension if present to use as a prefix for the 4 output files
+    $prefix = $OutputMatrixFile -replace '\.json$', ''
+    $noNugetBuckets.primary | Set-Content -Path "${prefix}_no_nugets.json" -Encoding UTF8
+    $noNugetBuckets.overflow | Set-Content -Path "${prefix}_no_nugets_overflow.json" -Encoding UTF8
+    $nugetBuckets.primary | Set-Content -Path "${prefix}_requires_nugets.json" -Encoding UTF8
+    $nugetBuckets.overflow | Set-Content -Path "${prefix}_requires_nugets_overflow.json" -Encoding UTF8
+    Write-Host "✓ Matrices written to: ${prefix}_*.json"
   } else {
     # Output to console for debugging
     Write-Host ""
-    Write-Host "Combined matrix:"
-    Write-Host $combinedJson
+    Write-Host "No nugets (primary): $($noNugetBuckets.primary)"
+    Write-Host "No nugets (overflow): $($noNugetBuckets.overflow)"
+    Write-Host "Requires nugets (primary): $($nugetBuckets.primary)"
+    Write-Host "Requires nugets (overflow): $($nugetBuckets.overflow)"
   }
 }
 

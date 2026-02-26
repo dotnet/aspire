@@ -300,6 +300,9 @@ public class CanonicalMatrixEntry
     [JsonPropertyName("requiresTestSdk")]
     public bool RequiresTestSdk { get; set; }
 
+    [JsonPropertyName("splitTests")]
+    public bool SplitTests { get; set; }
+
     [JsonPropertyName("supportedOSes")]
     public string[] SupportedOSes { get; set; } = ["windows", "linux", "macos"];
 }
