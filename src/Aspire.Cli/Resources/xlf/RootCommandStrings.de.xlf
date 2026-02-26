@@ -64,7 +64,7 @@ Weitere Informationen zur Aspire-CLI-Telemetrie finden Sie unter: https://aka.ms
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Führen Sie den Befehl im nicht interaktiven Modus aus und deaktivieren Sie alle interaktiven Prompts und Ladeanimationen.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

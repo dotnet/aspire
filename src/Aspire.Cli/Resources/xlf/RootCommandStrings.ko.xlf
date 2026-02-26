@@ -64,7 +64,7 @@ Aspire CLI 원격 분석에 대해 자세히 알아보기: https://aka.ms/aspire
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">비대화형 모드에서 명령을 실행하여 모든 대화형 프롬프트와 스피너를 비활성화합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
