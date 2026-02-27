@@ -51,9 +51,9 @@
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
+        <target state="translated">`{0}` 매개 변수의 값을 삭제하시겠습니까?
 
-The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</target>
+이 값은 현재 [사용자 비밀](https://aka.ms/aspire/user-secrets)에 저장되어 있습니다. 여기에서 삭제하도록 선택할 수도 있습니다.</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
@@ -108,7 +108,7 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Run `aspire secret set` in the AppHost directory to configure secrets.</source>
-        <target state="new">Run `aspire secret set` in the AppHost directory to configure secrets.</target>
+        <target state="translated">AppHost 디렉터리에서 `aspire secret set` 명령을 실행하여 비밀을 구성하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -145,9 +145,9 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
+        <target state="translated">매개 변수에 대한 값을 제공하세요. 나중에 사용할 수 있도록 매개 변수를 [사용자 비밀](https://aka.ms/aspire/user-secrets)에 저장할 수 있습니다.
 
-New parameter values may not be used until dependent resources are restarted.</target>
+종속 리소스를 다시 시작할 때까지 새 매개 변수 값을 사용할 수 없습니다.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">

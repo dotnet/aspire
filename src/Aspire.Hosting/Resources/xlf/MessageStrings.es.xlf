@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerWithoutUserSecrets">
         <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</source>
-        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</target>
+        <target state="translated">El recurso "{0}" tiene una duración persistente, pero el proyecto AppHost no tiene secretos de usuario configurados. Los valores de parámetro generados (como las contraseñas) pueden cambiar en cada reinicio, lo que hace que se vuelvan a crear los contenedores persistentes. Ejecuta "aspire secret set" en el directorio AppHost para configurar los secretos.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceMayFailToStart">

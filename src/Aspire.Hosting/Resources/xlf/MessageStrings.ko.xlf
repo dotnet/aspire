@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="PersistentContainerWithoutUserSecrets">
         <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</source>
-        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</target>
+        <target state="translated">리소스 '{0}'에 영구 수명이 있지만 AppHost 프로젝트에 사용자 암호가 구성되어 있지 않습니다. 생성된 매개 변수 값(예: 암호)은 다시 시작할 때마다 변경되어 영구 컨테이너가 다시 만들어질 수 있습니다. AppHost 디렉터리에서 'secret secret set'을 실행하여 비밀을 구성합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceMayFailToStart">
