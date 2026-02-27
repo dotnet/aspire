@@ -35,7 +35,7 @@ Our verification chain relies on these trust anchors:
 
 ### Step 1: Resolve package version and metadata
 
-**Action:** Run `npm view @playwright/cli@{versionRange} version` and `npm view @playwright/cli@{version} dist.integrity` to get the resolved version and the registry's SRI integrity hash.
+**Action:** Run `npm view @playwright/cli@{versionRange} version` and `npm view @playwright/cli@{version} dist.integrity` to get the resolved version and the registry's SRI integrity hash. The default version range is `>=0.1.1`, which resolves to the latest published version at or above 0.1.1. This can be overridden to a specific version via the `playwrightCliVersion` configuration key.
 
 **What this establishes:** We know the exact version we intend to install and the hash the registry claims for its tarball.
 
@@ -71,18 +71,27 @@ Our verification chain relies on these trust anchors:
 
 **Limitations:** `npm audit signatures` verifies that *valid attestations exist* but does not expose the attestation *content*. It confirms "this package has authentic Sigstore-signed attestations" but does not tell us *what* those attestations say (e.g., which repository built the package). That's addressed in Step 4.
 
-### Step 4: Verify provenance source repository
+### Step 4: Verify provenance metadata
 
 **Action:**
 1. Fetch the attestation bundle from `https://registry.npmjs.org/-/npm/v1/attestations/@playwright/cli@{version}`
 2. Find the attestation with `predicateType: "https://slsa.dev/provenance/v1"` (SLSA Build L3 provenance)
 3. Base64-decode the DSSE envelope payload to extract the in-toto statement
-4. Parse `predicate.buildDefinition.externalParameters.workflow.repository`
-5. Verify it equals `https://github.com/microsoft/playwright-cli`
+4. Verify the following fields from the provenance predicate:
 
-**What this establishes:** That the Sigstore-attested provenance for this package version claims it was built from the `microsoft/playwright-cli` GitHub repository via a GitHub Actions workflow.
+| Field | Location in payload | Expected value | What it proves |
+|---|---|---|---|
+| **Source repository** | `predicate.buildDefinition.externalParameters.workflow.repository` | `https://github.com/microsoft/playwright-cli` | The package was built from the legitimate source code |
+| **Workflow path** | `predicate.buildDefinition.externalParameters.workflow.path` | `.github/workflows/publish.yml` | The build used the expected CI pipeline, not an ad-hoc or attacker-injected workflow |
+| **Build type** | `predicate.buildDefinition.buildType` | `https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1` | The build ran on GitHub Actions, which implicitly confirms the OIDC token issuer is `https://token.actions.githubusercontent.com` |
 
-**Trust basis:** The attestation content is protected by the Sigstore signature verified in Step 3. Since Step 3 confirmed the attestation is cryptographically authentic (signed by a valid Sigstore certificate corresponding to a GitHub Actions OIDC identity), the content we read in Step 4 cannot have been tampered with by the npm registry. An attacker would need to compromise Sigstore itself to forge attestation content pointing to `microsoft/playwright-cli`.
+**What this establishes:** That the Sigstore-attested provenance for this package version claims it was built from the `microsoft/playwright-cli` GitHub repository, using the expected publish workflow, on the GitHub Actions CI system. The build type verification implicitly confirms the OIDC token issuer without needing to parse the Sigstore certificate directly — the SLSA build type `https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1` is only valid for GitHub Actions builds that obtain their signing credentials via GitHub's OIDC provider (`https://token.actions.githubusercontent.com`).
+
+**Additional fields extracted but not directly verified:** The provenance parser also extracts `workflow.ref` (e.g., `refs/tags/v0.1.1`) and `runDetails.builder.id` from the attestation. These are available in the `NpmProvenanceData` result for logging and diagnostics but are not currently used as verification gates.
+
+**Trust basis:** The attestation content is protected by the Sigstore signature verified in Step 3. Since Step 3 confirmed the attestation is cryptographically authentic (signed by a valid Sigstore certificate corresponding to a GitHub Actions OIDC identity), the content we read in Step 4 cannot have been tampered with by the npm registry. An attacker would need to compromise Sigstore itself to forge attestation content pointing to `microsoft/playwright-cli` with the correct workflow and build type.
+
+**Why we verify all three fields:** Checking only the source repository would leave a gap where an attacker with write access to the repo could introduce a malicious workflow (e.g., `.github/workflows/evil.yml`) that builds a tampered package. By also verifying the workflow path and build type, we ensure the package was built by the specific, expected CI pipeline running on the expected CI system.
 
 **Why we fetch from the registry API:** The npm CLI (`npm audit signatures`) verifies Sigstore signatures but does not expose provenance content in its output. The `--json` flag only produces `{"invalid":[],"missing":[]}`. There is no npm CLI command to read the source repository from a SLSA provenance attestation. We must fetch the attestation bundle directly from the registry API.
 
@@ -109,20 +118,25 @@ Our verification chain relies on these trust anchors:
 
 **Trust basis:** All preceding verification steps have passed. The tarball content has been verified against the registry's published hash (Step 5), the Sigstore attestations for that content are cryptographically valid (Step 3), and the attestations claim the correct source repository (Step 4).
 
-### Step 7: Generate skill files
+### Step 7: Generate and mirror skill files
 
-**Action:** Run `playwright-cli install --skills` to generate agent skill files.
+**Action:** Run `playwright-cli install --skills` to generate agent skill files in the primary skill directory (`.claude/skills/playwright-cli/`), then mirror the skill directory to all other detected agent environment skill directories (e.g., `.github/skills/playwright-cli/`, `.opencode/skill/playwright-cli/`). The mirror is a full sync — files are created, updated, and stale files are removed so all environments have identical skill content.
 
-**What this establishes:** The Playwright CLI skill files are available for agent environments.
+**What this establishes:** The Playwright CLI skill files are available for all configured agent environments.
 
 ## Verification Chain Summary
 
 ```text
-                    │   Hardcoded expectations     │
-                    │   • Package: @playwright/cli │
-                    │   • Version range: 0.1.1     │
-                    │   • Source: microsoft/        │
-                    │     playwright-cli            │
+                    ┌──────────────────────────────┐
+                    │   Hardcoded expectations      │
+                    │   • Package: @playwright/cli  │
+                    │   • Version range: >=0.1.1    │
+                    │   • Source: microsoft/         │
+                    │     playwright-cli             │
+                    │   • Workflow: .github/         │
+                    │     workflows/publish.yml      │
+                    │   • Build type: GitHub Actions │
+                    │     workflow/v1                │
                     └──────────────┬────────────────┘
                                    │
                     ┌──────────────▼────────────────┐
@@ -134,13 +148,14 @@ Our verification chain relies on these trust anchors:
               │                    │                     │
    ┌──────────▼──────────┐  ┌─────▼──────────┐  ┌──────▼──────────┐
    │ Step 3: npm audit    │  │ Step 4: Verify  │  │ Step 5: npm pack│
-   │ signatures           │  │ provenance repo │  │ + SHA-512 check │
-   │ (Sigstore crypto)    │  │ (attestation    │  │ (tarball        │
-   │                      │  │  content)       │  │  integrity)     │
+   │ signatures           │  │ provenance      │  │ + SHA-512 check │
+   │ (Sigstore crypto)    │  │ (repo, workflow │  │ (tarball        │
+   │                      │  │  + build type)  │  │  integrity)     │
    └──────────┬───────────┘  └─────┬──────────┘  └──────┬──────────┘
               │                    │                     │
               │  Attestation is    │  Built from         │  Tarball matches
-              │  authentic         │  expected repo      │  published hash
+              │  authentic         │  expected repo +    │  published hash
+              │                    │  expected pipeline  │
               └────────────────────┼─────────────────────┘
                                    │
                     ┌──────────────▼────────────────┐
@@ -175,15 +190,25 @@ Our verification chain relies on these trust anchors:
 
 ```csharp
 internal const string PackageName = "@playwright/cli";
-internal const string VersionRange = "0.1.1";
+internal const string VersionRange = ">=0.1.1";
 internal const string ExpectedSourceRepository = "https://github.com/microsoft/playwright-cli";
-internal const string NpmRegistryAttestationsUrl = "https://registry.npmjs.org/-/npm/v1/attestations";
+internal const string ExpectedWorkflowPath = ".github/workflows/publish.yml";
+internal const string ExpectedBuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1";
+internal const string NpmRegistryAttestationsBaseUrl = "https://registry.npmjs.org/-/npm/v1/attestations";
 internal const string SlsaProvenancePredicateType = "https://slsa.dev/provenance/v1";
 ```
 
+## Configuration
+
+Two break-glass configuration keys are available via `aspire config set`:
+
+| Key | Effect |
+|---|---|
+| `disablePlaywrightCliPackageValidation` | When `"true"`, skips all Sigstore, provenance, and integrity checks. Use only for debugging npm service issues. |
+| `playwrightCliVersion` | When set, overrides the version range and pins to the specified exact version. |
+
 ## Future Improvements
 
-1. **Direct Sigstore verification in C#** — Eliminate the dependency on `npm audit signatures` by implementing Sigstore bundle verification natively. This would remove residual risk #1 and reduce the dependency on npm CLI.
-2. **Rekor log verification** — Independently verify the Rekor inclusion proof to confirm the attestation was logged in the public transparency log.
-3. **Certificate identity verification** — Check the OIDC identity claims in the Sigstore signing certificate (issuer, subject, workflow reference) rather than just the provenance payload.
-4. **Pinned tarball hash** — Ship a known-good SRI hash with each Aspire release, eliminating the need to trust the registry for the hash at all.
+1. **Direct Sigstore verification in .NET** — An experimental implementation exists on the `sigstore-builtin-verification` branch using the [`Sigstore`](https://github.com/mitchdenny/sigstore-dotnet) .NET library. This eliminates residual risk #1 by performing Sigstore bundle verification natively (Fulcio certificate chain, Rekor transparency log inclusion proof, SCT verification, DSSE signature verification) without relying on `npm audit signatures`. It is gated behind the `builtInSigstoreVerificationEnabled` feature flag.
+2. **Certificate identity verification** — The experimental Sigstore path already verifies the OIDC identity claims in the Sigstore signing certificate (issuer and SAN) via `CertificateIdentity.ForGitHubActions(repository)`. Bringing this to the default path would provide defense-in-depth beyond the provenance payload checks.
+3. **Pinned tarball hash** — Ship a known-good SRI hash with each Aspire release, eliminating the need to trust the registry for the hash at all.
