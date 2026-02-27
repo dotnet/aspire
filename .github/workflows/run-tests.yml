@@ -291,14 +291,6 @@ jobs:
         if: runner.os == 'macOS'
         uses: ./.github/actions/unlock-macos-keychain
 
-      - name: Set CLI E2E environment variables
-        if: ${{ inputs.requiresCliArchive }}
-        shell: bash
-        run: |
-          echo "GITHUB_PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
-          echo "GITHUB_PR_HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
-          echo "GH_TOKEN=${{ github.token }}" >> $GITHUB_ENV
-
       - name: Run nuget dependent tests (Linux/macOS)
         if: ${{ inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         working-directory: ${{ github.workspace }}/run-tests/
@@ -388,6 +380,10 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # PR metadata and token for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
+          GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
         run: |
           # Start heartbeat monitor in background
           ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -426,6 +422,10 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # PR metadata and token for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
+          GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `
