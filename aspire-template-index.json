@@ -1,0 +1,12 @@
+{
+  "$schema": "https://aka.ms/aspire/template-index-schema/v1",
+  "version": 1,
+  "templates": [
+    {
+      "name": "aspire-starter",
+      "path": "templates/aspire-starter",
+      "language": "csharp",
+      "tags": ["starter", "web", "api"]
+    }
+  ]
+}

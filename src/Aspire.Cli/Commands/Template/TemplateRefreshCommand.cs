@@ -21,13 +21,24 @@ internal sealed class TemplateRefreshCommand(
 {
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        await InteractionService.ShowStatusAsync(
-            ":counterclockwise_arrows_button: Refreshing template index cache...",
-            async () =>
-            {
-                await indexService.RefreshAsync(cancellationToken);
-                return 0;
-            });
+        using var activity = Telemetry.StartDiagnosticActivity("template-refresh");
+
+        try
+        {
+            await InteractionService.ShowStatusAsync(
+                ":counterclockwise_arrows_button: Refreshing template index cache...",
+                async () =>
+                {
+                    await indexService.RefreshAsync(cancellationToken);
+                    return 0;
+                });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Telemetry.RecordError("Failed to refresh template cache", ex);
+            InteractionService.DisplayError("Failed to refresh template cache. Check your network connection and try again.");
+            return 1;
+        }
 
         InteractionService.DisplaySuccess("Template index cache refreshed.");
         return ExitCodeConstants.Success;

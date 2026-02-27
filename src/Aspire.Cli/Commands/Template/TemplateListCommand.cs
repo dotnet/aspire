@@ -22,9 +22,23 @@ internal sealed class TemplateListCommand(
 {
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var templates = await InteractionService.ShowStatusAsync(
-            ":magnifying_glass_tilted_right: Fetching templates...",
-            () => indexService.GetTemplatesAsync(cancellationToken: cancellationToken));
+        using var activity = Telemetry.StartDiagnosticActivity("template-list");
+
+        IReadOnlyList<ResolvedTemplate> templates;
+        try
+        {
+            templates = await InteractionService.ShowStatusAsync(
+                ":magnifying_glass_tilted_right: Fetching templates...",
+                () => indexService.GetTemplatesAsync(cancellationToken: cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Telemetry.RecordError("Failed to fetch template list", ex);
+            InteractionService.DisplayError("Failed to fetch templates. Check your network connection and try again.");
+            return 1;
+        }
+
+        activity?.AddTag("template.count", templates.Count);
 
         if (templates.Count == 0)
         {
