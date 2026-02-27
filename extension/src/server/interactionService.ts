@@ -8,7 +8,7 @@ import { ProgressNotifier } from './progressNotifier';
 import { applyTextStyle, formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
-import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import { AspireDebugSession, DashboardBrowserType } from '../debugger/AspireDebugSession';
 import { AnsiColors } from '../utils/AspireTerminalProvider';
 import { isDirectory } from '../utils/io';
 
@@ -33,6 +33,7 @@ export interface IInteractionService {
     logMessage: (logLevel: CSLogLevel, message: string) => void;
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
+    closeDashboard: () => void;
     notifyAppHostStartupCompleted: () => void;
     startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
     writeDebugSessionMessage: (message: string, stdout: boolean, textStyle?: string) => void;
@@ -305,11 +306,16 @@ export class InteractionService implements IInteractionService {
 
         //  If aspire.enableAspireDashboardAutoLaunch is true, the dashboard will be launched automatically and we do not need
         // to show an information message.
-        const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
+        const aspireConfig = vscode.workspace.getConfiguration('aspire');
+        const enableDashboardAutoLaunch = aspireConfig.get<boolean>('enableAspireDashboardAutoLaunch', true);
         if (enableDashboardAutoLaunch) {
-            // Open the dashboard URL in an external browser. Prefer codespaces URL if available.
+            // Open the dashboard URL in the configured browser. Prefer codespaces URL if available.
             const urlToOpen = codespacesUrl || baseUrl;
-            vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
+            const debugSession = this._getAspireDebugSession();
+            if (debugSession) {
+                const browserType = aspireConfig.get<DashboardBrowserType>('dashboardBrowser', 'debugChrome');
+                await debugSession.openDashboard(urlToOpen, browserType);
+            }
             return;
         }
 
@@ -457,6 +463,13 @@ export class InteractionService implements IInteractionService {
 
     clearProgressNotification() {
         this._progressNotifier.clear();
+    }
+
+    /**
+     * Closes the dashboard browser. Delegates to the current AspireDebugSession.
+     */
+    closeDashboard(): void {
+        // No-op when called from InteractionService - the debug session handles closing in dispose()
     }
 }
 

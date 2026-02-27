@@ -233,6 +233,25 @@
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
           "scope": "window"
         },
+        "aspire.dashboardBrowser": {
+          "type": "string",
+          "enum": ["openExternalBrowser", "debugChrome", "debugEdge", "debugFirefox"],
+          "default": "openExternalBrowser",
+          "description": "%configuration.aspire.dashboardBrowser%",
+          "enumDescriptions": [
+            "%configuration.aspire.dashboardBrowser.openExternalBrowser%",
+            "%configuration.aspire.dashboardBrowser.debugChrome%",
+            "%configuration.aspire.dashboardBrowser.debugEdge%",
+            "%configuration.aspire.dashboardBrowser.debugFirefox%"
+          ],
+          "scope": "window"
+        },
+        "aspire.closeDashboardOnDebugEnd": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.closeDashboardOnDebugEnd%",
+          "scope": "window"
+        },
         "aspire.enableDebugConfigEnvironmentLogging": {
           "type": "boolean",
           "default": true,

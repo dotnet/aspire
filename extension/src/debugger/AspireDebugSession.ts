@@ -4,15 +4,18 @@ import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, ProjectLaunchConfiguration, StartAppHostOptions } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
+
+export type DashboardBrowserType = 'openExternalBrowser' | 'debugChrome' | 'debugEdge' | 'debugFirefox';
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
-import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode } from "../loc/strings";
+import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode, aspireDashboard } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 import { ICliRpcClient } from "../server/rpcClient";
 import path from "path";
+import os from "os";
 import { EnvironmentVariables } from "../utils/environment";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
@@ -28,6 +31,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
   private _trackedDebugAdapters: string[] = [];
   private _rpcClient?: ICliRpcClient;
+  private _dashboardDebugSession: vscode.DebugSession | null = null;
   private readonly _disposables: vscode.Disposable[] = [];
   private _disposed = false;
   private _userInitiatedStop = false;
@@ -291,15 +295,117 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     });
   }
 
+  /**
+   * Opens the dashboard URL in the specified browser.
+   * For debugChrome/debugEdge/debugFirefox, launches as a child debug session that auto-closes with the Aspire debug session.
+   */
+  async openDashboard(url: string, browserType: DashboardBrowserType): Promise<void> {
+    extensionLogOutputChannel.info(`Opening dashboard in browser: ${browserType}, URL: ${url}`);
+
+    switch (browserType) {
+      case 'debugChrome':
+        await this.launchDebugBrowser(url, 'pwa-chrome');
+        break;
+
+      case 'debugEdge':
+        await this.launchDebugBrowser(url, 'pwa-msedge');
+        break;
+
+      case 'debugFirefox':
+        await this.launchDebugBrowser(url, 'firefox');
+        break;
+
+      case 'openExternalBrowser':
+      default:
+        // Use VS Code's default external browser handling
+        await vscode.env.openExternal(vscode.Uri.parse(url));
+        break;
+    }
+  }
+
+  /**
+   * Launches a browser as a child debug session.
+   * The browser will automatically close when the parent Aspire debug session ends.
+   */
+  private async launchDebugBrowser(url: string, debugType: 'pwa-chrome' | 'pwa-msedge' | 'firefox'): Promise<void> {
+    const debugConfig: vscode.DebugConfiguration = {
+      type: debugType,
+      name: aspireDashboard,
+      request: 'launch',
+      url: url,
+    };
+
+    // Add type-specific options
+    if (debugType === 'pwa-chrome' || debugType === 'pwa-msedge') {
+      // Don't pause on entry for Chrome/Edge
+      debugConfig.pauseForSourceMap = false;
+    }
+    else if (debugType === 'firefox') {
+      // Firefox debugger requires webRoot; resolve to actual workspace path
+      debugConfig.webRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? os.tmpdir();
+      debugConfig.pathMappings = [];
+    }
+
+    // Register listener before starting so we don't miss the event
+    const disposable = vscode.debug.onDidStartDebugSession((session) => {
+      if (session.configuration.name === aspireDashboard && session.type === debugType) {
+        this._dashboardDebugSession = session;
+        disposable.dispose();
+      }
+    });
+
+    // Start as a child debug session - it will close when parent closes
+    const didStart = await vscode.debug.startDebugging(
+      undefined,
+      debugConfig,
+      this._session
+    );
+
+    if (!didStart) {
+      disposable.dispose();
+      extensionLogOutputChannel.warn(`Failed to start debug browser (${debugType}), falling back to default browser`);
+      await vscode.env.openExternal(vscode.Uri.parse(url));
+    }
+  }
+
   dispose(): void {
     if (this._disposed) {
       return;
     }
     this._disposed = true;
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
+    this.closeDashboard();
     vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
     this._trackedDebugAdapters = [];
+  }
+
+  /**
+   * Closes the dashboard browser if closeDashboardOnDebugEnd is enabled.
+   * Supports Simple Browser (webview tab) and debug browser sessions.
+   */
+  private closeDashboard(): void {
+    const aspireConfig = vscode.workspace.getConfiguration('aspire');
+    const shouldClose = aspireConfig.get<boolean>('closeDashboardOnDebugEnd', true);
+
+    if (!shouldClose) {
+      this._dashboardDebugSession = null;
+      return;
+    }
+
+    extensionLogOutputChannel.info('Closing dashboard browser...');
+
+    // For debug browsers, stop the debug session
+    if (this._dashboardDebugSession) {
+      vscode.debug.stopDebugging(this._dashboardDebugSession).then(
+        () => extensionLogOutputChannel.info('Dashboard debug session stopped.'),
+        (err) => extensionLogOutputChannel.warn(`Failed to stop dashboard debug session: ${err}`)
+      );
+      this._dashboardDebugSession = null;
+      return;
+    }
+    // Debug browser sessions (debugChrome, debugEdge, debugFirefox) are child sessions
+    // and will automatically close when the parent Aspire session is stopped.
   }
 
   private sendResponse(request: any, body: any = {}) {
