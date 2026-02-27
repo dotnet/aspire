@@ -13,7 +13,6 @@ using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -39,7 +38,7 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
-    /// Adds and returns an Azure AI Foundry Deployment resource to the application model.
+    /// Adds and returns an Azure AI Foundry Deployment resource (e.g. an AI model) to the application model.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry resource builder.</param>
     /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
@@ -177,7 +176,7 @@ public static class AzureAIFoundryExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(aiFoundry, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor)
     ///   .WithReference(aiFoundry);
@@ -361,6 +360,7 @@ public static class AzureAIFoundryExtensions
                 },
                 (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
+                    Name = infrastructure.AspireResource.Name,
                     Kind = "AIServices",
                     Sku = new CognitiveServicesSku()
                     {
@@ -368,9 +368,12 @@ public static class AzureAIFoundryExtensions
                     },
                     Properties = new CognitiveServicesAccountProperties()
                     {
-                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        // Until this bug is fixed, CustomSubDomainName must be set to the
+                        // account's name: https://msdata.visualstudio.com/Vienna/_workitems/edit/4866592
+                        CustomSubDomainName = infrastructure.AspireResource.Name,
                         PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                        DisableLocalAuth = true
+                        DisableLocalAuth = true,
+                        AllowProjectManagement = true
                     },
                     Identity = new ManagedServiceIdentity()
                     {
@@ -394,6 +397,30 @@ public static class AzureAIFoundryExtensions
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name.ToBicepExpression() });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
+
+        if (resource.CapabilityHost != null)
+        {
+            // Use the specified capability host
+            resource.CapabilityHost.Parent = cogServicesAccount;
+            infrastructure.Add(resource.CapabilityHost);
+        }
+        else
+        {
+            // Provision a default capability host for hosted agents
+            var capHost = new CognitiveServicesCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{resource.Name}-caphost"), "2025-10-01-preview")
+            {
+                Name = $"{resource.Name}-caphost",
+                Parent = cogServicesAccount,
+                // IMPORTANT: this is required to enable hosted agents deployment
+                // if no BYO Net is provided
+                Properties = new PublicHostingCognitiveServicesCapabilityHostProperties()
+                {
+                    CapabilityHostKind = CapabilityHostKind.Agents
+                }
+            };
+            infrastructure.Add(capHost);
+            resource.CapabilityHost = capHost;
+        }
 
         CognitiveServicesAccountDeployment? dependency = null;
         foreach (var deployment in resource.Deployments)

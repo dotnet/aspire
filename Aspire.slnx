@@ -208,6 +208,12 @@
     <Project Path="playground/AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsConsumer/EventHubsConsumer.csproj" />
   </Folder>
+  <Folder Name="/playground/FoundryAgentBasic/">
+    <Project Path="playground/FoundryAgentBasic/FoundryAgentBasic.AppHost/FoundryAgentBasic.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/FoundryAgentEnterprise/">
+    <Project Path="playground/FoundryAgentEnterprise/FoundryAgentEnterprise.AppHost/FoundryAgentEnterprise.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/GitHubModelsEndToEnd/">
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.AppHost/GitHubModelsEndToEnd.AppHost.csproj" />
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj" />
@@ -440,6 +446,7 @@
   </Folder>
   <Folder Name="/tests/Hosting/">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Azure.AIFoundry.Tests/Aspire.Hosting.Azure.AIFoundry.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />

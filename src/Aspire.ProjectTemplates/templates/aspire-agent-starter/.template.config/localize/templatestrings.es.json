@@ -1,0 +1,10 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aplicación de inicio de Aspire Python",
+  "description": "Una plantilla de proyecto para crear una aplicación Aspire con un servicio de API de back-end en Python y un front-end en JavaScript usando Vite y React.",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent.",
+  "symbols/AddFoundryRandomSuffix/description": "If true, a random suffix will be added to the Agent name when creating the Foundry resource to ensure global uniqueness."
+}

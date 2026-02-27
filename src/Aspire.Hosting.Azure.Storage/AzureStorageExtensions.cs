@@ -30,7 +30,7 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     /// <remarks>
     /// By default references to the Azure Storage resource will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="StorageBuiltInRole.StorageBlobDataContributor"/>
     /// - <see cref="StorageBuiltInRole.StorageTableDataContributor"/>
     /// - <see cref="StorageBuiltInRole.StorageQueueDataContributor"/>
@@ -431,7 +431,7 @@ public static class AzureStorageExtensions
     ///
     /// var myService = builder.AddProject&lt;Projects.MyService&gt;()
     ///                       .WithReference(blobs, "blobs");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -679,7 +679,7 @@ public static class AzureStorageExtensions
     ///
     /// var storage = builder.AddAzureStorage("storage");
     /// var blobs = storage.AddBlobs("blobs");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
     ///   .WithReference(blobs);

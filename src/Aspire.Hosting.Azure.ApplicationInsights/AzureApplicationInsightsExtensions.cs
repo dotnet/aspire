@@ -103,6 +103,9 @@ public static class AzureApplicationInsightsExtensions
 
             // Add name output for the resource to externalize role assignments
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = appInsights.Name.ToBicepExpression() });
+
+            // Add id output for the resource for AI Foundry connections
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = appInsights.Id.ToBicepExpression() });
         };
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);

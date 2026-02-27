@@ -3,12 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure AI Foundry resource.
+/// Represents an Azure AI Foundry resource. This corresponds to the Azure Cognitive Services account
+/// with AI Foundry capabilities enabled.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
@@ -62,6 +62,13 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public IReadOnlyList<AzureAIFoundryDeploymentResource> Deployments => _deployments;
 
     /// <summary>
+    /// The capability host associated with this project, if any.
+    ///
+    /// If none is set, we provision a default capability host for hosted agents.
+    /// </summary>
+    public CognitiveServicesCapabilityHost? CapabilityHost { get; set; }
+
+    /// <summary>
     /// Gets whether the resource is running in the Foundry Local.
     /// </summary>
     public bool IsEmulator => this.IsEmulator();
@@ -72,7 +79,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public string? ApiKey { get; internal set; }
 
     /// <inheritdoc/>
-    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    public override CognitiveServicesAccount AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
@@ -115,5 +122,18 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
         {
             yield return new("Key", ReferenceExpression.Create($"{ApiKey}"));
         }
+    }
+}
+
+/// <summary>
+/// The properties for a public hosting environment for Cognitive Services capabilities.
+/// </summary>
+public class PublicHostingCognitiveServicesCapabilityHostProperties : CognitiveServicesCapabilityHostProperties
+{
+    /// <inheritdoc/>
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+        DefineProperty<bool>("enablePublicHostingEnvironment", ["enablePublicHostingEnvironment"], defaultValue: true);
     }
 }

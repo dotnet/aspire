@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    "Aspire",
+    "Cloud",
+    "Web",
+    "Web API",
+    "API",
+    "Service",
+    "Python",
+    "JavaScript",
+    "Foundry",
+    "Azure",
+    "AI",
+    "Agent"
+  ],
+  "name": "Aspire Azure Agent Starter (Hosted Agent)",
+  "defaultName": "AspireAgentStarter",
+  "description": "A project template for creating an Aspire Azure Agent with a Python backend API service",
+  "shortName": "aspire-agent-starter",
+  "sourceName": "AspireAgentStarter.1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "Python",
+    "type": "project"
+  },
+  "precedence": "9000",
+  "identity": "Aspire.AgentStarter.Python.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.AgentStarter",
+  "guids": [
+  ],
+  "sources": [
+    {
+      "source": "./",
+      "target": "./"
+    }
+  ],
+  "symbols": {
+    "AzureSubscriptionId": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+      "replaces": "{{AzureSubscriptionId}}"
+    },
+    "AzureResourceGroup": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+      "replaces": "{{AzureResourceGroup}}"
+    },
+    "AzureLocation": {
+      "type": "parameter",
+      "datatype": "string",
+      "description": "The Azure region where the Foundry Agent will be hosted.",
+      "defaultValue": "northcentralus",
+      "replaces": "{{AzureLocation}}"
+    },
+    "AgentName": {
+      "type": "parameter",
+      "datatype": "string",
+      "description": "The name of the Foundry Agent.",
+      "defaultValue": "agent",
+      "replaces": "AGENT_NAME",
+      "fileRename": "AGENT_NAME"
+    },
+    "AddFoundryRandomSuffix": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If true, a random suffix will be added to the Agent name when creating the Foundry resource to ensure global uniqueness.",
+      "defaultValue": "true"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "apphost.cs"
+    }
+  ]
+}
