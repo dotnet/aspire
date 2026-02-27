@@ -15,6 +15,7 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
 {
     private const string DefaultRepo = "https://github.com/dotnet/aspire";
     private const string DefaultRef = "release/latest";
+    private const string CommunityDefaultRef = "HEAD";
     private const string IndexFileName = "aspire-template-index.json";
     private const int MaxIncludeDepth = 5;
 
@@ -130,7 +131,7 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
             return await FetchLocalIndexAsync(source.Repo, cancellationToken).ConfigureAwait(false);
         }
 
-        var rawUrl = BuildRawUrl(source.Repo, source.Ref ?? DefaultRef, IndexFileName);
+        var rawUrl = BuildRawUrl(source.Repo, source.Ref ?? DefaultRefForSource(source), IndexFileName);
 
         if (rawUrl is null)
         {
@@ -356,5 +357,14 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the default git ref for a source based on its kind.
+    /// The official dotnet/aspire repo uses <c>release/latest</c>; all others use <c>HEAD</c>.
+    /// </summary>
+    private static string DefaultRefForSource(GitTemplateSource source)
+    {
+        return source.Kind == GitTemplateSourceKind.Official ? DefaultRef : CommunityDefaultRef;
     }
 }
