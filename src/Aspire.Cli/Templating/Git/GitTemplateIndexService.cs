@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.GitHub;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Templating.Git;
@@ -17,21 +18,26 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
     private const string IndexFileName = "aspire-template-index.json";
     private const int MaxIncludeDepth = 5;
 
+    private const string TemplateRepoName = "aspire-templates";
+
     private static readonly TimeSpan s_defaultCacheTtl = TimeSpan.FromHours(1);
 
     private readonly GitTemplateCache _cache;
     private readonly IConfigurationService _configService;
+    private readonly IGitHubCliRunner _gitHubCli;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitTemplateIndexService> _logger;
 
     public GitTemplateIndexService(
         GitTemplateCache cache,
         IConfigurationService configService,
+        IGitHubCliRunner gitHubCli,
         IHttpClientFactory httpClientFactory,
         ILogger<GitTemplateIndexService> logger)
     {
         _cache = cache;
         _configService = configService;
+        _gitHubCli = gitHubCli;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
@@ -233,7 +239,103 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
             }
         }
 
+        // 3. Auto-discover personal and org aspire-templates repos via GitHub CLI
+        await DiscoverGitHubSourcesAsync(sources, cancellationToken).ConfigureAwait(false);
+
         return sources;
+    }
+
+    private async Task DiscoverGitHubSourcesAsync(List<GitTemplateSource> sources, CancellationToken cancellationToken)
+    {
+        // Check if discovery is disabled
+        var disablePersonal = await _configService.GetConfigurationAsync("templates.enablePersonalDiscovery", cancellationToken).ConfigureAwait(false);
+        var disableOrg = await _configService.GetConfigurationAsync("templates.enableOrgDiscovery", cancellationToken).ConfigureAwait(false);
+
+        var personalEnabled = !string.Equals(disablePersonal, "false", StringComparison.OrdinalIgnoreCase);
+        var orgEnabled = !string.Equals(disableOrg, "false", StringComparison.OrdinalIgnoreCase);
+
+        if (!personalEnabled && !orgEnabled)
+        {
+            return;
+        }
+
+        if (!await _gitHubCli.IsInstalledAsync(cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("GitHub CLI not installed, skipping template auto-discovery.");
+            return;
+        }
+
+        if (!await _gitHubCli.IsAuthenticatedAsync(cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("GitHub CLI not authenticated, skipping template auto-discovery.");
+            return;
+        }
+
+        var existingRepos = new HashSet<string>(
+            sources.Select(s => s.Repo),
+            StringComparer.OrdinalIgnoreCase);
+
+        // Kick off personal + org discovery in parallel
+        var probes = new List<Task<GitTemplateSource?>>();
+
+        if (personalEnabled)
+        {
+            var username = await _gitHubCli.GetUsernameAsync(cancellationToken).ConfigureAwait(false);
+            if (username is not null)
+            {
+                var repoUrl = $"https://github.com/{username}/{TemplateRepoName}";
+                if (!existingRepos.Contains(repoUrl))
+                {
+                    probes.Add(ProbeRepoAsync(username, repoUrl, GitTemplateSourceKind.Personal, cancellationToken));
+                    existingRepos.Add(repoUrl);
+                }
+            }
+        }
+
+        if (orgEnabled)
+        {
+            var orgs = await _gitHubCli.GetOrganizationsAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var org in orgs)
+            {
+                var repoUrl = $"https://github.com/{org}/{TemplateRepoName}";
+                if (!existingRepos.Contains(repoUrl))
+                {
+                    probes.Add(ProbeRepoAsync(org, repoUrl, GitTemplateSourceKind.Organization, cancellationToken));
+                    existingRepos.Add(repoUrl);
+                }
+            }
+        }
+
+        var results = await Task.WhenAll(probes).ConfigureAwait(false);
+
+        foreach (var source in results)
+        {
+            if (source is not null)
+            {
+                sources.Add(source);
+            }
+        }
+    }
+
+    private async Task<GitTemplateSource?> ProbeRepoAsync(
+        string owner,
+        string repoUrl,
+        GitTemplateSourceKind kind,
+        CancellationToken cancellationToken)
+    {
+        if (await _gitHubCli.RepoExistsAsync(owner, TemplateRepoName, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("Discovered template repo: {Repo}.", repoUrl);
+            return new GitTemplateSource
+            {
+                Name = owner,
+                Repo = repoUrl,
+                Kind = kind
+            };
+        }
+
+        _logger.LogDebug("No {Repo} repo found for {Owner}.", TemplateRepoName, owner);
+        return null;
     }
 
     /// <summary>

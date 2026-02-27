@@ -418,6 +418,7 @@ public class Program
         });
         builder.Services.AddSingleton<Templating.Git.IGitTemplateIndexService, Templating.Git.GitTemplateIndexService>();
         builder.Services.AddSingleton<Templating.Git.IGitTemplateEngine, Templating.Git.GitTemplateEngine>();
+        builder.Services.AddSingleton<GitHub.IGitHubCliRunner, GitHub.GitHubCliRunner>();
         builder.Services.AddHttpClient("git-templates");
         builder.Services.AddTransient<SetupCommand>();
 #if DEBUG

@@ -16,7 +16,17 @@ internal enum GitTemplateSourceKind
     /// <summary>
     /// An index added via user configuration.
     /// </summary>
-    Configured
+    Configured,
+
+    /// <summary>
+    /// Auto-discovered from the authenticated user's personal <c>aspire-templates</c> repo.
+    /// </summary>
+    Personal,
+
+    /// <summary>
+    /// Auto-discovered from a GitHub organization's <c>aspire-templates</c> repo.
+    /// </summary>
+    Organization
 }
 
 /// <summary>
