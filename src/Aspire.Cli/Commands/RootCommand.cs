@@ -132,7 +132,7 @@ internal sealed class RootCommand : BaseRootCommand
         TelemetryCommand telemetryCommand,
         DocsCommand docsCommand,
         SdkCommand sdkCommand,
-        TemplateCommand templateCommand,
+        Template.TemplateCommand templateCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
