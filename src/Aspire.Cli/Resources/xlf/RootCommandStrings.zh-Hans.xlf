@@ -64,7 +64,7 @@ Aspire CLI 收集使用情况数据。该数据由 Microsoft 收集，用于帮�
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">在非交互模式下运行命令，禁用所有交互式提示和加载动画。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

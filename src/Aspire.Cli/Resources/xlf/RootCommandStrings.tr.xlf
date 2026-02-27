@@ -64,7 +64,7 @@ Aspire CLI telemetrisi hakkında daha fazla bilgi edinin: https://aka.ms/aspire/
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Komutu etkileşimli olmayan modda çalıştırarak tüm etkileşimli istemleri ve çarkları devre dışı bırakın.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

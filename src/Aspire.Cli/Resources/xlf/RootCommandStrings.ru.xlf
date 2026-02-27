@@ -64,7 +64,7 @@ Aspire CLI собирает данные об использовании. Кор
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Выполните команду в неинтерактивном режиме, отключив все интерактивные запросы и индикаторы загрузки.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

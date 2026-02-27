@@ -64,7 +64,7 @@ Dowiedz się więcej o telemetrii wiersza polecenia usługi Aspire: https://aka.
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Uruchom polecenie w trybie nieinterakcyjnym, wyłączając wszystkie interakcyjne polecenia i pokrętła.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

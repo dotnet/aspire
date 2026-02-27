@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">Arrestare tutti gli apphost in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Sono in esecuzione più apphost. Usare {0} per specificare quale arrestare oppure usare {1} per arrestarli tutti.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">L'opzione {0} non può essere usata con un argomento di risorsa.</target>
         <note />
       </trans-unit>
     </body>
