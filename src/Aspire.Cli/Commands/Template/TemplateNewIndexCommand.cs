@@ -51,23 +51,9 @@ internal sealed class TemplateNewIndexCommand : BaseTemplateSubCommand
             }
         }
 
-        var publisherName = await InteractionService.PromptForStringAsync(
-            "Publisher name",
-            required: true,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        var publisherUrl = await InteractionService.PromptForStringAsync(
-            "Publisher URL (optional)",
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
         var index = new GitTemplateIndex
         {
             Schema = "https://aka.ms/aspire/template-index-schema/v1",
-            Publisher = new GitTemplateIndexPublisher
-            {
-                Name = publisherName,
-                Url = string.IsNullOrWhiteSpace(publisherUrl) ? null : publisherUrl
-            },
             Templates =
             [
                 new GitTemplateIndexEntry
