@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
+        <target state="translated">Çalışan bir apphost dosyasından OpenTelemetry verilerini (günlükler, yayılmalar, izlemeler) görüntüleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
