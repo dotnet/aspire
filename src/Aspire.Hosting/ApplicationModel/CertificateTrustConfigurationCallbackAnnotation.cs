@@ -81,6 +81,17 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     public required ReferenceExpression CertificateDirectoriesPath { get; init; }
 
     /// <summary>
+    /// A value provider that will resolve to a path to a PKCS#12 trust store bundle.
+    /// Referencing this path in a callback will trigger generation of the PKCS#12 trust store.
+    /// </summary>
+    public required ReferenceExpression Pkcs12BundlePath { get; init; }
+
+    /// <summary>
+    /// The password for the PKCS#12 trust store bundle. Defaults to an empty string.
+    /// </summary>
+    public required string Pkcs12BundlePassword { get; init; }
+
+    /// <summary>
     /// Gets the <see cref="CertificateTrustScope"/> for the resource.
     /// </summary>
     public required CertificateTrustScope Scope { get; init; }
