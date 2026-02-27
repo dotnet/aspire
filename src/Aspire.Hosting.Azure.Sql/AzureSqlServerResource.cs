@@ -349,7 +349,28 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
                 $connectionString = "Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Authentication=Active Directory Default;"
 
-                Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
+                $maxRetries = 5
+                $retryDelay = 60
+                $attempt = 0
+                $success = $false
+
+                while (-not $success -and $attempt -lt $maxRetries) {
+                    $attempt++
+                    Write-Host "Attempt $attempt of $maxRetries..."
+                    try {
+                        Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
+                        $success = $true
+                        Write-Host "SQL command succeeded on attempt $attempt."
+                    } catch {
+                        Write-Host "Attempt $attempt failed: $_"
+                        if ($attempt -lt $maxRetries) {
+                            Write-Host "Retrying in $retryDelay seconds..."
+                            Start-Sleep -Seconds $retryDelay
+                        } else {
+                            throw
+                        }
+                    }
+                }
                 """;
 
             foreach (var d in dependsOn)
