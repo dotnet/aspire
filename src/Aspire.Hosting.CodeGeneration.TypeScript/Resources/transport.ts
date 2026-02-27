@@ -263,7 +263,12 @@ export function registerCallback<TResult = void>(
 
             if (argArray.length > 0) {
                 // Spread positional arguments to callback
-                return await callback(...argArray);
+                const result = await callback(...argArray);
+                // For void callbacks (result is undefined), return the original args
+                // so the host can apply DTO mutations back to the original C# objects.
+                // DTO args are passed by reference in JS, so any property mutations
+                // made by the callback are reflected in the args object.
+                return result !== undefined ? result : args;
             }
 
             // No positional params found - call with no args

@@ -49,7 +49,9 @@ internal sealed class AtsMarshaller
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
+        ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
     /// <summary>
@@ -525,5 +527,84 @@ internal sealed class AtsMarshaller
         }
 
         return JsonSerializer.Deserialize(value.ToJsonString(), targetType, s_jsonOptions);
+    }
+
+    /// <summary>
+    /// Checks if a type is a DTO type (marked with [AspireDto] and registered in the context).
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns><c>true</c> if the type is a DTO type; otherwise, <c>false</c>.</returns>
+    public bool IsDtoType(Type type)
+    {
+        return _context.GetCategory(type) == Hosting.Ats.AtsTypeCategory.Dto;
+    }
+
+    /// <summary>
+    /// Applies property values from a JSON object to an existing DTO instance.
+    /// Used for applying mutations made in callbacks back to the original objects.
+    /// Only writable properties and public fields whose types can be deserialized
+    /// from the JSON are updated. Properties with complex types that lack a
+    /// parameterless constructor (e.g. <c>EndpointReference</c>) are skipped.
+    /// </summary>
+    /// <param name="source">The JSON object containing the updated values.</param>
+    /// <param name="target">The existing DTO instance to update.</param>
+    /// <param name="targetType">The CLR type of the target object.</param>
+    public static void ApplyDtoProperties(JsonObject source, object target, Type targetType)
+    {
+        foreach (var prop in targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!prop.CanRead || !prop.CanWrite)
+            {
+                continue;
+            }
+
+            var jsonKey = s_jsonOptions.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name;
+            if (!source.TryGetPropertyValue(jsonKey, out var jsonValue))
+            {
+                continue;
+            }
+
+            try
+            {
+                var value = jsonValue.Deserialize(prop.PropertyType, s_jsonOptions);
+                prop.SetValue(target, value);
+            }
+            catch (NotSupportedException)
+            {
+                // Skip properties whose types can't be deserialized (e.g. EndpointReference)
+            }
+            catch (JsonException)
+            {
+                // Skip properties with incompatible JSON values
+            }
+        }
+
+        foreach (var field in targetType.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (field.IsInitOnly)
+            {
+                continue;
+            }
+
+            var jsonKey = s_jsonOptions.PropertyNamingPolicy?.ConvertName(field.Name) ?? field.Name;
+            if (!source.TryGetPropertyValue(jsonKey, out var jsonValue))
+            {
+                continue;
+            }
+
+            try
+            {
+                var value = jsonValue.Deserialize(field.FieldType, s_jsonOptions);
+                field.SetValue(target, value);
+            }
+            catch (NotSupportedException)
+            {
+                // Skip fields whose types can't be deserialized
+            }
+            catch (JsonException)
+            {
+                // Skip fields with incompatible JSON values
+            }
+        }
     }
 }

@@ -93,7 +93,9 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         {
             if (!hasResult)
             {
-                body = BuildAsyncVoidCall(callbackId, argsExpr, ctExpr);
+                body = HasDtoParameters(parameters)
+                    ? BuildAsyncVoidCallWithDtoWriteback(callbackId, argsExpr, ctExpr, paramExprs, parameters)
+                    : BuildAsyncVoidCall(callbackId, argsExpr, ctExpr);
             }
             else
             {
@@ -104,7 +106,9 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         {
             if (!hasResult)
             {
-                body = BuildSyncVoidCall(callbackId, argsExpr, ctExpr);
+                body = HasDtoParameters(parameters)
+                    ? BuildSyncVoidCallWithDtoWriteback(callbackId, argsExpr, ctExpr, paramExprs, parameters)
+                    : BuildSyncVoidCall(callbackId, argsExpr, ctExpr);
             }
             else
             {
@@ -231,6 +235,13 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         _invoker.InvokeAsync<JsonNode?>(callbackId, args, cancellationToken).GetAwaiter().GetResult();
     }
 
+    private void InvokeSyncVoidWithDtoWriteback(string callbackId, JsonObject? args, object?[] originalArgs, Type[] argTypes, CancellationToken cancellationToken)
+    {
+        AddCancellationTokenToArgs(ref args, cancellationToken);
+        var result = _invoker.InvokeAsync<JsonNode?>(callbackId, args, cancellationToken).GetAwaiter().GetResult();
+        ApplyDtoWriteback(result, originalArgs, argTypes);
+    }
+
     private T? InvokeSyncResult<T>(string callbackId, JsonObject? args, CancellationToken cancellationToken)
     {
         AddCancellationTokenToArgs(ref args, cancellationToken);
@@ -242,6 +253,13 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
     {
         AddCancellationTokenToArgs(ref args, cancellationToken);
         await _invoker.InvokeAsync<JsonNode?>(callbackId, args, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task InvokeAsyncVoidWithDtoWriteback(string callbackId, JsonObject? args, object?[] originalArgs, Type[] argTypes, CancellationToken cancellationToken)
+    {
+        AddCancellationTokenToArgs(ref args, cancellationToken);
+        var result = await _invoker.InvokeAsync<JsonNode?>(callbackId, args, cancellationToken).ConfigureAwait(false);
+        ApplyDtoWriteback(result, originalArgs, argTypes);
     }
 
     private async Task<T?> InvokeAsyncResult<T>(string callbackId, JsonObject? args, CancellationToken cancellationToken)
@@ -274,6 +292,96 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
             var (tokenId, _) = _cancellationTokenRegistry.CreateLinked(cancellationToken);
             args ??= new JsonObject();
             args["$cancellationToken"] = tokenId;
+        }
+    }
+
+    private static bool HasDtoParameters(ParameterInfo[] parameters)
+    {
+        return parameters.Any(p =>
+            p.ParameterType != typeof(CancellationToken) &&
+            p.ParameterType.GetCustomAttribute<AspireDtoAttribute>() is not null);
+    }
+
+    private Expression BuildSyncVoidCallWithDtoWriteback(string callbackId, Expression? argsExpr, Expression? ctExpr, ParameterExpression[] paramExprs, ParameterInfo[] parameters)
+    {
+        var (originalsExpr, typesExpr) = BuildOriginalArgsArrays(paramExprs, parameters);
+
+        var invokeMethod = typeof(AtsCallbackProxyFactory).GetMethod(
+            nameof(InvokeSyncVoidWithDtoWriteback),
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        return Expression.Call(
+            Expression.Constant(this),
+            invokeMethod,
+            Expression.Constant(callbackId),
+            argsExpr ?? Expression.Constant(null, typeof(JsonObject)),
+            originalsExpr,
+            typesExpr,
+            ctExpr ?? Expression.Constant(CancellationToken.None, typeof(CancellationToken)));
+    }
+
+    private Expression BuildAsyncVoidCallWithDtoWriteback(string callbackId, Expression? argsExpr, Expression? ctExpr, ParameterExpression[] paramExprs, ParameterInfo[] parameters)
+    {
+        var (originalsExpr, typesExpr) = BuildOriginalArgsArrays(paramExprs, parameters);
+
+        var invokeMethod = typeof(AtsCallbackProxyFactory).GetMethod(
+            nameof(InvokeAsyncVoidWithDtoWriteback),
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        return Expression.Call(
+            Expression.Constant(this),
+            invokeMethod,
+            Expression.Constant(callbackId),
+            argsExpr ?? Expression.Constant(null, typeof(JsonObject)),
+            originalsExpr,
+            typesExpr,
+            ctExpr ?? Expression.Constant(CancellationToken.None, typeof(CancellationToken)));
+    }
+
+    private static (Expression Originals, Expression Types) BuildOriginalArgsArrays(ParameterExpression[] paramExprs, ParameterInfo[] parameters)
+    {
+        var nonCtParams = new List<(ParameterExpression Expr, Type Type)>();
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].ParameterType != typeof(CancellationToken))
+            {
+                nonCtParams.Add((paramExprs[i], parameters[i].ParameterType));
+            }
+        }
+
+        var originalsExpr = Expression.NewArrayInit(typeof(object),
+            nonCtParams.Select(p => Expression.Convert(p.Expr, typeof(object))));
+
+        var typesExpr = Expression.NewArrayInit(typeof(Type),
+            nonCtParams.Select(p => (Expression)Expression.Constant(p.Type, typeof(Type))));
+
+        return (originalsExpr, typesExpr);
+    }
+
+    private void ApplyDtoWriteback(JsonNode? result, object?[] originalArgs, Type[] argTypes)
+    {
+        if (result is not JsonObject returnedArgs)
+        {
+            return;
+        }
+
+        for (int i = 0; i < originalArgs.Length; i++)
+        {
+            if (originalArgs[i] is null)
+            {
+                continue;
+            }
+
+            if (!_marshaller.IsDtoType(argTypes[i]))
+            {
+                continue;
+            }
+
+            var key = $"p{i}";
+            if (returnedArgs[key] is JsonObject modifiedDto)
+            {
+                AtsMarshaller.ApplyDtoProperties(modifiedDto, originalArgs[i]!, argTypes[i]);
+            }
         }
     }
 

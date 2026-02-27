@@ -223,11 +223,99 @@ public class CallbackProxyTests
         await Assert.ThrowsAsync<OperationCanceledException>(() => proxy());
     }
 
-    private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null)
+    [Fact]
+    public void InvokedSyncVoidProxy_AppliesDtoWritebackFromResult()
+    {
+        var dto = new TestCallbackDto { Name = "original", Count = 0 };
+
+        // The invoker returns the modified args (simulating TypeScript returning mutated DTO)
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = new JsonObject
+            {
+                ["p0"] = new JsonObject { ["name"] = "modified", ["count"] = 42 }
+            }
+        };
+        using var factory = CreateFactory(invoker, registerDtoTypes: true);
+
+        var proxy = (TestSyncVoidCallbackWithDto)factory.CreateProxy("test-callback", typeof(TestSyncVoidCallbackWithDto))!;
+
+        proxy(dto);
+
+        Assert.Equal("modified", dto.Name);
+        Assert.Equal(42, dto.Count);
+    }
+
+    [Fact]
+    public async Task InvokedAsyncVoidProxy_AppliesDtoWritebackFromResult()
+    {
+        var dto = new TestCallbackDto { Name = "original", Count = 0 };
+
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = new JsonObject
+            {
+                ["p0"] = new JsonObject { ["name"] = "async-modified", ["count"] = 99 }
+            }
+        };
+        using var factory = CreateFactory(invoker, registerDtoTypes: true);
+
+        var proxy = (TestAsyncVoidCallbackWithDto)factory.CreateProxy("test-callback", typeof(TestAsyncVoidCallbackWithDto))!;
+
+        await proxy(dto);
+
+        Assert.Equal("async-modified", dto.Name);
+        Assert.Equal(99, dto.Count);
+    }
+
+    [Fact]
+    public async Task InvokedSyncVoidProxy_DtoWritebackIgnoresNonDtoArgs()
+    {
+        // When the invoker returns args object but arg is not a DTO, it should not crash
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = new JsonObject
+            {
+                ["p0"] = JsonValue.Create("some-string")
+            }
+        };
+        using var factory = CreateFactory(invoker, registerDtoTypes: true);
+
+        var proxy = (TestCallbackWithString)factory.CreateProxy("test-callback", typeof(TestCallbackWithString))!;
+
+        // Should not throw - non-DTO args are skipped during writeback
+        await proxy("hello");
+    }
+
+    [Fact]
+    public void InvokedSyncVoidProxy_DtoWritebackHandlesNullResult()
+    {
+        var dto = new TestCallbackDto { Name = "original", Count = 0 };
+
+        // Invoker returns null (TypeScript callback returned undefined and no args were sent back)
+        var invoker = new TestCallbackInvoker { ResultToReturn = null };
+        using var factory = CreateFactory(invoker, registerDtoTypes: true);
+
+        var proxy = (TestSyncVoidCallbackWithDto)factory.CreateProxy("test-callback", typeof(TestSyncVoidCallbackWithDto))!;
+
+        proxy(dto);
+
+        // Original values should be unchanged
+        Assert.Equal("original", dto.Name);
+        Assert.Equal(0, dto.Count);
+    }
+
+    private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null, bool registerDtoTypes = false)
     {
         var handles = new HandleRegistry();
         var ctRegistry = new CancellationTokenRegistry();
-        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
+        var dtoTypes = registerDtoTypes
+            ? new List<AtsDtoTypeInfo>
+            {
+                new() { TypeId = "test/TestCallbackDto", Name = "TestCallbackDto", ClrType = typeof(TestCallbackDto), Properties = [] }
+            }
+            : [];
+        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = dtoTypes, EnumTypes = [] };
         var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
         return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles, ctRegistry, marshaller);
     }
@@ -246,6 +334,17 @@ public class CallbackProxyTests
     public delegate Task<string> TestCallbackWithStringResult(string input);
 
     public delegate Task TestCallbackWithCancellation(string value, CancellationToken cancellationToken);
+
+    public delegate void TestSyncVoidCallbackWithDto(TestCallbackDto dto);
+
+    public delegate Task TestAsyncVoidCallbackWithDto(TestCallbackDto dto);
+
+    [AspireDto]
+    public sealed class TestCallbackDto
+    {
+        public string? Name { get; set; }
+        public int Count { get; set; }
+    }
 }
 
 internal sealed class TestCallbackInvoker : ICallbackInvoker

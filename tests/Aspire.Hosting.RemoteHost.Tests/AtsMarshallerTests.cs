@@ -16,7 +16,14 @@ public class AtsMarshallerTests
         {
             Capabilities = [],
             HandleTypes = [],
-            DtoTypes = [new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] }],
+            DtoTypes = [
+                new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/TestDtoWithEnum", Name = "TestDtoWithEnum", ClrType = typeof(TestDtoWithEnum), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/SelfReferencingDto", Name = "SelfReferencingDto", ClrType = typeof(SelfReferencingDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/ParentDto", Name = "ParentDto", ClrType = typeof(ParentDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/ChildDto", Name = "ChildDto", ClrType = typeof(ChildDto), Properties = [] },
+            ],
             EnumTypes = []
         };
     }
@@ -626,6 +633,132 @@ public class AtsMarshallerTests
         return (marshaller, context);
     }
 
+    [Fact]
+    public void MarshalToJson_HandlesDirectCircularReference()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new SelfReferencingDto { Name = "root" };
+        dto.Self = dto;
+
+        var result = marshaller.MarshalToJson(dto);
+
+        Assert.NotNull(result);
+        var obj = Assert.IsType<JsonObject>(result);
+        Assert.Equal("root", obj["name"]!.GetValue<string>());
+        Assert.True(obj["self"] is null || obj["self"]!.GetValueKind() == System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void MarshalToJson_HandlesMutualCircularReference()
+    {
+        var marshaller = CreateMarshaller();
+        var parent = new ParentDto { Label = "parent" };
+        var child = new ChildDto { Label = "child", Parent = parent };
+        parent.Child = child;
+
+        var result = marshaller.MarshalToJson(parent);
+
+        Assert.NotNull(result);
+        var obj = Assert.IsType<JsonObject>(result);
+        Assert.Equal("parent", obj["label"]!.GetValue<string>());
+        var childObj = Assert.IsType<JsonObject>(obj["child"]);
+        Assert.Equal("child", childObj["label"]!.GetValue<string>());
+        // The back-reference to parent should be null (cycle broken)
+        Assert.True(childObj["parent"] is null || childObj["parent"]!.GetValueKind() == System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void MarshalToJson_HandlesCircularReferenceWithTypeRef()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new SelfReferencingDto { Name = "typed" };
+        dto.Self = dto;
+
+        var typeRef = new AtsTypeRef { TypeId = "test/SelfReferencingDto", Category = AtsTypeCategory.Dto };
+
+        var result = marshaller.MarshalToJson(dto, typeRef);
+
+        Assert.NotNull(result);
+        var obj = Assert.IsType<JsonObject>(result);
+        Assert.Equal("typed", obj["name"]!.GetValue<string>());
+        Assert.True(obj["self"] is null || obj["self"]!.GetValueKind() == System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void MarshalToJson_PreservesNonCircularNestedDtos()
+    {
+        var marshaller = CreateMarshaller();
+        var parent = new ParentDto { Label = "parent" };
+        var child = new ChildDto { Label = "child", Parent = null };
+        parent.Child = child;
+
+        var result = marshaller.MarshalToJson(parent);
+
+        Assert.NotNull(result);
+        var obj = Assert.IsType<JsonObject>(result);
+        Assert.Equal("parent", obj["label"]!.GetValue<string>());
+        var childObj = Assert.IsType<JsonObject>(obj["child"]);
+        Assert.Equal("child", childObj["label"]!.GetValue<string>());
+        Assert.True(childObj["parent"] is null || childObj["parent"]!.GetValueKind() == System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_UpdatesWritableProperties()
+    {
+        var dto = new TestDto { Name = "original", Count = 0 };
+        var source = new JsonObject { ["name"] = "updated", ["count"] = 42 };
+
+        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
+
+        Assert.Equal("updated", dto.Name);
+        Assert.Equal(42, dto.Count);
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_OnlyUpdatesProvidedProperties()
+    {
+        var dto = new TestDto { Name = "original", Count = 10 };
+        var source = new JsonObject { ["name"] = "updated" };
+
+        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
+
+        Assert.Equal("updated", dto.Name);
+        Assert.Equal(10, dto.Count); // Count unchanged since not in JSON
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_SkipsNonDeserializableProperties()
+    {
+        var dto = new DtoWithComplexProperty { Name = "original", Complex = new NonDeserializableType("keep-me") };
+        var source = new JsonObject
+        {
+            ["name"] = "updated",
+            ["complex"] = new JsonObject { ["value"] = "should-be-ignored" }
+        };
+
+        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(DtoWithComplexProperty));
+
+        Assert.Equal("updated", dto.Name);
+        Assert.Equal("keep-me", dto.Complex.Value); // Complex property unchanged
+    }
+
+    [Fact]
+    public void IsDtoType_ReturnsTrueForRegisteredDtoType()
+    {
+        var marshaller = CreateMarshaller();
+
+        Assert.True(marshaller.IsDtoType(typeof(TestDto)));
+    }
+
+    [Fact]
+    public void IsDtoType_ReturnsFalseForNonDtoType()
+    {
+        var marshaller = CreateMarshaller();
+
+        Assert.False(marshaller.IsDtoType(typeof(string)));
+        Assert.False(marshaller.IsDtoType(typeof(TestClass)));
+    }
+
     private enum TestEnum
     {
         ValueA,
@@ -642,5 +775,51 @@ public class AtsMarshallerTests
     {
         public string? Name { get; set; }
         public int Count { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class TestDtoWithEnum
+    {
+        public string? Label { get; set; }
+        public TestEnum Status { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class SelfReferencingDto
+    {
+        public string? Name { get; set; }
+        public SelfReferencingDto? Self { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class ParentDto
+    {
+        public string? Label { get; set; }
+        public ChildDto? Child { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class ChildDto
+    {
+        public string? Label { get; set; }
+        public ParentDto? Parent { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class DtoWithComplexProperty
+    {
+        public string? Name { get; set; }
+        public NonDeserializableType Complex { get; set; } = new("default");
+    }
+
+    /// <summary>
+    /// A type that cannot be deserialized by System.Text.Json (multiple parameterized constructors, none annotated).
+    /// Simulates EndpointReference in ResourceUrlAnnotation.
+    /// </summary>
+    private sealed class NonDeserializableType
+    {
+        public string Value { get; }
+        public NonDeserializableType(string value) => Value = value;
+        public NonDeserializableType(string value, int extra) => Value = value + extra;
     }
 }
