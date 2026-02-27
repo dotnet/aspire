@@ -42,6 +42,8 @@ jobs:
             \.md$
             eng/pipelines/.*
             eng/test-configuration.json
+            \.github/instructions/.*
+            \.github/skills/.*
             \.github/workflows/apply-test-attributes.yml
             \.github/workflows/backmerge-release.yml
             \.github/workflows/backport.yml
@@ -51,6 +53,7 @@ jobs:
             \.github/workflows/labeler-*.yml
             \.github/workflows/markdownlint*.yml
             \.github/workflows/refresh-manifests.yml
+            \.github/workflows/reproduce-flaky-tests.yml
             \.github/workflows/pr-review-needed.yml
             \.github/workflows/specialized-test-runner.yml
             \.github/workflows/tests-outerloop.yml
