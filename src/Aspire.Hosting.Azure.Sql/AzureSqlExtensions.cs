@@ -55,8 +55,6 @@ public static class AzureSqlExtensions
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddAzureSqlServer"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Obsolete API. Use AddAzureSqlServer instead.")]
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
         => PublishAsAzureSqlDatabase(builder, useProvisioner: false);
@@ -66,8 +64,6 @@ public static class AzureSqlExtensions
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddAzureSqlServer"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Obsolete API. Use AddAzureSqlServer instead.")]
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSqlServer)} instead to add an Azure SQL server resource.")]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
         => PublishAsAzureSqlDatabase(builder, useProvisioner: true);
