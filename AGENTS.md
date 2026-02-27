@@ -221,11 +221,19 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`Aspire.slnx`**: Main solution file (XML-based solution format)
 
 ### Continuous Integration
+
+#### GitHub Actions (primary, runs on PRs)
 - **`tests.yml`**: Main test workflow running across Windows/Linux/macOS
 - **`tests-quarantine.yml`**: Runs quarantined tests separately every 6 hours
 - **`tests-outerloop.yml`**: Runs outerloop tests separately every 6 hours
 - **`ci.yml`**: Main CI workflow triggered on PRs and pushes to main/release branches
 - **Build validation**: Includes package generation, API compatibility checks, template validation
+
+#### Azure DevOps (secondary, does NOT run tests on PRs)
+- **`eng/pipelines/azure-pipelines-public.yml`**: Weekly scheduled pipeline (Monday midnight UTC) that builds and runs tests on Helix
+- **⚠️ AzDO tests are easily broken** because they don't run on PRs — only weekly or via manual trigger (`/azp run aspire-tests`)
+- Changes to test infrastructure (`eng/Testing.props`, `eng/Testing.targets`, `tests/Directory.Build.*`, `tests/helix/*`) should be validated by triggering a manual AzDO run
+- See [docs/ci/azdo-public-pipeline.md](docs/ci/azdo-public-pipeline.md) for full architecture details including Helix test categories, archive process, and test routing
 
 ### Dependencies and Hidden Requirements
 - **Local .NET SDK**: Automatically uses local SDK when available after running restore due to paths configuration in global.json
