@@ -37,28 +37,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         uses: ./.github/actions/check-changed-files
         with:
-          # Patterns that do NOT require CI to run
-          patterns: |
-            \.md$
-            eng/pipelines/.*
-            eng/test-configuration.json
-            \.github/instructions/.*
-            \.github/skills/.*
-            \.github/workflows/apply-test-attributes.yml
-            \.github/workflows/backmerge-release.yml
-            \.github/workflows/backport.yml
-            \.github/workflows/dogfood-comment.yml
-            \.github/workflows/generate-api-diffs.yml
-            \.github/workflows/generate-ats-diffs.yml
-            \.github/workflows/labeler-*.yml
-            \.github/workflows/markdownlint*.yml
-            \.github/workflows/refresh-manifests.yml
-            \.github/workflows/reproduce-flaky-tests.yml
-            \.github/workflows/pr-review-needed.yml
-            \.github/workflows/specialized-test-runner.yml
-            \.github/workflows/tests-outerloop.yml
-            \.github/workflows/tests-quarantine.yml
-            \.github/workflows/update-*.yml
+          patterns_file: eng/testing/github-ci-trigger-patterns.txt
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs
