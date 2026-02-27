@@ -133,7 +133,7 @@ internal sealed class RootCommand : BaseRootCommand
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
-        TemplateCommand templateCommand,
+        Template.TemplateCommand templateCommand,
         SetupCommand setupCommand,
 #if DEBUG
         RenderCommand renderCommand,
