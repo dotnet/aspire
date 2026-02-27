@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent specific setup.</source>
-        <target state="new">Manage AI agent specific setup.</target>
+        <target state="translated">Umožňuje spravovat nastavení specifické pro AI agenta.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
         <source>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</source>
-        <target state="new">The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</target>
+        <target state="translated">Konfigurační soubor {0} obsahuje JSON v chybném formátu. Opravte prosím soubor ručně a spusťte příkaz znovu.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpCommand_Description">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">
         <source>Skipping update of '{0}'.</source>
-        <target state="new">Skipping update of '{0}'.</target>
+        <target state="translated">Přeskakuje se aktualizace {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationCompletedWithErrors">
         <source>Configuration completed with errors. Please fix the reported issues and re-run the command.</source>
-        <target state="new">Configuration completed with errors. Please fix the reported issues and re-run the command.</target>
+        <target state="translated">Konfigurace se dokončila s chybami. Opravte prosím nahlášené problémy a spusťte příkaz znovu.</target>
         <note />
       </trans-unit>
     </body>

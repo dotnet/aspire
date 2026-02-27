@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage CLI configuration including feature flags.</source>
-        <target state="new">Manage CLI configuration including feature flags.</target>
+        <target state="translated">Gestisce la configurazione dell'interfaccia della riga di comando, compresi i flag delle funzionalità.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">

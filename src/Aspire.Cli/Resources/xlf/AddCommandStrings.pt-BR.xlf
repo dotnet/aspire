@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
-        <target state="new">Add a hosting integration to the apphost.</target>
+        <target state="translated">Adicione uma integração de hospedagem ao apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -74,11 +74,11 @@
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
           <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
-          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+          <target state="translated">Uma instância do Aspire AppHost em execução foi interrompida para permitir a modificação do pacote.</target><note />
         </trans-unit>
       <trans-unit id="UnableToStopRunningInstances">
         <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
-        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <target state="translated">Não foi possível parar uma ou mais instâncias do Aspire AppHost em execução. Pare o aplicativo e tente novamente.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
