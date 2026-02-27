@@ -11,3 +11,4 @@ using Azure.Provisioning.AppContainers;
 // can be used as callback context parameters in polyglot app hosts.
 
 [assembly: AspireExport(typeof(ContainerApp), ExposeProperties = true)]
+[assembly: AspireExport(typeof(ContainerAppJob), ExposeProperties = true)]

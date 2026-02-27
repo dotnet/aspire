@@ -149,9 +149,9 @@ public static class ContainerAppExtensions
     /// });
     /// </code>
     /// </example>
-    /// <para>This overload is not available in polyglot app hosts. Use the parameterless overload instead.</para>
+    /// <para>This overload allows custom configuration of the container app job via a callback.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Action<AzureResourceInfrastructure, ContainerAppJob> is not ATS-compatible.")]
+    [AspireExport("publishAsConfiguredAzureContainerAppJob", Description = "Configures the compute resource as an Azure Container App Job with custom configuration")]
     [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this IResourceBuilder<T> resource, Action<AzureResourceInfrastructure, ContainerAppJob> configure)
         where T : IComputeResource
@@ -221,9 +221,9 @@ public static class ContainerAppExtensions
     ///        .PublishAsScheduledAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
     /// </code>
     /// </example>
-    /// <para>This overload is not available in polyglot app hosts. Use the overload without the configure parameter instead.</para>
+    /// <para>This overload allows custom configuration of the scheduled container app job via a callback.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Action<AzureResourceInfrastructure, ContainerAppJob> is not ATS-compatible. Use the polyglot-friendly overload.")]
+    [AspireExport("publishAsConfiguredScheduledAzureContainerAppJob", Description = "Configures the compute resource as a scheduled Azure Container App Job with custom configuration")]
     [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> PublishAsScheduledAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression, Action<AzureResourceInfrastructure, ContainerAppJob>? configure = null)
         where T : IComputeResource

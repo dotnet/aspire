@@ -43,12 +43,26 @@ await api.publishAsAzureContainerApp(async (infrastructure, app) => {
 });
 
 // === PublishAsAzureContainerAppJob ===
-// Test publishAsAzureContainerAppJob on a container resource
+// Test publishAsAzureContainerAppJob (parameterless - manual trigger)
 const worker = builder.addContainer("worker", "myregistry/worker:latest");
 await worker.publishAsAzureContainerAppJob();
 
-// Test publishAsScheduledAzureContainerAppJob on a container resource
+// Test publishAsConfiguredAzureContainerAppJob (with callback)
+const processor = builder.addContainer("processor", "myregistry/processor:latest");
+await processor.publishAsConfiguredAzureContainerAppJob(async (infrastructure, job) => {
+    // Configure the container app job here
+});
+
+// Test publishAsScheduledAzureContainerAppJob (simple - no callback)
 const scheduler = builder.addContainer("scheduler", "myregistry/scheduler:latest");
 await scheduler.publishAsScheduledAzureContainerAppJob("0 0 * * *");
+
+// Test publishAsConfiguredScheduledAzureContainerAppJob (with callback)
+const reporter = builder.addContainer("reporter", "myregistry/reporter:latest");
+await reporter.publishAsConfiguredScheduledAzureContainerAppJob("0 */6 * * *", {
+    configure: async (infrastructure, job) => {
+        // Configure the scheduled job here
+    }
+});
 
 await builder.build().run();

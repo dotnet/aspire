@@ -122,6 +122,9 @@ type ListanyHandle = Handle<'Aspire.Hosting/List<any>'>;
 /** Handle to ContainerApp */
 type ContainerAppHandle = Handle<'Azure.Provisioning.AppContainers/Azure.Provisioning.AppContainers.ContainerApp'>;
 
+/** Handle to ContainerAppJob */
+type ContainerAppJobHandle = Handle<'Azure.Provisioning.AppContainers/Azure.Provisioning.AppContainers.ContainerAppJob'>;
+
 /** Handle to IConfiguration */
 type IConfigurationHandle = Handle<'Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration'>;
 
@@ -279,6 +282,10 @@ export interface AddParameterOptions {
 
 export interface GetValueAsyncOptions {
     cancellationToken?: AbortSignal;
+}
+
+export interface PublishAsConfiguredScheduledAzureContainerAppJobOptions {
+    configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>;
 }
 
 export interface RunOptions {
@@ -2466,6 +2473,27 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
     private async _publishAsAzureContainerAppJobInternal(): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -2478,6 +2506,29 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ContainerResourcePromise {
         return new ContainerResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ContainerResourcePromise {
+        const configure = options?.configure;
+        return new ContainerResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
     }
 
     /** @internal */
@@ -2712,9 +2763,19 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
     }
 
     /** Configures the compute resource as a scheduled Azure Container App Job */
@@ -3306,6 +3367,27 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
     private async _publishAsAzureContainerAppJobInternal(): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -3318,6 +3400,29 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ExecutableResourcePromise {
+        const configure = options?.configure;
+        return new ExecutableResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
     }
 
     /** @internal */
@@ -3512,9 +3617,19 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
     }
 
     /** Configures the compute resource as a scheduled Azure Container App Job */
@@ -4360,6 +4475,27 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
     private async _publishAsAzureContainerAppJobInternal(): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4372,6 +4508,29 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ProjectResourcePromise {
         return new ProjectResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ProjectResourcePromise {
+        const configure = options?.configure;
+        return new ProjectResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
     }
 
     /** @internal */
@@ -4561,9 +4720,19 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
     }
 
     /** Configures the compute resource as a scheduled Azure Container App Job */
@@ -4583,6 +4752,27 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
     }
 
     /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
     private async _publishAsAzureContainerAppJobInternal(): Promise<ComputeResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
         const result = await this._client.invokeCapability<IComputeResourceHandle>(
@@ -4595,6 +4785,29 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ComputeResourcePromise {
         return new ComputeResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ComputeResourcePromise {
+        const configure = options?.configure;
+        return new ComputeResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
     }
 
     /** @internal */
@@ -4629,9 +4842,19 @@ export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
         return this._promise.then(onfulfilled, onrejected);
     }
 
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
     /** Configures the compute resource as a manually triggered Azure Container App Job */
     publishAsAzureContainerAppJob(): ComputeResourcePromise {
         return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
     }
 
     /** Configures the compute resource as a scheduled Azure Container App Job */
