@@ -183,7 +183,8 @@ internal class ConsoleInteractionService : IInteractionService
             .Title(promptText)
             .UseConverter(choiceFormatter)
             .AddChoices(choices)
-            .PageSize(10);
+            .PageSize(10)
+            .Required(false);
 
         var result = await _outConsole.PromptAsync(prompt, cancellationToken);
         return result;
