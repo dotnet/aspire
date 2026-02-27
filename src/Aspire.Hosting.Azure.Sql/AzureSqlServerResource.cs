@@ -5,7 +5,10 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Network;
@@ -14,6 +17,9 @@ using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Azure;
 
@@ -525,7 +531,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
 
         var peSubnet = pe.Subnet;
-        var vnet = peSubnet.Parent;
+        var vnetResource = peSubnet.Parent;
 
         AzureSubnetResource aciSubnetResource;
         // Only auto-allocate subnet if user didn't provide one
@@ -542,15 +548,27 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
         else
         {
+            var builder = new FakeDistributedApplicationBuilder(appModel);
+            var vnet = builder.CreateResourceBuilder(vnetResource);
+
             var existingSubnets = appModel.Resources.OfType<AzureSubnetResource>()
-                .Where(s => ReferenceEquals(s.Parent, vnet));
+                .Where(s => ReferenceEquals(s.Parent, vnetResource));
 
-            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnet, existingSubnets);
-            aciSubnetResource = new AzureSubnetResource($"{sql.Name}-aci-subnet", $"{sql.Name}-aci-subnet", aciSubnetCidr, vnet);
-            var aciSubnet = new FakeBuilder<AzureSubnetResource>(aciSubnetResource);
-            vnet.Subnets.Add(aciSubnet.Resource);
+            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnetResource, existingSubnets);
+            var aciSubnet = vnet.AddSubnet($"{sql.Name}-aci-subnet", aciSubnetCidr)
+                .WithNetworkSecurityGroup(builder.CreateResourceBuilder(sql.DeploymentScriptNetworkSecurityGroup!));
+            aciSubnetResource = aciSubnet.Resource;
 
-            aciSubnet.WithNetworkSecurityGroup(new FakeBuilder<AzureNetworkSecurityGroupResource>(sql.DeploymentScriptNetworkSecurityGroup!));
+            vnet.ConfigureInfrastructure(infra =>
+            {
+                var subnet = infra.GetProvisionableResources().OfType<SubnetResource>().SingleOrDefault(s => s.BicepIdentifier == Infrastructure.NormalizeBicepIdentifier(aciSubnet.Resource.Name))
+                    ?? throw new InvalidOperationException("Could not find the ACI subnet in the infrastructure.");
+
+                subnet.ServiceEndpoints.Add(new ServiceEndpointProperties()
+                {
+                    Service = "Microsoft.Storage",
+                });
+            });
 
             sql.Annotations.Add(new AdminDeploymentScriptSubnetAnnotation(aciSubnet.Resource));
         }
@@ -561,14 +579,52 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             AciSubnetDelegationServiceId));
     }
 
-    private sealed class FakeBuilder<T>(T resource) : IResourceBuilder<T> where T : IResource
+    private sealed class FakeBuilder<T>(T resource, IDistributedApplicationBuilder applicationBuilder) : IResourceBuilder<T> where T : IResource
     {
-        public IDistributedApplicationBuilder ApplicationBuilder => throw new NotImplementedException();
+        public IDistributedApplicationBuilder ApplicationBuilder => applicationBuilder;
         public T Resource => resource;
         public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
         {
             Resource.Annotations.Add(annotation);
             return this;
+        }
+    }
+
+    private sealed class FakeDistributedApplicationBuilder(DistributedApplicationModel model) : IDistributedApplicationBuilder
+    {
+        public IResourceCollection Resources => model.Resources;
+        public DistributedApplicationExecutionContext ExecutionContext { get; } = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
+        {
+            return new FakeBuilder<T>(resource, this);
+        }
+
+        public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
+        {
+            model.Resources.Add(resource);
+            return CreateResourceBuilder(resource);
+        }
+
+        public ConfigurationManager Configuration => throw new NotImplementedException();
+
+        public string AppHostDirectory => throw new NotImplementedException();
+
+        public Assembly? AppHostAssembly => throw new NotImplementedException();
+
+        public IHostEnvironment Environment => throw new NotImplementedException();
+
+        public IServiceCollection Services => throw new NotImplementedException();
+
+        public IDistributedApplicationEventing Eventing => throw new NotImplementedException();
+
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        public IDistributedApplicationPipeline Pipeline => throw new NotImplementedException();
+#pragma warning restore ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        public DistributedApplication Build()
+        {
+            throw new NotImplementedException();
         }
     }
 }
