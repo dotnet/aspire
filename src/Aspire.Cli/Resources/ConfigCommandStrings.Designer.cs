@@ -391,5 +391,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetFeatureHint", resourceCulture);
             }
         }
+
+        public static string HeaderKey {
+            get {
+                return ResourceManager.GetString("HeaderKey", resourceCulture);
+            }
+        }
+
+        public static string HeaderValue {
+            get {
+                return ResourceManager.GetString("HeaderValue", resourceCulture);
+            }
+        }
     }
 }

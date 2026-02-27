@@ -148,4 +148,57 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         await pendingRun;
     }
+
+    [Fact]
+    public async Task PsFormatJsonOutputsOnlyJsonToStdout()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        var outputFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "ps-output.json");
+
+        // Run aspire ps --format json with stdout redirected to a file.
+        // Status messages go to stderr (Spectre.Console spinner, cleared on completion),
+        // JSON output goes to stdout (redirected to the file).
+        // We only wait for the success prompt since the Spectre status spinner is
+        // transient and erased before WaitUntil polling can observe it.
+        sequenceBuilder.Type($"aspire ps --format json > {outputFilePath}")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify the file contains only the expected JSON output (empty array).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            var content = File.ReadAllText(outputFilePath).Trim();
+            Assert.Equal("[]", content);
+        });
+
+        // Exit the shell
+        sequenceBuilder.Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
 }

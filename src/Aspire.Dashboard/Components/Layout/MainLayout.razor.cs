@@ -183,8 +183,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private bool ShouldShowUnsecuredMcpMessage()
     {
-        // Only show warning if MCP endpoint is configured
+        // Only show warning if MCP endpoint is configured and MCP is not disabled
         return Options.CurrentValue.Mcp.GetEndpointAddress() != null &&
+               !Options.CurrentValue.Mcp.Disabled.GetValueOrDefault() &&
                Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured &&
                !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
     }
