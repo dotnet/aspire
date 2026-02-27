@@ -133,6 +133,7 @@ internal sealed class RootCommand : BaseRootCommand
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
+        RestoreCommand restoreCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
@@ -231,6 +232,7 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+            Subcommands.Add(restoreCommand);
         }
 
         // Replace the default --help action with grouped help output.
