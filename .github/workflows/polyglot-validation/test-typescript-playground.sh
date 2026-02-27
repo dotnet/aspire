@@ -3,7 +3,7 @@
 # Iterates all TypeScript playground apps under playground/polyglot/TypeScript/,
 # runs 'aspire restore' to regenerate the .modules/ SDK, and compiles with 'tsc'
 # to verify there are no regressions in the codegen API surface.
-set -e
+set -euo pipefail
 
 echo "=== TypeScript Playground Codegen Validation ==="
 
@@ -70,11 +70,13 @@ for app_dir in "${APP_DIRS[@]}"; do
 
     # Step 1: Install npm dependencies
     echo "  → npm install..."
-    if ! npm install --ignore-scripts --no-audit --no-fund 2>&1 | tail -3; then
+    npm_output=$(npm install --ignore-scripts --no-audit --no-fund 2>&1) || {
+        echo "$npm_output" | tail -5
         echo "  ❌ npm install failed for $app_name"
         FAILED+=("$app_name (npm install)")
         continue
-    fi
+    }
+    echo "$npm_output" | tail -3
 
     # Step 2: Regenerate SDK code
     echo "  → aspire restore..."
