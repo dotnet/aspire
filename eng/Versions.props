@@ -82,18 +82,18 @@
     <MicrosoftExtensionsFeaturesPreviewVersion>10.0.2</MicrosoftExtensionsFeaturesPreviewVersion>
     <MicrosoftAspNetCoreSignalRClientPreviewVersion>10.0.2</MicrosoftAspNetCoreSignalRClientPreviewVersion>
     <!-- Runtime -->
-    <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.2</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.3</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
     <MicrosoftExtensionsHostingPreviewVersion>10.0.2</MicrosoftExtensionsHostingPreviewVersion>
     <MicrosoftExtensionsCachingMemoryPreviewVersion>10.0.2</MicrosoftExtensionsCachingMemoryPreviewVersion>
-    <MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>10.0.2</MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>
+    <MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>10.0.3</MicrosoftExtensionsConfigurationAbstractionsPreviewVersion>
     <MicrosoftExtensionsConfigurationBinderPreviewVersion>10.0.2</MicrosoftExtensionsConfigurationBinderPreviewVersion>
-    <MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>10.0.2</MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>
-    <MicrosoftExtensionsLoggingAbstractionsPreviewVersion>10.0.2</MicrosoftExtensionsLoggingAbstractionsPreviewVersion>
-    <MicrosoftExtensionsOptionsPreviewVersion>10.0.2</MicrosoftExtensionsOptionsPreviewVersion>
-    <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.2</MicrosoftExtensionsPrimitivesPreviewVersion>
+    <MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>10.0.3</MicrosoftExtensionsDependencyInjectionAbstractionsPreviewVersion>
+    <MicrosoftExtensionsLoggingAbstractionsPreviewVersion>10.0.3</MicrosoftExtensionsLoggingAbstractionsPreviewVersion>
+    <MicrosoftExtensionsOptionsPreviewVersion>10.0.3</MicrosoftExtensionsOptionsPreviewVersion>
+    <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.3</MicrosoftExtensionsPrimitivesPreviewVersion>
     <MicrosoftExtensionsHttpPreviewVersion>10.0.2</MicrosoftExtensionsHttpPreviewVersion>
     <SystemFormatsAsn1PreviewVersion>10.0.2</SystemFormatsAsn1PreviewVersion>
-    <SystemTextJsonPreviewVersion>10.0.2</SystemTextJsonPreviewVersion>
+    <SystemTextJsonPreviewVersion>10.0.3</SystemTextJsonPreviewVersion>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->
   <PropertyGroup Label="Current">
