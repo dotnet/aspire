@@ -137,7 +137,7 @@ Each work item follows this lifecycle:
 
 1. **Pre-commands**: Clean up stale processes (dotnet-tests, dcp.exe), start Docker cleanup, set environment variables (DCP paths, SDK paths, dev certs, Docker BuildKit)
 2. **Command**: Run the test executable with MTP arguments, blame/crash dump collection, quarantine exclusion
-3. **Post-commands**: Wait for DCP to exit, list Docker state, rename `.trx` files for collection
+3. **Post-commands**: List Docker state, rename `.trx` files for collection
 
 ### Correlation Payloads (Shared Dependencies)
 
@@ -239,18 +239,7 @@ Since AzDO tests don't run on PRs, changes can silently break the pipeline. The 
 
 **What to watch for**: Adding new source files, shared utilities, config files, or snapshot directories that tests depend on. If the test runs on Helix (`RunOnAzdoHelix=true`), verify the file is included in the archive payload. Check for conditional compilation (`Condition=`) that might exclude files when building outside the repo.
 
-### 2. Shell Command Escaping in Helix
-
-**Pattern**: Helix splits commands on semicolons (both literal `;` and URL-encoded `%3B`) and strips single quotes, breaking shell constructs like `while/do/done`, `if/then/fi`, and `$(...)`.
-
-**Real incidents**:
-- `548d3dc0`: `_WaitForDcpCommand` used semicolons and `$(date +%s)` → Helix split the command at semicolons and MSBuild evaluated `$(date +%s)` as a property expression
-- `27eb2c9a`: Attempted fix with `bash -c '...'` — Helix stripped the single quotes
-- `30376fcf`: Final fix: simplified to use only `&&` and `||` chaining, no shell constructs
-
-**What to watch for**: Changes to `HelixPreCommand`, `HelixPostCommand`, or `_*Command` properties in `tests/helix/*.proj` or `tests/helix/*.targets`. Use only `&&` / `||` chaining and `%3B` for semicolons. Avoid `while`, `if`, `for`, single quotes, and MSBuild-conflicting syntax like `$(variable)` (use backtick syntax or `$VARIABLE` env vars instead).
-
-### 3. DOTNET_ROOT / SDK Path Mismatches
+### 2. DOTNET_ROOT / SDK Path Mismatches
 
 **Pattern**: Helix agents have a different (often older) system .NET SDK than what tests require. Tests work on GitHub Actions because the correct SDK is on PATH, but fail on Helix/AzDO because the system dotnet is used instead.
 
@@ -260,7 +249,7 @@ Since AzDO tests don't run on PRs, changes can silently break the pipeline. The 
 
 **What to watch for**: Changes to `DOTNET_ROOT`, `PATH`, or SDK version settings in `BuildAndTest.yml`, `tests/Directory.Build.targets`, or helix targets. If a change works by relying on the system dotnet or GitHub Actions' pre-installed SDK, it will likely break AzDO/Helix.
 
-### 4. Docker/Buildx Availability Differences
+### 3. Docker/Buildx Availability Differences
 
 **Pattern**: Tests that require Docker or Docker Buildx pass on GitHub Actions but fail on AzDO/Helix agents where Docker capabilities differ. The `RequiresFeatureAttribute` and `TestFeature` enum (`tests/Aspire.TestUtilities/TestFeature.cs`) provide the mechanism to declare these dependencies:
 
@@ -276,7 +265,7 @@ If a test depends on a Docker capability not covered by these (e.g., a new Docke
 
 **What to watch for**: New tests that use `WithDockerfile`, Docker buildx, testcontainers, or `DOCKER_BUILDKIT`. Every such test **must** have `[RequiresFeature(TestFeature.Docker)]` or `[RequiresFeature(TestFeature.DockerPluginBuildx)]` as appropriate. Without this attribute, the test will attempt to run on environments where Docker is unavailable and fail. If the test depends on a Docker capability not covered by existing `TestFeature` values, add a new flag.
 
-### 5. Incorrect RunOnAzdoHelix* Overrides
+### 4. Incorrect RunOnAzdoHelix* Overrides
 
 **Pattern**: Test routing properties are incorrectly added or removed, causing tests to not run where expected or to be archived when they shouldn't be.
 
@@ -286,7 +275,7 @@ If a test depends on a Docker capability not covered by these (e.g., a new Docke
 
 **What to watch for**: Changes to `RunOnAzdoHelix*` properties in `.csproj` files. Verify that the routing matches the test category in `send-to-helix-ci.proj`. Template tests run on both Windows and Linux Helix, so don't set `RunOnAzdoHelixWindows=false` on them.
 
-### 6. Helix Timeout Exhaustion
+### 5. Helix Timeout Exhaustion
 
 **Pattern**: Tests that fit within GitHub Actions' generous timeouts exceed Helix's per-work-item timeout (originally 20 minutes), especially Docker-based tests that pull images.
 
@@ -296,7 +285,7 @@ If a test depends on a Docker capability not covered by these (e.g., a new Docke
 
 **What to watch for**: New Docker-based tests or tests with significant setup time being added to projects that run on Helix. Check if the existing timeout (`_workItemTimeout` in `send-to-helix-inner.proj`) is sufficient.
 
-### 7. Tests Referencing Repo Paths or Test Projects at Runtime
+### 6. Tests Referencing Repo Paths or Test Projects at Runtime
 
 **Pattern**: Tests that reference files relative to the repo root, or that use `AddProject<T>()` to load test project binaries, fail on Helix because the repo directory structure does not exist on the Helix agent. At runtime, Aspire resolves the original project paths embedded at build time, and those paths won't be present on Helix.
 
@@ -312,13 +301,13 @@ This applies in two ways:
 
 **What to watch for**: Tests that use `AddProject<T>()`, `AppHostDirectory`, `Directory.GetCurrentDirectory()`, repo-relative paths, or write to directories that might be read-only on Helix agents. If a test needs `AddProject`, it likely cannot run on Helix as a basic test — set `RunOnAzdoHelixWindows=false` / `RunOnAzdoHelixLinux=false`, or move it to the `buildonhelixtests` category. Use `TempDirectory` or `Path.GetTempPath()` for write operations.
 
-### 8. Out-of-Repo Build Differences (buildonhelixtests)
+### 7. Out-of-Repo Build Differences (buildonhelixtests)
 
 **Pattern**: The `buildonhelixtests` category runs `dotnet build` + `dotnet test` from source on Helix. These tests use `AspireProjectOrPackageReference` instead of `ProjectReference` to resolve Aspire packages from built NuGet packages. Missing package references or incorrect conditions break the build.
 
 **What to watch for**: Tests in the `buildonhelixtests` category (e.g., Playground.Tests) that add new `ProjectReference` entries. These should be `AspireProjectOrPackageReference` to work both in-repo and on Helix. Check `Aspire.RepoTesting.targets` for the conversion logic.
 
-### 9. Snapshot Testing File Conflicts
+### 8. Snapshot Testing File Conflicts
 
 **Pattern**: Multiple test projects have `Snapshots/` directories with identically-named verified files. When these are all copied to a single Helix correlation payload directory, they overwrite each other.
 
