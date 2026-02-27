@@ -17,13 +17,13 @@ This document describes the Azure DevOps (AzDO) public pipeline for the Aspire r
 |---------------------------|--------------------------------|----------------------------------------------|
 | **PR**                    | `''` (empty)                   | Build + pack only, **no tests**              |
 | **Scheduled** (weekly)    | `_pipeline_tests,_helix_tests` | Build + pack + non-helix tests + Helix tests |
-| **Manual** (`azdo-tests`) | `_pipeline_tests,_helix_tests` | Build + pack + non-helix tests + Helix tests |
+| **Manual** (`aspire-tests`) | `_pipeline_tests,_helix_tests` | Build + pack + non-helix tests + Helix tests |
 
 > **Key insight**: PR builds only verify compilation and packaging. Tests are skipped on PRs. This is why changes that break AzDO-specific test infrastructure can go unnoticed.
 
 ## Pipeline Architecture
 
-```
+```text
 azure-pipelines-public.yml
   └── extends: templates/public-pipeline-template.yml
         └── stage: build
@@ -48,7 +48,7 @@ This is the build-and-test workhorse. For public builds (`runAsPublic: true`), i
 
 #### Build Step (always runs for public)
 
-```
+```text
 build.sh/cmd -restore -build -configuration Release -pack
     /p:PrepareForHelix={true|false}
 ```
@@ -61,7 +61,7 @@ When `PrepareForHelix=true`, the build also:
 
 These tests run **directly on the AzDO agent** (not Helix), with code coverage via `dotnet-coverage`:
 
-```
+```bash
 dotnet-coverage collect "build.sh -testnobuild -test -configuration Release /maxcpucount:1 /p:BuildInParallel=false"
 ```
 
@@ -225,7 +225,7 @@ The `eng/test-configuration.json` configures test retries:
 
 ## Known Breakage Patterns (from Real Incidents)
 
-Since AzDO tests don't run on PRs, changes can silently break the pipeline. The following patterns have caused real breakages over the past year, identified from git history. **Code reviewers should watch for these on PRs.**
+Since AzDO tests don't run on PRs, changes can silently break the pipeline. The following 8 patterns have caused real breakages over the past year, identified from git history. **Code reviewers should watch for these on PRs.**
 
 ### 1. Missing Files in Helix Payload
 
@@ -338,7 +338,7 @@ When reviewing PRs, flag these for manual AzDO validation (`/azp run aspire-test
 
 If you suspect your PR may affect AzDO tests, you can trigger a manual run:
 
-```
+```text
 /azp run aspire-tests
 ```
 

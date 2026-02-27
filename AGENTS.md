@@ -230,7 +230,7 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **Build validation**: Includes package generation, API compatibility checks, template validation
 
 #### Azure DevOps (secondary, does NOT run tests on PRs)
-- **`azure-pipelines-public.yml`**: Weekly scheduled pipeline (Monday midnight UTC) that builds and runs tests on Helix
+- **`eng/pipelines/azure-pipelines-public.yml`**: Weekly scheduled pipeline (Monday midnight UTC) that builds and runs tests on Helix
 - **⚠️ AzDO tests are easily broken** because they don't run on PRs — only weekly or via manual trigger (`/azp run aspire-tests`)
 - Changes to test infrastructure (`eng/Testing.props`, `eng/Testing.targets`, `tests/Directory.Build.*`, `tests/helix/*`) should be validated by triggering a manual AzDO run
 - See [docs/ci/azdo-public-pipeline.md](docs/ci/azdo-public-pipeline.md) for full architecture details including Helix test categories, archive process, and test routing
