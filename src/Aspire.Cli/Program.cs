@@ -329,6 +329,7 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, Templating.Git.GitTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
