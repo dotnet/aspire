@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>describe</source>
-        <target state="new">describe</target>
+        <target state="translated">설명</target>
         <note />
       </trans-unit>
     </body>
