@@ -243,8 +243,8 @@ builder.Build().Run();
             });
 
             // Step 11: Second deployment to push new images
+            // Clear the terminal so the CellPatternSearcher doesn't match "PIPELINE SUCCEEDED" from the first deploy
             output.WriteLine("Step 11: Starting second Azure deployment...");
-            // Reset the pipeline searchers for second deploy
             var waitingForPipelineSucceeded2 = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
             var waitingForPipelineFailed2 = new CellPatternSearcher()
@@ -252,6 +252,9 @@ builder.Build().Run();
 
             var pipeline2Succeeded = false;
             sequenceBuilder
+                .Type("clear")
+                .Enter()
+                .Wait(TimeSpan.FromSeconds(1))
                 .Type("aspire deploy")
                 .Enter()
                 .WaitUntil(s =>
