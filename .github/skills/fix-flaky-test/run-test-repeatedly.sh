@@ -12,7 +12,7 @@ STOP_ON_FAILURE=true
 # ---------- usage ----------
 usage() {
     cat <<'EOF'
-Usage: .github/workflows/fix-flaky-test/run-test-repeatedly.sh [OPTIONS] -- <test command...>
+Usage: .github/skills/fix-flaky-test/run-test-repeatedly.sh [OPTIONS] -- <test command...>
 
 Runs <test command> repeatedly to validate flaky test fixes.
 Everything after '--' is executed verbatim each iteration.
@@ -23,8 +23,8 @@ Options:
   --help        Show this help message
 
 Examples:
-  .github/workflows/fix-flaky-test/run-test-repeatedly.sh -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
-  .github/workflows/fix-flaky-test/run-test-repeatedly.sh -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+  .github/skills/fix-flaky-test/run-test-repeatedly.sh -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
+  .github/skills/fix-flaky-test/run-test-repeatedly.sh -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 EOF
     exit 0
 }
@@ -61,6 +61,19 @@ if [[ ${#TEST_CMD[@]} -eq 0 ]]; then
     echo "Error: no test command provided. Use -- to separate options from the test command." >&2
     echo "Run with --help for usage." >&2
     exit 1
+fi
+
+# ---------- detect CI vs local ----------
+DOCKER_CLEANUP="true"
+if [[ -z "${CI:-}" ]] && [[ -z "${GITHUB_ACTIONS:-}" ]]; then
+    if command -v docker &>/dev/null; then
+        echo "⚠️  This script removes ALL Docker containers and volumes between iterations."
+        read -p "Allow Docker cleanup? (y/N) " -r
+        if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
+            DOCKER_CLEANUP="false"
+            echo "Docker cleanup disabled. Note: leftover containers may affect test results."
+        fi
+    fi
 fi
 
 # ---------- infer test assembly name from .csproj in args ----------
@@ -115,7 +128,7 @@ fi
 # ---------- cleanup ----------
 clean_environment() {
     # Kill dcp / dcpctrl processes using pgrep + while loop
-    pgrep -lf "dcp" 2>/dev/null | grep -E "dcp(\.exe|ctl)" | awk '{print $1}' | while read pid; do
+    pgrep -lf "dcp" 2>/dev/null | grep -E "\bdcp(\.exe|ctl)?\b" | awk '{print $1}' | while read pid; do
         kill -9 "$pid" 2>/dev/null || true
     done
 
@@ -139,8 +152,8 @@ clean_environment() {
     # Brief wait for processes to die
     sleep 1
 
-    # Docker cleanup — only if docker is available
-    if command -v docker &>/dev/null; then
+    # Docker cleanup — only if docker is available and cleanup is approved
+    if command -v docker &>/dev/null && [[ "$DOCKER_CLEANUP" == "true" ]]; then
         local containers
         containers="$(docker ps -aq 2>/dev/null)"
         if [[ -n "$containers" ]]; then
@@ -223,10 +236,21 @@ for i in $(seq 1 "$ITERATIONS"); do
     run_with_timeout 180 "${TEST_CMD[@]}" >> "$ITER_LOG" 2>&1
     EXIT_CODE=$?
 
+    # Detect zero-test runs (exit code 8 is masked by --ignore-exit-code 8 in Testing.props)
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        if ! grep -qE "Total:\s*[1-9]" "$ITER_LOG" 2>/dev/null; then
+            EXIT_CODE=8
+        fi
+    fi
+
     # Classify result
     if [[ $EXIT_CODE -eq 0 ]]; then
         echo -e "${GREEN}PASS${NC}" | tee -a "$LOG_FILE"
         PASS_COUNT=$((PASS_COUNT + 1))
+    elif [[ $EXIT_CODE -eq 8 ]]; then
+        echo -e "${YELLOW}ZERO TESTS${NC} (no tests matched filter — check quarantine/filter settings)" | tee -a "$LOG_FILE"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        cp "$ITER_LOG" "$RESULTS_DIR/failure-$i.log"
     elif [[ $EXIT_CODE -eq 124 ]]; then
         echo -e "${YELLOW}TIMEOUT${NC}" | tee -a "$LOG_FILE"
         TIMEOUT_COUNT=$((TIMEOUT_COUNT + 1))

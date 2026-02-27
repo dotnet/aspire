@@ -15,10 +15,10 @@
     (direct invocation from a PowerShell prompt).
 
 .EXAMPLE
-    .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
+    .github/skills/fix-flaky-test/run-test-repeatedly.ps1 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --no-build -- --filter-method "*.MyTest"
 
 .EXAMPLE
-    .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+    .github/skills/fix-flaky-test/run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 #>
 
 # ---------- defaults ----------
@@ -46,7 +46,7 @@ $i = 0
         }
         '--help' {
             Write-Host @"
-Usage: .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 [OPTIONS] -- <test command...>
+Usage: .github/skills/fix-flaky-test/run-test-repeatedly.ps1 [OPTIONS] -- <test command...>
 
 Runs <test command> repeatedly to validate flaky test fixes.
 Everything after '--' is executed verbatim each iteration.
@@ -57,8 +57,8 @@ Options:
   --help        Show this help message
 
 Examples:
-  .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj -- --filter-method "*.MyTest"
-  .github/workflows/fix-flaky-test/run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
+  .github/skills/fix-flaky-test/run-test-repeatedly.ps1 -n 20 -- dotnet test tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj -- --filter-method "*.MyTest"
+  .github/skills/fix-flaky-test/run-test-repeatedly.ps1 -n 50 --run-all -- dotnet test tests/Foo/Foo.csproj -- --filter-method "*.Bar"
 "@
             exit 0
         }
@@ -80,6 +80,19 @@ if ($TestCmd.Count -eq 0) {
     Write-Error "Error: no test command provided. Use -- to separate options from the test command."
     Write-Error "Run with --help for usage."
     exit 1
+}
+
+# ---------- detect CI vs local ----------
+$DockerCleanup = $true
+if (-not $env:CI -and -not $env:GITHUB_ACTIONS) {
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        Write-Host "Warning: This script removes ALL Docker containers and volumes between iterations." -ForegroundColor Yellow
+        $response = Read-Host "Allow Docker cleanup? (y/N)"
+        if ($response -notmatch '^[Yy]$') {
+            $DockerCleanup = $false
+            Write-Host "Docker cleanup disabled. Note: leftover containers may affect test results."
+        }
+    }
 }
 
 # ---------- infer test assembly name from .csproj in args ----------
@@ -129,8 +142,8 @@ function Invoke-TestCleanup {
     # Brief wait for processes to die
     Start-Sleep -Seconds 1
 
-    # Docker cleanup — only if docker is available
-    if (Get-Command docker -ErrorAction SilentlyContinue) {
+    # Docker cleanup — only if docker is available and cleanup is approved
+    if ($DockerCleanup -and (Get-Command docker -ErrorAction SilentlyContinue)) {
         $containers = docker ps -aq 2>$null
         if ($containers) {
             $containers | ForEach-Object { docker stop $_ 2>$null } | Out-Null
@@ -257,11 +270,24 @@ for ($iter = 1; $iter -le $Iterations; $iter++) {
         Remove-Item $stderrFile -ErrorAction SilentlyContinue
     }
 
+    # Detect zero-test runs (exit code 8 is masked by --ignore-exit-code 8 in Testing.props)
+    if ($exitCode -eq 0) {
+        $iterContent = Get-Content $iterLog -Raw -ErrorAction SilentlyContinue
+        if (-not ($iterContent -match 'Total:\s*[1-9]')) {
+            $exitCode = 8
+        }
+    }
+
     # Classify result
     if ($exitCode -eq 0) {
         Write-Host "PASS" -ForegroundColor Green
         "PASS" | Out-File -Append -FilePath $LogFile -Encoding utf8
         $PassCount++
+    } elseif ($exitCode -eq 8) {
+        Write-Host "ZERO TESTS (no tests matched filter — check quarantine/filter settings)" -ForegroundColor Yellow
+        "ZERO TESTS (no tests matched filter)" | Out-File -Append -FilePath $LogFile -Encoding utf8
+        $FailCount++
+        Copy-Item $iterLog (Join-Path $ResultsDir "failure-$iter.log")
     } elseif ($exitCode -eq 124) {
         Write-Host "TIMEOUT" -ForegroundColor Yellow
         "TIMEOUT" | Out-File -Append -FilePath $LogFile -Encoding utf8
