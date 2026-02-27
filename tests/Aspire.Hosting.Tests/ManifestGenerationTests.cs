@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "5")]
 public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

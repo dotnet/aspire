@@ -5,6 +5,7 @@ using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.Tests.Ats;
 
+[Trait("Partition", "4")]
 public class AtsCapabilityScannerTests
 {
     #region MapToAtsTypeId Tests

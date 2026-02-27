@@ -375,7 +375,7 @@ Environment variables set in CI:
 - `GH_TOKEN`: GitHub token for API access
 - `GITHUB_WORKSPACE`: Workspace root for artifact paths
 
-Each test class runs as a separate CI job via `CliEndToEndTestRunsheetBuilder` for parallel execution.
+Each test class runs as a separate CI job via the unified `TestEnumerationRunsheetBuilder` infrastructure (using `SplitTestsOnCI=true`) for parallel execution.
 
 ## CI Troubleshooting
 
