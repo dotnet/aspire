@@ -62,11 +62,6 @@
         <target state="translated">Échec de la validation de la commande « {0} » : {1}. Pour les instructions d’installation manuelle, voir : {2}</target>
         <note />
       </trans-unit>
-      <trans-unit id="PersistentContainerWithoutUserSecrets">
-        <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</source>
-        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceMayFailToStart">
         <source>Resource '{0}' may fail to start: {1}</source>
         <target state="translated">Le démarrage de la ressource « {0} » peut échouer : {1}</target>

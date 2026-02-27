@@ -62,11 +62,6 @@
         <target state="translated">命令 '{0}' 驗證失敗: {1}。如需安裝指示，請參閱: {2}</target>
         <note />
       </trans-unit>
-      <trans-unit id="PersistentContainerWithoutUserSecrets">
-        <source>Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</source>
-        <target state="new">Resource '{0}' has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run 'aspire secret set' in the AppHost directory to configure secrets.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceMayFailToStart">
         <source>Resource '{0}' may fail to start: {1}</source>
         <target state="translated">資源 '{0}' 可能無法啟動: {1}</target>
