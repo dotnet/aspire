@@ -6,7 +6,10 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
+using Azure.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
@@ -39,26 +42,88 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
+            var websiteGetHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-{targetResource.Name}-hostname",
+                Action = async ctx =>
+                {
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+
+                    if (!computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
+                        return;
+                    }
+
+                    var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+
+                    // Get the website name (and slot name, if applicable)
+                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDnl).ConfigureAwait(false);
+                    string websiteSlotName = string.Empty;
+
+                    if (computeEnv.DeploymentSlotParameter is not null || computeEnv.DeploymentSlot is not null)
+                    {
+                        var deploymentSlotValue = computeEnv.DeploymentSlotParameter != null
+                            ? await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
+                            : computeEnv.DeploymentSlot!;
+                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDnl, deploymentSlotValue).ConfigureAwait(false);
+                    }
+
+                    if (!computeEnv.EnableRegionalDnl)
+                    {
+                        SetAppServiceHostNames(context,
+                            $"{websiteName}.{AzureAppServiceDnsSuffix}",
+                            string.IsNullOrWhiteSpace(websiteSlotName) ? null : $"{websiteSlotName}.{AzureAppServiceDnsSuffix}");
+                        return;
+                    }
+
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for {websiteName}", false);
+
+                    var hostName = await GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
+                    string? slotHostName = null;
+
+                    if (!string.IsNullOrWhiteSpace(websiteSlotName))
+                    {
+                        slotHostName = await GetDnlHostNameAsync(websiteSlotName, "Slot", ctx).ConfigureAwait(false);
+                    }
+
+                    if (hostName is not null)
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name {hostName} for {websiteName}", false);
+
+                        SetAppServiceHostNames(context, hostName, slotHostName);
+                    }
+                },
+                Tags = ["fetch-website-hostname"],
+                DependsOnSteps = [AzureEnvironmentResource.CreateProvisioningContextStepName],
+            };
+
+            steps.Add(websiteGetHostNameStep);
+
+            if (!targetResource.TryGetEndpoints(out var endpoints))
+            {
+                endpoints = [];
+            }
+
             var printResourceSummary = new PipelineStep
             {
                 Name = $"print-{targetResource.Name}-summary",
                 Description = $"Prints the deployment summary and URL for {targetResource.Name}.",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    string? deploymentSlot = null;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    string? deploymentUrl = null;
 
-                    if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
+                    if (computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null)
                     {
-                        deploymentSlot = computerEnv.DeploymentSlotParameter is null ?
-                           computerEnv.DeploymentSlot :
-                           await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                        deploymentUrl = $"https://{WebsiteSlotHostName}";
+                    }
+                    else
+                    {
+                        deploymentUrl = $"https://{WebsiteHostName}";
                     }
 
-                    var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
-                    var endpoint = $"https://{hostName}.azurewebsites.net";
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
-                    ctx.Summary.Add(targetResource.Name, endpoint);
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{deploymentUrl}]({deploymentUrl})", enableMarkdown: true);
                 },
                 Tags = ["print-summary"],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
@@ -89,6 +154,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var pushSteps = context.GetSteps(targetResource, WellKnownPipelineTags.PushContainerImage);
             provisionSteps.DependsOn(pushSteps);
 
+            // Ensure all fetch website host steps run before provision
+            var fetchWebsiteHostNameSteps = context.GetSteps("fetch-website-hostname");
+            provisionSteps.DependsOn(fetchWebsiteHostNameSteps);
+
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
         }));
@@ -100,26 +169,106 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     public IResource TargetResource { get; }
 
     /// <summary>
+    /// Website host name.
+    /// </summary>
+    private string WebsiteHostName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Website slot host name.
+    /// </summary>
+    private string? WebsiteSlotHostName { get; set; }
+
+    /// <summary>
     /// Gets the Azure App Service website name, optionally including the deployment slot suffix.
     /// </summary>
     /// <param name="context">The pipeline step context.</param>
+    /// <param name="regionalDnlEnabled">Whether regional DNL (Domain Name Label) is enabled for the website.</param>
     /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
-    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null)
+    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, bool regionalDnlEnabled = false, string? deploymentSlot = null)
     {
         var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
 
-        if (string.IsNullOrWhiteSpace(deploymentSlot))
+        // Apply length constraints based on whether regional DNL is enabled
+        if (regionalDnlEnabled)
         {
-            return TruncateToMaxLength(websiteName, 60);
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
+            {
+                return TruncateToMaxLength(websiteName, MaxWebsiteNameLengthWithDnl);
+            }
+            websiteName = TruncateToMaxLength(websiteName, MaxWebsiteHostNameLengthWithSlotAndDnl);
+            var trimmedSlotName = TruncateToMaxLength(deploymentSlot, MaxDeploymentSlotNameLengthWithDnl);
+            websiteName += $"-{trimmedSlotName}";
+
+            return websiteName;
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
+            {
+                return TruncateToMaxLength(websiteName, 60);
+            }
+
+            websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
+            websiteName += $"-{deploymentSlot}";
+
+            return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+        }
+    }
+
+    /// <summary>
+    /// Fetch the App Service hostname for a given resource.
+    /// </summary>
+    /// <param name="websiteName">website name</param>
+    /// <param name="resourceType">resource type (site or slot)</param>
+    /// <param name="context">pipeline step context</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    internal static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
+    {
+        context.ReportingStep.Log(LogLevel.Information, $"Fetching DNL host name for: {websiteName}", false);
+        var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
+
+        // Prepare ARM endpoint and request
+        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
+        var requestBody = new
+        {
+            name = websiteName,
+            type = resourceType,
+            autoGeneratedDomainNameLabelScope = "TenantReuse"
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", armContext.AccessToken);
+
+        using var response = await armContext.HttpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        using var responseStream = await response.Content.ReadAsStreamAsync(context.CancellationToken).ConfigureAwait(false);
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(responseStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("hostName", out var hostNameElement) || hostNameElement.ValueKind != System.Text.Json.JsonValueKind.String)
+        {
+            throw new InvalidOperationException("The Azure management API response did not contain the expected 'hostName' string property.");
         }
 
-        websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
-        websiteName += $"-{deploymentSlot}";
+        var hostName = hostNameElement.GetString();
+        return hostName!;
+    }
 
-        return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+    private void SetAppServiceHostNames(AppService.AzureAppServiceWebsiteContext context, string websiteHostName, string? websiteSlotHostName)
+    {
+        context.SetWebsiteHostName(websiteHostName, websiteSlotHostName);
+
+        this.WebsiteHostName = websiteHostName;
+        this.WebsiteSlotHostName = websiteSlotHostName;
     }
 
     private static string TruncateToMaxLength(string value, int maxLength)
@@ -131,8 +280,58 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return value.Substring(0, maxLength);
     }
 
+    private sealed record ArmContext(
+        HttpClient HttpClient,
+        string SubscriptionId,
+        string ResourceGroupName,
+        string Location,
+        string AccessToken);
+
+    private static async Task<ArmContext> GetArmContextAsync(PipelineStepContext context)
+    {
+        var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
+        if (httpClientFactory is null)
+        {
+            throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
+        }
+
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
+
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        if (azureEnvironment == null)
+        {
+            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
+        }
+
+        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
+        var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
+            ?? throw new InvalidOperationException("SubscriptionId is required.");
+        var resourceGroupName = provisioningContext.ResourceGroup.Name
+            ?? throw new InvalidOperationException("ResourceGroup name is required.");
+        var location = provisioningContext.Location.Name
+            ?? throw new InvalidOperationException("Location is required.");
+
+        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
+        var token = await tokenCredentialProvider.TokenCredential
+            .GetTokenAsync(tokenRequest, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        var httpClient = httpClientFactory.CreateClient();
+
+        return new ArmContext(httpClient, subscriptionId, resourceGroupName, location, token.Token);
+    }
+
+    private const string AzureManagementScope = "https://management.azure.com/.default";
+    private const string AzureManagementEndpoint = "https://management.azure.com/";
+    private const string AzureAppServiceDnsSuffix = "azurewebsites.net";
+
     // For Azure App Service, the maximum length for a host name is 63 characters. With slot, the host name is 59 characters, with 4 characters reserved for random slot suffix (very edge case).
     // Source of truth: https://msazure.visualstudio.com/One/_git/AAPT-Antares-Websites?path=%2Fsrc%2FHosting%2FAdministrationService%2FMicrosoft.Web.Hosting.Administration.Api%2FCommonConstants.cs&_a=contents&version=GBdev
     internal const int MaxHostPrefixLengthWithSlot = 59;
     internal const int MaxWebSiteNamePrefixLengthWithSlot = 40;
+
+    // Length constraints with DNL (region suffix is 17 characters including hyphen)
+    internal const int MaxWebsiteNameLengthWithDnl = 43;
+    internal const int MaxWebsiteHostNameLengthWithSlotAndDnl = 23;
+    internal const int MaxDeploymentSlotNameLengthWithDnl = 18;
 }

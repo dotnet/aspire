@@ -1,6 +1,8 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param myappwebsiteHostName string = '${take('${toLower('myapp')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+
 param appservice_outputs_azure_container_registry_endpoint string
 
 param appservice_outputs_planid string
