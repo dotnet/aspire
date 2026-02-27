@@ -106,40 +106,12 @@ public class McpServiceTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
 
-        var requestMessage = CreateInitializeRequest();
-        requestMessage.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.McpApiKeyHeaderName, apiKey);
+        void AddApiKey(HttpRequestMessage r) => r.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.McpApiKeyHeaderName, apiKey);
 
-        // Act
-        var initResponse = await httpClient.SendAsync(requestMessage).DefaultTimeout(TestConstants.LongTimeoutDuration);
-        initResponse.EnsureSuccessStatusCode();
-        var sessionId = initResponse.Headers.GetValues("Mcp-Session-Id").First();
-
-        // Consume the SSE response body to properly release the connection
-        await initResponse.Content.ReadAsStringAsync().DefaultTimeout(TestConstants.LongTimeoutDuration);
-
-        // Send initialized notification
-        var notificationJson =
-            """
-            {
-              "jsonrpc": "2.0",
-              "method": "notifications/initialized"
-            }
-            """;
-        var notificationContent = new ByteArrayContent(Encoding.UTF8.GetBytes(notificationJson));
-        notificationContent.Headers.TryAddWithoutValidation("content-type", "application/json");
-        var notificationRequest = new HttpRequestMessage(HttpMethod.Post, "/mcp")
-        {
-            Content = notificationContent
-        };
-        notificationRequest.Headers.TryAddWithoutValidation("accept", "application/json");
-        notificationRequest.Headers.TryAddWithoutValidation("accept", "text/event-stream");
-        notificationRequest.Headers.TryAddWithoutValidation("Mcp-Session-Id", sessionId);
-        notificationRequest.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.McpApiKeyHeaderName, apiKey);
-        var notificationResponse = await httpClient.SendAsync(notificationRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
-        notificationResponse.EnsureSuccessStatusCode();
+        var sessionId = await InitializeSessionAsync(httpClient, AddApiKey);
 
         var listRequest = CreateListToolsRequest(sessionId);
-        listRequest.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.McpApiKeyHeaderName, apiKey);
+        AddApiKey(listRequest);
 
         var responseMessage = await httpClient.SendAsync(listRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
         responseMessage.EnsureSuccessStatusCode();
@@ -366,9 +338,10 @@ public class McpServiceTests
         return request;
     }
 
-    internal static async Task<string> InitializeSessionAsync(HttpClient httpClient)
+    internal static async Task<string> InitializeSessionAsync(HttpClient httpClient, Action<HttpRequestMessage>? configureRequest = null)
     {
         var initRequest = CreateInitializeRequest();
+        configureRequest?.Invoke(initRequest);
         var initResponse = await httpClient.SendAsync(initRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
         initResponse.EnsureSuccessStatusCode();
         var sessionId = initResponse.Headers.GetValues("Mcp-Session-Id").First();
@@ -393,6 +366,7 @@ public class McpServiceTests
         notificationRequest.Headers.TryAddWithoutValidation("accept", "application/json");
         notificationRequest.Headers.TryAddWithoutValidation("accept", "text/event-stream");
         notificationRequest.Headers.TryAddWithoutValidation("Mcp-Session-Id", sessionId);
+        configureRequest?.Invoke(notificationRequest);
         var notificationResponse = await httpClient.SendAsync(notificationRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
         notificationResponse.EnsureSuccessStatusCode();
 
