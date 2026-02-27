@@ -17,8 +17,14 @@ internal sealed class ProviderConfiguration(string providerType, string? service
     /// <returns>The new provider configuration.</returns>
     internal static ProviderConfiguration Create(IResourceBuilder<IResourceWithConnectionString> resourceBuilder)
     {
-        const string resource = "Resource";
         var serviceKey = resourceBuilder.Resource.Name;
+
+        if (resourceBuilder.Resource.TryGetAnnotationsOfType<OrleansProviderTypeAnnotation>(out var annotations) && annotations.FirstOrDefault() is OrleansProviderTypeAnnotation annotation)
+        {
+            return new(annotation.ProviderType, serviceKey, resourceBuilder);
+        }
+
+        const string resource = "Resource";
         var resourceType = resourceBuilder.Resource.GetType().Name;
 
         // Use a simple transformation to get the provider type: remove the "Resource" suffix if it exists.
