@@ -508,7 +508,10 @@ public class ExecutionConfigurationGathererTests
 
         foreach (var safeContents in info.AuthenticatedSafe)
         {
-            safeContents.Decrypt(password);
+            if (safeContents.ConfidentialityMode == Pkcs12ConfidentialityMode.Password)
+            {
+                safeContents.Decrypt(password);
+            }
 
             foreach (var bag in safeContents.GetBags())
             {
