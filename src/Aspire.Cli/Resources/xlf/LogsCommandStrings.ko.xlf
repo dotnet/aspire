@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stream logs from</source>
-        <target state="new">stream logs from</target>
+        <target state="translated">에서 로그 스트리밍</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="GettingLogs">
         <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
+        <target state="translated">로그를 가져오는 중...</target>
         <note />
       </trans-unit>
     </body>

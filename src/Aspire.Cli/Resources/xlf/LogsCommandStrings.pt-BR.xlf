@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="new">Display logs from resources in a running apphost.</target>
+        <target state="translated">Exiba os logs de recursos em um apphost em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
-        <target state="new">Show timestamps for each log line.</target>
+        <target state="translated">Mostre os carimbos de data/hora para cada linha de log.</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLogs">

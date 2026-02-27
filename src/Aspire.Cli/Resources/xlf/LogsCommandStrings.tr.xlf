@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="new">Display logs from resources in a running apphost.</target>
+        <target state="translated">Çalışan bir apphost dosyasındaki kaynakların günlüklerini görüntüle.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
-        <target state="new">Show timestamps for each log line.</target>
+        <target state="translated">Her günlük satırı için zaman damgalarını göster.</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLogs">
