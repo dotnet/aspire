@@ -252,7 +252,7 @@ builder.Build().Run();
 
             var pipeline2Succeeded = false;
             sequenceBuilder
-                .Type("clear")
+                .Type("export TERM=xterm && clear")
                 .Enter()
                 .WaitForSuccessPrompt(counter)
                 .Type("aspire deploy")
