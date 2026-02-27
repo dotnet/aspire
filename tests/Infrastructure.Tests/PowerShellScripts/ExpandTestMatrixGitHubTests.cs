@@ -38,15 +38,15 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful("expand-test-matrix-github.ps1 failed");
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Single(expanded.Include);
         Assert.Equal("windows-latest", expanded.Include[0].RunsOn);
     }
@@ -65,15 +65,15 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Single(expanded.Include);
         Assert.Equal("ubuntu-latest", expanded.Include[0].RunsOn);
     }
@@ -82,7 +82,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task MapsMacOSToRunner()
     {
-        // Arrange
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "TestProject",
             projectName: "TestProject",
@@ -92,15 +91,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Single(expanded.Include);
         Assert.Equal("macos-latest", expanded.Include[0].RunsOn);
     }
@@ -109,7 +106,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task ExpandsMultipleOSes()
     {
-        // Arrange - One entry with all 3 OSes
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "MultiOSProject",
             projectName: "MultiOSProject",
@@ -119,16 +115,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        // One entry * 3 OSes = 3 expanded entries
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Equal(3, expanded.Include.Length);
         Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
         Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-latest");
@@ -139,7 +132,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task GeneratesIncludeFormat()
     {
-        // Arrange
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "TestProject",
             projectName: "TestProject",
@@ -149,17 +141,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        // Verify the JSON structure has { "include": [...] }
-        // Note: PowerShell may serialize single-element arrays as objects
-        var json = File.ReadAllText(outputPrefix + "_no_nugets.json");
+        var json = File.ReadAllText(outputFile);
         var document = JsonDocument.Parse(json);
         Assert.True(document.RootElement.TryGetProperty("include", out var include));
         Assert.True(
@@ -171,7 +159,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task RemovesSupportedOSes()
     {
-        // Arrange
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "TestProject",
             projectName: "TestProject",
@@ -181,20 +168,16 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        // Check that supportedOSes is removed from expanded entries
-        var json = File.ReadAllText(outputPrefix + "_no_nugets.json");
+        var json = File.ReadAllText(outputFile);
         var document = JsonDocument.Parse(json);
         var include = document.RootElement.GetProperty("include");
 
-        // PowerShell may serialize single-element array as object
         var firstEntry = include.ValueKind == JsonValueKind.Array
             ? include.EnumerateArray().First()
             : include;
@@ -207,7 +190,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task AddsRunsOnProperty()
     {
-        // Arrange
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "TestProject",
             projectName: "TestProject",
@@ -217,19 +199,16 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var json = File.ReadAllText(outputPrefix + "_no_nugets.json");
+        var json = File.ReadAllText(outputFile);
         var document = JsonDocument.Parse(json);
         var include = document.RootElement.GetProperty("include");
 
-        // PowerShell may serialize single-element array as object
         var firstEntry = include.ValueKind == JsonValueKind.Array
             ? include.EnumerateArray().First()
             : include;
@@ -241,51 +220,8 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
-    public async Task SplitsRequiresNugetsIntoSeparateMatrix()
-    {
-        // Arrange
-        var nugetsEntry = TestDataBuilder.CreateMatrixEntry(
-            name: "NugetsProject",
-            projectName: "NugetsProject",
-            testProjectPath: "tests/NugetsProject/NugetsProject.csproj",
-            requiresNugets: true,
-            supportedOSes: ["linux"]);
-
-        var noNugetsEntry = TestDataBuilder.CreateMatrixEntry(
-            name: "NoNugetsProject",
-            projectName: "NoNugetsProject",
-            testProjectPath: "tests/NoNugetsProject/NoNugetsProject.csproj",
-            supportedOSes: ["linux"]);
-
-        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(
-            canonicalMatrix,
-            tests: [nugetsEntry, noNugetsEntry]);
-
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
-
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var noNugetsMatrix = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        var nugetsMatrix = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
-
-        Assert.Single(noNugetsMatrix.Include);
-        Assert.Equal("NoNugetsProject", noNugetsMatrix.Include[0].ProjectName);
-
-        Assert.Single(nugetsMatrix.Include);
-        Assert.Equal("NugetsProject", nugetsMatrix.Include[0].ProjectName);
-        Assert.True(nugetsMatrix.Include[0].RequiresNugets);
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
     public async Task PreservesAllEntryProperties()
     {
-        // Arrange
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "FullProject",
             projectName: "FullProject",
@@ -302,15 +238,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         var expandedEntry = Assert.Single(expanded.Include);
 
         Assert.Equal("FullProject", expandedEntry.ProjectName);
@@ -329,40 +263,28 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task HandlesEmptyMatrix()
     {
-        // Arrange
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Empty(expanded.Include);
-
-        var nugetsExpanded = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
-        Assert.Empty(nugetsExpanded.Include);
-
-        var cliArchiveExpanded = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
-        Assert.Empty(cliArchiveExpanded.Include);
     }
 
     [Fact]
     [RequiresTools(["pwsh"])]
     public async Task FailsWhenCanonicalMatrixNotFound()
     {
-        // Arrange
         var nonExistentFile = Path.Combine(_tempDir.Path, "does-not-exist.json");
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(nonExistentFile, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(nonExistentFile, outputMatrixFile: outputFile);
 
-        // Assert
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("not found", result.Output, StringComparison.OrdinalIgnoreCase);
     }
@@ -371,26 +293,22 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task DefaultsToAllOSesWhenSupportedOSesEmpty()
     {
-        // Arrange - Entry with empty supportedOSes array
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "NoOsSpecified",
             projectName: "NoOsSpecified",
             testProjectPath: "tests/NoOsSpecified/NoOsSpecified.csproj",
-            supportedOSes: []); // Empty array
+            supportedOSes: []);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        // Should default to all 3 OSes
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Equal(3, expanded.Include.Length);
         Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
         Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-latest");
@@ -401,7 +319,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task WarnsOnInvalidOS()
     {
-        // Arrange - Entry with invalid OS name
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "BadOs",
             projectName: "BadOs",
@@ -411,19 +328,15 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        // Should warn about the invalid OS
         Assert.Contains("invalid", result.Output.ToLowerInvariant());
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        // Should only have the valid linux entry
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Single(expanded.Include);
         Assert.Equal("ubuntu-latest", expanded.Include[0].RunsOn);
     }
@@ -432,7 +345,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task HandlesOSNamesWithDifferentCasing()
     {
-        // Arrange - OS names should be case-insensitive
         var entry = TestDataBuilder.CreateMatrixEntry(
             name: "CasedOs",
             projectName: "CasedOs",
@@ -442,15 +354,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var expanded = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
+        var expanded = ParseGitHubMatrix(outputFile);
         Assert.Equal(3, expanded.Include.Length);
         Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
         Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-latest");
@@ -459,80 +369,13 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
-    public async Task OverflowsEntriesBeyondThreshold()
-    {
-        // Arrange - Create more than 250 entries (overflow threshold) for no-nugets category
-        // Each entry with 1 OS = 1 expanded entry, so 260 entries should split 250/10
-        var entries = Enumerable.Range(1, 260).Select(i =>
-            TestDataBuilder.CreateMatrixEntry(
-                name: $"Project{i}",
-                projectName: $"Project{i}",
-                testProjectPath: $"tests/Project{i}/Project{i}.csproj",
-                supportedOSes: ["linux"])).ToArray();
-
-        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: entries);
-
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
-
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var primary = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        var overflow = ParseGitHubMatrix(outputPrefix + "_no_nugets_overflow.json");
-
-        Assert.Equal(250, primary.Include.Length);
-        Assert.Equal(10, overflow.Include.Length);
-
-        // Verify no duplicates - all 260 projects should be accounted for
-        var allNames = primary.Include.Concat(overflow.Include).Select(e => e.ProjectName).ToHashSet();
-        Assert.Equal(260, allNames.Count);
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
-    public async Task EmptyOverflowWhenBelowThreshold()
-    {
-        // Arrange - 10 entries, well below 250 threshold
-        var entries = Enumerable.Range(1, 10).Select(i =>
-            TestDataBuilder.CreateMatrixEntry(
-                name: $"Project{i}",
-                projectName: $"Project{i}",
-                testProjectPath: $"tests/Project{i}/Project{i}.csproj",
-                supportedOSes: ["linux"])).ToArray();
-
-        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: entries);
-
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
-
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var primary = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        var overflow = ParseGitHubMatrix(outputPrefix + "_no_nugets_overflow.json");
-
-        Assert.Equal(10, primary.Include.Length);
-        Assert.Empty(overflow.Include);
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
     public async Task SplitTestsGoToNoNugetsCategory()
     {
-        // Arrange - Split tests (splitTests=true) should be grouped with no-nugets, not separate
         var splitEntry = TestDataBuilder.CreateMatrixEntry(
             name: "SplitProject",
             projectName: "SplitProject",
             testProjectPath: "tests/SplitProject/SplitProject.csproj",
             supportedOSes: ["linux"]);
-        // Mark as split test by adding the splitTests property
         splitEntry.SplitTests = true;
 
         var regularEntry = TestDataBuilder.CreateMatrixEntry(
@@ -544,92 +387,32 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [splitEntry, regularEntry]);
 
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
-        // Assert
         result.EnsureSuccessful();
 
-        var noNugets = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        // Both split and regular entries should be in the no-nugets matrix
-        Assert.Equal(2, noNugets.Include.Length);
-        Assert.Contains(noNugets.Include, e => e.ProjectName == "SplitProject");
-        Assert.Contains(noNugets.Include, e => e.ProjectName == "RegularProject");
-    }
-
-    [Fact]
-    [RequiresTools(["pwsh"])]
-    public async Task SplitsCliArchiveIntoSeparateCategory()
-    {
-        // Arrange - CLI archive tests get their own category separate from requires-nugets
-        var cliArchiveEntry = TestDataBuilder.CreateMatrixEntry(
-            name: "CliE2E",
-            projectName: "CliE2E",
-            testProjectPath: "tests/CliE2E/CliE2E.csproj",
-            requiresNugets: true,
-            requiresCliArchive: true,
-            supportedOSes: ["linux"]);
-
-        var nugetsEntry = TestDataBuilder.CreateMatrixEntry(
-            name: "NugetsProject",
-            projectName: "NugetsProject",
-            testProjectPath: "tests/NugetsProject/NugetsProject.csproj",
-            requiresNugets: true,
-            supportedOSes: ["linux"]);
-
-        var noNugetsEntry = TestDataBuilder.CreateMatrixEntry(
-            name: "RegularProject",
-            projectName: "RegularProject",
-            testProjectPath: "tests/RegularProject/RegularProject.csproj",
-            supportedOSes: ["linux"]);
-
-        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(
-            canonicalMatrix,
-            tests: [cliArchiveEntry, nugetsEntry, noNugetsEntry]);
-
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
-
-        // Act
-        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputPrefix + ".json");
-
-        // Assert
-        result.EnsureSuccessful();
-
-        var noNugets = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        var nugets = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
-        var cliArchive = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
-
-        Assert.Single(noNugets.Include);
-        Assert.Equal("RegularProject", noNugets.Include[0].ProjectName);
-
-        Assert.Single(nugets.Include);
-        Assert.Equal("NugetsProject", nugets.Include[0].ProjectName);
-
-        Assert.Single(cliArchive.Include);
-        Assert.Equal("CliE2E", cliArchive.Include[0].ProjectName);
+        var expanded = ParseGitHubMatrix(outputFile);
+        Assert.Equal(2, expanded.Include.Length);
+        Assert.Contains(expanded.Include, e => e.ProjectName == "SplitProject");
+        Assert.Contains(expanded.Include, e => e.ProjectName == "RegularProject");
     }
 
     [Fact]
     [RequiresTools(["pwsh"])]
     public async Task FullPipeline_SplitTestsExpandPerOS()
     {
-        // This test validates the full pipeline: build-test-matrix → expand-test-matrix-github
-        // with a realistic multi-project scenario to catch regressions where OS coverage
-        // is silently dropped (e.g., a split test project losing multi-OS expansion).
+        // Validates the full pipeline: build-test-matrix → expand-test-matrix-github → split-test-matrix-by-deps
         var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
-        // Regular project on all 3 OSes
         TestDataBuilder.CreateTestsMetadataJson(
             Path.Combine(artifactsDir, "RegularProject.tests-metadata.json"),
             projectName: "RegularProject",
             testProjectPath: "tests/RegularProject/RegularProject.csproj",
             shortName: "Regular");
 
-        // Split test project on all 3 OSes (like Templates)
         TestDataBuilder.CreateSplitTestsMetadataJson(
             Path.Combine(artifactsDir, "SplitMultiOS.tests-metadata.json"),
             projectName: "SplitMultiOS",
@@ -641,7 +424,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             Path.Combine(artifactsDir, "SplitMultiOS.tests-partitions.json"),
             "Namespace.ClassA", "Namespace.ClassB");
 
-        // Linux-only project requiring NuGets (like EndToEnd)
         TestDataBuilder.CreateTestsMetadataJson(
             Path.Combine(artifactsDir, "LinuxE2E.tests-metadata.json"),
             projectName: "LinuxE2E",
@@ -650,7 +432,6 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             requiresNugets: true,
             supportedOSes: ["linux"]);
 
-        // Linux-only project requiring CLI archive (like Cli.EndToEnd.Tests)
         TestDataBuilder.CreateTestsMetadataJson(
             Path.Combine(artifactsDir, "CliE2E.tests-metadata.json"),
             projectName: "CliE2E",
@@ -671,25 +452,38 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             "-OutputMatrixFile", $"\"{canonicalFile}\"");
         buildResult.EnsureSuccessful("build-test-matrix.ps1 failed");
 
-        // Run expand-test-matrix-github.ps1
-        var outputPrefix = Path.Combine(_tempDir.Path, "expanded");
-        var expandResult = await RunScript(canonicalFile, outputMatrixFile: outputPrefix + ".json");
+        // Run expand-test-matrix-github.ps1 → single output file
+        var expandedFile = Path.Combine(_tempDir.Path, "expanded.json");
+        var expandResult = await RunScript(canonicalFile, outputMatrixFile: expandedFile);
         expandResult.EnsureSuccessful("expand-test-matrix-github.ps1 failed");
 
-        // Read all output matrices
-        var noNugets = ParseGitHubMatrix(outputPrefix + "_no_nugets.json");
-        var noNugetsOverflow = ParseGitHubMatrix(outputPrefix + "_no_nugets_overflow.json");
-        var nugetsMatrix = ParseGitHubMatrix(outputPrefix + "_requires_nugets.json");
-        var cliArchiveMatrix = ParseGitHubMatrix(outputPrefix + "_requires_cli_archive.json");
+        // Run split-test-matrix-by-deps.ps1
+        var splitScriptPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "split-test-matrix-by-deps.ps1");
+        var githubOutputFile = Path.Combine(_tempDir.Path, "github_output.txt");
+        File.WriteAllText(githubOutputFile, "");
 
-        // Combine no-nugets primary + overflow for full validation
+        using var splitCmd = new PowerShellCommand(splitScriptPath, _output)
+            .WithTimeout(TimeSpan.FromMinutes(2))
+            .WithEnvironmentVariable("GITHUB_OUTPUT", githubOutputFile);
+        var splitResult = await splitCmd.ExecuteAsync(
+            "-AllTestsMatrixFile", $"\"{expandedFile}\"",
+            "-OutputToGitHubEnv");
+        splitResult.EnsureSuccessful("split-test-matrix-by-deps.ps1 failed");
+
+        // Read split results from GITHUB_OUTPUT file
+        var splitOutputs = ParseGitHubOutputFile(githubOutputFile);
+        var noNugets = splitOutputs["tests_matrix_no_nugets"];
+        var noNugetsOverflow = splitOutputs["tests_matrix_no_nugets_overflow"];
+        var nugetsMatrix = splitOutputs["tests_matrix_requires_nugets"];
+        var cliArchiveMatrix = splitOutputs["tests_matrix_requires_cli_archive"];
+
         var allNoNugets = noNugets.Include.Concat(noNugetsOverflow.Include).ToArray();
 
         // Regular project: 1 project × 3 OSes = 3
         var regularEntries = allNoNugets.Where(e => e.ProjectName == "RegularProject").ToArray();
         Assert.Equal(3, regularEntries.Length);
 
-        // Split project: 2 classes × 3 OSes = 6 (all in no-nugets since splitTests merged)
+        // Split project: 2 classes × 3 OSes = 6
         var splitEntries = allNoNugets.Where(e => e.ProjectName == "SplitMultiOS").ToArray();
         Assert.Equal(6, splitEntries.Length);
         Assert.Equal(2, splitEntries.Count(e => e.RunsOn == "ubuntu-latest"));
@@ -738,6 +532,29 @@ public class ExpandTestMatrixGitHubTests : IDisposable
     private static GitHubActionsMatrix ParseGitHubMatrix(string path)
     {
         var json = File.ReadAllText(path);
+        return ParseGitHubMatrixJson(json);
+    }
+
+    private static Dictionary<string, GitHubActionsMatrix> ParseGitHubOutputFile(string path)
+    {
+        var results = new Dictionary<string, GitHubActionsMatrix>();
+        foreach (var line in File.ReadAllLines(path))
+        {
+            var eqIndex = line.IndexOf('=');
+            if (eqIndex < 0)
+            {
+                continue;
+            }
+
+            var key = line[..eqIndex];
+            var value = line[(eqIndex + 1)..];
+            results[key] = ParseGitHubMatrixJson(value);
+        }
+        return results;
+    }
+
+    private static GitHubActionsMatrix ParseGitHubMatrixJson(string json)
+    {
         var document = JsonDocument.Parse(json);
         var include = document.RootElement.GetProperty("include");
 

@@ -13,18 +13,24 @@ jobs:
     name: Setup for tests
     runs-on: ubuntu-latest
     outputs:
-      tests_matrix_no_nugets: ${{ steps.generate_tests_matrix.outputs.tests_matrix_no_nugets }}
-      tests_matrix_no_nugets_overflow: ${{ steps.generate_tests_matrix.outputs.tests_matrix_no_nugets_overflow }}
-      tests_matrix_requires_nugets: ${{ steps.generate_tests_matrix.outputs.tests_matrix_requires_nugets }}
-      tests_matrix_requires_cli_archive: ${{ steps.generate_tests_matrix.outputs.tests_matrix_requires_cli_archive }}
+      tests_matrix_no_nugets: ${{ steps.split_matrix.outputs.tests_matrix_no_nugets }}
+      tests_matrix_no_nugets_overflow: ${{ steps.split_matrix.outputs.tests_matrix_no_nugets_overflow }}
+      tests_matrix_requires_nugets: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets }}
+      tests_matrix_requires_cli_archive: ${{ steps.split_matrix.outputs.tests_matrix_requires_cli_archive }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
-          includeTemplates: true
-          includeCliE2E: ${{ github.event_name == 'pull_request' }}
+          buildArgs: '/p:IncludeTemplateTests=true /p:IncludeCliE2ETests=${{ github.event_name == ''pull_request'' }}'
+
+      - name: Split matrix by dependency type
+        id: split_matrix
+        shell: pwsh
+        run: |
+          $splitScript = "${{ github.workspace }}/eng/scripts/split-test-matrix-by-deps.ps1"
+          & $splitScript -AllTestsMatrix '${{ steps.generate_tests_matrix.outputs.all_tests }}' -OutputToGitHubEnv
 
   build_packages:
     name: Build packages

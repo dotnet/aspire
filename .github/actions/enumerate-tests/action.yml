@@ -1,18 +1,11 @@
 name: 'Enumerate test projects'
 description: 'Enumerate list of test projects'
 inputs:
-  includeTemplates:
+  buildArgs:
     required: false
-    type: boolean
-    default: false
-  includeCliE2E:
-    required: false
-    type: boolean
-    default: false
-  onlyDeploymentTests:
-    required: false
-    type: boolean
-    default: false
+    type: string
+    default: ''
+    description: 'Additional MSBuild arguments passed to the test matrix generation step (e.g., /p:IncludeTemplateTests=true /p:OnlyDeploymentTests=true)'
 
 # Output format: JSON with structure {"include": [{...}, ...]}
 # Each entry contains:
@@ -31,21 +24,9 @@ inputs:
 #   - collection: (collection type only) Collection/partition name
 #   - classname: (class type only) Fully qualified test class name
 outputs:
-  tests_matrix_no_nugets:
-    description: Test matrix for tests that do not require NuGet packages (primary bucket)
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets }}
-  tests_matrix_no_nugets_overflow:
-    description: Test matrix for tests that do not require NuGet packages (overflow bucket)
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets_overflow }}
-  tests_matrix_requires_nugets:
-    description: Test matrix for tests that require NuGet packages
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_nugets }}
-  tests_matrix_requires_cli_archive:
-    description: Test matrix for tests that require CLI native archives
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_cli_archive }}
   all_tests:
-    description: Combined matrix of all test entries across all buckets
-    value: ${{ steps.generate_all_tests_matrix.outputs.all_tests }}
+    description: Combined matrix of all test entries
+    value: ${{ steps.expand_matrix.outputs.all_tests }}
 runs:
   using: "composite"
   steps:
@@ -67,14 +48,12 @@ runs:
         ./build.sh -test
         /p:TestRunnerName=TestEnumerationRunsheetBuilder
         /p:TestMatrixOutputPath=artifacts/canonical-test-matrix.json
-        /p:IncludeTemplateTests=${{ inputs.includeTemplates }}
-        /p:IncludeCliE2ETests=${{ inputs.includeCliE2E }}
-        /p:OnlyDeploymentTests=${{ inputs.onlyDeploymentTests }}
         /p:GenerateCIPartitions=true
         /bl
+        ${{ inputs.buildArgs }}
 
     - name: Expand matrix for GitHub Actions
-      id: generate_canonical_matrix
+      id: expand_matrix
       shell: pwsh
       run: |
         $canonicalMatrixPath = "${{ github.workspace }}/artifacts/canonical-test-matrix.json"
@@ -83,41 +62,10 @@ runs:
         if (Test-Path $canonicalMatrixPath) {
           & $expandScript -CanonicalMatrixFile $canonicalMatrixPath -OutputToGitHubEnv
         } else {
-          # Empty matrices if no canonical matrix found
           $emptyMatrix = '{"include":[]}'
-          "tests_matrix_no_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tests_matrix_no_nugets_overflow=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tests_matrix_requires_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tests_matrix_requires_cli_archive=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "No canonical test matrix found, using empty matrices"
+          "all_tests=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "No canonical test matrix found, using empty matrix"
         }
-
-    - name: Generate combined all-tests matrix
-      id: generate_all_tests_matrix
-      shell: pwsh
-      run: |
-        # Combine all expanded matrix entries into a single all_tests matrix
-        $allEntries = @()
-
-        $matrixOutputs = @(
-          '${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets }}',
-          '${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets_overflow }}',
-          '${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_nugets }}',
-          '${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_cli_archive }}'
-        )
-
-        foreach ($matrixJson in $matrixOutputs) {
-          if ($matrixJson -and $matrixJson -ne '{"include":[]}') {
-            $matrix = $matrixJson | ConvertFrom-Json
-            if ($matrix.include -and $matrix.include.Count -gt 0) {
-              $allEntries += $matrix.include
-            }
-          }
-        }
-
-        $result = @{ include = @($allEntries) } | ConvertTo-Json -Compress -Depth 5
-        Write-Host "All tests matrix ($($allEntries.Count) entries): $result"
-        "all_tests=$result" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
     - name: Upload logs
       if: always()

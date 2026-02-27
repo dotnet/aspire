@@ -68,12 +68,12 @@ jobs:
       - uses: ./.github/actions/enumerate-tests
         id: enumerate
         with:
-          onlyDeploymentTests: true
+          buildArgs: '/p:OnlyDeploymentTests=true'
 
       - name: Display test matrix
         run: |
           echo "Deployment test matrix:"
-          echo '${{ steps.enumerate.outputs.deployment_tests_matrix }}' | jq .
+          echo '${{ steps.enumerate.outputs.all_tests }}' | jq .
 
   # Build solution and CLI once, share via artifacts
   build:
