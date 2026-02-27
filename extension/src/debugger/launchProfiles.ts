@@ -50,7 +50,14 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
             launchSettingsPath = path.join(projectDir, 'Properties', 'launchSettings.json');
         }
 
-        if (!fs.existsSync(launchSettingsPath)) {
+        const launchSettingsExists = fs.existsSync(launchSettingsPath);
+        extensionLogOutputChannel.debug('[launchSettings] Resolved launchSettings path', {
+            projectPath,
+            resolvedPath: launchSettingsPath,
+            exists: launchSettingsExists,
+        });
+
+        if (!launchSettingsExists) {
             extensionLogOutputChannel.debug(`Launch settings file not found at: ${launchSettingsPath}`);
             return null;
         }
@@ -59,6 +66,9 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
         // We need to strip comments from the JSON file before parsing
         content = stripComments(content);
         const launchSettings = JSON.parse(content) as LaunchSettings;
+
+        const profileNames = launchSettings?.profiles ? Object.keys(launchSettings.profiles) : [];
+        extensionLogOutputChannel.debug(`[launchSettings] parsed ${profileNames.length} profiles: ${profileNames.join(', ')}`);
 
         extensionLogOutputChannel.debug(`Successfully read launch settings from: ${launchSettingsPath}`);
         return launchSettings;
@@ -75,6 +85,14 @@ export function determineBaseLaunchProfile(
     launchConfig: ProjectLaunchConfiguration,
     launchSettings: LaunchSettings | null
 ): LaunchProfileResult {
+    const debugMessage =
+        `[launchProfile] determineBaseLaunchProfile:
+  disable_launch_profile=${!!launchConfig.disable_launch_profile}
+  launch_profile='${launchConfig.launch_profile ?? ''}'
+  hasLaunchSettings=${!!launchSettings}
+  profileCount=${launchSettings?.profiles ? Object.keys(launchSettings.profiles).length : 0}`;
+    extensionLogOutputChannel.debug(debugMessage);
+
     // If disable_launch_profile property is set to true in project launch configuration, there is no base profile, regardless of the value of launch_profile property.
     if (launchConfig.disable_launch_profile === true) {
         extensionLogOutputChannel.debug('Launch profile disabled via disable_launch_profile=true');
@@ -201,14 +219,23 @@ export function determineWorkingDirectory(
     return projectDir;
 }
 
-interface ServerReadyAction {
+export interface ServerReadyAction {
     action: "openExternally";
-    pattern: "\\bNow listening on:\\s+https?://\\S+";
+    pattern: string;
     uriFormat: string;
 }
 
-export function determineServerReadyAction(launchBrowser?: boolean, applicationUrl?: string): ServerReadyAction | undefined {
-    if (!launchBrowser || !applicationUrl) {
+export function determineServerReadyAction(launchBrowser?: boolean, applicationUrl?: string, debugConfigurationServerReadyAction?: ServerReadyAction): ServerReadyAction | undefined {
+    if (launchBrowser === false) {
+        return undefined;
+    }
+    
+    // A serverReadyAction may already have been defined in the aspire launch configuration. In that case, it applies to all resources unless launchBrowser is false (resource explicitly has opted out of browser launch).
+    if (debugConfigurationServerReadyAction) {
+        return debugConfigurationServerReadyAction;
+    }
+
+    if (launchBrowser === undefined || !applicationUrl) {
         return undefined;
     }
 
@@ -216,7 +243,7 @@ export function determineServerReadyAction(launchBrowser?: boolean, applicationU
 
     return {
         action: "openExternally",
-        pattern: "\\bNow listening on:\\s+https?://\\S+",
+        pattern: "\\bNow listening on:\\s+(https?://\\S+)",
         uriFormat: uriFormat
     };
 }
