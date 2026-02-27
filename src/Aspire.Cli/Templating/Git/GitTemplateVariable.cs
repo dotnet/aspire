@@ -11,10 +11,6 @@ namespace Aspire.Cli.Templating.Git;
 /// </summary>
 internal sealed class GitTemplateVariable
 {
-    public required string DisplayName { get; set; }
-
-    public string? Description { get; set; }
-
     public required string Type { get; set; }
 
     public bool? Required { get; set; }
@@ -47,10 +43,6 @@ internal sealed class GitTemplateVariableValidation
 internal sealed class GitTemplateVariableChoice
 {
     public required string Value { get; set; }
-
-    public required string DisplayName { get; set; }
-
-    public string? Description { get; set; }
 }
 
 /// <summary>
