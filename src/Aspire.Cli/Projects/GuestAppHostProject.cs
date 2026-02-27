@@ -25,8 +25,6 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class GuestAppHostProject : IAppHostProject
 {
-    private const string GeneratedFolderName = ".modules";
-
     private readonly IInteractionService _interactionService;
     private readonly IAppHostCliBackchannel _backchannel;
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
@@ -416,10 +414,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
+            // Pass debug flag to the guest process
+            if (context.Debug)
+            {
+                environmentVariables["ASPIRE_DEBUG"] = "true";
+            }
+
             // Start guest apphost - it will connect to AppHost server, define resources
             // When hot reload is enabled, use watch mode
+            // Pass through any additional command-line arguments from the user
+            var additionalArgs = context.UnmatchedTokens.Length > 0 ? context.UnmatchedTokens : null;
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, additionalArgs, rpcClient, cancellationToken);
 
             if (guestExitCode != 0)
             {
@@ -1001,7 +1007,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(appPath, GeneratedFolderName);
+        var outputPath = Path.Combine(appPath, _resolvedLanguage.GeneratedFolderName ?? string.Empty);
         Directory.CreateDirectory(outputPath);
 
         foreach (var (fileName, content) in files)
@@ -1109,6 +1115,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
+        string[]? additionalArgs,
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
@@ -1120,7 +1127,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, additionalArgs, cancellationToken);
     }
 
     /// <summary>

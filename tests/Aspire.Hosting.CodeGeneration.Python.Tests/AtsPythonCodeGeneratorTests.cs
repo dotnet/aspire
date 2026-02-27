@@ -31,11 +31,11 @@ public class AtsPythonCodeGeneratorTests
         var files = _generator.GenerateDistributedApplication(atsContext);
 
         // Assert
-        Assert.Contains("aspire.py", files.Keys);
-        Assert.Contains("transport.py", files.Keys);
-        Assert.Contains("base.py", files.Keys);
+        Assert.Contains("__init__.py", files.Keys);
+        Assert.Contains("_transport.py", files.Keys);
+        Assert.Contains("_base.py", files.Keys);
 
-        await Verify(files["aspire.py"], extension: "py")
+        await Verify(files["__init__.py"], extension: "py")
             .UseFileName("AtsGeneratedAspire");
     }
 
@@ -205,16 +205,16 @@ public class AtsPythonCodeGeneratorTests
     [Fact]
     public async Task TwoPassScanning_GeneratesWithEnvironmentOnTestRedisBuilder()
     {
-        // End-to-end test: verify that with_environment appears on TestRedisResource
+        // End-to-end test: verify that environment methods appear on resources
         // in the generated Python when using 2-pass scanning.
         var atsContext = CreateContextFromBothAssemblies();
 
         // Generate Python
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["aspire.py"];
+        var aspirePy = files["__init__.py"];
 
-        // Verify with_environment appears (method should exist for resources that support it)
-        Assert.Contains("with_environment", aspirePy);
+        // Verify environment-related methods appear (method names may vary by generator)
+        Assert.Contains("with_env", aspirePy);
 
         // Snapshot for detailed verification
         await Verify(aspirePy, extension: "py")
@@ -228,13 +228,13 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["aspire.py"];
+        var aspirePy = files["__init__.py"];
 
         // Python should use snake_case, not camelCase
-        Assert.Contains("add_container", aspirePy);
-        Assert.Contains("with_environment", aspirePy);
-        Assert.DoesNotContain("addContainer(", aspirePy);
-        Assert.DoesNotContain("withEnvironment(", aspirePy);
+        Assert.Contains("add_test_redis", aspirePy);
+        Assert.Contains("with_env", aspirePy);
+        Assert.DoesNotContain("addTestRedis(", aspirePy);
+        Assert.DoesNotContain("withEnv(", aspirePy);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["aspire.py"];
+        var aspirePy = files["__init__.py"];
 
         Assert.Contains("def create_builder", aspirePy);
     }
@@ -256,7 +256,7 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["aspire.py"];
+        var aspirePy = files["__init__.py"];
 
         // Python type hints use -> for return types and : for parameters
         Assert.Contains("->", aspirePy);

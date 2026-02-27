@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
@@ -302,18 +303,16 @@ internal sealed class CapabilityDispatcher
             {
                 throw tie.InnerException;
             }
+            catch (ArgumentException ex)
+            {
+                var (mismatchParam, expected, actual) = FindMismatchedParameter(methodToInvoke.GetParameters(), methodArgs, ex);
+                throw CapabilityException.TypeMismatch(capabilityId, mismatchParam, expected, actual);
+            }
 
             // Handle async methods - await instead of blocking
             if (result is Task task)
             {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
+                await task.ConfigureAwait(false);
 
                 var taskType = task.GetType();
                 if (taskType.IsGenericType)
@@ -394,20 +393,16 @@ internal sealed class CapabilityDispatcher
                 // Unwrap the TargetInvocationException to get the actual exception
                 throw tie.InnerException;
             }
+            catch (ArgumentException ex)
+            {
+                var (mismatchParam, expected, actual) = FindMismatchedParameter(methodToInvoke.GetParameters(), methodArgs, ex);
+                throw CapabilityException.TypeMismatch(capabilityId, mismatchParam, expected, actual);
+            }
 
             // Handle async methods - await instead of blocking
             if (result is Task task)
             {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    // Rethrow the exception - it will be caught by the outer handler
-                    // and converted to a CapabilityException
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
+                await task.ConfigureAwait(false);
 
                 var taskType = task.GetType();
                 if (taskType.IsGenericType)
@@ -476,15 +471,10 @@ internal sealed class CapabilityDispatcher
         {
             throw;
         }
-        catch (ArgumentException ex) when (IsTypeMismatchException(ex))
-        {
-            // Convert CLR type mismatch to ATS error
-            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
-        }
         catch (InvalidCastException ex)
         {
             // Convert CLR cast failures to ATS error
-            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
+            throw CapabilityException.TypeMismatch(capabilityId, "unknown", "unknown", ex.Message);
         }
         catch (Exception ex)
         {
@@ -506,15 +496,41 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Checks if an exception indicates a type mismatch.
+    /// Finds the mismatched parameter by comparing actual argument types against expected parameter types.
+    /// Falls back to parsing the exception message if no mismatch is found by inspection.
     /// </summary>
-    private static bool IsTypeMismatchException(ArgumentException ex)
+    private static (string ParameterName, string ExpectedType, string ActualType) FindMismatchedParameter(
+        ParameterInfo[] parameters, object?[] args, ArgumentException ex)
     {
-        // Check for common type mismatch patterns in exception messages
+        // Inspect actual args vs parameter types to find the mismatch
+        for (int i = 0; i < parameters.Length && i < args.Length; i++)
+        {
+            var param = parameters[i];
+            var arg = args[i];
+            var paramType = param.ParameterType;
+
+            if (arg is null)
+            {
+                if (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null)
+                {
+                    return (param.Name ?? $"arg{i}", paramType.ToString(), "null");
+                }
+            }
+            else if (!paramType.IsAssignableFrom(arg.GetType()))
+            {
+                return (param.Name ?? $"arg{i}", paramType.ToString(), arg.GetType().ToString());
+            }
+        }
+
+        // Fallback: parse the exception message for type names
         var message = ex.Message;
-        return message.Contains("cannot be converted") ||
-               message.Contains("is not assignable") ||
-               message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase);
+        var match = Regex.Match(message, @"type '([^']+)'.*(?:to|into) type '([^']+)'");
+        if (match.Success)
+        {
+            return (ex.ParamName ?? "unknown", match.Groups[2].Value, match.Groups[1].Value);
+        }
+
+        return (ex.ParamName ?? "unknown", "unknown", "unknown");
     }
 
     /// <summary>

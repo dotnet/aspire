@@ -7,9 +7,12 @@ using Aspire.Hosting.Ats;
 namespace Aspire.Hosting.CodeGeneration.Python;
 
 /// <summary>
-/// Provides language support for Python AppHosts.
-/// Implements scaffolding, detection, and runtime configuration.
+/// Provides language support for Python AppHosts, implementing scaffolding, detection, and runtime configuration.
 /// </summary>
+/// <remarks>
+/// This implementation generates the files required for a Python-based Aspire AppHost and configures
+/// the runtime to install dependencies via <c>uv</c> and execute the AppHost with <c>uv run python</c>.
+/// </remarks>
 public sealed class PythonLanguageSupport : ILanguageSupport
 {
     /// <summary>
@@ -25,10 +28,25 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     private const string LanguageDisplayName = "Python";
     private static readonly string[] s_detectionPatterns = ["apphost.py"];
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the language identifier for Python AppHosts.
+    /// </summary>
+    /// <value>The string <c>"python"</c>.</value>
     public string Language => LanguageId;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Generates the initial scaffold files for a new Python AppHost project.
+    /// </summary>
+    /// <param name="request">The scaffold request containing project details such as the project name and an optional port seed.</param>
+    /// <returns>
+    /// A dictionary mapping relative file paths to their contents. The generated files include
+    /// <c>apphost.py</c>, <c>requirements.txt</c>, <c>uv-install.py</c>, and <c>apphost.run.json</c>.
+    /// </returns>
+    /// <remarks>
+    /// The <c>uv-install.py</c> script creates a virtual environment and installs dependencies using <c>uv</c>.
+    /// The <c>apphost.run.json</c> file is generated with randomly assigned port numbers unless
+    /// <see cref="ScaffoldRequest.PortSeed"/> is provided, in which case ports are deterministically assigned.
+    /// </remarks>
     public Dictionary<string, string> Scaffold(ScaffoldRequest request)
     {
         var files = new Dictionary<string, string>();
@@ -38,19 +56,13 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             # Aspire Python AppHost
             # For more information, see: https://aspire.dev
 
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent / ".modules"))
+            from aspire_app import create_builder
 
-            from aspire import create_builder
-
-            builder = create_builder()
-
-            # Add your resources here, for example:
-            # redis = builder.add_redis("cache")
-            # postgres = builder.add_postgres("db")
-
-            builder.build().run()
+            with create_builder() as builder:
+                # Add your resources here, for example:
+                # redis = builder.add_container("cache", "redis:latest")
+                # postgres = builder.add_postgres("db")
+                builder.run()
             """;
 
         // Create requirements.txt
@@ -117,7 +129,14 @@ public sealed class PythonLanguageSupport : ILanguageSupport
         return files;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Detects whether the specified directory contains a Python AppHost project.
+    /// </summary>
+    /// <param name="directoryPath">The full path to the directory to inspect.</param>
+    /// <returns>
+    /// A <see cref="DetectionResult"/> with <see cref="DetectionResult.Found"/> if both <c>apphost.py</c>
+    /// and <c>requirements.txt</c> exist in <paramref name="directoryPath"/>; otherwise <see cref="DetectionResult.NotFound"/>.
+    /// </returns>
     public DetectionResult Detect(string directoryPath)
     {
         var appHostPath = Path.Combine(directoryPath, "apphost.py");
@@ -135,7 +154,18 @@ public sealed class PythonLanguageSupport : ILanguageSupport
         return DetectionResult.Found(LanguageId, "apphost.py");
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the runtime execution specification for Python AppHosts.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="RuntimeSpec"/> that configures dependency installation via <c>python uv-install.py</c>
+    /// and AppHost execution via <c>uv run python {appHostFile}</c>.
+    /// </returns>
+    /// <remarks>
+    /// The Python command used for dependency installation is determined at call time by probing the system
+    /// PATH. On Windows the method tries <c>python</c> then <c>py</c>; on other platforms it tries <c>python3</c>
+    /// then <c>python</c>.
+    /// </remarks>
     public RuntimeSpec GetRuntimeSpec()
     {
         return new RuntimeSpec
