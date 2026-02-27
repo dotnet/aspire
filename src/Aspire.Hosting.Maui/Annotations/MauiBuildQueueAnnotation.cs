@@ -31,7 +31,17 @@ internal sealed class MauiBuildQueueAnnotation : IResourceAnnotation
     {
         if (ResourceCancellations.TryRemove(resourceName, out var cts))
         {
-            cts.Cancel();
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // The CTS was disposed by the event handler's using block after the build
+                // completed naturally at the exact moment the user clicked stop.
+                return false;
+            }
+
             return true;
         }
 

@@ -394,8 +394,10 @@ public class MauiBuildQueueTests
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         var execContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
 
-        // Use real subscriber — android has no MauiBuildInfoAnnotation
-        var subscriber = new MauiBuildQueueEventSubscriber(notificationService, loggerService);
+        // Use real subscriber — android has no MauiBuildInfoAnnotation.
+        // Override ReleaseSemaphoreAfterLaunchAsync to release immediately since
+        // there is no DCP launch phase in the test environment.
+        var subscriber = new RealBuildQueueSubscriberWithImmediateRelease(notificationService, loggerService);
         await subscriber.SubscribeAsync(eventing, execContext, CancellationToken.None);
 
         // Should complete without error — build is skipped, semaphore released
@@ -477,9 +479,10 @@ public class MauiBuildQueueTests
         // Cancel the queued resource via the subscriber's CancelResource method.
         env.CancelResource(env.MacCatalyst.Name);
 
-        // Should complete without throwing — the handler catches the cancellation
-        // and sets a terminal state instead of propagating the exception.
-        await task2.WaitAsync(TimeSpan.FromSeconds(5));
+        // The handler re-throws the OCE to prevent DCP from starting the resource.
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => task2.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.IsType<OperationCanceledException>(ex);
 
         // Semaphore should still be held (count 0) — cancellation of queued resource
         // should NOT release the semaphore because it never acquired it.
@@ -510,8 +513,10 @@ public class MauiBuildQueueTests
         // Cancel via the subscriber — this cancels the CTS, which cancels the TCS via the registration.
         env.CancelResource(env.Android.Name);
 
-        // Should complete without throwing — the handler catches the cancellation.
-        await task1.WaitAsync(TimeSpan.FromSeconds(5));
+        // The handler re-throws the OCE to prevent DCP from starting the resource.
+        // TaskCanceledException is a subclass of OperationCanceledException, thrown by TCS.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => task1.WaitAsync(TimeSpan.FromSeconds(5)));
 
         // Semaphore should be released after the building resource is cancelled.
         Assert.Equal(1, annotation.BuildSemaphore.CurrentCount);
@@ -544,8 +549,9 @@ public class MauiBuildQueueTests
 
         // Cancel MacCatalyst.
         env.CancelResource(env.MacCatalyst.Name);
-        // Should complete gracefully — no exception.
-        await task2.WaitAsync(TimeSpan.FromSeconds(5));
+        // The handler re-throws the OCE to prevent DCP from starting the resource.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => task2.WaitAsync(TimeSpan.FromSeconds(5)));
 
         // Complete Android — iOS should proceed (MacCatalyst was cancelled without acquiring semaphore).
         env.Subscriber.CompleteBuild(env.Android);
@@ -622,9 +628,34 @@ public class MauiBuildQueueTests
             }
         }
 
+        /// <summary>
+        /// In tests there is no DCP launch phase, so release the semaphore immediately.
+        /// </summary>
+        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, ILogger logger, CancellationToken cancellationToken)
+        {
+            semaphore.Release();
+            return Task.CompletedTask;
+        }
+
         private TaskCompletionSource GetOrCreateCompletion(string name)
         {
             return _buildCompletions.GetOrAdd(name, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        }
+    }
+
+    /// <summary>
+    /// A subscriber that uses the real <see cref="MauiBuildQueueEventSubscriber.RunBuildAsync"/>
+    /// but overrides <see cref="MauiBuildQueueEventSubscriber.ReleaseSemaphoreAfterLaunchAsync"/>
+    /// to release immediately since there is no DCP launch phase in tests.
+    /// </summary>
+    private sealed class RealBuildQueueSubscriberWithImmediateRelease(
+        ResourceNotificationService notificationService,
+        ResourceLoggerService loggerService) : MauiBuildQueueEventSubscriber(notificationService, loggerService)
+    {
+        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, ILogger logger, CancellationToken cancellationToken)
+        {
+            semaphore.Release();
+            return Task.CompletedTask;
         }
     }
 

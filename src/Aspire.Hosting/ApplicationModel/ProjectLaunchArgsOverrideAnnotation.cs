@@ -11,8 +11,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <remarks>
 /// When this annotation is present on a <see cref="ProjectResource"/>, DCP will use the provided
-/// arguments instead of the default <c>run --project X --configuration Debug --no-launch-profile</c>
-/// arguments. This is useful for MAUI projects that need to use <c>build /t:Run</c> instead of
+/// arguments as the base command (e.g., <c>build /t:Run</c>) instead of the default <c>run</c> verb.
+/// DCP still appends the project path and <c>--configuration</c> automatically; only the verb and
+/// its options are overridden. The <c>--no-launch-profile</c> flag is omitted when this annotation
+/// is present. This is useful for MAUI projects that need to use <c>build /t:Run</c> instead of
 /// <c>dotnet run</c>.
 /// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Args = {string.Join(\" \", Args)}")]
@@ -21,5 +23,5 @@ public sealed class ProjectLaunchArgsOverrideAnnotation(IReadOnlyList<string> ar
     /// <summary>
     /// Gets the custom launch arguments to use instead of the default project args.
     /// </summary>
-    public IReadOnlyList<string> Args { get; } = args;
+    public IReadOnlyList<string> Args { get; } = args ?? throw new ArgumentNullException(nameof(args));
 }
