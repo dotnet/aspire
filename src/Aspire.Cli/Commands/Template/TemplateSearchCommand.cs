@@ -36,12 +36,25 @@ internal sealed class TemplateSearchCommand : BaseTemplateSubCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var keyword = parseResult.GetValue(s_keywordArgument)!;
+        using var activity = Telemetry.StartDiagnosticActivity("template-search");
+        activity?.AddTag("template.keyword", keyword);
 
-        var allTemplates = await InteractionService.ShowStatusAsync(
-            ":magnifying_glass_tilted_right: Searching templates...",
-            () => _indexService.GetTemplatesAsync(cancellationToken: cancellationToken));
+        IReadOnlyList<ResolvedTemplate> allTemplates;
+        try
+        {
+            allTemplates = await InteractionService.ShowStatusAsync(
+                ":magnifying_glass_tilted_right: Searching templates...",
+                () => _indexService.GetTemplatesAsync(cancellationToken: cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Telemetry.RecordError("Failed to search templates", ex);
+            InteractionService.DisplayError("Failed to fetch templates. Check your network connection and try again.");
+            return 1;
+        }
 
         var matches = allTemplates.Where(t => Matches(t, keyword)).ToList();
+        activity?.AddTag("template.matchCount", matches.Count);
 
         if (matches.Count == 0)
         {
