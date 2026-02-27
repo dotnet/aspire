@@ -98,8 +98,6 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddAzurePostgresFlexibleServer"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Obsolete API. Use AddAzurePostgresFlexibleServer instead.")]
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder)
         => PublishAsAzurePostgresFlexibleServerInternal(builder, useProvisioner: false);
@@ -109,8 +107,6 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddAzurePostgresFlexibleServer"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Obsolete API. Use AddAzurePostgresFlexibleServer instead.")]
     [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder)
         => PublishAsAzurePostgresFlexibleServerInternal(builder, useProvisioner: true);
