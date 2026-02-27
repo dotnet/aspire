@@ -12,10 +12,10 @@
     <!-- Disable strong name signing because Hex1b package is not signed -->
     <SignAssembly>false</SignAssembly>
 
-    <!-- Do not run in the standard CI workflow - use deployment-tests.yml workflow instead -->
+    <!-- Deployment tests run on Linux via deployment-tests.yml (excluded from tests.yml via OnlyDeploymentTests) -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
-    <RunOnGithubActionsLinux>false</RunOnGithubActionsLinux>
+    <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
 
     <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>

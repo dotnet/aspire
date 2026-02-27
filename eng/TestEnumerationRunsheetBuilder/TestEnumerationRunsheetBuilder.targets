@@ -26,6 +26,12 @@
 
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeTemplateTests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Templates.Tests'">true</_ShouldSkipProject>
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeCliE2ETests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Cli.EndToEnd.Tests'">true</_ShouldSkipProject>
+
+    <!-- Deployment tests: skip by default, include only when OnlyDeploymentTests=true -->
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(OnlyDeploymentTests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Deployment.EndToEnd.Tests'">true</_ShouldSkipProject>
+    <!-- When OnlyDeploymentTests=true, skip everything EXCEPT the deployment test project -->
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(OnlyDeploymentTests)' == 'true' and '$(MSBuildProjectName)' != 'Aspire.Deployment.EndToEnd.Tests'">true</_ShouldSkipProject>
+
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(SkipTests)' == 'true'">true</_ShouldSkipProject>
   </PropertyGroup>
 

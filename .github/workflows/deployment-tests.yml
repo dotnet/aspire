@@ -61,14 +61,14 @@ jobs:
     permissions:
       contents: read
     outputs:
-      matrix: ${{ steps.enumerate.outputs.deployment_tests_matrix }}
+      matrix: ${{ steps.enumerate.outputs.all_tests }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: ./.github/actions/enumerate-tests
         id: enumerate
         with:
-          includeDeployment: true
+          onlyDeploymentTests: true
 
       - name: Display test matrix
         run: |
@@ -132,7 +132,7 @@ jobs:
   deploy-test:
     name: Deploy (${{ matrix.shortname }})
     needs: [enumerate, build]
-    if: ${{ needs.enumerate.outputs.matrix != '{"shortname":[]}' && needs.enumerate.outputs.matrix != '' }}
+    if: ${{ needs.enumerate.outputs.matrix != '{"include":[]}' && needs.enumerate.outputs.matrix != '' }}
     runs-on: 8-core-ubuntu-latest
     environment: deployment-testing
     permissions:
@@ -245,7 +245,7 @@ jobs:
             --results-directory ${{ github.workspace }}/testresults \
             -- \
             --filter-not-trait "quarantined=true" \
-            --filter-class "Aspire.Deployment.EndToEnd.Tests.${{ matrix.shortname }}" \
+            ${{ matrix.extraTestArgs }} \
             || echo "test_failed=true" >> $GITHUB_OUTPUT
 
       - name: Upload test results
