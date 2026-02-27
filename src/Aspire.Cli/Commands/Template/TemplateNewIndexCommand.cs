@@ -59,8 +59,6 @@ internal sealed class TemplateNewIndexCommand : BaseTemplateSubCommand
                 new GitTemplateIndexEntry
                 {
                     Name = "my-template",
-                    DisplayName = "My Template",
-                    Description = "A template created with aspire template new-index.",
                     Path = "templates/my-template"
                 }
             ]

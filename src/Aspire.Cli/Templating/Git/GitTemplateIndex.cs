@@ -41,9 +41,7 @@ internal sealed class GitTemplateIndexEntry
 {
     public required string Name { get; set; }
 
-    public required string DisplayName { get; set; }
-
-    public required string Description { get; set; }
+    public string? Description { get; set; }
 
     public required string Path { get; set; }
 
@@ -52,8 +50,6 @@ internal sealed class GitTemplateIndexEntry
     public string? Language { get; set; }
 
     public List<string>? Tags { get; set; }
-
-    public string? MinAspireVersion { get; set; }
 }
 
 /// <summary>
@@ -62,6 +58,4 @@ internal sealed class GitTemplateIndexEntry
 internal sealed class GitTemplateIndexInclude
 {
     public required string Url { get; set; }
-
-    public string? Description { get; set; }
 }

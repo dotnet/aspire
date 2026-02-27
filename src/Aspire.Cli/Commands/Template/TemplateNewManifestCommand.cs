@@ -62,45 +62,22 @@ internal sealed partial class TemplateNewManifestCommand : BaseTemplateSubComman
             required: true,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var displayName = await InteractionService.PromptForStringAsync(
-            "Display name",
-            required: true,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        var description = await InteractionService.PromptForStringAsync(
-            "Description",
-            required: true,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        var languages = new[] { "csharp", "typescript", "python", "go", "java", "rust" };
-        var language = await InteractionService.PromptForSelectionAsync(
-            "Primary language",
-            languages,
-            l => l,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
         var canonicalName = ToPascalCase(name);
 
         var manifest = new GitTemplateManifest
         {
             Schema = "https://aka.ms/aspire/template-schema/v1",
             Name = name,
-            DisplayName = displayName,
-            Description = description,
-            Language = language,
             Variables = new Dictionary<string, GitTemplateVariable>
             {
                 ["projectName"] = new()
                 {
-                    DisplayName = "Project Name",
-                    Description = "The name for your new Aspire application.",
                     Type = "string",
                     Required = true,
                     DefaultValue = canonicalName,
                     Validation = new GitTemplateVariableValidation
                     {
                         Pattern = "^[A-Za-z][A-Za-z0-9_.]*$",
-                        Message = "Project name must start with a letter and contain only letters, digits, dots, and underscores."
                     }
                 }
             },
@@ -115,12 +92,7 @@ internal sealed partial class TemplateNewManifestCommand : BaseTemplateSubComman
                     [canonicalName] = "{{projectName}}",
                     [canonicalName.ToLowerInvariant()] = "{{projectName | lowercase}}"
                 }
-            },
-            PostMessages =
-            [
-                $"Your Aspire application '{{{{{nameof(GitTemplateManifest.Name)}}}}}' has been created!",
-                "Run `cd {{projectName}} && dotnet run --project {{projectName}}.AppHost` to start the application."
-            ]
+            }
         };
 
         Directory.CreateDirectory(targetDir);
