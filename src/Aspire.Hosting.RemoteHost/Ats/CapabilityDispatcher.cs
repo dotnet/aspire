@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
@@ -536,7 +537,8 @@ internal static class CapabilityJsonExtensions
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     /// <summary>
