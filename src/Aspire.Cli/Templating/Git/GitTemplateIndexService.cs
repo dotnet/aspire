@@ -206,11 +206,11 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
         // Config keys: templates.indexes.<name>.repo and templates.indexes.<name>.ref
         var allConfig = await _configService.GetAllConfigurationAsync(cancellationToken).ConfigureAwait(false);
         var indexNames = allConfig.Keys
-            .Where(k => k.StartsWith("templates:indexes:", StringComparison.OrdinalIgnoreCase) && k.EndsWith(":repo", StringComparison.OrdinalIgnoreCase))
+            .Where(k => k.StartsWith("templates.indexes.", StringComparison.OrdinalIgnoreCase) && k.EndsWith(".repo", StringComparison.OrdinalIgnoreCase))
             .Select(k =>
             {
-                // Extract name from "templates:indexes:<name>:repo"
-                var parts = k.Split(':');
+                // Extract name from "templates.indexes.<name>.repo"
+                var parts = k.Split('.');
                 return parts.Length >= 4 ? parts[2] : null;
             })
             .Where(n => n is not null && !string.Equals(n, "default", StringComparison.OrdinalIgnoreCase))
@@ -218,8 +218,8 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
 
         foreach (var indexName in indexNames)
         {
-            allConfig.TryGetValue($"templates:indexes:{indexName}:repo", out var repo);
-            allConfig.TryGetValue($"templates:indexes:{indexName}:ref", out var gitRef);
+            allConfig.TryGetValue($"templates.indexes.{indexName}.repo", out var repo);
+            allConfig.TryGetValue($"templates.indexes.{indexName}.ref", out var gitRef);
 
             if (repo is not null)
             {
