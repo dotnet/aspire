@@ -1,0 +1,259 @@
+name: Release Coordinator
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 13.1.0 or 13.1.0-preview.1)'
+        required: true
+        type: string
+      create_tag:
+        description: 'Create version tag (triggers release workflow)'
+        required: true
+        type: boolean
+        default: false
+      update_samples:
+        description: 'Create PR to update aspire-samples'
+        required: true
+        type: boolean
+        default: true
+      update_docker:
+        description: 'Create PR to update dotnet-docker'
+        required: true
+        type: boolean
+        default: true
+      bump_baseline:
+        description: 'Create PR to bump baseline version'
+        required: true
+        type: boolean
+        default: true
+      create_checklist:
+        description: 'Create release checklist issue'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  validate_input:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate version format
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          
+          # Validate version format (semantic versioning with optional prerelease)
+          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-preview.N"
+            exit 1
+          fi
+          
+          echo "✅ Version format is valid: $VERSION"
+
+  create_tag:
+    name: Create version tag
+    needs: validate_input
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_tag }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG="v${{ inputs.version }}"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "⚠️ Tag $TAG already exists"
+            exit 0
+          fi
+          
+          git tag -a "$TAG" -m "Release ${{ inputs.version }}"
+          git push origin "$TAG"
+          
+          echo "✅ Created and pushed tag $TAG"
+
+  wait_for_release:
+    name: Wait for GitHub Release
+    needs: create_tag
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_tag }}
+    
+    steps:
+      - name: Wait for release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Waiting for release workflow to complete..."
+          sleep 60  # Give GitHub Actions time to start the workflow
+          
+          # Poll for the release to be created
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if gh release view "v${{ inputs.version }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "✅ Release v${{ inputs.version }} has been created"
+              exit 0
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Release not yet available, waiting..."
+            sleep 30
+          done
+          
+          echo "⚠️ Release workflow may still be running. Please check manually."
+
+  update_samples_repo:
+    name: Update aspire-samples
+    needs: [validate_input, wait_for_release]
+    if: ${{ always() && inputs.update_samples && needs.validate_input.result == 'success' }}
+    uses: ./.github/workflows/update-samples.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}
+      samples_repo: 'dotnet/aspire-samples'
+      target_branch: 'main'
+
+  update_docker_repo:
+    name: Update dotnet-docker
+    needs: [validate_input, wait_for_release]
+    if: ${{ always() && inputs.update_docker && needs.validate_input.result == 'success' }}
+    uses: ./.github/workflows/update-docker.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}
+      docker_repo: 'dotnet/dotnet-docker'
+      target_branch: 'main'
+
+  bump_baseline_version:
+    name: Bump baseline version
+    needs: [validate_input, wait_for_release]
+    if: ${{ always() && inputs.bump_baseline && needs.validate_input.result == 'success' }}
+    uses: ./.github/workflows/post-release-version-bump.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}
+      target_branch: 'main'
+
+  create_checklist_issue:
+    name: Create release checklist
+    needs: validate_input
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_checklist }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Create release checklist issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          
+          # Create issue body from template
+          cat > issue_body.md << 'EOF'
+          # Release Checklist for .NET Aspire ${{ inputs.version }}
+
+          This issue tracks the manual tasks required for the ${{ inputs.version }} release.
+
+          ## Automated Tasks ✅
+
+          The following tasks are handled by the release-coordinator workflow:
+
+          - [x] Create version tag (v${{ inputs.version }})
+          - [x] Build and publish packages
+          - [x] Create GitHub Release
+          - [x] Update aspire-samples repository
+          - [x] Update dotnet-docker repository
+          - [x] Bump baseline version
+
+          ## Manual Tasks
+
+          ### Pre-Release
+          - [ ] Verify all release blockers are resolved
+          - [ ] Coordinate with area owners on feature completeness
+          - [ ] Review and approve any pending security fixes
+
+          ### Release Process
+          - [ ] Verify NuGet packages are published: https://www.nuget.org/packages?q=Aspire
+          - [ ] Verify GitHub release is created: https://github.com/dotnet/aspire/releases/tag/v${{ inputs.version }}
+          - [ ] Test CLI installation from NuGet
+          - [ ] Verify VS Code extension is published (if applicable)
+
+          ### Post-Release
+          - [ ] Review and merge aspire-samples update PR
+          - [ ] Review and merge dotnet-docker update PR
+          - [ ] Review and merge baseline version bump PR
+          - [ ] Update aka.ms/aspire-cli links (if needed)
+          - [ ] Communicate with validation team
+          - [ ] Write and publish blog post announcement
+          - [ ] Update documentation on Microsoft Learn
+
+          ### Compliance & Communication
+          - [ ] Complete compliance sign-offs
+          - [ ] Send release announcement to internal mailing lists
+          - [ ] Post on social media channels
+
+          ---
+
+          **Release Coordinator Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          **Version:** ${{ inputs.version }}
+          **Release Date:** $(date -u +"%Y-%m-%d")
+          EOF
+          
+          # Create the issue
+          gh issue create \
+            --title "Release Checklist: .NET Aspire $VERSION" \
+            --body-file issue_body.md \
+            --label "area-infrastructure,release" \
+            --milestone "$(echo $VERSION | sed 's/-.*$//')"  || true
+
+  summary:
+    name: Release Coordination Summary
+    needs: [validate_input, create_tag, wait_for_release, update_samples_repo, update_docker_repo, bump_baseline_version, create_checklist_issue]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Release Coordination Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Task Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Task | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate_input.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Create Tag | ${{ needs.create_tag.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Wait for Release | ${{ needs.wait_for_release.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Update Samples | ${{ needs.update_samples_repo.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Update Docker | ${{ needs.update_docker_repo.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bump Baseline | ${{ needs.bump_baseline_version.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Create Checklist | ${{ needs.create_checklist_issue.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check the release checklist issue for manual tasks" >> $GITHUB_STEP_SUMMARY
+          echo "2. Review and merge cross-repo PRs" >> $GITHUB_STEP_SUMMARY
+          echo "3. Complete post-release communication tasks" >> $GITHUB_STEP_SUMMARY

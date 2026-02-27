@@ -297,3 +297,84 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
+
+    # ----------------------------------------------------------------
+    # This stage publishes VS Code extension to marketplace
+    # Only runs on release branches and requires VSCE_PAT secret
+    # ----------------------------------------------------------------
+    - stage: publish_vscode_extension
+      displayName: Publish VS Code Extension
+      dependsOn:
+      - build
+      # Only publish on release branches (release/* or internal/release/*)
+      condition: and(succeeded(), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/internal/release/')))
+      
+      jobs:
+      - job: PublishExtension
+        displayName: Publish to VS Code Marketplace
+        
+        pool:
+          name: NetCore1ESPool-Internal
+          image: windows.vs2022preview.amd64
+          os: windows
+        
+        steps:
+        - checkout: none
+        
+        - task: DownloadPipelineArtifact@2
+          displayName: Download VS Code Extension Artifact
+          inputs:
+            artifactName: aspire-vscode-extension
+            targetPath: '$(Pipeline.Workspace)/extension'
+        
+        - task: NodeTool@0
+          displayName: Install node.js
+          inputs:
+            versionSpec: '20.x'
+        
+        - task: PowerShell@2
+          displayName: Install vsce
+          inputs:
+            targetType: 'inline'
+            script: |
+              npm install -g @vscode/vsce@3.7.1
+              vsce --version
+        
+        - task: PowerShell@2
+          displayName: Publish Extension to Marketplace
+          inputs:
+            targetType: 'inline'
+            script: |
+              Write-Host "Publishing VS Code extension to marketplace..."
+              
+              # Find the .vsix file
+              $vsixFile = Get-ChildItem -Path "$(Pipeline.Workspace)/extension" -Filter "*.vsix" -Recurse | Select-Object -First 1
+              
+              if (-not $vsixFile) {
+                Write-Error "No .vsix file found in the artifacts"
+                exit 1
+              }
+              
+              Write-Host "Found extension file: $($vsixFile.FullName)"
+              
+              # Publish using vsce
+              # Note: VSCE_PAT must be configured in Azure DevOps variable group
+              vsce publish --packagePath $vsixFile.FullName --pat $(VSCE_PAT)
+              
+              Write-Host "Extension published successfully!"
+          env:
+            VSCE_PAT: $(VSCE_PAT)
+        
+        - task: PowerShell@2
+          displayName: Verify Publication
+          inputs:
+            targetType: 'inline'
+            script: |
+              Write-Host "Waiting for extension to be available on marketplace..."
+              Start-Sleep -Seconds 30
+              
+              # The extension should now be available at:
+              # https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.aspire
+              
+              Write-Host "✅ VS Code extension publication completed!"
+              Write-Host "View at: https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.aspire"
