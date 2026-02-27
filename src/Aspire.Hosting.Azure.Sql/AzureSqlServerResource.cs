@@ -22,6 +22,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString, IAzurePrivateEndpointTarget, IAzurePrivateEndpointTargetNotification
 {
+    private const string AciSubnetDelegationServiceId = "Microsoft.ContainerInstance/containerGroups";
+
     private readonly Dictionary<string, AzureSqlDatabaseResource> _databases = new Dictionary<string, AzureSqlDatabaseResource>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
 
@@ -401,7 +403,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             AzureStorageResource? createdStorage = null;
             if (DeploymentScriptStorage is null)
             {
-                DeploymentScriptStorage = AzureSqlExtensions.CreateDeploymentScriptStorage(builder, builder.CreateResourceBuilder(this)).Resource;
+                DeploymentScriptStorage = CreateDeploymentScriptStorage(builder, builder.CreateResourceBuilder(this)).Resource;
                 createdStorage = DeploymentScriptStorage;
             }
 
@@ -442,7 +444,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
-                AzureSqlExtensions.PrepareDeploymentScriptInfrastructure(data.Model, this, createdStorage);
+                PrepareDeploymentScriptInfrastructure(data.Model, this, createdStorage);
 
                 return Task.CompletedTask;
             });
@@ -460,6 +462,113 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         public IEnumerable<string> GetPrivateLinkGroupIds()
         {
             yield return "file";
+        }
+    }
+
+    private static IResourceBuilder<AzureStorageResource> CreateDeploymentScriptStorage(IDistributedApplicationBuilder builder, IResourceBuilder<AzureSqlServerResource> azureSqlServer)
+    {
+        var sqlName = azureSqlServer.Resource.Name;
+        var storageName = $"{sqlName.Substring(0, Math.Min(sqlName.Length, 10))}-store";
+
+        return builder.AddAzureStorage(storageName)
+            .ConfigureInfrastructure(infra =>
+            {
+                var sa = infra.GetProvisionableResources().OfType<StorageAccount>().SingleOrDefault()
+                    ?? throw new InvalidOperationException("Could not find a StorageAccount resource in the infrastructure.");
+
+                // Deployment scripts require shared key access for file share mounting.
+                sa.AllowSharedKeyAccess = true;
+            });
+    }
+
+    private static void PrepareDeploymentScriptInfrastructure(DistributedApplicationModel appModel, AzureSqlServerResource sql, AzureStorageResource? implicitStorage)
+    {
+        var hasPe = sql.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
+        if (implicitStorage is not null)
+        {
+            if (!hasPe)
+            {
+                // No private endpoint — implicitStorage not needed
+                sql.DeploymentScriptStorage = null;
+                appModel.Resources.Remove(implicitStorage);
+
+                if (sql.AdminIdentity is not null)
+                {
+                    appModel.Resources.Remove(sql.AdminIdentity);
+                    sql.AdminIdentity = null;
+                }
+
+                if (sql.DeploymentScriptNetworkSecurityGroup is not null)
+                {
+                    appModel.Resources.Remove(sql.DeploymentScriptNetworkSecurityGroup);
+                    sql.DeploymentScriptNetworkSecurityGroup = null;
+                }
+                return;
+            }
+
+            // If the implicitStorage was swapped out by WithAdminDeploymentScriptStorage,
+            // remove the original default from the model.
+            if (sql.DeploymentScriptStorage != implicitStorage)
+            {
+                appModel.Resources.Remove(implicitStorage);
+            }
+        }
+
+        // Find the private endpoint targeting this SQL server to get the VirtualNetwork
+        var pe = appModel.Resources.OfType<AzurePrivateEndpointResource>()
+            .FirstOrDefault(p => ReferenceEquals(p.Target, sql));
+
+        if (pe is null)
+        {
+            return;
+        }
+
+        var peSubnet = pe.Subnet;
+        var vnet = peSubnet.Parent;
+
+        AzureSubnetResource aciSubnetResource;
+        // Only auto-allocate subnet if user didn't provide one
+        if (sql.TryGetLastAnnotation<AdminDeploymentScriptSubnetAnnotation>(out var subnetAnnotation))
+        {
+            aciSubnetResource = subnetAnnotation.Subnet;
+
+            // User provided an explicit subnet — remove the auto-created NSG since they manage their own
+            if (sql.DeploymentScriptNetworkSecurityGroup is { } nsg)
+            {
+                appModel.Resources.Remove(nsg);
+                sql.DeploymentScriptNetworkSecurityGroup = null;
+            }
+        }
+        else
+        {
+            var existingSubnets = appModel.Resources.OfType<AzureSubnetResource>()
+                .Where(s => ReferenceEquals(s.Parent, vnet));
+
+            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnet, existingSubnets);
+            aciSubnetResource = new AzureSubnetResource($"{sql.Name}-aci-subnet", $"{sql.Name}-aci-subnet", aciSubnetCidr, vnet);
+            var aciSubnet = new FakeBuilder<AzureSubnetResource>(aciSubnetResource);
+            vnet.Subnets.Add(aciSubnet.Resource);
+
+            aciSubnet.WithNetworkSecurityGroup(new FakeBuilder<AzureNetworkSecurityGroupResource>(sql.DeploymentScriptNetworkSecurityGroup!));
+
+            sql.Annotations.Add(new AdminDeploymentScriptSubnetAnnotation(aciSubnet.Resource));
+        }
+
+        // always delegate the subnet to ACI
+        aciSubnetResource.Annotations.Add(new AzureSubnetServiceDelegationAnnotation(
+            AciSubnetDelegationServiceId,
+            AciSubnetDelegationServiceId));
+    }
+
+    private sealed class FakeBuilder<T>(T resource) : IResourceBuilder<T> where T : IResource
+    {
+        public IDistributedApplicationBuilder ApplicationBuilder => throw new NotImplementedException();
+        public T Resource => resource;
+        public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
+        {
+            Resource.Annotations.Add(annotation);
+            return this;
         }
     }
 }

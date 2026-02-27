@@ -27,7 +27,7 @@ param sql_outputs_sqlserveradminname string
 
 param myvnet_outputs_acisubnet_id string
 
-param sql_stor_outputs_name string
+param sql_store_outputs_name string
 
 param principalId string
 
@@ -41,8 +41,8 @@ resource sqlServerAdmin 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-1
   name: sql_outputs_sqlserveradminname
 }
 
-resource sql_stor 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: sql_stor_outputs_name
+resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: sql_store_outputs_name
 }
 
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
@@ -93,7 +93,7 @@ resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     ]
     scriptContent: '\$sqlServerFqdn = "\$env:DBSERVER"\n\$sqlDatabaseName = "\$env:DBNAME"\n\$principalName = "\$env:PRINCIPALNAME"\n\$id = "\$env:ID"\n\n# Install SqlServer module - using specific version to avoid breaking changes in 22.4.5.1 (see https://github.com/dotnet/aspire/issues/9926)\nInstall-Module -Name SqlServer -RequiredVersion 22.3.0 -Force -AllowClobber -Scope CurrentUser\nImport-Module SqlServer\n\n\$sqlCmd = @"\nDECLARE @name SYSNAME = \'\$principalName\';\nDECLARE @id UNIQUEIDENTIFIER = \'\$id\';\n\n-- Convert the guid to the right type\nDECLARE @castId NVARCHAR(MAX) = CONVERT(VARCHAR(MAX), CONVERT (VARBINARY(16), @id), 1);\n\n-- Construct command: CREATE USER [@name] WITH SID = @castId, TYPE = E;\nDECLARE @cmd NVARCHAR(MAX) = N\'CREATE USER [\' + @name + \'] WITH SID = \' + @castId + \', TYPE = E;\'\nEXEC (@cmd);\n\n-- Assign roles to the new user\nDECLARE @role1 NVARCHAR(MAX) = N\'ALTER ROLE db_owner ADD MEMBER [\' + @name + \']\';\nEXEC (@role1);\n\n"@\n# Note: the string terminator must not have whitespace before it, therefore it is not indented.\n\nWrite-Host \$sqlCmd\n\n\$connectionString = "Server=tcp:\${sqlServerFqdn},1433;Initial Catalog=\${sqlDatabaseName};Authentication=Active Directory Default;"\n\nInvoke-Sqlcmd -ConnectionString \$connectionString -Query \$sqlCmd'
     storageAccountSettings: {
-      storageAccountName: sql_stor_outputs_name
+      storageAccountName: sql_store_outputs_name
     }
   }
 }
@@ -265,7 +265,7 @@ param privatelink_file_core_windows_net_outputs_name string
 
 param myvnet_outputs_pesubnet_id string
 
-param sql_stor_outputs_id string
+param sql_store_outputs_id string
 
 resource privatelink_file_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   name: privatelink_file_core_windows_net_outputs_name
@@ -278,7 +278,7 @@ resource pesubnet_files_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
     privateLinkServiceConnections: [
       {
         properties: {
-          privateLinkServiceId: sql_stor_outputs_id
+          privateLinkServiceId: sql_store_outputs_id
           groupIds: [
             'file'
           ]
@@ -507,34 +507,34 @@ output principalName string = sql_admin_identity.name
 
 output name string = sql_admin_identity.name
 
-// Resource: sql-admin-identity-roles-sql-stor
+// Resource: sql-admin-identity-roles-sql-store
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param sql_stor_outputs_name string
+param sql_store_outputs_name string
 
 param principalId string
 
-resource sql_stor 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: sql_stor_outputs_name
+resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: sql_store_outputs_name
 }
 
-resource sql_stor_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(sql_stor.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
+resource sql_store_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(sql_store.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
   properties: {
     principalId: principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
     principalType: 'ServicePrincipal'
   }
-  scope: sql_stor
+  scope: sql_store
 }
 
-// Resource: sql-stor
+// Resource: sql-store
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource sql_stor 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-  name: take('sqlstor${uniqueString(resourceGroup().id)}', 24)
+resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('sqlstore${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'
   location: location
   sku: {
@@ -551,19 +551,19 @@ resource sql_stor 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     publicNetworkAccess: 'Disabled'
   }
   tags: {
-    'aspire-resource-name': 'sql-stor'
+    'aspire-resource-name': 'sql-store'
   }
 }
 
-output blobEndpoint string = sql_stor.properties.primaryEndpoints.blob
+output blobEndpoint string = sql_store.properties.primaryEndpoints.blob
 
-output dataLakeEndpoint string = sql_stor.properties.primaryEndpoints.dfs
+output dataLakeEndpoint string = sql_store.properties.primaryEndpoints.dfs
 
-output queueEndpoint string = sql_stor.properties.primaryEndpoints.queue
+output queueEndpoint string = sql_store.properties.primaryEndpoints.queue
 
-output tableEndpoint string = sql_stor.properties.primaryEndpoints.table
+output tableEndpoint string = sql_store.properties.primaryEndpoints.table
 
-output name string = sql_stor.name
+output name string = sql_store.name
 
-output id string = sql_stor.id
+output id string = sql_store.id
 
