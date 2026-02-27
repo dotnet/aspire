@@ -392,6 +392,12 @@ public class Program
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateListCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateSearchCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateRefreshCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateNewManifestCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateNewIndexCommand>();
         builder.Services.AddTransient<SetupCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
