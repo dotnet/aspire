@@ -217,7 +217,9 @@
         "vnet_outputs_sql_aci_subnet_id": "{vnet.outputs.sql_aci_subnet_Id}",
         "sql_store_outputs_name": "{sql-store.outputs.name}",
         "principalId": "{api-identity.outputs.principalId}",
-        "principalName": "{api-identity.outputs.principalName}"
+        "principalName": "{api-identity.outputs.principalName}",
+        "private_endpoints_sql_pe_outputs_name": "{private-endpoints-sql-pe.outputs.name}",
+        "private_endpoints_files_pe_outputs_name": "{private-endpoints-files-pe.outputs.name}"
       }
     },
     "api-roles-storage": {

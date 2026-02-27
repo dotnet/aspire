@@ -75,11 +75,6 @@ resource sql_aci_subnet 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' =
     networkSecurityGroup: {
       id: sql_nsg_outputs_id
     }
-    serviceEndpoints: [
-      {
-        service: 'Microsoft.Storage'
-      }
-    ]
   }
   parent: vnet
   dependsOn: [
