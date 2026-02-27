@@ -43,6 +43,14 @@ public interface IUserSecretsManager
     void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator);
 
     /// <summary>
+    /// Gets a secret value from the store or creates it using the generator if it doesn't exist.
+    /// </summary>
+    /// <param name="name">The name of the secret.</param>
+    /// <param name="valueGenerator">Function to generate the value if it doesn't exist.</param>
+    /// <returns>The existing or generated secret value.</returns>
+    string GetOrSetSecret(string name, Func<string> valueGenerator);
+
+    /// <summary>
     /// Saves state to user secrets asynchronously (for deployment state manager).
     /// If multiple callers save state concurrently, the last write wins.
     /// </summary>
