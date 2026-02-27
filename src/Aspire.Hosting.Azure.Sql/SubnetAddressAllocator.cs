@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Net.Sockets;
 using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting;
@@ -92,6 +93,11 @@ internal static class SubnetAddressAllocator
         }
 
         var ip = IPAddress.Parse(parts[0]);
+        if (ip.AddressFamily != AddressFamily.InterNetwork)
+        {
+            throw new FormatException($"Only IPv4 CIDR notation is supported: '{cidr}'.");
+        }
+
         var bytes = ip.GetAddressBytes();
         var address = (uint)((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]);
 

@@ -7,6 +7,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Network;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
@@ -455,12 +456,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                .WithAnnotation(new ExistingAzureResourceAnnotation(AdminName));
             AdminIdentity = admin.Resource;
 
-            admin.WithRoleAssignments(builder.CreateResourceBuilder(DeploymentScriptStorage), StorageBuiltInRole.StorageFileDataPrivilegedContributor);
-
-            var peSubnet = builder.CreateResourceBuilder(privateEndpoint.Resource.Subnet);
-            var storagePe = peSubnet.AddPrivateEndpoint(builder.CreateResourceBuilder(new StorageFiles(DeploymentScriptStorage)));
-            DeploymentScriptDependsOn.Add(storagePe.Resource);
-
             DeploymentScriptNetworkSecurityGroup = builder.AddNetworkSecurityGroup($"{Name}-nsg")
                 .WithSecurityRule(new AzureSecurityRule()
                 {
@@ -501,18 +496,9 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         if (ReferenceEquals(DeploymentScriptStorage, storage))
         {
             DeploymentScriptStorage = null;
-            appModel.Resources.Remove(storage);
-
-            var storagePrivateEndpoints = DeploymentScriptDependsOn
-                .OfType<AzurePrivateEndpointResource>()
-                .Where(pe => pe.Target == storage)
-                .ToList();
-            foreach (var pe in storagePrivateEndpoints)
-            {
-                DeploymentScriptDependsOn.Remove(pe);
-                appModel.Resources.Remove(pe);
-            }
         }
+
+        appModel.Resources.Remove(storage);
     }
 
     private sealed class StorageFiles(AzureStorageResource storage) : Resource("files"), IResourceWithParent, IAzurePrivateEndpointTarget
@@ -587,8 +573,16 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             return;
         }
 
-        var peSubnet = pe.Subnet;
-        var vnetResource = peSubnet.Parent;
+        var builder = new FakeDistributedApplicationBuilder(appModel);
+
+        // add a role assignment to the DeploymentScriptStorage account so the deploymentScript can mount a file share in it.
+        builder.CreateResourceBuilder(sql.AdminIdentity!)
+            .WithRoleAssignments(builder.CreateResourceBuilder(sql.DeploymentScriptStorage!), StorageBuiltInRole.StorageFileDataPrivilegedContributor);
+
+        // add a private endpoint to the DeploymentScriptStorage files service so the deploymentScript can access it.
+        var peSubnet = builder.CreateResourceBuilder(pe.Subnet);
+        var storagePe = peSubnet.AddPrivateEndpoint(builder.CreateResourceBuilder(new StorageFiles(sql.DeploymentScriptStorage!)));
+        sql.DeploymentScriptDependsOn.Add(storagePe.Resource);
 
         AzureSubnetResource aciSubnetResource;
         // Only auto-allocate subnet if user didn't provide one
@@ -605,13 +599,12 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         }
         else
         {
-            var builder = new FakeDistributedApplicationBuilder(appModel);
-            var vnet = builder.CreateResourceBuilder(vnetResource);
+            var vnet = builder.CreateResourceBuilder(peSubnet.Resource.Parent);
 
             var existingSubnets = appModel.Resources.OfType<AzureSubnetResource>()
-                .Where(s => ReferenceEquals(s.Parent, vnetResource));
+                .Where(s => ReferenceEquals(s.Parent, vnet.Resource));
 
-            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnetResource, existingSubnets);
+            var aciSubnetCidr = SubnetAddressAllocator.AllocateDeploymentScriptSubnet(vnet.Resource, existingSubnets);
             var aciSubnet = vnet.AddSubnet($"{sql.Name}-aci-subnet", aciSubnetCidr)
                 .WithNetworkSecurityGroup(builder.CreateResourceBuilder(sql.DeploymentScriptNetworkSecurityGroup!));
             aciSubnetResource = aciSubnet.Resource;

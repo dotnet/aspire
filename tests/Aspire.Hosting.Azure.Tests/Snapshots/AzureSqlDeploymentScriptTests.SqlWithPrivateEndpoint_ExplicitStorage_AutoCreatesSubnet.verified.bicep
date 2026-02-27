@@ -131,8 +131,9 @@ resource depscriptstorage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
+    publicNetworkAccess: 'Disabled'
   }
   tags: {
     'aspire-resource-name': 'depscriptstorage'
@@ -323,7 +324,7 @@ param privatelink_file_core_windows_net_outputs_name string
 
 param myvnet_outputs_pesubnet_id string
 
-param sql_store_outputs_id string
+param depscriptstorage_outputs_id string
 
 resource privatelink_file_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   name: privatelink_file_core_windows_net_outputs_name
@@ -336,7 +337,7 @@ resource pesubnet_files_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {
     privateLinkServiceConnections: [
       {
         properties: {
-          privateLinkServiceId: sql_store_outputs_id
+          privateLinkServiceId: depscriptstorage_outputs_id
           groupIds: [
             'file'
           ]
@@ -587,28 +588,6 @@ resource depscriptstorage_StorageFileDataPrivilegedContributor 'Microsoft.Author
   scope: depscriptstorage
 }
 
-// Resource: sql-admin-identity-roles-sql-store
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
-
-param sql_store_outputs_name string
-
-param principalId string
-
-resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: sql_store_outputs_name
-}
-
-resource sql_store_StorageFileDataPrivilegedContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(sql_store.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'))
-  properties: {
-    principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
-    principalType: 'ServicePrincipal'
-  }
-  scope: sql_store
-}
-
 // Resource: sql-nsg
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
@@ -654,42 +633,4 @@ resource sql_nsg_allow_outbound_443_Sql 'Microsoft.Network/networkSecurityGroups
 output id string = sql_nsg.id
 
 output name string = sql_nsg.name
-
-// Resource: sql-store
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
-
-resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' = {
-  name: take('sqlstore${uniqueString(resourceGroup().id)}', 24)
-  kind: 'StorageV2'
-  location: location
-  sku: {
-    name: 'Standard_GRS'
-  }
-  properties: {
-    accessTier: 'Hot'
-    allowSharedKeyAccess: true
-    isHnsEnabled: false
-    minimumTlsVersion: 'TLS1_2'
-    networkAcls: {
-      defaultAction: 'Deny'
-    }
-    publicNetworkAccess: 'Disabled'
-  }
-  tags: {
-    'aspire-resource-name': 'sql-store'
-  }
-}
-
-output blobEndpoint string = sql_store.properties.primaryEndpoints.blob
-
-output dataLakeEndpoint string = sql_store.properties.primaryEndpoints.dfs
-
-output queueEndpoint string = sql_store.properties.primaryEndpoints.queue
-
-output tableEndpoint string = sql_store.properties.primaryEndpoints.table
-
-output name string = sql_store.name
-
-output id string = sql_store.id
 

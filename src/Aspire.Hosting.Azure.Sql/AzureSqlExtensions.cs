@@ -427,12 +427,6 @@ public static class AzureSqlExtensions
         // original default storage since it no longer matches.
         builder.Resource.DeploymentScriptStorage = storage.Resource;
 
-        if (builder.Resource.AdminIdentity is { } adminIdentity)
-        {
-            builder.ApplicationBuilder.CreateResourceBuilder(adminIdentity)
-                .WithRoleAssignments(storage, StorageBuiltInRole.StorageFileDataPrivilegedContributor);
-        }
-
         // If the storage is not an existing resource, ensure AllowSharedKeyAccess is enabled
         if (!storage.Resource.IsExisting())
         {
@@ -447,5 +441,4 @@ public static class AzureSqlExtensions
 
         return builder;
     }
-
 }

@@ -128,22 +128,6 @@
         "sql_outputs_sqlserveradminname": "{sql.outputs.sqlServerAdminName}"
       }
     },
-    "privatelink-file-core-windows-net": {
-      "type": "azure.bicep.v0",
-      "path": "privatelink-file-core-windows-net.module.bicep",
-      "params": {
-        "vnet_outputs_id": "{vnet.outputs.id}"
-      }
-    },
-    "private-endpoints-files-pe": {
-      "type": "azure.bicep.v0",
-      "path": "private-endpoints-files-pe.module.bicep",
-      "params": {
-        "privatelink_file_core_windows_net_outputs_name": "{privatelink-file-core-windows-net.outputs.name}",
-        "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
-        "sql_store_outputs_id": "{sql-store.outputs.id}"
-      }
-    },
     "sql-nsg": {
       "type": "azure.bicep.v0",
       "path": "sql-nsg.module.bicep"
@@ -202,6 +186,22 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "privatelink-file-core-windows-net": {
+      "type": "azure.bicep.v0",
+      "path": "privatelink-file-core-windows-net.module.bicep",
+      "params": {
+        "vnet_outputs_id": "{vnet.outputs.id}"
+      }
+    },
+    "private-endpoints-files-pe": {
+      "type": "azure.bicep.v0",
+      "path": "private-endpoints-files-pe.module.bicep",
+      "params": {
+        "privatelink_file_core_windows_net_outputs_name": "{privatelink-file-core-windows-net.outputs.name}",
+        "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
+        "sql_store_outputs_id": "{sql-store.outputs.id}"
       }
     },
     "api-identity": {
