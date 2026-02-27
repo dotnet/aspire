@@ -254,7 +254,7 @@ builder.Build().Run();
             sequenceBuilder
                 .Type("clear")
                 .Enter()
-                .Wait(TimeSpan.FromSeconds(1))
+                .WaitForSuccessPrompt(counter)
                 .Type("aspire deploy")
                 .Enter()
                 .WaitUntil(s =>
