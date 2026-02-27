@@ -29,6 +29,9 @@
     <SplitTestsOnCI>true</SplitTestsOnCI>
     <TestClassNamePrefixForCI>Aspire.Deployment.EndToEnd.Tests</TestClassNamePrefixForCI>
 
+    <!-- Short name for CI job display (avoids verbose "Deployment.EndToEnd-ClassName") -->
+    <TestShortName>EndToEnd</TestShortName>
+
     <!-- These tests require built NuGet packages -->
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>

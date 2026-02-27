@@ -102,7 +102,7 @@ jobs:
     uses: ./.github/workflows/build-packages.yml
 
   run_tests:
-    name: Test
+    name: ${{ matrix.tests.project }}
     needs: [generate_tests_matrix, build_packages]
     strategy:
       fail-fast: false

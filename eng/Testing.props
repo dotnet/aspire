@@ -22,7 +22,8 @@
     <_OuterloopTestRunAdditionalArgs>--filter-trait "outerloop=true"</_OuterloopTestRunAdditionalArgs>
     <_NonOuterloopTestRunAdditionalArgs>--filter-not-trait "outerloop=true"</_NonOuterloopTestRunAdditionalArgs>
 
-    <_ShortName>$([System.IO.Path]::GetFileNameWithoutExtension('$(MSBuildProjectName)').Replace('Aspire.', '').Replace('.Tests', ''))</_ShortName>
+    <_ShortName Condition="'$(TestShortName)' != ''">$(TestShortName)</_ShortName>
+    <_ShortName Condition="'$(_ShortName)' == ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(MSBuildProjectName)').Replace('Aspire.', '').Replace('.Tests', ''))</_ShortName>
   </PropertyGroup>
 
   <PropertyGroup>

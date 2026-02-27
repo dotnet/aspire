@@ -46,7 +46,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   tests_no_nugets:
-    name: Tests
+    name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_tests
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_no_nugets).include[0] != null }}
@@ -65,7 +65,7 @@ jobs:
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   tests_no_nugets_overflow:
-    name: Tests (Overflow)
+    name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: setup_for_tests
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_no_nugets_overflow).include[0] != null }}
@@ -84,7 +84,7 @@ jobs:
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   tests_requires_nugets:
-    name: Tests (Requires Nugets)
+    name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests, build_packages]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
@@ -103,7 +103,7 @@ jobs:
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   tests_requires_cli_archive:
-    name: Tests (Requires CLI Archive)
+    name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests, build_packages, build_cli_archives]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_cli_archive).include[0] != null }}
