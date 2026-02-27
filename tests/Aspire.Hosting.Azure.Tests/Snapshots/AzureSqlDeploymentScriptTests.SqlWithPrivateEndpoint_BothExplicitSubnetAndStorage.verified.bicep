@@ -33,6 +33,10 @@ param principalId string
 
 param principalName string
 
+param pesubnet_sql_pe_outputs_name string
+
+param pesubnet_files_pe_outputs_name string
+
 resource sql 'Microsoft.Sql/servers@2023-08-01' existing = {
   name: sql_outputs_name
 }
@@ -47,6 +51,14 @@ resource depscriptstorage 'Microsoft.Storage/storageAccounts@2024-01-01' existin
 
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: principalName
+}
+
+resource pesubnet_sql_pe 'Microsoft.Network/privateEndpoints@2025-05-01' existing = {
+  name: pesubnet_sql_pe_outputs_name
+}
+
+resource pesubnet_files_pe 'Microsoft.Network/privateEndpoints@2025-05-01' existing = {
+  name: pesubnet_files_pe_outputs_name
 }
 
 resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -96,6 +108,10 @@ resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       storageAccountName: depscriptstorage_outputs_name
     }
   }
+  dependsOn: [
+    pesubnet_sql_pe
+    pesubnet_files_pe
+  ]
 }
 
 // Resource: depscriptstorage
@@ -587,4 +603,42 @@ resource sql_store_StorageFileDataPrivilegedContributor 'Microsoft.Authorization
   }
   scope: sql_store
 }
+
+// Resource: sql-store
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
+resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+  name: take('sqlstore${uniqueString(resourceGroup().id)}', 24)
+  kind: 'StorageV2'
+  location: location
+  sku: {
+    name: 'Standard_GRS'
+  }
+  properties: {
+    accessTier: 'Hot'
+    allowSharedKeyAccess: true
+    isHnsEnabled: false
+    minimumTlsVersion: 'TLS1_2'
+    networkAcls: {
+      defaultAction: 'Deny'
+    }
+    publicNetworkAccess: 'Disabled'
+  }
+  tags: {
+    'aspire-resource-name': 'sql-store'
+  }
+}
+
+output blobEndpoint string = sql_store.properties.primaryEndpoints.blob
+
+output dataLakeEndpoint string = sql_store.properties.primaryEndpoints.dfs
+
+output queueEndpoint string = sql_store.properties.primaryEndpoints.queue
+
+output tableEndpoint string = sql_store.properties.primaryEndpoints.table
+
+output name string = sql_store.name
+
+output id string = sql_store.id
 

@@ -33,6 +33,10 @@ param principalId string
 
 param principalName string
 
+param pesubnet_sql_pe_outputs_name string
+
+param pesubnet_files_pe_outputs_name string
+
 resource sql 'Microsoft.Sql/servers@2023-08-01' existing = {
   name: sql_outputs_name
 }
@@ -47,6 +51,14 @@ resource sql_store 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
 
 resource mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: principalName
+}
+
+resource pesubnet_sql_pe 'Microsoft.Network/privateEndpoints@2025-05-01' existing = {
+  name: pesubnet_sql_pe_outputs_name
+}
+
+resource pesubnet_files_pe 'Microsoft.Network/privateEndpoints@2025-05-01' existing = {
+  name: pesubnet_files_pe_outputs_name
 }
 
 resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -96,6 +108,10 @@ resource script_sql_db 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       storageAccountName: sql_store_outputs_name
     }
   }
+  dependsOn: [
+    pesubnet_sql_pe
+    pesubnet_files_pe
+  ]
 }
 
 // Resource: env

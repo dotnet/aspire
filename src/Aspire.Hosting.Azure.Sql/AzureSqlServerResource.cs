@@ -82,6 +82,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
     internal AzureNetworkSecurityGroupResource? DeploymentScriptNetworkSecurityGroup { get; set; }
 
+    internal List<AzureProvisioningResource> DeploymentScriptDependsOn { get; } = [];
+
     /// <summary>
     /// Gets the host name for the SQL Server.
     /// </summary>
@@ -265,6 +267,14 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             userId = managedIdentity.ClientId;
         }
 
+        // when private endpoints are referencing this SQL server, we need to delay the AzurePowerShellScript
+        // until the private endpoints are created, so the script can connect to the SQL server using the private endpoint.
+        var dependsOn = new List<ProvisionableResource>();
+        foreach (var d in DeploymentScriptDependsOn)
+        {
+            dependsOn.Add(d.AddAsExistingResource(infra));
+        }
+
         foreach (var (resource, database) in Databases)
         {
             var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{resource}");
@@ -342,6 +352,11 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 Invoke-Sqlcmd -ConnectionString $connectionString -Query $sqlCmd
                 """;
 
+            foreach (var d in dependsOn)
+            {
+                scriptResource.DependsOn.Add(d);
+            }
+
             infra.Add(scriptResource);
         }
     }
@@ -403,6 +418,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
         if (builder.ExecutionContext.IsPublishMode)
         {
+            DeploymentScriptDependsOn.Add(privateEndpoint.Resource);
+
             // Create a deployment script storage account (publish mode only).
             // The BeforeStartEvent handler will remove the default storage if it's no longer
             // needed if the user swapped it via WithAdminDeploymentScriptStorage.
@@ -420,7 +437,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             admin.WithRoleAssignments(builder.CreateResourceBuilder(DeploymentScriptStorage), StorageBuiltInRole.StorageFileDataPrivilegedContributor);
 
             var peSubnet = builder.CreateResourceBuilder(privateEndpoint.Resource.Subnet);
-            peSubnet.AddPrivateEndpoint(builder.CreateResourceBuilder(new StorageFiles(DeploymentScriptStorage)));
+            var storagePe = peSubnet.AddPrivateEndpoint(builder.CreateResourceBuilder(new StorageFiles(DeploymentScriptStorage)));
+            DeploymentScriptDependsOn.Add(storagePe.Resource);
 
             DeploymentScriptNetworkSecurityGroup = builder.AddNetworkSecurityGroup($"{Name}-nsg")
                 .WithSecurityRule(new AzureSecurityRule()
@@ -454,6 +472,25 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
                 return Task.CompletedTask;
             });
+        }
+    }
+
+    private void RemoveDeploymentScriptStorage(DistributedApplicationModel appModel, AzureStorageResource storage)
+    {
+        if (ReferenceEquals(DeploymentScriptStorage, storage))
+        {
+            DeploymentScriptStorage = null;
+            appModel.Resources.Remove(storage);
+
+            var storagePrivateEndpoints = DeploymentScriptDependsOn
+                .OfType<AzurePrivateEndpointResource>()
+                .Where(pe => pe.Target == storage)
+                .ToList();
+            foreach (var pe in storagePrivateEndpoints)
+            {
+                DeploymentScriptDependsOn.Remove(pe);
+                appModel.Resources.Remove(pe);
+            }
         }
     }
 
@@ -496,8 +533,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             if (!hasPe)
             {
                 // No private endpoint — implicitStorage not needed
-                sql.DeploymentScriptStorage = null;
-                appModel.Resources.Remove(implicitStorage);
+                sql.RemoveDeploymentScriptStorage(appModel, implicitStorage);
 
                 if (sql.AdminIdentity is not null)
                 {
@@ -517,7 +553,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             // remove the original default from the model.
             if (sql.DeploymentScriptStorage != implicitStorage)
             {
-                appModel.Resources.Remove(implicitStorage);
+                sql.RemoveDeploymentScriptStorage(appModel, implicitStorage);
             }
         }
 
@@ -558,17 +594,6 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             var aciSubnet = vnet.AddSubnet($"{sql.Name}-aci-subnet", aciSubnetCidr)
                 .WithNetworkSecurityGroup(builder.CreateResourceBuilder(sql.DeploymentScriptNetworkSecurityGroup!));
             aciSubnetResource = aciSubnet.Resource;
-
-            vnet.ConfigureInfrastructure(infra =>
-            {
-                var subnet = infra.GetProvisionableResources().OfType<SubnetResource>().SingleOrDefault(s => s.BicepIdentifier == Infrastructure.NormalizeBicepIdentifier(aciSubnet.Resource.Name))
-                    ?? throw new InvalidOperationException("Could not find the ACI subnet in the infrastructure.");
-
-                subnet.ServiceEndpoints.Add(new ServiceEndpointProperties()
-                {
-                    Service = "Microsoft.Storage",
-                });
-            });
 
             sql.Annotations.Add(new AdminDeploymentScriptSubnetAnnotation(aciSubnet.Resource));
         }
