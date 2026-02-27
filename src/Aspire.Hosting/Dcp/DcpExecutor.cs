@@ -45,6 +45,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
+    // Oracle/Java trust anchor bag attribute OID. When present on a CertBag, Java's PKCS12KeyStore
+    // recognizes the entry as a trustedCertEntry. Defined in OpenJDK as ORACLE_TrustedKeyUsage:
+    // https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/sun/security/util/KnownOIDs.java
+    internal const string JavaTrustedKeyUsageOid = "2.16.840.1.113894.746875.1.1";
+
+    // The anyExtendedKeyUsage OID (2.5.29.37.0) used as the trust anchor attribute value.
+    // This matches Java's AnyUsage constant and the encoding produced by keytool -importcert -trustcacerts.
+    // Java's PKCS12KeyStore calls getOID() on each value, so the value must be a DER-encoded OID primitive.
+    internal const string AnyExtendedKeyUsageOid = "2.5.29.37.0";
+
     // The base name for ephemeral container (Docker, Pdman etc) networks
     internal const string DefaultAspireNetworkName = "aspire-session-network";
 
@@ -2930,13 +2940,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var builder = new Pkcs12Builder();
         var safeContents = new Pkcs12SafeContents();
 
-        // The Oracle/Java trust anchor OID marks a CertBag as a trustedCertEntry in Java's KeyStore.
-        // The attribute value is an empty ASN.1 SEQUENCE (0x30, 0x00), matching the encoding produced
-        // by Java's keytool -importcert -trustcacerts.
-        var trustAnchorOid = new Oid("2.16.840.1.113894.746875.1.1");
+        var trustAnchorOid = new Oid(JavaTrustedKeyUsageOid);
         var asnWriter = new AsnWriter(AsnEncodingRules.DER);
-        asnWriter.PushSequence();
-        asnWriter.PopSequence();
+        asnWriter.WriteObjectIdentifier(AnyExtendedKeyUsageOid);
         var trustAnchorValue = asnWriter.Encode();
 
         for (var i = 0; i < certificates.Count; i++)

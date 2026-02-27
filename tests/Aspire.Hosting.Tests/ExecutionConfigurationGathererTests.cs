@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRECERTIFICATES001
 
 using System.Collections.Immutable;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
@@ -503,7 +504,8 @@ public class ExecutionConfigurationGathererTests
 
         // Decode the raw PKCS#12 and verify each CertBag has the Oracle/Java trust anchor attribute
         var info = Pkcs12Info.Decode(pkcs12Bytes, out _, skipCopy: true);
-        var trustAnchorOid = "2.16.840.1.113894.746875.1.1";
+        var trustAnchorOid = DcpExecutor.JavaTrustedKeyUsageOid;
+        var anyExtendedKeyUsageOid = DcpExecutor.AnyExtendedKeyUsageOid;
         var bagsWithTrustAnchor = 0;
 
         foreach (var safeContents in info.AuthenticatedSafe)
@@ -519,6 +521,14 @@ public class ExecutionConfigurationGathererTests
                 {
                     if (attr.Oid.Value == trustAnchorOid)
                     {
+                        // Verify the attribute value is a DER-encoded OID (anyExtendedKeyUsage)
+                        // matching what Java's PKCS12KeyStore expects via getOID().
+                        Assert.Single(attr.Values);
+                        var reader = new AsnReader(attr.Values[0].RawData, AsnEncodingRules.DER);
+                        var oidValue = reader.ReadObjectIdentifier();
+                        Assert.Equal(anyExtendedKeyUsageOid, oidValue);
+                        Assert.False(reader.HasData);
+
                         bagsWithTrustAnchor++;
                         break;
                     }
