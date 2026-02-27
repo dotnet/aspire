@@ -226,15 +226,28 @@ public static class JavaScriptHostingExtensions
                     var runtimeBuilder = dockerfileContext.Builder
                         .From(baseRuntimeImage, "runtime")
                             .EmptyLine()
-                            .WorkDir("/app")
-                            .CopyFrom("build", "/app", "/app")
-                            .AddContainerFiles(dockerfileContext.Resource, "/app", logger)
-                            .EmptyLine()
-                            .Env("NODE_ENV", "production")
-                            .EmptyLine()
-                            .User("node")
-                            .EmptyLine()
-                            .Entrypoint([resource.Command, scriptPath]);
+                            .WorkDir("/app");
+
+                    IEnumerable<string> buildOutput = ["/app"];
+                    if (resource.TryGetLastAnnotation<JavaScriptBuildOutputAnnotation>(out var buildOutputAnnotation))
+                    {
+                        buildOutput = buildOutputAnnotation.Paths.Select(p =>
+                            string.Join('/', "/app", p.StartsWith("./") ? p[2..] : p)
+                        );
+                    }
+
+                    foreach (var path in buildOutput)
+                    {
+                        runtimeBuilder.CopyFrom("build", path, path);
+                    }
+
+                    runtimeBuilder.AddContainerFiles(dockerfileContext.Resource, "/app", logger)
+                        .EmptyLine()
+                        .Env("NODE_ENV", "production")
+                        .EmptyLine()
+                        .User("node")
+                        .EmptyLine()
+                        .Entrypoint([resource.Command, scriptPath]);
                 });
             });
 
@@ -932,6 +945,21 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<TResource> WithBuildScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptBuildScriptAnnotation(scriptName, args));
+    }
+
+    /// <summary>
+    /// Adds a build output annotation to the specified JavaScript application resource builder, specifying the paths
+    /// </summary>
+    /// <typeparam name="TResource">The type of JavaScript application resource being configured.</typeparam>
+    /// <param name="resource">The resource builder to which the build output annotation will be added.</param>
+    /// <param name="paths">The paths to include in the build output.</param>
+    /// <returns>The same resource builder instance with the build output annotation applied.</returns>
+    /// <remarks>
+    /// Use this method to specify the output paths for the build artifacts of the JavaScript application.
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithBuildOutput<TResource>(this IResourceBuilder<TResource> resource, params string[] paths) where TResource : JavaScriptAppResource
+    {
+        return resource.WithAnnotation(new JavaScriptBuildOutputAnnotation(paths));
     }
 
     /// <summary>
