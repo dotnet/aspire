@@ -204,7 +204,7 @@ public static class AzureFunctionsProjectResourceExtensions
         return functionsBuilder
             .WithEnvironment(context =>
             {
-                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
+                context.EnvironmentVariables[KnownOtelConfigNames.DotnetExperimentalOtlpRetry] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
                 // Required to enable OpenTelemetry in the Azure Functions host.

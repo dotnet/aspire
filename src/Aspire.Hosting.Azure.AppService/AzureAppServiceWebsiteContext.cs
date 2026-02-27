@@ -583,7 +583,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, isSlot, deploymentSlot);
 
             // Make OTEL_SERVICE_NAME a deployment slot sticky appsetting if dashboard is enabled
-            slotConfigNames.Add("OTEL_SERVICE_NAME");
+            slotConfigNames.Add(KnownOtelConfigNames.ServiceName);
         }
 
         if (webSite is WebSite webSiteObject)
@@ -788,12 +788,12 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (webSite is WebSite site)
         {
             // Add the appsettings specific to sending telemetry data to dashboard
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ServiceName, Value = otelServiceName });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ExporterOtlpProtocol, Value = "grpc" });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ExporterOtlpEndpoint, Value = "http://localhost:6001" });
             site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.CollectorUrl, Value = dashboardUri });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ClientId, Value = acrClientIdParameter });
 
             var websiteRaName = BicepFunction.CreateGuid(site.Id, contributorId, websiteRaId);
             roleAssignment = new RoleAssignment(raResourceName)
@@ -808,12 +808,12 @@ internal sealed class AzureAppServiceWebsiteContext(
         else if (webSite is WebSiteSlot slot)
         {
             // Add the appsettings specific to sending telemetry data to dashboard
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ServiceName, Value = otelServiceName });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ExporterOtlpProtocol, Value = "grpc" });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ExporterOtlpEndpoint, Value = "http://localhost:6001" });
             slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.CollectorUrl, Value = dashboardUri });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = KnownOtelConfigNames.ClientId, Value = acrClientIdParameter });
 
             var websiteRaName = BicepFunction.CreateGuid(slot.Id, contributorId, websiteRaId);
             roleAssignment = new RoleAssignment(raResourceName)
