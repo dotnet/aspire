@@ -15,7 +15,7 @@
     These files are consumed by build-test-matrix.ps1 to generate the canonical
     test matrix, which is then expanded by platform-specific scripts.
 
-    See eng/TestingOnCI.md for full documentation.
+    See docs/ci/TestingOnCI.md for full documentation.
   -->
 
   <PropertyGroup>
