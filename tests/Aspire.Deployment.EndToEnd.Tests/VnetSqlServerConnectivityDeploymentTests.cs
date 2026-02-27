@@ -341,22 +341,22 @@ builder.AddSqlServerClient("db");
 
     private static void TriggerCleanupResourceGroup(string resourceGroupName, ITestOutputHelper output)
     {
-        var process = new System.Diagnostics.Process
-        {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "az",
-                Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
+        //var process = new System.Diagnostics.Process
+        //{
+        //    StartInfo = new System.Diagnostics.ProcessStartInfo
+        //    {
+        //        FileName = "az",
+        //        Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
+        //        RedirectStandardOutput = true,
+        //        RedirectStandardError = true,
+        //        UseShellExecute = false,
+        //        CreateNoWindow = true
+        //    }
+        //};
 
         try
         {
-            process.Start();
+            //process.Start();
             output.WriteLine($"Cleanup triggered for resource group: {resourceGroupName}");
         }
         catch (Exception ex)
