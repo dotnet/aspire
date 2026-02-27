@@ -53,7 +53,13 @@ internal enum ProvenanceVerificationOutcome
     /// The SLSA build type does not match the expected GitHub Actions build type,
     /// indicating the package was not built by the expected CI system.
     /// </summary>
-    BuildTypeMismatch
+    BuildTypeMismatch,
+
+    /// <summary>
+    /// The workflow ref (git tag) does not match the expected version tag (e.g., <c>refs/tags/v{version}</c>),
+    /// indicating the build was not triggered from the expected release tag.
+    /// </summary>
+    WorkflowRefMismatch
 }
 
 /// <summary>

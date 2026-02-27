@@ -115,6 +115,22 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
             };
         }
 
+        // Gate 6: Verify the workflow ref corresponds to a version tag matching the package version.
+        var expectedRef = $"refs/tags/v{version}";
+        if (!string.Equals(provenance.WorkflowRef, expectedRef, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "Provenance verification failed: expected workflow ref {Expected} but attestation says {Actual}",
+                expectedRef,
+                provenance.WorkflowRef);
+
+            return new ProvenanceVerificationResult
+            {
+                Outcome = ProvenanceVerificationOutcome.WorkflowRefMismatch,
+                Provenance = provenance
+            };
+        }
+
         return new ProvenanceVerificationResult
         {
             Outcome = ProvenanceVerificationOutcome.Verified,

@@ -23,6 +23,7 @@ public class NpmProvenanceCheckerTests
         Assert.Equal(".github/workflows/publish.yml", result.Value.Provenance.WorkflowPath);
         Assert.Equal("https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1", result.Value.Provenance.BuildType);
         Assert.Equal("https://github.com/actions/runner/github-hosted", result.Value.Provenance.BuilderId);
+        Assert.Equal("refs/tags/v0.1.1", result.Value.Provenance.WorkflowRef);
     }
 
     [Fact]
@@ -138,7 +139,52 @@ public class NpmProvenanceCheckerTests
         Assert.Equal(ProvenanceVerificationOutcome.PayloadDecodeFailed, result.Value.Outcome);
     }
 
-    private static string BuildAttestationJson(string sourceRepository, string workflowPath = ".github/workflows/publish.yml", string buildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1")
+    [Fact]
+    public async Task VerifyProvenanceAsync_WithMismatchedWorkflowRef_ReturnsWorkflowRefMismatch()
+    {
+        var json = BuildAttestationJson(
+            "https://github.com/microsoft/playwright-cli",
+            workflowRef: "refs/tags/v9.9.9");
+
+        var handler = new TestHttpMessageHandler(json);
+        var httpClient = new HttpClient(handler);
+        var checker = new NpmProvenanceChecker(httpClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<NpmProvenanceChecker>.Instance);
+
+        var result = await checker.VerifyProvenanceAsync(
+            "@playwright/cli",
+            "0.1.1",
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            CancellationToken.None);
+
+        Assert.Equal(ProvenanceVerificationOutcome.WorkflowRefMismatch, result.Outcome);
+        Assert.Equal("refs/tags/v9.9.9", result.Provenance?.WorkflowRef);
+    }
+
+    [Fact]
+    public async Task VerifyProvenanceAsync_WithMatchingWorkflowRef_ReturnsVerified()
+    {
+        var json = BuildAttestationJson(
+            "https://github.com/microsoft/playwright-cli",
+            workflowRef: "refs/tags/v0.1.1");
+
+        var handler = new TestHttpMessageHandler(json);
+        var httpClient = new HttpClient(handler);
+        var checker = new NpmProvenanceChecker(httpClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<NpmProvenanceChecker>.Instance);
+
+        var result = await checker.VerifyProvenanceAsync(
+            "@playwright/cli",
+            "0.1.1",
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            CancellationToken.None);
+
+        Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Outcome);
+    }
+
+    private static string BuildAttestationJson(string sourceRepository, string workflowPath = ".github/workflows/publish.yml", string buildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1", string workflowRef = "refs/tags/v0.1.1")
     {
         var statement = new JsonObject
         {
@@ -154,7 +200,8 @@ public class NpmProvenanceCheckerTests
                         ["workflow"] = new JsonObject
                         {
                             ["repository"] = sourceRepository,
-                            ["path"] = workflowPath
+                            ["path"] = workflowPath,
+                            ["ref"] = workflowRef
                         }
                     }
                 },
@@ -189,5 +236,16 @@ public class NpmProvenanceCheckerTests
         };
 
         return attestationResponse.ToJsonString();
+    }
+
+    private sealed class TestHttpMessageHandler(string responseContent) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+        }
     }
 }
