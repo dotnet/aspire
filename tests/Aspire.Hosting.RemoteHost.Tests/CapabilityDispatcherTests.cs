@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
@@ -1153,6 +1154,120 @@ public class CapabilityDispatcherTests
         Assert.Equal("No value", result.GetValue<string>());
     }
 
+    // Builder-to-resource unwrapping tests
+    // These test the scenario where a handle contains an IResourceBuilder<T> but the
+    // property/method being invoked is declared on the resource type T.
+    // This happens in TypeScript polyglot apps when ATS maps both IResourceBuilder<T>
+    // and T to the same type ID.
+    [Fact]
+    public void Invoke_PropertyGetter_ResolvesBuilderToResource()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+
+        // Create a resource and wrap it in a builder, but register the BUILDER in the handle registry
+        var resource = new TestResourceWithProperties("test-resource") { Color = "blue" };
+        var builder = new TestResourceBuilder<TestResourceWithProperties>(resource);
+        var handleId = handles.Register(builder, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        // Invoke the property getter - the property is on TestResourceWithProperties, but handle contains the builder
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithProperties.color", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("blue", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_PropertySetter_ResolvesBuilderToResource()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+
+        var resource = new TestResourceWithProperties("test-resource") { Color = "red" };
+        var builder = new TestResourceBuilder<TestResourceWithProperties>(resource);
+        var handleId = handles.Register(builder, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
+        var args = new JsonObject
+        {
+            ["context"] = new JsonObject { ["$handle"] = handleId },
+            ["value"] = "green"
+        };
+
+        dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithProperties.setColor", args);
+
+        Assert.Equal("green", resource.Color);
+    }
+
+    [Fact]
+    public void Invoke_InstanceMethod_ResolvesBuilderToResource()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithMethods).Assembly]);
+
+        var resource = new TestResourceWithMethods("test-resource");
+        var builder = new TestResourceBuilder<TestResourceWithMethods>(resource);
+        var handleId = handles.Register(builder, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithMethods");
+        var args = new JsonObject
+        {
+            ["context"] = new JsonObject { ["$handle"] = handleId },
+            ["prefix"] = "hello"
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithMethods.greet", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("hello, test-resource!", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_PropertyGetter_WorksDirectlyOnResource()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+
+        // When the handle contains the resource directly (not wrapped in a builder), it should still work
+        var resource = new TestResourceWithProperties("test-resource") { Color = "yellow" };
+        var handleId = handles.Register(resource, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithProperties.color", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("yellow", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_PropertyGetter_ResolvesInheritedPropertyViaBuilder()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+
+        var resource = new TestResourceWithProperties("my-resource") { Color = "red" };
+        var builder = new TestResourceBuilder<TestResourceWithProperties>(resource);
+        var handleId = handles.Register(builder, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithProperties.name", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("my-resource", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_PropertyGetter_ThrowsWhenHandleIsUnrelatedType()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+
+        var handleId = handles.Register("not-a-resource", "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        var ex = Assert.Throws<CapabilityException>(() =>
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestResourceWithProperties.color", args));
+
+        Assert.Equal(AtsErrorCodes.InternalError, ex.Error.Code);
+    }
+
     private static CapabilityDispatcher CreateDispatcher(params System.Reflection.Assembly[] assemblies)
     {
         var handles = new HandleRegistry();
@@ -1429,5 +1544,47 @@ internal static class TestEnumCapabilities
     public static string AcceptOptionalEnum(TestDispatchEnum? value = null)
     {
         return value.HasValue ? $"Received: {value.Value}" : "No value";
+    }
+}
+
+/// <summary>
+/// A minimal IResourceBuilder implementation for testing builder-to-resource unwrapping.
+/// </summary>
+internal sealed class TestResourceBuilder<T> : IResourceBuilder<T> where T : IResource
+{
+    public TestResourceBuilder(T resource)
+    {
+        Resource = resource;
+    }
+
+    public T Resource { get; }
+    public IDistributedApplicationBuilder ApplicationBuilder => throw new NotImplementedException();
+
+    public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Test resource type with properties that should be accessible via builder handles.
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+internal sealed class TestResourceWithProperties : Resource
+{
+    public TestResourceWithProperties(string name) : base(name) { }
+
+    public string Color { get; set; } = "default";
+}
+
+/// <summary>
+/// Test resource type with instance methods that should be accessible via builder handles.
+/// </summary>
+[AspireExport(ExposeMethods = true)]
+internal sealed class TestResourceWithMethods : Resource
+{
+    public TestResourceWithMethods(string name) : base(name) { }
+
+    public string Greet(string prefix)
+    {
+        return $"{prefix}, {Name}!";
     }
 }
