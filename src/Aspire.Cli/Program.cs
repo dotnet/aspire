@@ -406,6 +406,7 @@ public class Program
             return new Templating.Git.GitTemplateCache(cacheDir);
         });
         builder.Services.AddSingleton<Templating.Git.IGitTemplateIndexService, Templating.Git.GitTemplateIndexService>();
+        builder.Services.AddSingleton<Templating.Git.IGitTemplateEngine, Templating.Git.GitTemplateEngine>();
         builder.Services.AddHttpClient("git-templates");
         builder.Services.AddTransient<SetupCommand>();
         builder.Services.AddTransient<RootCommand>();
