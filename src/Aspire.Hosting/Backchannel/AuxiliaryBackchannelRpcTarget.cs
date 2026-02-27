@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
@@ -203,6 +204,116 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         _ = request; // Exit code not yet used, but available for future expansion
         await StopAppHostAsync(cancellationToken).ConfigureAwait(false);
         return new StopAppHostResponse();
+    }
+
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    /// <param name="request">The request containing resource name and command name.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The response indicating success or failure.</returns>
+    public async Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(ExecuteResourceCommandRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
+        var result = await resourceCommandService.ExecuteCommandAsync(request.ResourceName, request.CommandName, cancellationToken).ConfigureAwait(false);
+
+        return new ExecuteResourceCommandResponse
+        {
+            Success = result.Success,
+            Canceled = result.Canceled,
+            ErrorMessage = result.ErrorMessage
+        };
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach a target status.
+    /// </summary>
+    public async Task<WaitForResourceResponse> WaitForResourceAsync(WaitForResourceRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is not null && !appModel.Resources.Any(r => StringComparers.ResourceName.Equals(r.Name, request.ResourceName)))
+        {
+            return new WaitForResourceResponse
+            {
+                Success = false,
+                ResourceNotFound = true,
+                ErrorMessage = $"Resource '{request.ResourceName}' was not found."
+            };
+        }
+
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(request.TimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            return request.Status switch
+            {
+                "healthy" => await WaitForHealthyAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "up" => await WaitForRunningAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                "down" => await WaitForTerminalAsync(notificationService, request.ResourceName, linkedCts.Token).ConfigureAwait(false),
+                _ => new WaitForResourceResponse { Success = false, ErrorMessage = $"Unknown status: {request.Status}" }
+            };
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return new WaitForResourceResponse { Success = false, TimedOut = true, ErrorMessage = $"Timed out waiting for resource '{request.ResourceName}'." };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            return new WaitForResourceResponse { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForHealthyAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceHealthyAsync(resourceName, WaitBehavior.StopOnResourceUnavailable, cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForRunningAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => re.Snapshot.State?.Text == KnownResourceStates.Running || KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        var state = resourceEvent.Snapshot.State?.Text;
+        var isRunning = state == KnownResourceStates.Running;
+
+        return new WaitForResourceResponse
+        {
+            Success = isRunning,
+            State = state,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString(),
+            ErrorMessage = isRunning ? null : $"Resource '{resourceName}' failed to reach 'Running' state. Current state: {state ?? "Unknown"}."
+        };
+    }
+
+    private static async Task<WaitForResourceResponse> WaitForTerminalAsync(ResourceNotificationService notificationService, string resourceName, CancellationToken cancellationToken)
+    {
+        var resourceEvent = await notificationService.WaitForResourceAsync(
+            resourceName,
+            re => KnownResourceStates.TerminalStates.Contains(re.Snapshot.State?.Text) || re.Snapshot.ExitCode is not null,
+            cancellationToken).ConfigureAwait(false);
+
+        return new WaitForResourceResponse
+        {
+            Success = true,
+            State = resourceEvent.Snapshot.State?.Text,
+            HealthStatus = resourceEvent.Snapshot.HealthStatus?.ToString()
+        };
     }
 
     #endregion
@@ -543,113 +654,24 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
-        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        var appModel = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+
+        // Step 1: Calculate the resource names
+        var resourcesToLog = new List<string>();
 
         if (resourceName is not null)
         {
-            // Look up the resource from the app model to get resolved DCP resource names
-            var resource = appModel?.Resources.FirstOrDefault(r => StringComparers.ResourceName.Equals(r.Name, resourceName));
-
-            // Get the resolved resource names (DCP names for replicas)
-            var resolvedNames = resource?.GetResolvedResourceNames() ?? [resourceName];
-            var hasReplicas = resolvedNames.Length > 1;
-
-            if (hasReplicas && follow)
+            var resource = appModel.Resources.FirstOrDefault(r => StringComparers.ResourceName.Equals(r.Name, resourceName));
+            if (resource is null)
             {
-                // For replicas in follow mode, watch each replica individually to preserve source
-                var channel = System.Threading.Channels.Channel.CreateUnbounded<ResourceLogLine>();
-                var watchTasks = new List<Task>();
-
-                foreach (var dcpName in resolvedNames)
-                {
-                    var name = dcpName;
-                    var task = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await foreach (var batch in resourceLoggerService.WatchAsync(name).WithCancellation(cancellationToken).ConfigureAwait(false))
-                            {
-                                foreach (var logLine in batch)
-                                {
-                                    await channel.Writer.WriteAsync(new ResourceLogLine
-                                    {
-                                        ResourceName = name,
-                                        LineNumber = logLine.LineNumber,
-                                        Content = logLine.Content,
-                                        IsError = logLine.IsErrorMessage
-                                    }, cancellationToken).ConfigureAwait(false);
-                                }
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Expected when cancelled
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogDebug(ex, "Error watching logs for resource {ResourceName}", name);
-                        }
-                    }, cancellationToken);
-                    watchTasks.Add(task);
-                }
-
-                _ = Task.WhenAll(watchTasks).ContinueWith(_ => channel.Writer.Complete(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-
-                await foreach (var logLine in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    yield return logLine;
-                }
+                logger.LogWarning("Resource '{ResourceName}' not found. No logs will be returned.", resourceName);
+                yield break;
             }
-            else if (hasReplicas)
-            {
-                // For replicas in snapshot mode, get logs from each replica individually
-                foreach (var dcpName in resolvedNames)
-                {
-                    await foreach (var batch in resourceLoggerService.GetAllAsync(dcpName).WithCancellation(cancellationToken).ConfigureAwait(false))
-                    {
-                        foreach (var logLine in batch)
-                        {
-                            yield return new ResourceLogLine
-                            {
-                                ResourceName = dcpName,
-                                LineNumber = logLine.LineNumber,
-                                Content = logLine.Content,
-                                IsError = logLine.IsErrorMessage
-                            };
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Single resource (no replicas) - use original behavior
-                var logStream = follow
-                    ? resourceLoggerService.WatchAsync(resolvedNames[0])
-                    : resourceLoggerService.GetAllAsync(resolvedNames[0]);
 
-                await foreach (var batch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
-                {
-                    foreach (var logLine in batch)
-                    {
-                        yield return new ResourceLogLine
-                        {
-                            ResourceName = resourceName,  // Use app-model name for single resources
-                            LineNumber = logLine.LineNumber,
-                            Content = logLine.Content,
-                            IsError = logLine.IsErrorMessage
-                        };
-                    }
-                }
-            }
+            resourcesToLog.AddRange(resource.GetResolvedResourceNames());
         }
-        else if (follow && appModel is not null)
+        else
         {
-            // Stream logs from all resources (only valid with follow=true)
-            // Create a merged stream from all resources
-            var channel = System.Threading.Channels.Channel.CreateUnbounded<ResourceLogLine>();
-
-            // Start watching all resources in parallel, using DCP names for replicas
-            var watchTasks = new List<Task>();
             foreach (var resource in appModel.Resources)
             {
                 // Skip the dashboard
@@ -658,53 +680,64 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                     continue;
                 }
 
-                var resolvedNames = resource.GetResolvedResourceNames();
-                var hasReplicas = resolvedNames.Length > 1;
-
-                foreach (var dcpName in resolvedNames)
-                {
-                    // Use DCP name for replicas, app-model name for single resources
-                    var displayName = hasReplicas ? dcpName : resource.Name;
-                    var name = dcpName;
-                    var task = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await foreach (var batch in resourceLoggerService.WatchAsync(name).WithCancellation(cancellationToken).ConfigureAwait(false))
-                            {
-                                foreach (var logLine in batch)
-                                {
-                                    await channel.Writer.WriteAsync(new ResourceLogLine
-                                    {
-                                        ResourceName = displayName,
-                                        LineNumber = logLine.LineNumber,
-                                        Content = logLine.Content,
-                                        IsError = logLine.IsErrorMessage
-                                    }, cancellationToken).ConfigureAwait(false);
-                                }
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Expected when cancelled
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogDebug(ex, "Error watching logs for resource {ResourceName}", name);
-                        }
-                    }, cancellationToken);
-                    watchTasks.Add(task);
-                }
+                resourcesToLog.AddRange(resource.GetResolvedResourceNames());
             }
+        }
 
-            // Complete the channel when all watch tasks complete
-            _ = Task.WhenAll(watchTasks).ContinueWith(_ => channel.Writer.Complete(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        if (resourcesToLog.Count == 0)
+        {
+            yield break;
+        }
 
-            // Yield log lines as they arrive
-            await foreach (var logLine in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        // Step 2: Stream logs from all resources in parallel via a channel.
+        var channel = Channel.CreateUnbounded<ResourceLogLine>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+        var tasks = new List<Task>();
+
+        foreach (var name in resourcesToLog)
+        {
+            var task = Task.Run(async () =>
             {
-                yield return logLine;
-            }
+                try
+                {
+                    var logStream = follow
+                        ? resourceLoggerService.WatchAsync(name)
+                        : resourceLoggerService.GetAllAsync(name);
+
+                    await foreach (var batch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
+                    {
+                        foreach (var logLine in batch)
+                        {
+                            await channel.Writer.WriteAsync(new ResourceLogLine
+                            {
+                                ResourceName = name,
+                                LineNumber = logLine.LineNumber,
+                                Content = logLine.Content,
+                                IsError = logLine.IsErrorMessage
+                            }, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancelled
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Error streaming logs for resource {ResourceName}", name);
+                }
+            }, cancellationToken);
+            tasks.Add(task);
+        }
+
+        _ = Task.WhenAll(tasks).ContinueWith(_ => channel.Writer.Complete(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+
+        await foreach (var logLine in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        {
+            yield return logLine;
         }
     }
 
@@ -877,6 +910,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     #endregion
+
+    /// <summary>
+    /// Streams AppHost log entries from the hosting process.
+    /// Delegates to <see cref="AppHostRpcTarget.GetAppHostLogEntriesAsync"/>.
+    /// </summary>
+    public IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken = default)
+    {
+        var rpcTarget = serviceProvider.GetRequiredService<AppHostRpcTarget>();
+        return rpcTarget.GetAppHostLogEntriesAsync(cancellationToken);
+    }
 
     /// <summary>
     /// Converts a JsonElement to its underlying CLR type for proper serialization.

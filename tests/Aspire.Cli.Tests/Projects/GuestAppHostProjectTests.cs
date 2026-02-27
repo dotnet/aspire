@@ -139,10 +139,11 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         // Act
         var packages = config.GetAllPackages().ToList();
 
-        // Assert - should include base packages plus explicit packages
+        // Assert - should include base package (Aspire.Hosting) plus explicit packages
+        // Note: Aspire.Hosting.AppHost is an SDK-only package and is excluded
         Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.AppHost" && p.Version == "13.1.0");
         Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+        Assert.Equal(2, packages.Count);
     }
 
     [Fact]
@@ -158,10 +159,68 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         // Act
         var packages = config.GetAllPackages().ToList();
 
-        // Assert - should include base packages only
-        Assert.Equal(2, packages.Count);
+        // Assert - should include base package only (Aspire.Hosting)
+        // Note: Aspire.Hosting.AppHost is an SDK-only package and is excluded
+        Assert.Single(packages);
         Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.AppHost" && p.Version == "13.1.0");
+    }
+
+    [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_WithWhitespaceSdkVersion_Throws()
+    {
+        var config = new AspireJsonConfiguration
+        {
+            SdkVersion = " ",
+            Language = "typescript"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => config.GetAllPackages().ToList());
+
+        Assert.Contains("non-empty", exception.Message);
+    }
+
+    [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_WithDefaultSdkVersion_UsesFallbackVersion()
+    {
+        // Arrange
+        var config = new AspireJsonConfiguration
+        {
+            Language = "typescript",
+            Packages = new Dictionary<string, string>
+            {
+                ["Aspire.Hosting.Redis"] = string.Empty
+            }
+        };
+
+        // Act
+        var packages = config.GetAllPackages("13.1.0").ToList();
+
+        // Assert
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+    }
+
+    [Fact]
+    public void AspireJsonConfiguration_GetAllPackages_WithConfiguredSdkVersion_ReturnsConfiguredVersions()
+    {
+        // Arrange
+        var config = new AspireJsonConfiguration
+        {
+            SdkVersion = "13.1.0",
+            Language = "typescript",
+            Channel = "daily",
+            Packages = new Dictionary<string, string>
+            {
+                ["Aspire.Hosting.Redis"] = "13.1.0"
+            }
+        };
+
+        // Act
+        var packages = config.GetAllPackages("13.1.0").ToList();
+
+        // Assert
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
+        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
     }
 
     [Fact]

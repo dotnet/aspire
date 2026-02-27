@@ -1254,39 +1254,89 @@ public static class ResourceExtensions
     /// This method invokes environment variable and command-line argument callbacks to discover all references. The context resource (<paramref name="resource"/>) is not considered a dependency (even if it is transitively referenced).
     /// </para>
     /// </remarks>
-    public static async Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
+    public static Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
         this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
+        CancellationToken cancellationToken = default)
+    {
+        return GetDependenciesAsync([resource], executionContext, mode, cancellationToken);
+    }
+
+    /// <summary>
+    /// Efficiently computes the set of resources that the specified source set of resources depends on.
+    /// </summary>
+    /// <param name="resources">The source set of resources to compute dependencies for.</param>
+    /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
+    /// <param name="mode">Specifies whether to discover only direct dependencies or the full transitive closure.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while computing dependencies.</param>
+    /// <returns>A set of all resources that the specified resource depends on.</returns>
+    /// <remarks>
+    /// <para>
+    /// Dependencies are computed from multiple sources:
+    /// <list type="bullet">
+    /// <item>Parent resources via <see cref="IResourceWithParent"/></item>
+    /// <item>Wait dependencies via <see cref="WaitAnnotation"/></item>
+    /// <item>Connection string redirects via <see cref="ConnectionStringRedirectAnnotation"/></item>
+    /// <item>References to endpoints in environment variables and command-line arguments (via <see cref="IValueWithReferences"/>)</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.DirectOnly"/>, only the immediate
+    /// dependencies are returned. When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.Recursive"/>,
+    /// all transitive dependencies are included.
+    /// </para>
+    /// <para>
+    /// This method invokes environment variable and command-line argument callbacks to discover all references.
+    /// </para>
+    /// </remarks>
+    internal static async Task<IReadOnlySet<IResource>> GetDependenciesAsync(
+        IEnumerable<IResource> resources,
         DistributedApplicationExecutionContext executionContext,
         ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
         CancellationToken cancellationToken = default)
     {
         var dependencies = new HashSet<IResource>();
         var newDependencies = new HashSet<IResource>();
-        await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+        var toProcess = new Queue<IResource>();
 
-        if (mode == ResourceDependencyDiscoveryMode.Recursive)
+        foreach (var resource in resources)
         {
-            // Compute transitive closure by recursively processing dependencies
-            var toProcess = new Queue<IResource>(dependencies);
-            while (toProcess.Count > 0)
+            newDependencies.Clear();
+            await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+            if (mode == ResourceDependencyDiscoveryMode.Recursive)
             {
-                var dep = toProcess.Dequeue();
-                newDependencies.Clear();
+                // Compute transitive closure by recursively processing dependencies
 
-                await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
-
-                foreach (var newDep in newDependencies)
+                foreach(var nd in newDependencies)
                 {
-                    if (newDep != resource)
+                    toProcess.Enqueue(nd);
+                }
+
+                while (toProcess.Count > 0)
+                {
+                    var dep = toProcess.Dequeue();
+                    newDependencies.Clear();
+
+                    await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+                    foreach (var newDep in newDependencies)
                     {
-                        toProcess.Enqueue(newDep);
+                        if (newDep != resource)
+                        {
+                            toProcess.Enqueue(newDep);
+                        }
                     }
                 }
             }
         }
 
-        // Ensure the input resource is not in its own dependency set, even if referenced transitively.
-        dependencies.Remove(resource);
+        // Ensure the input resources are not in its own dependency set, even if referenced transitively.
+        foreach (var resource in resources)
+        {
+            dependencies.Remove(resource);
+        }
 
         return dependencies;
     }
@@ -1294,9 +1344,11 @@ public static class ResourceExtensions
     /// <summary>
     /// Gathers direct dependencies of a given resource.
     /// </summary>
-    /// <returns>
-    /// Newly discovered dependencies (not already in <paramref name="dependencies"/>).
-    /// </returns>
+    /// <param name="resource">The resource to gather dependencies for.</param>
+    /// <param name="dependencies">The set of dependencies (where dependency resources will be placed).</param>
+    /// <param name="newDependencies">The set of newly discovered dependencies in this invocation (not present in <paramref name="dependencies"/> at the moment of invocation).</param>
+    /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while gathering dependencies.</param>
     private static async Task GatherDirectDependenciesAsync(
         IResource resource,
         HashSet<IResource> dependencies,
@@ -1416,7 +1468,6 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resource);
             }
-            CollectAnnotationDependencies(resource, dependencies, newDependencies);
         }
 
         // Resource builder wrapping a resource
@@ -1426,7 +1477,6 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resourceBuilder.Resource);
             }
-            CollectAnnotationDependencies(resourceBuilder.Resource, dependencies, newDependencies);
             value = resourceBuilder.Resource;
         }
 

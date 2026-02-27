@@ -13,6 +13,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared;
 using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
@@ -25,6 +26,7 @@ public sealed class TelemetryExportService
     private readonly TelemetryRepository _telemetryRepository;
     private readonly ConsoleLogsFetcher _consoleLogsFetcher;
     private readonly IDashboardClient _dashboardClient;
+    private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TelemetryExportService"/> class.
@@ -32,11 +34,13 @@ public sealed class TelemetryExportService
     /// <param name="telemetryRepository">The telemetry repository.</param>
     /// <param name="consoleLogsFetcher">The console log fetcher.</param>
     /// <param name="dashboardClient">The dashboard client for fetching resources.</param>
-    public TelemetryExportService(TelemetryRepository telemetryRepository, ConsoleLogsFetcher consoleLogsFetcher, IDashboardClient dashboardClient)
+    /// <param name="outgoingPeerResolvers">The outgoing peer resolvers for destination name resolution.</param>
+    public TelemetryExportService(TelemetryRepository telemetryRepository, ConsoleLogsFetcher consoleLogsFetcher, IDashboardClient dashboardClient, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         _telemetryRepository = telemetryRepository;
         _consoleLogsFetcher = consoleLogsFetcher;
         _dashboardClient = dashboardClient;
+        _outgoingPeerResolvers = outgoingPeerResolvers.ToArray();
     }
 
     /// <summary>
@@ -163,7 +167,7 @@ public sealed class TelemetryExportService
                 continue;
             }
 
-            var resourceName = OtlpResource.GetResourceName(resource, resources);
+            var resourceName = OtlpHelpers.GetResourceName(resource, resources);
             var logsJson = ConvertLogsToOtlpJson(logs.Items);
             WriteJsonToArchive(archive, $"structuredlogs/{SanitizeFileName(resourceName)}.json", logsJson);
         }
@@ -180,8 +184,8 @@ public sealed class TelemetryExportService
                 continue;
             }
 
-            var resourceName = OtlpResource.GetResourceName(resource, resources);
-            var tracesJson = ConvertTracesToOtlpJson(tracesResponse.PagedResult.Items);
+            var resourceName = OtlpHelpers.GetResourceName(resource, resources);
+            var tracesJson = ConvertTracesToOtlpJson(tracesResponse.PagedResult.Items, _outgoingPeerResolvers);
             WriteJsonToArchive(archive, $"traces/{SanitizeFileName(resourceName)}.json", tracesJson);
         }
     }
@@ -221,7 +225,7 @@ public sealed class TelemetryExportService
                 continue;
             }
 
-            var resourceName = OtlpResource.GetResourceName(resource, resources);
+            var resourceName = OtlpHelpers.GetResourceName(resource, resources);
             var metricsJson = ConvertMetricsToOtlpJson(resource, instrumentsData);
             WriteJsonToArchive(archive, $"metrics/{SanitizeFileName(resourceName)}.json", metricsJson);
         }
@@ -262,7 +266,10 @@ public sealed class TelemetryExportService
             SeverityNumber = log.SeverityNumber,
             SeverityText = log.Severity.ToString(),
             Body = new OtlpAnyValueJson { StringValue = log.Message },
-            Attributes = ConvertAttributes(log.Attributes),
+            Attributes = ConvertAttributes(log.Attributes, () =>
+            [
+                new KeyValuePair<string, string>(OtlpHelpers.AspireLogIdAttribute, log.InternalId.ToString(CultureInfo.InvariantCulture))
+            ]),
             TraceId = string.IsNullOrEmpty(log.TraceId) ? null : log.TraceId,
             SpanId = string.IsNullOrEmpty(log.SpanId) ? null : log.SpanId,
             Flags = log.Flags,
@@ -270,7 +277,7 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans)
+    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
         // Group spans by resource and scope
         var resourceSpans = spans
@@ -286,7 +293,7 @@ public sealed class TelemetryExportService
                         .Select(scopeGroup => new OtlpScopeSpansJson
                         {
                             Scope = ConvertScope(scopeGroup.Key),
-                            Spans = scopeGroup.Select(ConvertSpan).ToArray()
+                            Spans = scopeGroup.Select(s => ConvertSpan(s, outgoingPeerResolvers)).ToArray()
                         }).ToArray()
                 };
             }).ToArray();
@@ -297,14 +304,14 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
         // Group spans by resource and scope
         var allSpans = traces.SelectMany(t => t.Spans).ToList();
-        return ConvertSpansToOtlpJson(allSpans);
+        return ConvertSpansToOtlpJson(allSpans, outgoingPeerResolvers);
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null, bool indent = true)
+    internal static string ConvertSpanToJson(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers, List<OtlpLogEntry>? logs = null, bool indent = true)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -318,7 +325,7 @@ public sealed class TelemetryExportService
                         new OtlpScopeSpansJson
                         {
                             Scope = ConvertScope(span.Scope),
-                            Spans = [ConvertSpan(span)]
+                            Spans = [ConvertSpan(span, outgoingPeerResolvers)]
                         }
                     ]
                 }
@@ -329,7 +336,7 @@ public sealed class TelemetryExportService
         return JsonSerializer.Serialize(data, options);
     }
 
-    internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)
+    internal static string ConvertTraceToJson(OtlpTrace trace, IOutgoingPeerResolver[] outgoingPeerResolvers, List<OtlpLogEntry>? logs = null)
     {
         // Group spans by resource and scope
         var spansByResourceAndScope = trace.Spans
@@ -345,7 +352,7 @@ public sealed class TelemetryExportService
                         .Select(scopeGroup => new OtlpScopeSpansJson
                         {
                             Scope = ConvertScope(scopeGroup.Key),
-                            Spans = scopeGroup.Select(ConvertSpan).ToArray()
+                            Spans = scopeGroup.Select(s => ConvertSpan(s, outgoingPeerResolvers)).ToArray()
                         }).ToArray()
                 };
             }).ToArray();
@@ -381,8 +388,12 @@ public sealed class TelemetryExportService
         return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
 
-    private static OtlpSpanJson ConvertSpan(OtlpSpan span)
+    private static OtlpSpanJson ConvertSpan(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
+        var destinationName = outgoingPeerResolvers.Length > 0
+            ? GetDestination(span, outgoingPeerResolvers)
+            : null;
+
         return new OtlpSpanJson
         {
             TraceId = span.TraceId,
@@ -392,7 +403,9 @@ public sealed class TelemetryExportService
             Kind = (int)span.Kind,
             StartTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(span.StartTime),
             EndTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(span.EndTime),
-            Attributes = ConvertAttributes(span.Attributes),
+            Attributes = ConvertAttributes(span.Attributes, destinationName is not null
+                ? () => [new KeyValuePair<string, string>(OtlpHelpers.AspireDestinationNameAttribute, destinationName)]
+                : null),
             Status = ConvertSpanStatus(span.Status, span.StatusMessage),
             Events = span.Events.Count > 0 ? span.Events.Select(ConvertSpanEvent).ToArray() : null,
             Links = span.Links.Count > 0 ? span.Links.Select(ConvertSpanLink).ToArray() : null,
@@ -643,18 +656,40 @@ public sealed class TelemetryExportService
         };
     }
 
-    private static OtlpKeyValueJson[]? ConvertAttributes(KeyValuePair<string, string>[] attributes)
+    private static OtlpKeyValueJson[]? ConvertAttributes(KeyValuePair<string, string>[] attributes, Func<KeyValuePair<string, string>[]>? getAdditionalAttributes = null)
     {
-        if (attributes.Length == 0)
+        var additionalAttributes = getAdditionalAttributes?.Invoke();
+        var additionalCount = additionalAttributes?.Length ?? 0;
+
+        if (attributes.Length == 0 && additionalCount == 0)
         {
             return null;
         }
 
-        return attributes.Select(a => new OtlpKeyValueJson
+        var result = new OtlpKeyValueJson[attributes.Length + additionalCount];
+
+        for (var i = 0; i < attributes.Length; i++)
         {
-            Key = a.Key,
-            Value = new OtlpAnyValueJson { StringValue = a.Value }
-        }).ToArray();
+            result[i] = new OtlpKeyValueJson
+            {
+                Key = attributes[i].Key,
+                Value = new OtlpAnyValueJson { StringValue = attributes[i].Value }
+            };
+        }
+
+        if (additionalAttributes is not null)
+        {
+            for (var i = 0; i < additionalAttributes.Length; i++)
+            {
+                result[attributes.Length + i] = new OtlpKeyValueJson
+                {
+                    Key = additionalAttributes[i].Key,
+                    Value = new OtlpAnyValueJson { StringValue = additionalAttributes[i].Value }
+                };
+            }
+        }
+
+        return result;
     }
 
     private static void WriteJsonToArchive<T>(ZipArchive archive, string path, T data)
@@ -732,41 +767,56 @@ public sealed class TelemetryExportService
                 }).ToArray()
                 : null,
             Environment = resource.Environment.Length > 0
-                ? resource.Environment.Where(e => e.FromSpec).Select(e => new ResourceEnvironmentVariableJson
-                {
-                    Name = e.Name,
-                    Value = e.Value
-                }).ToArray()
+                ? resource.Environment.Where(e => e.FromSpec).OrderBy(e => e.Name).ToDistinctDictionary(e => e.Name, e => e.Value)
                 : null,
             HealthReports = resource.HealthReports.Length > 0
-                ? resource.HealthReports.Select(h => new ResourceHealthReportJson
-                {
-                    Name = h.Name,
-                    Status = h.HealthStatus?.ToString(),
-                    Description = h.Description,
-                    ExceptionMessage = h.ExceptionText
-                }).ToArray()
+                ? resource.HealthReports.OrderBy(h => h.Name).ToDistinctDictionary(
+                    h => h.Name,
+                    h => new ResourceHealthReportJson
+                    {
+                        Status = h.HealthStatus?.ToString(),
+                        Description = h.Description,
+                        ExceptionMessage = h.ExceptionText
+                    })
                 : null,
             Properties = resource.Properties.Count > 0
-                ? resource.Properties.Select(p => new ResourcePropertyJson
-                {
-                    Name = p.Key,
-                    Value = p.Value.Value.TryConvertToString(out var value) ? value : null
-                }).ToArray()
+                ? resource.Properties.OrderBy(p => p.Key).ToDistinctDictionary(
+                    p => p.Key,
+                    p => p.Value.Value.TryConvertToString(out var value) ? value : null)
                 : null,
             Relationships = relationshipsJson,
             Commands = resource.Commands.Length > 0
                 ? resource.Commands
                     .Where(c => c.State == CommandViewModelState.Enabled)
-                    .Select(c => new ResourceCommandJson
-                    {
-                        Name = c.Name,
-                        Description = c.GetDisplayDescription()
-                    }).ToArray()
+                    .OrderBy(c => c.Name)
+                    .ToDistinctDictionary(
+                        c => c.Name,
+                        c => new ResourceCommandJson
+                        {
+                            Description = c.GetDisplayDescription()
+                        })
                 : null,
             Source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
         };
 
         return JsonSerializer.Serialize(resourceJson, ResourceJsonSerializerContext.IndentedOptions);
+    }
+
+    /// <summary>
+    /// Gets the destination name for a span by resolving uninstrumented peer names.
+    /// </summary>
+    private static string? GetDestination(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    {
+        // Attempt to resolve uninstrumented peer to a friendly name from the span.
+        foreach (var resolver in outgoingPeerResolvers)
+        {
+            if (resolver.TryResolvePeer(span.Attributes, out var name, out _))
+            {
+                return name;
+            }
+        }
+
+        // Fallback to the peer address.
+        return span.Attributes.GetPeerAddress();
     }
 }

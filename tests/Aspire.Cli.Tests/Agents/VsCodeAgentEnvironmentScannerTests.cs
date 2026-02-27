@@ -288,6 +288,88 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         Assert.Equal("npx", playwrightServer["command"]?.GetValue<string>());
     }
 
+    [Fact]
+    public async Task ApplyAsync_WithMalformedMcpJson_ThrowsInvalidOperationException()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+
+        // Create a malformed mcp.json
+        var mcpJsonPath = Path.Combine(vsCodeFolder.FullName, "mcp.json");
+        await File.WriteAllTextAsync(mcpJsonPath, "{ invalid json content");
+
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        // The scan should succeed (Has*ServerConfigured catches JsonException)
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        // Applying should throw with a descriptive message
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+        Assert.Contains(mcpJsonPath, ex.Message);
+        Assert.Contains("malformed JSON", ex.Message);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithEmptyMcpJson_ThrowsInvalidOperationException()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+
+        // Create an empty mcp.json (this is the exact scenario from the issue)
+        var mcpJsonPath = Path.Combine(vsCodeFolder.FullName, "mcp.json");
+        await File.WriteAllTextAsync(mcpJsonPath, "");
+
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+        Assert.Contains(mcpJsonPath, ex.Message);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithMalformedMcpJson_DoesNotOverwriteFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+
+        // Create a malformed mcp.json with content the user may want to preserve
+        var mcpJsonPath = Path.Combine(vsCodeFolder.FullName, "mcp.json");
+        var originalContent = "{ \"servers\": { \"my-server\": { \"command\": \"test\" } }";
+        await File.WriteAllTextAsync(mcpJsonPath, originalContent);
+
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+
+        // The original file content should be preserved
+        var currentContent = await File.ReadAllTextAsync(mcpJsonPath);
+        Assert.Equal(originalContent, currentContent);
+    }
+
     /// <summary>
     /// A fake implementation of <see cref="IVsCodeCliRunner"/> for testing.
     /// </summary>
@@ -323,6 +405,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: environmentVariables,
             homeDirectory: homeDirectory);

@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner.</source>
-        <target state="new">Display the animated Aspire CLI welcome banner.</target>
+        <target state="translated">Exibir a barra de notificação de boas-vindas animada da CLI Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
         <source>CLI — version {0}</source>
-        <target state="new">CLI — version {0}</target>
+        <target state="translated">CLI — versão {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerWelcomeText">
         <source>Welcome to the</source>
-        <target state="new">Welcome to the</target>
+        <target state="translated">Bem-vindo(a) à</target>
         <note />
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
@@ -25,6 +25,11 @@
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
         <target state="translated">Habilitar o log de depuração no console.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="translated">Defina o nível mínimo de log para a saída do console (Rastreamento, Depuração, Informação, Aviso, Erro, Crítico).</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -55,6 +60,11 @@ Leia mais sobre a telemetria da CLI do Aspire: https://aka.ms/aspire/cli-telemet
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Suprima a faixa de inicialização e o aviso de telemetria.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

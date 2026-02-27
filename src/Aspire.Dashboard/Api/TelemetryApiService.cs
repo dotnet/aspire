@@ -16,11 +16,14 @@ namespace Aspire.Dashboard.Api;
 /// Handles telemetry API requests, returning data in OTLP JSON format.
 /// </summary>
 internal sealed class TelemetryApiService(
-    TelemetryRepository telemetryRepository)
+    TelemetryRepository telemetryRepository,
+    IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
 {
     private const int DefaultLimit = 200;
     private const int DefaultTraceLimit = 100;
     private const int MaxQueryCount = 10000;
+
+    private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers = outgoingPeerResolvers.ToArray();
 
     /// <summary>
     /// Gets spans in OTLP JSON format.
@@ -83,7 +86,7 @@ internal sealed class TelemetryApiService(
             spans = spans.Skip(spans.Count - effectiveLimit).ToList();
         }
 
-        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans, _outgoingPeerResolvers);
 
         return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
@@ -148,7 +151,7 @@ internal sealed class TelemetryApiService(
         // Get all spans from filtered traces
         var spans = traces.SelectMany(t => t.Spans).ToList();
 
-        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans, _outgoingPeerResolvers);
 
         return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
@@ -181,7 +184,7 @@ internal sealed class TelemetryApiService(
 
         var spans = trace.Spans.ToList();
 
-        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans, _outgoingPeerResolvers);
 
         return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
@@ -315,7 +318,7 @@ internal sealed class TelemetryApiService(
             }
 
             // Use compact JSON for NDJSON streaming (no indentation)
-            yield return TelemetryExportService.ConvertSpanToJson(span, logs: null, indent: false);
+            yield return TelemetryExportService.ConvertSpanToJson(span, _outgoingPeerResolvers, logs: null, indent: false);
         }
     }
 

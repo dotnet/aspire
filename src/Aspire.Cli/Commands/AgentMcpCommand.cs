@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
@@ -19,7 +17,6 @@ using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
-using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -32,15 +29,12 @@ namespace Aspire.Cli.Commands;
 internal sealed class AgentMcpCommand : BaseCommand
 {
     private readonly Dictionary<string, CliMcpTool> _knownTools;
-    private string? _selectedAppHostPath;
-    private Dictionary<string, (string ResourceName, Tool Tool)>? _resourceToolMap;
+    private readonly IMcpResourceToolRefreshService _resourceToolRefreshService;
     private McpServer? _server;
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
-    private readonly CliExecutionContext _executionContext;
     private readonly IMcpTransportFactory _transportFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentMcpCommand> _logger;
-    private readonly IDocsIndexService _docsIndexService;
 
     /// <summary>
     /// Gets the dictionary of known MCP tools. Exposed for testing purposes.
@@ -60,30 +54,30 @@ internal sealed class AgentMcpCommand : BaseCommand
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
         IDocsIndexService docsIndexService,
+        IHttpClientFactory httpClientFactory,
         AspireCliTelemetry telemetry)
         : base("mcp", AgentCommandStrings.McpCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
-        _executionContext = executionContext;
         _transportFactory = transportFactory;
         _loggerFactory = loggerFactory;
         _logger = logger;
-        _docsIndexService = docsIndexService;
+        _resourceToolRefreshService = new McpResourceToolRefreshService(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<McpResourceToolRefreshService>());
         _knownTools = new Dictionary<string, CliMcpTool>
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListResourcesTool>()),
-            [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(),
-            [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(),
-            [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(),
-            [KnownMcpTools.ListTraces] = new ListTracesTool(),
-            [KnownMcpTools.ListTraceStructuredLogs] = new ListTraceStructuredLogsTool(),
+            [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListConsoleLogsTool>()),
+            [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ExecuteResourceCommandTool>()),
+            [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListStructuredLogsTool>()),
+            [KnownMcpTools.ListTraces] = new ListTracesTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListTracesTool>()),
+            [KnownMcpTools.ListTraceStructuredLogs] = new ListTraceStructuredLogsTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListTraceStructuredLogsTool>()),
             [KnownMcpTools.SelectAppHost] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListAppHosts] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListIntegrations] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
-            [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
+            [KnownMcpTools.RefreshTools] = new RefreshToolsTool(_resourceToolRefreshService),
             [KnownMcpTools.ListDocs] = new ListDocsTool(docsIndexService),
-            [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService),
+            [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService, docsIndexService),
             [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
     }
@@ -121,26 +115,15 @@ internal sealed class AgentMcpCommand : BaseCommand
         var transport = _transportFactory.CreateTransport();
         await using var server = McpServer.Create(transport, options, _loggerFactory);
 
-        // Keep a reference to the server for sending notifications
+        // Configure the refresh service with the server
+        _resourceToolRefreshService.SetMcpServer(server);
         _server = server;
-
-        // Start indexing aspire.dev documentation in the background (fire-and-forget)
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _docsIndexService.EnsureIndexedAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Failed to index aspire.dev documentation in background");
-            }
-        }, cancellationToken);
 
         // Starts the MCP server, it's blocking until cancellation is requested
         await server.RunAsync(cancellationToken);
 
         // Clear the server reference on exit
+        _resourceToolRefreshService.SetMcpServer(null);
         _server = null;
 
         return ExitCodeConstants.Success;
@@ -148,8 +131,6 @@ internal sealed class AgentMcpCommand : BaseCommand
 
     private async ValueTask<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
     {
-        _ = request;
-
         _logger.LogDebug("MCP ListTools request received");
 
         var tools = new List<Tool>();
@@ -163,15 +144,18 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         try
         {
-            // Detect if the tools list should be refreshed due to AppHost selection change
-            if (_resourceToolMap is null || _selectedAppHostPath != _auxiliaryBackchannelMonitor.SelectedAppHostPath)
+            // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
+            if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
             {
-                await RefreshResourceToolMapAsync(cancellationToken);
-                await SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
-                _selectedAppHostPath = _auxiliaryBackchannelMonitor.SelectedAppHostPath;
+                // Don't send tools/list_changed here — the client already called tools/list
+                // and will receive the up-to-date result. Sending a notification during the
+                // list handler would cause the client to call tools/list again, creating an
+                // infinite loop when tool availability is unstable (e.g., container MCP tools
+                // oscillating between available/unavailable).
+                (resourceToolMap, _) = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
             }
 
-            tools.AddRange(_resourceToolMap.Select(x => new Tool
+            tools.AddRange(resourceToolMap.Select(x => new Tool
             {
                 Name = x.Key,
                 Description = x.Value.Tool.Description,
@@ -195,41 +179,37 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
-        // Known tools?
         if (KnownTools.TryGetValue(toolName, out var tool))
         {
-            // Handle tools that don't need an MCP connection to the AppHost
-            if (KnownMcpTools.IsLocalTool(toolName))
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
+            var context = new CallToolContext
             {
-                var args = request.Params?.Arguments;
-                return await tool.CallToolAsync(null!, args, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (KnownMcpTools.IsDashboardTool(toolName))
-            {
-                var args = request.Params?.Arguments;
-                return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
-            }
-
-            // If a tool is registered in _tools, it must be classified as either local or dashboard-backed.
-            throw new McpProtocolException(
-                $"Tool '{toolName}' is not classified as local or dashboard-backed.",
-                McpErrorCode.InternalError);
+                Notifier = new McpServerNotifier(_server!),
+                McpClient = null,
+                Arguments = args,
+                ProgressToken = request.Params?.ProgressToken
+            };
+            return await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
         var toolsRefreshed = false;
 
-        // Detect if the tools list should be refreshed due to AppHost selection change
-        if (_resourceToolMap is null || _selectedAppHostPath != _auxiliaryBackchannelMonitor.SelectedAppHostPath)
+        // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
+        if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
         {
-            await RefreshResourceToolMapAsync(cancellationToken);
-            _selectedAppHostPath = _auxiliaryBackchannelMonitor.SelectedAppHostPath;
+            bool changed;
+            (resourceToolMap, changed) = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
+            if (changed)
+            {
+                await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
+            }
             toolsRefreshed = true;
-            await SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
         }
 
         // Resource MCP tools are invoked via the AppHost backchannel (AppHost proxies to the resource MCP endpoint).
-        if (_resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
+        if (resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
         {
             var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
             if (connection == null)
@@ -239,7 +219,9 @@ internal sealed class AgentMcpCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            var args = request.Params?.Arguments;
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
@@ -261,147 +243,11 @@ internal sealed class AgentMcpCommand : BaseCommand
         // If we haven't refreshed yet, try refreshing once more in case the resource list changed
         if (!toolsRefreshed)
         {
-            _resourceToolMap = null;
+            _resourceToolRefreshService.InvalidateToolMap();
             return await HandleCallToolAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
         throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
-    }
-
-    private async ValueTask<CallToolResult> CallDashboardToolAsync(
-        string toolName,
-        CliMcpTool tool,
-        IReadOnlyDictionary<string, JsonElement>? arguments,
-        CancellationToken cancellationToken)
-    {
-        var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
-        if (connection is null)
-        {
-            _logger.LogWarning("No Aspire AppHost is currently running");
-            throw new McpProtocolException(McpErrorMessages.NoAppHostRunning, McpErrorCode.InternalError);
-        }
-
-        if (connection.McpInfo is null)
-        {
-            _logger.LogWarning("Dashboard is not available in the running AppHost");
-            throw new McpProtocolException(McpErrorMessages.DashboardNotAvailable, McpErrorCode.InternalError);
-        }
-
-        _logger.LogInformation(
-            "Connecting to dashboard MCP server. " +
-            "Dashboard URL: {EndpointUrl}, " +
-            "AppHost Path: {AppHostPath}, " +
-            "AppHost PID: {AppHostPid}, " +
-            "CLI PID: {CliPid}",
-            connection.McpInfo.EndpointUrl,
-            connection.AppHostInfo?.AppHostPath ?? "N/A",
-            connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
-            connection.AppHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A");
-
-        var transportOptions = new HttpClientTransportOptions
-        {
-            Endpoint = new Uri(connection.McpInfo.EndpointUrl),
-            AdditionalHeaders = new Dictionary<string, string>
-            {
-                ["x-mcp-api-key"] = connection.McpInfo.ApiToken
-            }
-        };
-
-        using var httpClient = new HttpClient();
-        await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: true);
-
-        // Create MCP client to communicate with the dashboard
-        await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
-
-        _logger.LogDebug("Calling tool {ToolName} on dashboard MCP server", toolName);
-
-        try
-        {
-            _logger.LogDebug("Invoking CallToolAsync for tool {ToolName} with arguments: {Arguments}", toolName, arguments);
-            var result = await tool.CallToolAsync(mcpClient, arguments, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("Tool {ToolName} completed successfully", toolName);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
-            throw;
-        }
-    }
-
-    private Task SendToolsListChangedNotificationAsync(CancellationToken cancellationToken)
-    {
-        var server = _server;
-        if (server is null)
-        {
-            throw new InvalidOperationException("MCP server is not running.");
-        }
-
-        return server.SendNotificationAsync(NotificationMethods.ToolListChangedNotification, cancellationToken);
-    }
-
-    [MemberNotNull(nameof(_resourceToolMap))]
-    private async Task<int> RefreshResourceToolMapAsync(CancellationToken cancellationToken)
-    {
-        var refreshedMap = new Dictionary<string, (string, Tool)>(StringComparer.Ordinal);
-
-        try
-        {
-            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-            if (connection is not null)
-            {
-                // Collect initial snapshots from the stream
-                // The stream yields initial snapshots for all resources first
-                var resourcesWithTools = new List<ResourceSnapshot>();
-                var seenResources = new HashSet<string>(StringComparer.Ordinal);
-
-                await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    // Stop after we've seen all resources once (initial batch)
-                    if (!seenResources.Add(snapshot.Name))
-                    {
-                        break;
-                    }
-
-                    if (snapshot.McpServer is not null)
-                    {
-                        resourcesWithTools.Add(snapshot);
-                    }
-                }
-
-                _logger.LogDebug("Resources with MCP tools received: {Count}", resourcesWithTools.Count);
-
-                foreach (var resource in resourcesWithTools)
-                {
-                    if (resource.McpServer is null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var tool in resource.McpServer.Tools)
-                    {
-                        var exposedName = $"{resource.Name.Replace("-", "_")}_{tool.Name}";
-                        refreshedMap[exposedName] = (resource.Name, tool);
-
-                        _logger.LogDebug("{Tool}: {Description}", exposedName, tool.Description);
-                    }
-                }
-            }
-
-        }
-        catch (Exception ex)
-        {
-            // Don't fail refresh_tools if resource discovery fails; still emit notification.
-            _logger.LogDebug(ex, "Failed to refresh resource MCP tool routing map");
-        }
-        finally
-        {
-            // Ensure _resourceToolMap is always non-null when exiting, even if connection is null or an exception occurs.
-            _resourceToolMap = refreshedMap;
-        }
-
-        return _resourceToolMap.Count + KnownTools.Count;
     }
 
     /// <summary>

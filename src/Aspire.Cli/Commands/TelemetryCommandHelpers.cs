@@ -3,7 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Text.Json;
+using System.Net.Http.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Otlp;
@@ -37,12 +37,9 @@ internal static class TelemetryCommandHelpers
     };
 
     /// <summary>
-    /// Project option shared across telemetry commands.
+    /// AppHost option shared across telemetry commands.
     /// </summary>
-    internal static Option<FileInfo?> CreateProjectOption() => new("--project")
-    {
-        Description = TelemetryCommandStrings.ProjectOptionDescription
-    };
+    internal static OptionWithLegacy<FileInfo?> CreateAppHostOption() => new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
     /// Output format option shared across telemetry commands.
@@ -107,22 +104,19 @@ internal static class TelemetryCommandHelpers
         AppHostConnectionResolver connectionResolver,
         IInteractionService interactionService,
         FileInfo? projectFile,
-        OutputFormat format,
         CancellationToken cancellationToken)
     {
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : TelemetryCommandStrings.ScanningForRunningAppHosts;
-
         var result = await connectionResolver.ResolveConnectionAsync(
             projectFile,
-            scanningMessage,
-            TelemetryCommandStrings.SelectAppHost,
-            TelemetryCommandStrings.NoInScopeAppHostsShowingAll,
-            TelemetryCommandStrings.AppHostNotRunning,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, TelemetryCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.NoInScopeAppHostsShowingAll,
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
+            interactionService.DisplayMessage("information", result.ErrorMessage);
             return (false, null, null, null, ExitCodeConstants.Success);
         }
 
@@ -165,61 +159,58 @@ internal static class TelemetryCommandHelpers
         return client;
     }
 
-    /// <summary>
-    /// Fetches available resources from the Dashboard API and resolves a resource name to specific instances.
-    /// If the resource name matches a base name with multiple replicas, returns all matching replica names.
-    /// </summary>
-    /// <param name="client">The HTTP client configured for Dashboard API access.</param>
-    /// <param name="baseUrl">The Dashboard API base URL.</param>
-    /// <param name="resourceName">The resource name to resolve (can be base name or full instance name).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A list of resolved resource display names to query, or null if resource not found.</returns>
-    public static async Task<List<string>?> ResolveResourceNamesAsync(
-        HttpClient client,
-        string baseUrl,
+    public static bool TryResolveResourceNames(
         string? resourceName,
-        CancellationToken cancellationToken)
+        IList<ResourceInfoJson> resources,
+        out List<string>? resolvedResources)
     {
         if (string.IsNullOrEmpty(resourceName))
         {
-            // No filter - return null to indicate no resource filter
-            return null;
+            // No filter - return true to indicate success
+            resolvedResources = null;
+            return true;
         }
 
-        // Fetch available resources
-        var url = DashboardUrls.TelemetryResourcesApiUrl(baseUrl);
-        var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var resources = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
-
-        if (resources is null || resources.Length == 0)
+        if (resources is null || resources.Count == 0)
         {
-            return null;
+            resolvedResources = null;
+            return false;
         }
 
         // First, try exact match on display name (full instance name like "catalogservice-abc123")
         var exactMatch = resources.FirstOrDefault(r =>
-            string.Equals(r.DisplayName, resourceName, StringComparison.OrdinalIgnoreCase));
+            string.Equals(r.GetCompositeName(), resourceName, StringComparison.OrdinalIgnoreCase));
         if (exactMatch is not null)
         {
-            return [exactMatch.DisplayName];
+            resolvedResources = [exactMatch.GetCompositeName()];
+            return true;
         }
 
         // Then, try matching by base name to find all replicas
         var matchingReplicas = resources
             .Where(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase))
-            .Select(r => r.DisplayName)
+            .Select(r => r.GetCompositeName())
             .ToList();
 
         if (matchingReplicas.Count > 0)
         {
-            return matchingReplicas;
+            resolvedResources = matchingReplicas;
+            return true;
         }
 
         // No match found
-        return [];
+        resolvedResources = null;
+        return false;
+    }
+
+    public static async Task<ResourceInfoJson[]> GetAllResourcesAsync(HttpClient client, string baseUrl, CancellationToken cancellationToken)
+    {
+        var url = DashboardUrls.TelemetryResourcesApiUrl(baseUrl);
+        var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var resources = await response.Content.ReadFromJsonAsync(OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false);
+        return resources!;
     }
 
     /// <summary>

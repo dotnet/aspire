@@ -705,6 +705,71 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
         }
     }
 
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    public async Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(
+        string resourceName,
+        string commandName,
+        CancellationToken cancellationToken = default)
+    {
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Executing command '{CommandName}' on resource '{ResourceName}'", commandName, resourceName);
+
+        var request = new ExecuteResourceCommandRequest
+        {
+            ResourceName = resourceName,
+            CommandName = commandName
+        };
+
+        var response = await rpc.InvokeWithCancellationAsync<ExecuteResourceCommandResponse>(
+            "ExecuteResourceCommandAsync",
+            [request],
+            cancellationToken).ConfigureAwait(false);
+
+        _logger?.LogDebug("Command '{CommandName}' on resource '{ResourceName}' completed with success={Success}", commandName, resourceName, response.Success);
+
+        return response;
+    }
+
+    /// <inheritdoc />
+    public async Task<WaitForResourceResponse> WaitForResourceAsync(
+        string resourceName,
+        string status,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default)
+    {
+        if (!SupportsV2)
+        {
+            return new WaitForResourceResponse
+            {
+                Success = false,
+                ErrorMessage = "Wait command is not supported by the AppHost version. Update the AppHost to use this command."
+            };
+        }
+
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Waiting for resource '{ResourceName}' to reach status '{Status}' with timeout {Timeout}s", resourceName, status, timeoutSeconds);
+
+        var request = new WaitForResourceRequest
+        {
+            ResourceName = resourceName,
+            Status = status,
+            TimeoutSeconds = timeoutSeconds
+        };
+
+        var response = await rpc.InvokeWithCancellationAsync<WaitForResourceResponse>(
+            "WaitForResourceAsync",
+            [request],
+            cancellationToken).ConfigureAwait(false);
+
+        _logger?.LogDebug("Wait for resource '{ResourceName}' completed: success={Success}, state={State}", resourceName, response.Success, response.State);
+
+        return response;
+    }
+
     #endregion
 
     /// <summary>

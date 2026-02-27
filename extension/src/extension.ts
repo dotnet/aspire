@@ -67,7 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
-  const debugConfigProvider = new AspireDebugConfigurationProvider(terminalProvider);
+  const debugConfigProvider = new AspireDebugConfigurationProvider();
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
   );
@@ -114,9 +114,8 @@ async function tryExecuteCommand(commandName: string, terminalProvider: AspireTe
     const cliCheckExcludedCommands: string[] = ["aspire-vscode.settings", "aspire-vscode.configureLaunchJson"];
 
     if (!cliCheckExcludedCommands.includes(commandName)) {
-      const cliPath = terminalProvider.getAspireCliExecutablePath();
-      const isCliAvailable = await checkCliAvailableOrRedirect(cliPath);
-      if (!isCliAvailable) {
+      const result = await checkCliAvailableOrRedirect();
+      if (!result.available) {
         return;
       }
     }

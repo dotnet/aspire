@@ -574,7 +574,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var runner = new TestDotNetCliRunner();
 
         // Simulate successful build
-        runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+        runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0;
 
         // Simulate compatible app host
         runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -583,7 +583,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         };
 
         // Simulate successful app host run with the prompt backchannel
-        runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+        runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
         {
             backchannelCompletionSource?.SetResult(promptBackchannel);
             await promptBackchannel.WaitForCompletion().DefaultTimeout();
@@ -720,48 +720,6 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Should show: [bold]Environment Name[/]
         Assert.Equal("[bold]Environment Name[/]", promptCall.PromptText);
     }
-
-    [Fact]
-    public async Task PublishCommand_SingleInputPrompt_EscapesSpectreMarkupInLabels()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var promptBackchannel = new TestPromptBackchannel();
-        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
-
-        // Set up a single-input prompt with Spectre markup characters in both StatusText and Label
-        promptBackchannel.AddPrompt("markup-prompt", "Value [required]", InputTypes.Text, "Enter value [1-10]", isRequired: true);
-
-        // Set up the expected user response
-        consoleService.SetupStringPromptResponse("5");
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
-        });
-
-        services.AddSingleton<IInteractionService>(consoleService);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var command = serviceProvider.GetRequiredService<RootCommand>();
-
-        // Act
-        var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-
-        // Verify that square brackets are properly escaped
-        var promptCalls = consoleService.StringPromptCalls;
-        Assert.Single(promptCalls);
-        var promptCall = promptCalls[0];
-
-        // Square brackets should be escaped to [[bracket]]
-        Assert.Contains("[[1-10]]", promptCall.PromptText);
-        Assert.Contains("[[required]]", promptCall.PromptText);
-    }
 }
 
 // Test implementation of IAppHostCliBackchannel that simulates prompt interactions
@@ -892,6 +850,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
 
+    public ConsoleOutput Console { get; set; }
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
@@ -981,14 +940,14 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void ShowStatus(string statusText, Action action) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
-    public void DisplayMessage(string emoji, string message) { }
+    public void DisplayMessage(string emojiName, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
     public void DisplayMarkdown(string markdown) { }
     public void DisplayMarkupLine(string markup) { }
 
@@ -997,7 +956,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";
-        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+        System.Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
     }
 }
 

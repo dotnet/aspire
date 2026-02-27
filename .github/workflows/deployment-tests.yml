@@ -31,6 +31,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Post "starting" comment to PR when triggered via /deployment-test command
+  notify-start:
+    name: Notify PR
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' && inputs.pr_number != '' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post starting comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ inputs.pr_number }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body \
+            "🚀 **Deployment tests starting** on PR #${PR_NUMBER}...
+
+          This will deploy to real Azure infrastructure. Results will be posted here when complete.
+
+          [View workflow run](${RUN_URL})"
+
   # Enumerate test classes to build the matrix
   enumerate:
     name: Enumerate Tests
@@ -214,7 +236,7 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           Azure__SubscriptionId: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
-          Azure__Location: eastus
+          Azure__Location: westus3
           GH_TOKEN: ${{ github.token }}
         run: |
           ./dotnet.sh test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
@@ -332,12 +354,57 @@ jobs:
       pull-requests: write
       actions: read
     steps:
-      - name: Download recording artifacts
+      - name: Get job results and download recording artifacts
+        id: get_results
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
+            
+            // Get all jobs for this workflow run to determine per-test results
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+                per_page: 100
+              }
+            );
+            
+            console.log(`Total jobs found: ${jobs.length}`);
+            
+            // Filter for deploy-test matrix jobs (format: "Deploy (TestClassName)")
+            const deployJobs = jobs.filter(job => job.name.startsWith('Deploy ('));
+            
+            const passedTests = [];
+            const failedTests = [];
+            const cancelledTests = [];
+            
+            for (const job of deployJobs) {
+              // Extract test name from job name "Deploy (TestClassName)"
+              const match = job.name.match(/^Deploy \((.+)\)$/);
+              const testName = match ? match[1] : job.name;
+              
+              console.log(`Job "${job.name}" - conclusion: ${job.conclusion}, status: ${job.status}`);
+              
+              if (job.conclusion === 'success') {
+                passedTests.push(testName);
+              } else if (job.conclusion === 'failure') {
+                failedTests.push(testName);
+              } else if (job.conclusion === 'cancelled') {
+                cancelledTests.push(testName);
+              }
+            }
+            
+            console.log(`Passed: ${passedTests.length}, Failed: ${failedTests.length}, Cancelled: ${cancelledTests.length}`);
+            
+            // Output results for later steps
+            core.setOutput('passed_tests', JSON.stringify(passedTests));
+            core.setOutput('failed_tests', JSON.stringify(failedTests));
+            core.setOutput('cancelled_tests', JSON.stringify(cancelledTests));
+            core.setOutput('total_tests', passedTests.length + failedTests.length + cancelledTests.length);
             
             // List all artifacts for the current workflow run
             const allArtifacts = await github.paginate(
@@ -402,6 +469,10 @@ jobs:
       - name: Upload recordings to asciinema and post comment
         env:
           GH_TOKEN: ${{ github.token }}
+          PASSED_TESTS: ${{ steps.get_results.outputs.passed_tests }}
+          FAILED_TESTS: ${{ steps.get_results.outputs.failed_tests }}
+          CANCELLED_TESTS: ${{ steps.get_results.outputs.cancelled_tests }}
+          TOTAL_TESTS: ${{ steps.get_results.outputs.total_tests }}
         shell: bash
         run: |
           PR_NUMBER="${{ inputs.pr_number }}"
@@ -409,41 +480,59 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}"
           TEST_RESULT="${{ needs.deploy-test.result }}"
           
-          # Determine status emoji and message
-          case "$TEST_RESULT" in
-            success)
-              EMOJI="✅"
-              STATUS="passed"
-              DETAILS="All deployment tests completed successfully."
-              ;;
-            failure)
-              EMOJI="❌"
-              STATUS="failed"
-              DETAILS="One or more deployment tests failed. Check the workflow run for details."
-              ;;
-            cancelled)
-              EMOJI="⚠️"
-              STATUS="cancelled"
-              DETAILS="The deployment tests were cancelled."
-              ;;
-            skipped)
-              EMOJI="⏭️"
-              STATUS="skipped"
-              DETAILS="The deployment tests were skipped (no tests to run or prerequisites not met)."
-              ;;
-            *)
-              EMOJI="❓"
-              STATUS="${TEST_RESULT:-unknown}"
-              DETAILS="The deployment test result could not be determined."
-              ;;
-          esac
+          # Parse the test results from JSON
+          PASSED_COUNT=$(echo "$PASSED_TESTS" | jq 'length')
+          FAILED_COUNT=$(echo "$FAILED_TESTS" | jq 'length')
+          CANCELLED_COUNT=$(echo "$CANCELLED_TESTS" | jq 'length')
           
-          # Build the comment body
+          # Determine overall status
+          if [ "$FAILED_COUNT" -gt 0 ]; then
+            EMOJI="❌"
+            STATUS="failed"
+          elif [ "$CANCELLED_COUNT" -gt 0 ] && [ "$PASSED_COUNT" -eq 0 ]; then
+            EMOJI="⚠️"
+            STATUS="cancelled"
+          elif [ "$PASSED_COUNT" -gt 0 ]; then
+            EMOJI="✅"
+            STATUS="passed"
+          else
+            EMOJI="❓"
+            STATUS="unknown"
+          fi
+          
+          # Build the comment header
           COMMENT_BODY="${EMOJI} **Deployment E2E Tests ${STATUS}**
-
-          ${DETAILS}
-
+          
+          **Summary:** ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
+          
           [View workflow run](${RUN_URL})"
+          
+          # Add passed tests section if any
+          if [ "$PASSED_COUNT" -gt 0 ]; then
+            PASSED_LIST=$(echo "$PASSED_TESTS" | jq -r '.[]' | while read test; do echo "- ✅ ${test}"; done)
+            COMMENT_BODY="${COMMENT_BODY}
+          
+          ### Passed Tests
+          ${PASSED_LIST}"
+          fi
+          
+          # Add failed tests section if any
+          if [ "$FAILED_COUNT" -gt 0 ]; then
+            FAILED_LIST=$(echo "$FAILED_TESTS" | jq -r '.[]' | while read test; do echo "- ❌ ${test}"; done)
+            COMMENT_BODY="${COMMENT_BODY}
+          
+          ### Failed Tests
+          ${FAILED_LIST}"
+          fi
+          
+          # Add cancelled tests section if any
+          if [ "$CANCELLED_COUNT" -gt 0 ]; then
+            CANCELLED_LIST=$(echo "$CANCELLED_TESTS" | jq -r '.[]' | while read test; do echo "- ⚠️ ${test}"; done)
+            COMMENT_BODY="${COMMENT_BODY}
+          
+          ### Cancelled Tests
+          ${CANCELLED_LIST}"
+          fi
           
           # Check for recordings and upload them
           RECORDINGS_DIR="cast_files"
@@ -453,9 +542,9 @@ jobs:
             pip install --quiet asciinema
             
             RECORDING_TABLE="
-
+          
           ### 🎬 Terminal Recordings
-
+          
           | Test | Recording |
           |------|-----------|"
             

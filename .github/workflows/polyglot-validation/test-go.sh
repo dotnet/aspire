@@ -21,11 +21,11 @@ cd "$WORK_DIR"
 
 # Initialize Go AppHost
 echo "Creating Go apphost project..."
-aspire init -l go --non-interactive
+aspire init --language go --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."
-aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
+aspire add Aspire.Hosting.Redis --non-interactive -d 2>&1 || {
     echo "aspire add failed, manually updating settings.json..."
     PKG_VERSION=$(aspire --version | grep -oP '\d+\.\d+\.\d+-.*' | head -1)
     if [ -f ".aspire/settings.json" ]; then

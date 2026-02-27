@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="translated">Fügen Sie dem Aspire AppHost eine Hosting-Integration hinzu.</target>
+        <source>Add a hosting integration to the apphost.</source>
+        <target state="translated">Fügen Sie dem AppHost eine Hosting-Integration hinzu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -43,13 +43,13 @@
         <note>{0} is the package name, {1} is the version.</note>
       </trans-unit>
       <trans-unit id="PackageInstallationFailed">
-        <source>The package installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Fehler bei der Paketinstallation. Exitcode: {0}. Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
-        <note />
+        <source>The package installation failed with exit code {0}. See logs at {1}</source>
+        <target state="translated">Die Paketinstallation ist mit dem Exitcode {0} fehlgeschlagen. Protokolle unter {1} anzeigen.</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">Der Pfad zur Projektdatei, der die Integration hinzugefügt werden soll.</target>
+        <source>The path to the Aspire AppHost project file to add the integration to.</source>
+        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -70,6 +70,15 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the integration.</source>
         <target state="translated">Die NuGet-Quelle, die für die Integration verwendet werden soll.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
+          <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
+          <target state="translated">Eine laufende Aspire AppHost-Instanz wurde gestoppt, um Paketänderungen zu ermöglichen.</target><note />
+        </trans-unit>
+      <trans-unit id="UnableToStopRunningInstances">
+        <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
+        <target state="translated">Mindestens eine laufende Aspire AppHost-Instanz konnte nicht gestoppt werden. Beenden Sie die Anwendung und versuchen Sie es erneut.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">

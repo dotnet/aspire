@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner.</source>
-        <target state="new">Display the animated Aspire CLI welcome banner.</target>
+        <target state="translated">Отобразить анимированный приветственный баннер CLI Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
         <source>CLI — version {0}</source>
-        <target state="new">CLI — version {0}</target>
+        <target state="translated">CLI — версия {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerWelcomeText">
         <source>Welcome to the</source>
-        <target state="new">Welcome to the</target>
+        <target state="translated">Вас приветствует</target>
         <note />
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
@@ -25,6 +25,11 @@
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
         <target state="translated">Включает журналирование отладки в консоли.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="translated">Установите минимальный уровень ведения журнала для вывода консоли (трассировка, отладка, информация, предупреждение, ошибка, критический).</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -55,6 +60,11 @@ Aspire CLI собирает данные об использовании. Кор
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Отключить баннер запуска и уведомление о телеметрии.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

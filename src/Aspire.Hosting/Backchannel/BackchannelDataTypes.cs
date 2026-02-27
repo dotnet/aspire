@@ -260,6 +260,104 @@ internal sealed class StopAppHostRequest
 /// </summary>
 internal sealed class StopAppHostResponse { }
 
+/// <summary>
+/// Request for executing a resource command.
+/// </summary>
+internal sealed class ExecuteResourceCommandRequest
+{
+    /// <summary>
+    /// Gets the resource name (or resource ID for replicas).
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// </summary>
+    public required string CommandName { get; init; }
+}
+
+/// <summary>
+/// Response from executing a resource command.
+/// </summary>
+internal sealed class ExecuteResourceCommandResponse
+{
+    /// <summary>
+    /// Gets whether the command executed successfully.
+    /// </summary>
+    public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets whether the command was canceled.
+    /// </summary>
+    public bool Canceled { get; init; }
+
+    /// <summary>
+    /// Gets the error message if the command failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+}
+
+#endregion
+
+#region Wait For Resource
+
+/// <summary>
+/// Request to wait for a resource to reach a target status.
+/// </summary>
+internal sealed class WaitForResourceRequest
+{
+    /// <summary>
+    /// Gets the name of the resource to wait for.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the target status to wait for (e.g., "up", "healthy", "down").
+    /// </summary>
+    public required string Status { get; init; }
+
+    /// <summary>
+    /// Gets the timeout in seconds.
+    /// </summary>
+    public int TimeoutSeconds { get; init; } = 120;
+}
+
+/// <summary>
+/// Response from waiting for a resource.
+/// </summary>
+internal sealed class WaitForResourceResponse
+{
+    /// <summary>
+    /// Gets whether the resource reached the target status.
+    /// </summary>
+    public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets the current state of the resource.
+    /// </summary>
+    public string? State { get; init; }
+
+    /// <summary>
+    /// Gets the current health status of the resource.
+    /// </summary>
+    public string? HealthStatus { get; init; }
+
+    /// <summary>
+    /// Gets whether the resource was not found.
+    /// </summary>
+    public bool ResourceNotFound { get; init; }
+
+    /// <summary>
+    /// Gets whether the wait timed out.
+    /// </summary>
+    public bool TimedOut { get; init; }
+
+    /// <summary>
+    /// Gets the error message if the wait failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+}
+
 #endregion
 
 /// <summary>

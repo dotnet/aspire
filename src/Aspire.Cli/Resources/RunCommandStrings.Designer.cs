@@ -255,6 +255,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string AppHostFailedToBuild {
+            get {
+                return ResourceManager.GetString("AppHostFailedToBuild", resourceCulture);
+            }
+        }
+        
         public static string TimeoutWaitingForAppHost {
             get {
                 return ResourceManager.GetString("TimeoutWaitingForAppHost", resourceCulture);
@@ -294,6 +300,18 @@ namespace Aspire.Cli.Resources {
         public static string IsolatedModeRunningInstanceWarning {
             get {
                 return ResourceManager.GetString("IsolatedModeRunningInstanceWarning", resourceCulture);
+            }
+        }
+
+        public static string NoBuildArgumentDescription {
+            get {
+                return ResourceManager.GetString("NoBuildArgumentDescription", resourceCulture);
+            }
+        }
+
+        public static string NoBuildNotSupportedWithWatchMode {
+            get {
+                return ResourceManager.GetString("NoBuildNotSupportedWithWatchMode", resourceCulture);
             }
         }
     }

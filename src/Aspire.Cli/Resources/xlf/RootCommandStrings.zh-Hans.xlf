@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner.</source>
-        <target state="new">Display the animated Aspire CLI welcome banner.</target>
+        <target state="translated">显示动画 Aspire CLI 欢迎横幅。</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
         <source>CLI — version {0}</source>
-        <target state="new">CLI — version {0}</target>
+        <target state="translated">CLI - 版本 {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerWelcomeText">
         <source>Welcome to the</source>
-        <target state="new">Welcome to the</target>
+        <target state="translated">欢迎使用</target>
         <note />
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
@@ -25,6 +25,11 @@
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console.</source>
         <target state="translated">启用控制台的调试日志记录。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="translated">设置控制台输出的最小日志级别(跟踪、调试、信息、警告、错误、严重)。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -55,6 +60,11 @@ Aspire CLI 收集使用情况数据。该数据由 Microsoft 收集，用于帮�
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">抑制显示启动横幅和遥测通知。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

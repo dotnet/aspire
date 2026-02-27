@@ -98,18 +98,18 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
-        <source>The project could not be built. For more information run with --debug switch.</source>
-        <target state="translated">Le projet n’a pas pu être généré. Pour plus d’informations, exécutez avec le commutateur --debug.</target>
+        <source>The project could not be built. See logs at {0}</source>
+        <target state="translated">Désolé, le projet n’a pas pu être généré. Consultez les journaux à l’emplacement {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
-        <source>The --project option specified a project that does not exist.</source>
-        <target state="translated">L’option --project spécifiait un projet qui n’existe pas.</target>
+        <source>The --apphost option specified a project that does not exist.</source>
+        <target state="new">The --apphost option specified a project that does not exist.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">L’option --project n’a pas été spécifiée et plusieurs fichiers de projet d’hôte d’application ont été détectés.</target>
+        <source>The --apphost option was not specified and multiple app host project files were detected.</source>
+        <target state="new">The --apphost option was not specified and multiple app host project files were detected.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -126,6 +126,11 @@
         <source>Searching...</source>
         <target state="translated">Recherche en cours...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SeeLogsAt">
+        <source>See logs at {0}</source>
+        <target state="translated">Consultez les journaux à l’emplacement {0}</target>
+        <note>{0} is the log file path</note>
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select an apphost to use:</source>

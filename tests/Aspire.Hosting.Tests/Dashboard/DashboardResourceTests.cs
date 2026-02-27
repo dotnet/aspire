@@ -51,7 +51,6 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
-        // dotnet exec --runtimeconfig <temp runtimeconfig.json> <dashboardPath>.dll
         Assert.Equal("dotnet", dashboard.Command);
         Assert.Equal(args[3], $"{dashboardPath}.dll");
         Assert.True(initialSnapshot.InitialSnapshot.IsHidden);
@@ -261,7 +260,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("dotnet", dashboard.Command);
         Assert.Equal("exec", args[0]);
         Assert.Equal("--runtimeconfig", args[1]);
-        Assert.EndsWith(".json", args[2]); // Generated temp runtimeconfig.json path
+        Assert.EndsWith(".json", args[2]);
         Assert.Equal(dashboardPath, args[3]);
     }
 
@@ -693,11 +692,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     {
         foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
         {
-            if (endpoint.Name == DashboardEventHandlers.OtlpGrpcEndpointName)
+            if (endpoint.Name == KnownEndpointNames.OtlpGrpcEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
             }
-            else if (endpoint.Name == DashboardEventHandlers.OtlpHttpEndpointName)
+            else if (endpoint.Name == KnownEndpointNames.OtlpHttpEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
             }

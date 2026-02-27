@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREACANAMING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -1326,6 +1327,63 @@ public class AzureContainerAppsTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task AddContainerAppEnvironmentWithCompactNamingPreservesUniqueString()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Use a deliberately long name (15 chars) that would cause collisions without compact naming
+        var env = builder.AddAzureContainerAppEnvironment("my-long-env-name");
+        env.WithCompactResourceNaming();
+
+        var pg = builder.AddAzurePostgresFlexibleServer("pg")
+                        .WithPasswordAuthentication()
+                        .AddDatabase("db");
+
+        builder.AddContainer("cache", "redis")
+               .WithVolume("App.da-ta", "/data")
+               .WithReference(pg);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        var manifest = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public async Task CompactNamingMultipleVolumesHaveUniqueNames()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("my-ace");
+        env.WithCompactResourceNaming();
+
+        builder.AddContainer("druid", "apache/druid", "34.0.0")
+               .WithHttpEndpoint(targetPort: 8081)
+               .WithVolume("druid_shared", "/opt/shared")
+               .WithVolume("coordinator_var", "/opt/druid/var")
+               .WithBindMount("./config", "/opt/druid/conf");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+
+        var manifest = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.BicepText, "bicep");
+    }
+
     // see https://github.com/dotnet/aspire/issues/8381 for more information on this scenario
     // Azure SqlServer needs an admin when it is first provisioned. To supply this, we use the
     // principalId from the Azure Container App Environment.
@@ -2099,7 +2157,7 @@ public class AzureContainerAppsTests
             .AddProject<Project>("project1", launchProfileName: null)
             .WithHttpEndpoint();
 
-        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        var endpointReferenceEx = env.Resource.GetHostAddressExpression(project.GetEndpoint("http"));
         Assert.NotNull(endpointReferenceEx);
 
         Assert.Equal("project1.internal.{0}", endpointReferenceEx.Format);

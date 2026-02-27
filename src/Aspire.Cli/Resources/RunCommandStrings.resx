@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Run an Aspire apphost in development mode.</value>
+    <value>Run an Aspire AppHost interactively for development.</value>
   </data>
   <data name="ForceArgumentDescription" xml:space="preserve">
     <value>Stop any running instance of the AppHost without prompting.</value>
@@ -130,7 +130,7 @@
     <value>Run the AppHost in the background and exit after it starts.</value>
   </data>
   <data name="JsonArgumentDescription" xml:space="preserve">
-    <value>Output result as JSON (only valid with --detach).</value>
+    <value>Output format for detached AppHost results.</value>
   </data>
   <data name="WatchArgumentDescription" xml:space="preserve">
     <value>Start project resources in watch mode.</value>
@@ -170,7 +170,7 @@
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
-    <value>The project could not be run. For more information run with --debug switch.</value>
+    <value>The project could not be run. See logs at {0}</value>
   </data>
   <data name="Dashboard" xml:space="preserve">
     <value>Dashboard</value>
@@ -226,6 +226,9 @@
   <data name="AppHostExitedWithCode" xml:space="preserve">
     <value>AppHost process exited with code {0}.</value>
   </data>
+  <data name="AppHostFailedToBuild" xml:space="preserve">
+    <value>AppHost failed to build.</value>
+  </data>
   <data name="TimeoutWaitingForAppHost" xml:space="preserve">
     <value>Timeout waiting for AppHost to start.</value>
   </data>
@@ -246,5 +249,11 @@
   </data>
   <data name="IsolatedModeRunningInstanceWarning" xml:space="preserve">
     <value>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</value>
+  </data>
+  <data name="NoBuildArgumentDescription" xml:space="preserve">
+    <value>Do not build or restore the project before running.</value>
+  </data>
+  <data name="NoBuildNotSupportedWithWatchMode" xml:space="preserve">
+    <value>The --no-build option cannot be used when watch mode is enabled.</value>
   </data>
 </root>

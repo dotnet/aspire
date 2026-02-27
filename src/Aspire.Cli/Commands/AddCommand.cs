@@ -12,12 +12,15 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
@@ -31,11 +34,8 @@ internal sealed class AddCommand : BaseCommand
         Description = AddCommandStrings.IntegrationArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = AddCommandStrings.ProjectArgumentDescription
-    };
-    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", AddCommandStrings.ProjectArgumentDescription);
+    private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription
     };
@@ -56,7 +56,7 @@ internal sealed class AddCommand : BaseCommand
         _projectFactory = projectFactory;
 
         Arguments.Add(s_integrationArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_versionOption);
         Options.Add(s_sourceOption);
     }
@@ -71,7 +71,7 @@ internal sealed class AddCommand : BaseCommand
         {
             var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -100,8 +100,13 @@ internal sealed class AddCommand : BaseCommand
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
-                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
-                configuredChannel = settings?.Channel;
+                var appHostDirectory = effectiveAppHostProjectFile.Directory!.FullName;
+                var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
+                if (!isProjectReferenceMode)
+                {
+                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
+                    configuredChannel = settings?.Channel;
+                }
             }
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
@@ -202,6 +207,27 @@ internal sealed class AddCommand : BaseCommand
                 Source = source
             };
 
+            // Stop any running AppHost instance before adding the package.
+            // A running AppHost (especially in detach mode) locks project files,
+            // which prevents 'dotnet add package' from modifying the project.
+            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
+            {
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
+                    effectiveAppHostProjectFile,
+                    ExecutionContext.HomeDirectory,
+                    cancellationToken);
+
+                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+                {
+                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                }
+                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
+                {
+                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                    return ExitCodeConstants.FailedToAddPackage;
+                }
+            }
+
             var success = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,
                 async () => await project.AddPackageAsync(context, cancellationToken)
@@ -213,7 +239,7 @@ internal sealed class AddCommand : BaseCommand
                 {
                     InteractionService.DisplayLines(outputCollector.GetLines());
                 }
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage, ExecutionContext.LogFilePath));
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -320,7 +346,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         // Helper to keep labels consistently formatted: "Version (source)"
         static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
+            return $"{item.Package.Version.EscapeMarkup()} ({item.Channel.SourceDetails.EscapeMarkup()})";
         }
 
         async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -334,6 +360,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                     Result: i
                 ))
                 .ToArray();
+
+            // Auto-select when there's only one version in the channel
+            if (choices.Length == 1)
+            {
+                return choices[0].Result;
+            }
 
             var selection = await interactionService.PromptForSelectionAsync(
                 string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
@@ -384,7 +416,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             var item = channelGroup.HighestVersion;
 
             rootChoices.Add((
-                Label: channel.Name,
+                Label: channel.Name.EscapeMarkup(),
                 // For explicit channels, we still show submenu but with only the highest version
                 Action: ct => PromptForChannelPackagesAsync(channel, new[] { item }, ct)
             ));
@@ -394,6 +426,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         if (rootChoices.Count == 0)
         {
             return firstPackage;
+        }
+
+        // Auto-select when there's only one option (e.g., single explicit channel)
+        if (rootChoices.Count == 1)
+        {
+            return await rootChoices[0].Action(cancellationToken);
         }
 
         var topSelection = await interactionService.PromptForSelectionAsync(
@@ -425,11 +463,11 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
     {
         if (packageWithFriendlyName.FriendlyName is { } friendlyName)
         {
-            return $"[bold]{friendlyName}[/] ({packageWithFriendlyName.Package.Id})";
+            return $"[bold]{friendlyName.EscapeMarkup()}[/] ({packageWithFriendlyName.Package.Id.EscapeMarkup()})";
         }
         else
         {
-            return packageWithFriendlyName.Package.Id;
+            return packageWithFriendlyName.Package.Id.EscapeMarkup();
         }
     }
 }

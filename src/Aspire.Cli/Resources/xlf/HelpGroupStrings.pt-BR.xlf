@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../HelpGroupStrings.resx">
+    <body>
+      <trans-unit id="AppCommands">
+        <source>App commands:</source>
+        <target state="new">App commands:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Deployment">
+        <source>Deployment:</source>
+        <target state="new">Deployment:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpHint">
+        <source>Use "aspire &lt;command&gt; --help" for more information about a command.</source>
+        <target state="new">Use "aspire &lt;command&gt; --help" for more information about a command.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Monitoring">
+        <source>Monitoring:</source>
+        <target state="new">Monitoring:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Options">
+        <source>Options:</source>
+        <target state="translated">Opções:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OtherCommands">
+        <source>Other commands:</source>
+        <target state="new">Other commands:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceManagement">
+        <source>Resource management:</source>
+        <target state="new">Resource management:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolsAndConfiguration">
+        <source>Tools &amp; configuration:</source>
+        <target state="new">Tools &amp; configuration:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Usage">
+        <source>Usage:</source>
+        <target state="translated">Uso:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsageSyntax">
+        <source>aspire &lt;command&gt; [options]</source>
+        <target state="new">aspire &lt;command&gt; [options]</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

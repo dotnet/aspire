@@ -129,7 +129,7 @@ public class ExecCommandTests
         var testOutputWriter = new TestOutputTextWriter(_outputHelper);
         invokeConfiguration.Output = testOutputWriter;
 
-        var result = command.Parse("exec --project test.csproj echo hello");
+        var result = command.Parse("exec --apphost test.csproj echo hello");
 
         var exitCode = await result.InvokeAsync(invokeConfiguration).DefaultTimeout();
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
@@ -149,7 +149,7 @@ public class ExecCommandTests
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
             {
-                RunAsyncCallback = (projectFile, watch, noBuild, args, env, backchannelCompletionSource, runnerOptions, cancellationToken) =>
+                RunAsyncCallback = (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, runnerOptions, cancellationToken) =>
                 {
                     var backchannel = new TestAppHostBackchannel();
                     backchannelCompletionSource?.SetResult(backchannel);
@@ -160,7 +160,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --project test.csproj --resource myresource --command echo");
+        var result = command.Parse("exec --apphost test.csproj --resource myresource --command echo");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);

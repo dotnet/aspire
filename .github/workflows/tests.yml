@@ -67,6 +67,7 @@ jobs:
 
   build_cli_archives:
     name: Build native CLI archives
+    needs: build_packages
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}

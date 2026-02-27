@@ -25,6 +25,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IDotNetCliRunner _runner;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
@@ -46,7 +48,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         Description = NewCommandStrings.SourceArgumentDescription,
         Recursive = true
     };
-    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    private static readonly Option<string?> s_versionOption = new("--version")
     {
         Description = NewCommandStrings.VersionArgumentDescription,
         Recursive = true
@@ -118,9 +120,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Only add --language option when polyglot support is enabled
         if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            _languageOption = new Option<string?>("--language", "-l")
+            _languageOption = new Option<string?>("--language")
             {
-                Description = "The programming language for the AppHost (csharp, typescript, python)"
+                Description = "The programming language for the AppHost (csharp, typescript)"
             };
             Options.Add(_languageOption);
         }
@@ -245,7 +247,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var selectedProjects = await InteractionService.PromptForSelectionsAsync(
                 "Select projects to add to the AppHost:",
                 initContext.ExecutableProjects,
-                project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
+                project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
                 cancellationToken);
 
             initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
@@ -298,7 +300,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         initContext.ProjectsToAddServiceDefaultsTo = await InteractionService.PromptForSelectionsAsync(
                             "Select projects to add ServiceDefaults reference to:",
                             initContext.ExecutableProjectsToAddToAppHost,
-                            project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
+                            project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
                             cancellationToken);
                         break;
                     case "none":
@@ -532,7 +534,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -596,7 +598,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (result.ExitCode == 0)
         {
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
         }
 

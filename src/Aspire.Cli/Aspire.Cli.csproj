@@ -6,11 +6,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnablePackageValidation>false</EnablePackageValidation>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- MCPEXP001: The MCP SDK 0.8.0 added experimental types (ToolExecution, ToolTaskSupport) to its default
+         serialization graph. We don't reference these types directly, but the System.Text.Json source generator
+         emits code that touches them when we combine our serializer context with McpJsonUtilities.DefaultOptions
+         in BackchannelJsonSerializerContext.cs. Suppress until MCP graduates these types. -->
+    <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
     <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <OptimizationPreference>Size</OptimizationPreference>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -51,8 +57,18 @@
     <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
+  <!-- When BundlePayloadPath is set (by Bundle.proj), embed the tar.gz as a resource.
+       Inner-loop builds without this property produce an unbundled CLI. -->
+  <ItemGroup Condition="'$(BundlePayloadPath)' != '' and Exists('$(BundlePayloadPath)')">
+    <EmbeddedResource Include="$(BundlePayloadPath)" LogicalName="bundle.tar.gz" />
+  </ItemGroup>
+
   <ItemGroup>
+    <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Layout\BundleDiscovery.cs" />
+    <Compile Include="$(SharedDir)EnumerableExtensions.cs" Link="Utils\EnumerableExtensions.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+    <Compile Include="$(SharedDir)KnownOtelConfigNames.cs" Link="Utils\KnownOtelConfigNames.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
@@ -60,6 +76,7 @@
     <Compile Include="$(SharedDir)DurationFormatter.cs" Link="Utils\DurationFormatter.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\ApplicationModel\KnownResourceCommands.cs" Link="Utils\KnownResourceCommands.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Ats\RuntimeSpec.cs" Link="Ats\RuntimeSpec.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
@@ -74,10 +91,20 @@
     <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="Utils\UserSecretsPathHelper.cs" />
     <Compile Include="$(SharedDir)UserSecrets\IsolatedUserSecretsHelper.cs" Link="Utils\IsolatedUserSecretsHelper.cs" />
     <Compile Include="$(SharedDir)Otlp\OtlpHelpers.cs" Link="Otlp\OtlpHelpers.cs" />
+    <Compile Include="$(SharedDir)Otlp\IOtlpResource.cs" Link="Otlp\IOtlpResource.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpCommonJson.cs" Link="Otlp\OtlpCommonJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpResourceJson.cs" Link="Otlp\OtlpResourceJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\OtlpLogsJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\OtlpTraceJson.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\AnsiParser.cs" Link="ConsoleLogs\AnsiParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="ConsoleLogs\LogEntries.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogParser.cs" Link="ConsoleLogs\LogParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="ConsoleLogs\LogPauseViewModel.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\PromptContext.cs" Link="ConsoleLogs\PromptContext.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\SharedAIHelpers.cs" Link="ConsoleLogs\SharedAIHelpers.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="ConsoleLogs\TimestampParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\UrlParser.cs" Link="ConsoleLogs\UrlParser.cs" />
   </ItemGroup>
 
   <ItemGroup>

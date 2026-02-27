@@ -304,18 +304,21 @@ internal sealed class ConsoleActivityLogger
 
     /// <summary>
     /// Formats a single key-value pair for the pipeline summary display.
+    /// Values may contain markdown links which are converted to clickable links when supported.
     /// </summary>
     private string FormatPipelineSummaryKvp(string key, string value)
     {
         if (_enableColor)
         {
             var escapedKey = key.EscapeMarkup();
-            var escapedValue = value.EscapeMarkup();
-            return $"  [blue]{escapedKey}[/]: {escapedValue}";
+            var convertedValue = MarkdownToSpectreConverter.ConvertToSpectre(value);
+            convertedValue = HighlightMessage(convertedValue);
+            return $"  [blue]{escapedKey}[/]: {convertedValue}";
         }
         else
         {
-            return $"  {key}: {value}";
+            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value);
+            return $"  {key}: {plainValue}";
         }
     }
 

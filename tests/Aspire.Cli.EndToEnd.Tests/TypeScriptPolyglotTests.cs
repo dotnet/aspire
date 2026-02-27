@@ -3,7 +3,6 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -23,15 +22,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateTypeScriptAppHostWithViteApp));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -51,19 +42,6 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
 
-        // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
-        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("Select a version of Aspire.Hosting.JavaScript");
-
-        // Pattern to confirm PR version is selected
-        var waitingForPrVersionSelected = new CellPatternSearcher()
-            .Find($"> pr-{prNumber}");
-
-        // Pattern to confirm specific version with short SHA is selected (e.g., "> 9.3.0-dev.g1234567")
-        var shortSha = commitSha[..7]; // First 7 characters of commit SHA
-        var waitingForShaVersionSelected = new CellPatternSearcher()
-            .Find($"g{shortSha}");
-
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find("Press CTRL+C to stop the apphost and exit.");
@@ -75,8 +53,10 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         if (isCI)
         {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            // Polyglot tests require the bundle (not just CLI) because the AppHost server
+            // is bundled and cannot be obtained via NuGet packages in SDK-based fallback mode
+            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireBundleEnvironment(counter);
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
@@ -111,23 +91,11 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
         // Step 4: Add Aspire.Hosting.JavaScript package
+        // When channel is set (CI) and there's only one channel with one version,
+        // the version is auto-selected without prompting.
         sequenceBuilder
             .Type("aspire add Aspire.Hosting.JavaScript")
-            .Enter();
-
-        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
-        if (isCI)
-        {
-            // First prompt: Select the PR channel (pr-XXXXX)
-            sequenceBuilder
-                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // select PR channel
-                .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter();
-        }
-
-        sequenceBuilder
+            .Enter()
             .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 

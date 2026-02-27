@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable IDE0005 // Incorrectly flagged as unused due to types spread across namespaces
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Tests.Utils;
+using Hex1b;
 using Hex1b.Automation;
-#pragma warning restore IDE0005
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests.Helpers;
@@ -69,22 +69,20 @@ internal static class CliE2ETestHelpers
     /// <returns>The full path to the .cast recording file.</returns>
     internal static string GetTestResultsRecordingPath(string testName)
     {
-        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
-        string recordingsDir;
+        return Hex1bTestHelpers.GetTestResultsRecordingPath(testName, "aspire-cli-e2e");
+    }
 
-        if (!string.IsNullOrEmpty(githubWorkspace))
-        {
-            // CI environment - write directly to test results for artifact upload
-            recordingsDir = Path.Combine(githubWorkspace, "testresults", "recordings");
-        }
-        else
-        {
-            // Local development - use temp directory
-            recordingsDir = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", "recordings");
-        }
-
-        Directory.CreateDirectory(recordingsDir);
-        return Path.Combine(recordingsDir, $"{testName}.cast");
+    /// <summary>
+    /// Creates a headless Hex1b terminal configured for E2E testing with asciinema recording.
+    /// Uses default dimensions of 160x48 unless overridden.
+    /// </summary>
+    /// <param name="testName">The test name used for the recording file path. Defaults to the calling method name.</param>
+    /// <param name="width">The terminal width in columns. Defaults to 160.</param>
+    /// <param name="height">The terminal height in rows. Defaults to 48.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/> instance. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateTestTerminal(int width = 160, int height = 48, [CallerMemberName] string testName = "")
+    {
+        return Hex1bTestHelpers.CreateTestTerminal("aspire-cli-e2e", width, height, testName);
     }
 
     internal static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
@@ -199,58 +197,11 @@ internal static class CliE2ETestHelpers
             .WaitForSuccessPrompt(counter);
     }
 
-    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter,
-        TimeSpan? timeout = null)
-    {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
-
-        return builder.WaitUntil(snapshot =>
-            {
-                var successPromptSearcher = new CellPatternSearcher()
-                    .FindPattern(counter.Value.ToString())
-                    .RightText(" OK] $ ");
-
-                var result = successPromptSearcher.Search(snapshot);
-                return result.Count > 0;
-            }, effectiveTimeout)
-            .IncrementSequence(counter);
-    }
-
-    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
-    {
-        return builder.WaitUntil(s =>
-        {
-            // Hack to pump the counter fluently.
-            counter.Increment();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
-
-    /// <summary>
-    /// Executes an arbitrary callback action during the sequence execution.
-    /// This is useful for performing file modifications or other side effects between terminal commands.
-    /// </summary>
-    /// <param name="builder">The sequence builder.</param>
-    /// <param name="callback">The callback action to execute.</param>
-    /// <returns>The builder for chaining.</returns>
-    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        Action callback)
-    {
-        return builder.WaitUntil(s =>
-        {
-            callback();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
-
     /// <summary>
     /// Enables polyglot support feature flag using the aspire config set command.
     /// This allows the CLI to create TypeScript and Python AppHosts.
+    /// Uses the global (-g) flag to ensure the setting persists across CLI invocations,
+    /// even when aspire init creates a new local settings.json file.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -260,7 +211,7 @@ internal static class CliE2ETestHelpers
         SequenceCounter counter)
     {
         return builder
-            .Type("aspire config set features.polyglotSupportEnabled true")
+            .Type("aspire config set features.polyglotSupportEnabled true -g")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -395,6 +346,29 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Creates a .vscode/mcp.json file with malformed content for testing error handling.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="configPath">The path to the mcp.json file.</param>
+    /// <param name="content">The malformed content to write.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder CreateMalformedMcpConfig(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string configPath,
+        string content = "{ invalid json content")
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            var dir = Path.GetDirectoryName(configPath);
+            if (dir is not null && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllText(configPath, content);
+        });
+    }
+
+    /// <summary>
     /// Creates a .vscode folder for testing VS Code agent detection.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
@@ -451,5 +425,80 @@ internal static class CliE2ETestHelpers
                     $"File {filePath} unexpectedly contains: {unexpectedContent}");
             }
         });
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
+    /// The bundle is a self-contained distribution that includes:
+    /// - Native AOT Aspire CLI
+    /// - .NET runtime
+    /// - Dashboard, DCP, AppHost Server (for polyglot apps)
+    /// This is required for polyglot (TypeScript, Python) AppHost scenarios which
+    /// cannot use SDK-based fallback mode.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="prNumber">The pull request number to download from.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireBundleFromPullRequest(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        int prNumber,
+        SequenceCounter counter)
+    {
+        // The install script may not be on main yet, so we need to fetch it from the PR's branch.
+        // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
+        // which can serve stale script content for several minutes after a push.
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell: Get PR head SHA, then fetch and run install script from that SHA
+            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
+                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\"";
+        }
+        else
+        {
+            // Bash: Get PR head SHA, then fetch and run install script from that SHA
+            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        }
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Sources the Aspire Bundle environment after installation.
+    /// Adds both the bundle's bin/ directory and root directory to PATH so the CLI
+    /// is discoverable regardless of which version of the install script ran
+    /// (the script is fetched from raw.githubusercontent.com which has CDN caching).
+    /// The CLI auto-discovers bundle components (runtime, dashboard, DCP, AppHost server)
+    /// in the parent directory via relative path resolution.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder SourceAspireBundleEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell environment setup for bundle
+            return builder
+                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$HOME\\.aspire;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
+        // Bash environment setup for bundle
+        // Add both ~/.aspire/bin (new layout) and ~/.aspire (old layout) to PATH
+        // The install script is downloaded from raw.githubusercontent.com which has CDN caching,
+        // so the old version may still be served for a while after push.
+        return builder
+            .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 }

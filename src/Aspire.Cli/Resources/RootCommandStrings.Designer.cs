@@ -115,6 +115,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical)..
+        /// </summary>
+        public static string DebugLevelArgumentDescription {
+            get {
+                return ResourceManager.GetString("DebugLevelArgumentDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Telemetry
         ///---------
         ///
@@ -143,6 +152,15 @@ namespace Aspire.Cli.Resources {
         public static string NoLogoArgumentDescription {
             get {
                 return ResourceManager.GetString("NoLogoArgumentDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Run the command in non-interactive mode, disabling all interactive prompts and spinners..
+        /// </summary>
+        public static string NonInteractiveArgumentDescription {
+            get {
+                return ResourceManager.GetString("NonInteractiveArgumentDescription", resourceCulture);
             }
         }
 

@@ -151,10 +151,10 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
         
-        // Also create the skill file to prevent that applicator
+        // Also create the skill file with the SAME content as SkillFileContent to prevent update applicator
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire", "SKILL.md");
         Directory.CreateDirectory(Path.GetDirectoryName(skillFilePath)!);
-        await File.WriteAllTextAsync(skillFilePath, "# Aspire Skill");
+        await File.WriteAllTextAsync(skillFilePath, CommonAgentApplicators.SkillFileContent);
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -163,7 +163,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists
+        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists with same content
         Assert.Empty(context.Applicators);
     }
 
@@ -201,6 +201,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: new Dictionary<string, string?>(),
             homeDirectory: workingDirectory);
@@ -218,9 +220,93 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: environmentVariables,
             homeDirectory: workingDirectory);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithMalformedMcpJson_ThrowsInvalidOperationException()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var copilotFolder = workspace.CreateDirectory(".copilot");
+
+        // Create a malformed mcp-config.json
+        var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
+        await File.WriteAllTextAsync(mcpConfigPath, "{ invalid json content");
+
+        var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        // The scan should succeed (HasServerConfigured catches JsonException)
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        // Applying should throw with a descriptive message
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+        Assert.Contains(mcpConfigPath, ex.Message);
+        Assert.Contains("malformed JSON", ex.Message);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithEmptyMcpJson_ThrowsInvalidOperationException()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var copilotFolder = workspace.CreateDirectory(".copilot");
+
+        // Create an empty mcp-config.json
+        var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
+        await File.WriteAllTextAsync(mcpConfigPath, "");
+
+        var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+        Assert.Contains(mcpConfigPath, ex.Message);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithMalformedMcpJson_DoesNotOverwriteFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var copilotFolder = workspace.CreateDirectory(".copilot");
+
+        // Create a malformed mcp-config.json with content the user may want to preserve
+        var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
+        var originalContent = "{ \"mcpServers\": { \"my-server\": { \"command\": \"test\" } }";
+        await File.WriteAllTextAsync(mcpConfigPath, originalContent);
+
+        var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+
+        await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        Assert.NotEmpty(context.Applicators);
+        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
+
+        // The original file content should be preserved
+        var currentContent = await File.ReadAllTextAsync(mcpConfigPath);
+        Assert.Equal(originalContent, currentContent);
     }
 
     /// <summary>

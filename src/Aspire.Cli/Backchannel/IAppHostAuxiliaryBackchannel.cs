@@ -107,4 +107,30 @@ internal interface IAppHostAuxiliaryBackchannel : IDisposable
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The Dashboard information response.</returns>
     Task<GetDashboardInfoResponse?> GetDashboardInfoV2Async(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="commandName">The name of the command (e.g., "resource-start", "resource-stop", "resource-restart").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The result of the command execution.</returns>
+    Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(
+        string resourceName,
+        string commandName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Waits for a resource to reach a target status on the AppHost side.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="status">The target status ("up", "healthy", "down").</param>
+    /// <param name="timeoutSeconds">The timeout in seconds.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The result of the wait operation.</returns>
+    Task<WaitForResourceResponse> WaitForResourceAsync(
+        string resourceName,
+        string status,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default);
 }

@@ -13,6 +13,11 @@ namespace Aspire.Cli.Mcp.Docs;
 internal interface IDocsIndexService
 {
     /// <summary>
+    /// Gets a value indicating whether the documentation has been indexed.
+    /// </summary>
+    bool IsIndexed { get; }
+
+    /// <summary>
     /// Ensures documentation is loaded and indexed.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -87,7 +92,7 @@ internal sealed class DocsContent
 /// - Section-oriented ("configuration", "examples")
 /// - Name-exact ("Redis resource", "AddServiceDefaults")
 /// </remarks>
-internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger<DocsIndexService> logger) : IDocsIndexService
+internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, IDocsCache docsCache, ILogger<DocsIndexService> logger) : IDocsIndexService
 {
     // Field weights for relevance scoring
     private const float TitleWeight = 10.0f;      // H1 (page title)
@@ -113,10 +118,16 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     private const float WhatsNewPenaltyMultiplier = 0.3f;   // Apply 0.3x to whats-new pages
 
     private readonly IDocsFetcher _docsFetcher = docsFetcher;
+    private readonly IDocsCache _docsCache = docsCache;
     private readonly ILogger<DocsIndexService> _logger = logger;
 
-    private List<IndexedDocument>? _indexedDocuments;
+    // Volatile ensures the double-checked locking pattern works correctly by preventing
+    // instruction reordering that could expose a partially-constructed list to other threads.
+    private volatile List<IndexedDocument>? _indexedDocuments;
     private readonly SemaphoreSlim _indexLock = new(1, 1);
+
+    /// <inheritdoc />
+    public bool IsIndexed => _indexedDocuments is not null;
 
     public async ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)
     {
@@ -138,6 +149,18 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
             _logger.LogDebug("Loading aspire.dev documentation");
 
+            // Try to load from disk cache first
+            var cachedDocuments = await _docsCache.GetIndexAsync(cancellationToken).ConfigureAwait(false);
+            if (cachedDocuments is not null)
+            {
+                _indexedDocuments = [.. cachedDocuments.Select(static d => new IndexedDocument(d))];
+
+                var cacheElapsedTime = Stopwatch.GetElapsedTime(startTimestamp);
+                _logger.LogInformation("Loaded {Count} documents from cache in {ElapsedTime:ss\\.fff} seconds.", _indexedDocuments.Count, cacheElapsedTime);
+                return;
+            }
+
+            // Fetch and parse from network
             var content = await _docsFetcher.FetchDocsAsync(cancellationToken).ConfigureAwait(false);
             if (content is null)
             {
@@ -150,6 +173,9 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
             // Pre-compute lowercase versions for faster searching
             _indexedDocuments = [.. documents.Select(static d => new IndexedDocument(d))];
+
+            // Cache the parsed documents for next time
+            await _docsCache.SetIndexAsync([.. documents], cancellationToken).ConfigureAwait(false);
 
             var elapsedTime = Stopwatch.GetElapsedTime(startTimestamp);
 

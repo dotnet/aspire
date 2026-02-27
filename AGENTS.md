@@ -161,6 +161,21 @@ dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.cspr
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
+### CRITICAL: Do NOT use VSTest-style `--filter` with `dotnet test`
+
+This repo uses **Microsoft.Testing.Platform (MTP)** as the test runner, not VSTest. The classic `--filter` argument (before `--`) uses VSTest filter syntax and **will hang or behave unexpectedly** with MTP.
+
+```bash
+# WRONG - VSTest-style filter, will hang with MTP
+dotnet test tests/Project.Tests/Project.Tests.csproj --filter "FullyQualifiedName~ClassName"
+
+# CORRECT - MTP-native filters go after the -- separator
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-class "*.ClassName"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "*.MethodName"
+```
+
+All test filtering must use MTP-native switches placed **after `--`**. See the filter switches listed below for the full set of options.
+
 ### CRITICAL: Excluding Quarantined and Outerloop Tests
 
 When running tests in automated environments (including Copilot agent), **always exclude quarantined and outerloop tests** to avoid false negatives and long-running tests:
@@ -206,11 +221,19 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`Aspire.slnx`**: Main solution file (XML-based solution format)
 
 ### Continuous Integration
+
+#### GitHub Actions (primary, runs on PRs)
 - **`tests.yml`**: Main test workflow running across Windows/Linux/macOS
 - **`tests-quarantine.yml`**: Runs quarantined tests separately every 6 hours
 - **`tests-outerloop.yml`**: Runs outerloop tests separately every 6 hours
 - **`ci.yml`**: Main CI workflow triggered on PRs and pushes to main/release branches
 - **Build validation**: Includes package generation, API compatibility checks, template validation
+
+#### Azure DevOps (secondary, does NOT run tests on PRs)
+- **`eng/pipelines/azure-pipelines-public.yml`**: Weekly scheduled pipeline (Monday midnight UTC) that builds and runs tests on Helix
+- **⚠️ AzDO tests are easily broken** because they don't run on PRs — only weekly or via manual trigger (`/azp run aspire-tests`)
+- Changes to test infrastructure (`eng/Testing.props`, `eng/Testing.targets`, `tests/Directory.Build.*`, `tests/helix/*`) should be validated by triggering a manual AzDO run
+- See [docs/ci/azdo-public-pipeline.md](docs/ci/azdo-public-pipeline.md) for full architecture details including Helix test categories, archive process, and test routing
 
 ### Dependencies and Hidden Requirements
 - **Local .NET SDK**: Automatically uses local SDK when available after running restore due to paths configuration in global.json
@@ -228,6 +251,8 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
     - Instead they are run in the `Quarantine` workflow (`tests-quarantine.yml`).
 - A github issue url is used with the attribute
+- To **reproduce or fix** a flaky/quarantined test, use the `fix-flaky-test` skill (`.github/skills/fix-flaky-test/SKILL.md`).
+- To **quarantine or unquarantine** a test, use the `test-management` skill (`.github/skills/test-management/SKILL.md`).
 
 Example: `[QuarantinedTest("..issue url..")]`
 
@@ -352,8 +377,12 @@ For most development tasks, following these instructions should be sufficient to
 The following specialized skills are available in `.github/skills/`:
 
 - **cli-e2e-testing**: Guide for writing Aspire CLI end-to-end tests using Hex1b terminal automation
+- **fix-flaky-test**: Reproduces and fixes flaky/quarantined tests using the CI reproduce workflow (`reproduce-flaky-tests.yml`). Use this when investigating, reproducing, or fixing a flaky or quarantined test.
+- **dashboard-testing**: Guide for writing tests for the Aspire Dashboard using xUnit and bUnit
 - **test-management**: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
 - **connection-properties**: Expert for creating and improving Connection Properties in Aspire resources
+- **dependency-update**: Guides dependency version updates by checking nuget.org, triggering the dotnet-migrate-package Azure DevOps pipeline, and monitoring runs
+- **startup-perf**: Measures Aspire application startup performance using dotnet-trace and the TraceAnalyzer tool
 
 ## Pattern-Based Instructions
 
@@ -365,4 +394,4 @@ Additional instructions are automatically applied when editing files matching sp
 | `src/Aspire.Hosting*/README.md` | `.github/instructions/hosting-readme.instructions.md` - Hosting integration READMEs |
 | `src/Components/**/README.md` | `.github/instructions/client-readme.instructions.md` - Client integration READMEs |
 | `tools/QuarantineTools/*` | `.github/instructions/quarantine.instructions.md` - QuarantineTools usage |
-| `tests/agent-scenarios/**/prompt.md` | `.github/instructions/test-scenario-prompt.instructions.md` - Test scenario prompts |
+| `tests/**/*.cs` | `.github/instructions/test-review-guidelines.instructions.md` - Flaky test patterns and test review guidelines |

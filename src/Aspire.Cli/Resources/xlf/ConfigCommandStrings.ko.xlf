@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">구성 설정을 관리합니다.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="translated">기능 플래그를 포함한 CLI 구성을 관리합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -180,6 +180,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">설정할 구성 값입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="translated">기능을 활성화하거나 비활성화하려면 'aspire config set features.&lt;name&gt; true|false' 명령을 사용합니다.</target>
         <note />
       </trans-unit>
     </body>

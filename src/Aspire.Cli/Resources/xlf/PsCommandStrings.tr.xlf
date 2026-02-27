@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../PsCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>List running Aspire apphosts.</source>
-        <target state="translated">Çalışan bir Aspire uygulama ana işlemlerini listeleyin.</target>
+        <source>List running apphosts.</source>
+        <target state="new">List running apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -28,18 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format.</source>
-        <target state="translated">Çıkışı JSON biçiminde oluşturun.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">Çalışan AppHost bulunamadı.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
+        <source>Output format (Table or Json).</source>
+        <target state="translated">Çıktı biçimi (Tablo veya Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

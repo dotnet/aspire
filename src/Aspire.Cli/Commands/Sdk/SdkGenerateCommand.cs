@@ -120,8 +120,15 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
         try
         {
-            var appHostServerProject = _appHostServerProjectFactory.Create(tempDir);
-            var socketPath = appHostServerProject.GetSocketPath();
+            // TODO: Support bundle mode by using DLL references instead of project references.
+            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
+            // using additionalProjectReferences. For now, SDK generation only works with .NET SDK.
+            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
+            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
+            {
+                InteractionService.DisplayError("SDK generation is only available with .NET SDK installed.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
 
             // Get code generation package for the target language
             var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(languageInfo.LanguageId, cancellationToken);
@@ -130,14 +137,13 @@ internal sealed class SdkGenerateCommand : BaseCommand
             var packages = new List<(string Name, string Version)>();
             if (codeGenPackage is not null)
             {
-                packages.Add((codeGenPackage, AppHostServerProject.DefaultSdkVersion));
+                packages.Add((codeGenPackage, DotNetBasedAppHostServerProject.DefaultSdkVersion));
             }
 
             _logger.LogDebug("Building AppHost server for SDK generation");
 
             // Create project files with the integration project reference
             await appHostServerProject.CreateProjectFilesAsync(
-                AppHostServerProject.DefaultSdkVersion,
                 packages,
                 cancellationToken,
                 additionalProjectReferences: [integrationProject.FullName]);
@@ -156,7 +162,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
 
             try
             {

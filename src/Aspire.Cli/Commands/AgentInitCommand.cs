@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
@@ -139,13 +140,34 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         }
 
         // Apply all selected applicators
+        var hasErrors = false;
         foreach (var applicator in selectedApplicators)
         {
-            await applicator.ApplyAsync(cancellationToken);
+            try
+            {
+                await applicator.ApplyAsync(cancellationToken);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _interactionService.DisplayError(ex.Message);
+                if (ex.InnerException is JsonException)
+                {
+                    _interactionService.DisplaySubtleMessage(
+                        string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, applicator.Description));
+                }
+                hasErrors = true;
+            }
         }
 
-        _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
+        if (hasErrors)
+        {
+            _interactionService.DisplayMessage("warning", AgentCommandStrings.ConfigurationCompletedWithErrors);
+        }
+        else
+        {
+            _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
+        }
 
-        return ExitCodeConstants.Success;
+        return hasErrors ? ExitCodeConstants.InvalidCommand : ExitCodeConstants.Success;
     }
 }

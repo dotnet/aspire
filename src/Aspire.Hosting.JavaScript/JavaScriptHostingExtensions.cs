@@ -874,7 +874,7 @@ public static class JavaScriptHostingExtensions
     }
 
     /// <summary>
-    /// Configures the Node.js resource to use pnmp as the package manager and optionally installs packages before the application starts.
+    /// Configures the Node.js resource to use pnpm as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>

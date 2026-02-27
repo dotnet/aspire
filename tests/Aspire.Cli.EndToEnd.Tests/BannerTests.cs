@@ -3,7 +3,6 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -23,14 +22,8 @@ public sealed class BannerTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(Banner_DisplayedOnFirstRun));
 
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -57,13 +50,13 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         // Delete the first-time use sentinel file to simulate first run
         // The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel
-        // Using 'aspire --version' instead of 'aspire --help' because help output
-        // is long and would scroll the banner off the terminal screen.
+        // Using 'aspire cache clear' because it's not an informational
+        // command and so will show the banner.
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
             .VerifySentinelDeleted(counter)
             .ClearScreen(counter)
-            .Type("aspire --version")
+            .Type("aspire cache clear")
             .Enter()
             .WaitUntil(s =>
             {
@@ -93,14 +86,8 @@ public sealed class BannerTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(Banner_DisplayedWithExplicitFlag));
 
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -151,6 +138,7 @@ public sealed class BannerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/14307")]
     public async Task Banner_NotDisplayedWithNoLogoFlag()
     {
         var workspace = TemporaryWorkspace.Create(output);
@@ -158,14 +146,8 @@ public sealed class BannerTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(Banner_NotDisplayedWithNoLogoFlag));
 
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 

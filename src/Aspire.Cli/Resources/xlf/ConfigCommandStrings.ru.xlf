@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">Управление параметрами конфигурации.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="translated">Управление конфигурацией CLI, включая флаги функций.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -180,6 +180,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">Значение конфигурации, которое следует задать.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="translated">Используйте команду "aspire config set features.&lt;name&gt; true|false", чтобы включить или отключить функцию.</target>
         <note />
       </trans-unit>
     </body>

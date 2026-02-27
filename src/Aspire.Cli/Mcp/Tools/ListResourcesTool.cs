@@ -15,11 +15,10 @@ namespace Aspire.Cli.Mcp.Tools;
 [JsonSerializable(typeof(ResourceJson[]))]
 [JsonSerializable(typeof(ResourceUrlJson))]
 [JsonSerializable(typeof(ResourceVolumeJson))]
-[JsonSerializable(typeof(ResourceEnvironmentVariableJson))]
-[JsonSerializable(typeof(ResourceHealthReportJson))]
-[JsonSerializable(typeof(ResourcePropertyJson))]
+[JsonSerializable(typeof(Dictionary<string, string?>))]
+[JsonSerializable(typeof(Dictionary<string, ResourceHealthReportJson>))]
 [JsonSerializable(typeof(ResourceRelationshipJson))]
-[JsonSerializable(typeof(ResourceCommandJson))]
+[JsonSerializable(typeof(Dictionary<string, ResourceCommandJson>))]
 [JsonSourceGenerationOptions(
     WriteIndented = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
@@ -55,12 +54,8 @@ internal sealed class ListResourcesTool(IAuxiliaryBackchannelMonitor auxiliaryBa
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates via backchannel
-        _ = mcpClient;
-        _ = arguments;
-
         var connection = await AppHostConnectionHelper.GetSelectedConnectionAsync(auxiliaryBackchannelMonitor, logger, cancellationToken).ConfigureAwait(false);
         if (connection is null)
         {

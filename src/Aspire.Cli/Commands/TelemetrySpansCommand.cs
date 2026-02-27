@@ -31,7 +31,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
-    private static readonly Option<FileInfo?> s_projectOption = TelemetryCommandHelpers.CreateProjectOption();
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
     private static readonly Option<bool> s_followOption = TelemetryCommandHelpers.CreateFollowOption();
     private static readonly Option<OutputFormat> s_formatOption = TelemetryCommandHelpers.CreateFormatOption();
     private static readonly Option<int?> s_limitOption = TelemetryCommandHelpers.CreateLimitOption();
@@ -55,7 +55,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_followOption);
         Options.Add(s_formatOption);
         Options.Add(s_limitOption);
@@ -68,7 +68,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var follow = parseResult.GetValue(s_followOption);
         var format = parseResult.GetValue(s_formatOption);
         var limit = parseResult.GetValue(s_limitOption);
@@ -83,7 +83,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         }
 
         var (success, baseUrl, apiToken, _, exitCode) = await TelemetryCommandHelpers.GetDashboardApiAsync(
-            _connectionResolver, _interactionService, passedAppHostProjectFile, format, cancellationToken);
+            _connectionResolver, _interactionService, passedAppHostProjectFile, cancellationToken);
 
         if (!success)
         {
@@ -107,11 +107,10 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         using var client = TelemetryCommandHelpers.CreateApiClient(_httpClientFactory, apiToken);
 
         // Resolve resource name to specific instances (handles replicas)
-        var resolvedResources = await TelemetryCommandHelpers.ResolveResourceNamesAsync(
-            client, baseUrl, resource, cancellationToken);
+        var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
 
-        // If a resource was specified but not found, show error
-        if (!string.IsNullOrEmpty(resource) && resolvedResources?.Count == 0)
+        // If a resource was specified but not found, return error
+        if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
         {
             _interactionService.DisplayError($"Resource '{resource}' not found.");
             return ExitCodeConstants.InvalidCommand;
@@ -173,7 +172,8 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
         if (format == OutputFormat.Json)
         {
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
@@ -202,7 +202,8 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         {
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayRawText(line);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(line, ConsoleOutput.Standard);
             }
             else
             {
@@ -265,6 +266,6 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         var durationStr = TelemetryCommandHelpers.FormatDuration(duration);
 
         var escapedName = name.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName,-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
+        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName.EscapeMarkup(),-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
     }
 }

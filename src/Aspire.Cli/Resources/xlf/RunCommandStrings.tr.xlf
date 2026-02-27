@@ -37,6 +37,11 @@
         <target state="translated">AppHost işlemi {0} koduyla sonlandırıldı.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="translated">AppHost derlenemedi.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost başarıyla başlatıldı.</target>
@@ -73,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">Geliştirme modunda bir Aspire uygulama ana işlemini çalıştırın.</target>
+        <source>Run an Aspire AppHost interactively for development.</source>
+        <target state="new">Run an Aspire AppHost interactively for development.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -113,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">Sonucu JSON olarak çıkar (yalnızca --detach ile geçerlidir).</target>
+        <source>Output format for detached AppHost results.</source>
+        <target state="new">Output format for detached AppHost results.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
@@ -130,6 +135,16 @@
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Günlükler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="translated">Çalıştırmadan önce projeyi derlemeyin veya geri yüklemeyin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="translated">İzleme modu etkin olduğunda --no-build seçeneği kullanılamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -148,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">Proje çalıştırılamadı. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="translated">Proje çalıştırılamadı. {0} adresinde günlüklere bakın</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

@@ -179,34 +179,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private static bool HasAspireServerConfigured(DirectoryInfo repoRoot)
     {
         var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
-
-        if (!File.Exists(configFilePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-            var config = JsonNode.Parse(content)?.AsObject();
-
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey(AspireServerName);
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume aspire is not configured
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcpServers", AspireServerName);
     }
 
     /// <summary>
@@ -215,32 +188,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private static bool HasPlaywrightServerConfigured(DirectoryInfo repoRoot)
     {
         var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
-        
-        if (!File.Exists(configFilePath))
-        {
-            return false;
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFilePath);
-            var config = JsonNode.Parse(content)?.AsObject();
-            if (config is null)
-            {
-                return false;
-            }
-
-            if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
-            {
-                return servers.ContainsKey("playwright");
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        return McpConfigFileHelper.HasServerConfigured(configFilePath, "mcpServers", "playwright");
     }
 
     /// <summary>
@@ -261,18 +209,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken);
 
         // Ensure "mcpServers" object exists
         if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)
@@ -302,18 +239,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
-        JsonObject config;
-
-        // Read existing config or create new
-        if (File.Exists(configFilePath))
-        {
-            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-        }
-        else
-        {
-            config = new JsonObject();
-        }
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken);
 
         // Ensure "mcpServers" object exists
         if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)

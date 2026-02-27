@@ -77,9 +77,6 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             }
         }, _cts.Token);
 
-        // Wait a brief moment for the server to start
-        await Task.Delay(100, _cts.Token);
-
         // Create and connect the MCP client using the test transport's client side
         _mcpClient = await _testTransport.CreateClientAsync(_loggerFactory, _cts.Token);
     }
@@ -168,8 +165,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             [
                 new ResourceSnapshot
                 {
-                    Name = "test-resource",
-                    DisplayName = "Test Resource",
+                    Name = "test-resource-abcd1234",
+                    DisplayName = "test-resource",
                     ResourceType = "Container",
                     State = "Running",
                     McpServer = new ResourceSnapshotMcpServer
@@ -205,8 +202,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         // Assert - Verify resource tools are included
         Assert.NotNull(tools);
 
-        // The resource tools should be exposed with a prefixed name: {resource_name}_{tool_name}
-        // Resource name "test-resource" becomes "test_resource" (dashes replaced with underscores)
+        // The resource tools should be exposed with a prefixed name using the DisplayName (app-model name):
+        // DisplayName "test-resource" becomes "test_resource" (dashes replaced with underscores)
         var resourceToolOne = tools.FirstOrDefault(t => t.Name == "test_resource_resource_tool_one");
         var resourceToolTwo = tools.FirstOrDefault(t => t.Name == "test_resource_resource_tool_two");
 
@@ -238,8 +235,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             [
                 new ResourceSnapshot
                 {
-                    Name = "my-resource",
-                    DisplayName = "My Resource",
+                    Name = "my-resource-abcd1234",
+                    DisplayName = "my-resource",
                     ResourceType = "Container",
                     State = "Running",
                     McpServer = new ResourceSnapshotMcpServer
@@ -295,6 +292,69 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task McpServer_CallTool_ResourceMcpTool_UsesDisplayNameForRouting()
+    {
+        // Arrange - Simulate resource snapshots that use a unique resource id and a logical display name.
+        var expectedToolResult = "List schemas completed";
+        string? callResourceName = null;
+        string? callToolName = null;
+
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            ResourceSnapshots =
+            [
+                new ResourceSnapshot
+                {
+                    Name = "db1-mcp-ypnvhwvw",
+                    DisplayName = "db1-mcp",
+                    ResourceType = "Container",
+                    State = "Running",
+                    McpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = "http://localhost:8080/mcp",
+                        Tools =
+                        [
+                            new Tool
+                            {
+                                Name = "list_schemas",
+                                Description = "Lists database schemas"
+                            }
+                        ]
+                    }
+                }
+            ],
+            CallResourceMcpToolHandler = (resourceName, toolName, arguments, ct) =>
+            {
+                callResourceName = resourceName;
+                callToolName = toolName;
+                return Task.FromResult(new CallToolResult
+                {
+                    Content = [new TextContentBlock { Text = expectedToolResult }]
+                });
+            }
+        };
+
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+        await _mcpClient.CallToolAsync(KnownMcpTools.RefreshTools, cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Act
+        var result = await _mcpClient.CallToolAsync("db1_mcp_list_schemas", cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
+        Assert.Equal("db1-mcp", callResourceName);
+        Assert.Equal("list_schemas", callToolName);
+    }
+
+    [Fact]
     public async Task McpServer_CallTool_ListAppHosts_ReturnsResult()
     {
         // Act
@@ -340,14 +400,160 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         var textContent = result.Content[0] as TextContentBlock;
         Assert.NotNull(textContent);
 
-        // Verify the exact text content with the correct tool count
-        var expectedToolCount = _agentMcpCommand.KnownTools.Count;
+        // Verify the text content indicates refresh success (resource tool count is 0 in this test, so total = known tools)
+        var expectedToolCount = KnownMcpTools.All.Count;
         Assert.Equal($"Tools refreshed: {expectedToolCount} tools available", textContent.Text);
 
         // Assert - Verify the ToolListChanged notification was received
         var notification = await notificationChannel.Reader.ReadAsync(_cts.Token).AsTask().DefaultTimeout();
         Assert.NotNull(notification);
         Assert.Equal(NotificationMethods.ToolListChangedNotification, notification.Method);
+    }
+
+    [Fact]
+    public async Task McpServer_ListTools_DoesNotSendToolsListChangedNotification()
+    {
+        // Arrange - Create a mock backchannel with a resource that has MCP tools
+        // This simulates the db-mcp scenario where resource tools become available
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            ResourceSnapshots =
+            [
+                new ResourceSnapshot
+                {
+                    Name = "db-mcp-abcd1234",
+                    DisplayName = "db-mcp",
+                    ResourceType = "Container",
+                    State = "Running",
+                    McpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = "http://localhost:8080/mcp",
+                        Tools =
+                        [
+                            new Tool
+                            {
+                                Name = "query_database",
+                                Description = "Query a database"
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        // Register the mock backchannel so resource tools will be discovered
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+
+        // Set up a channel to detect any tools/list_changed notifications
+        var notificationCount = 0;
+        await using var notificationHandler = _mcpClient.RegisterNotificationHandler(
+            NotificationMethods.ToolListChangedNotification,
+            (notification, cancellationToken) =>
+            {
+                Interlocked.Increment(ref notificationCount);
+                return default;
+            });
+
+        // Act - Call ListTools which should discover the resource tools via refresh
+        // but should NOT send a tools/list_changed notification (that would cause an infinite loop)
+        var tools = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert - tools should include the resource tool
+        Assert.NotNull(tools);
+        var dbMcpTool = tools.FirstOrDefault(t => t.Name == "db_mcp_query_database");
+        Assert.NotNull(dbMcpTool);
+
+        // Assert - no tools/list_changed notification should have been sent.
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        var notificationChannel = Channel.CreateUnbounded<JsonRpcNotification>();
+        await using var channelHandler = _mcpClient.RegisterNotificationHandler(
+            NotificationMethods.ToolListChangedNotification,
+            (notification, _) =>
+            {
+                notificationChannel.Writer.TryWrite(notification);
+                return default;
+            });
+
+        var received = false;
+        try
+        {
+            await notificationChannel.Reader.ReadAsync(timeoutCts.Token);
+            received = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — no notification arrived within the timeout
+        }
+
+        Assert.False(received, "tools/list_changed notification should not be sent during tools/list handling");
+        Assert.Equal(0, notificationCount);
+    }
+
+    [Fact]
+    public async Task McpServer_ListTools_CachesResourceToolMap_WhenConnectionUnchanged()
+    {
+        // Arrange - Create a mock backchannel and track how many times GetResourceSnapshotsAsync is called
+        var getResourceSnapshotsCallCount = 0;
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            GetResourceSnapshotsHandler = (ct) =>
+            {
+                Interlocked.Increment(ref getResourceSnapshotsCallCount);
+                return Task.FromResult(new List<ResourceSnapshot>
+                {
+                    new ResourceSnapshot
+                    {
+                        Name = "db-mcp-xyz",
+                        DisplayName = "db-mcp",
+                        ResourceType = "Container",
+                        State = "Running",
+                        McpServer = new ResourceSnapshotMcpServer
+                        {
+                            EndpointUrl = "http://localhost:8080/mcp",
+                            Tools =
+                            [
+                                new Tool
+                                {
+                                    Name = "query_db",
+                                    Description = "Query the database"
+                                }
+                            ]
+                        }
+                    }
+                });
+            }
+        };
+
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+
+        // Act - Call ListTools twice
+        var tools1 = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+        var tools2 = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert - Both calls return the resource tool
+        Assert.Contains(tools1, t => t.Name == "db_mcp_query_db");
+        Assert.Contains(tools2, t => t.Name == "db_mcp_query_db");
+
+        // The resource tool map should be cached after the first call,
+        // so GetResourceSnapshotsAsync should only be called once (during the first refresh).
+        // Before the fix, TryGetResourceToolMap always returned false due to
+        // SelectedAppHostPath vs SelectedConnection path mismatch, causing every
+        // ListTools call to trigger a full refresh.
+        Assert.Equal(1, getResourceSnapshotsCallCount);
     }
 
     [Fact]
