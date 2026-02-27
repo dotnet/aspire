@@ -42,6 +42,10 @@ runs:
       shell: bash
       run: ./restore.sh
 
+    - name: Build ExtractTestPartitions tool
+      shell: bash
+      run: dotnet build tools/ExtractTestPartitions/ExtractTestPartitions.csproj -c Release --nologo -v quiet
+
     - name: Generate canonical test matrix
       shell: bash
       run: >
