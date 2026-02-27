@@ -135,7 +135,8 @@ public static class MongoDBBuilderExtensions
                 name: healthCheckKey);
 
         return builder.ApplicationBuilder
-            .AddResource(mongoDBDatabase);
+            .AddResource(mongoDBDatabase)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
