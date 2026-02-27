@@ -76,7 +76,8 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
             return;
         }
 
-        var index = forceRefresh ? null : _cache.Get(source.CacheKey, s_defaultCacheTtl);
+        var isLocal = IsLocalPath(source.Repo);
+        var index = (forceRefresh || isLocal) ? null : _cache.Get(source.CacheKey, s_defaultCacheTtl);
 
         if (index is null)
         {
@@ -88,7 +89,10 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
                 return;
             }
 
-            _cache.Set(source.CacheKey, index);
+            if (!isLocal)
+            {
+                _cache.Set(source.CacheKey, index);
+            }
         }
 
         foreach (var entry in index.Templates)
@@ -114,11 +118,17 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
 
     private async Task<GitTemplateIndex?> FetchIndexAsync(GitTemplateSource source, CancellationToken cancellationToken)
     {
+        // Local path support — for template development and testing.
+        if (IsLocalPath(source.Repo))
+        {
+            return await FetchLocalIndexAsync(source.Repo, cancellationToken).ConfigureAwait(false);
+        }
+
         var rawUrl = BuildRawUrl(source.Repo, source.Ref ?? DefaultRef, IndexFileName);
 
         if (rawUrl is null)
         {
-            _logger.LogWarning("Cannot build raw URL for {Repo}. Only GitHub URLs are supported.", source.Repo);
+            _logger.LogWarning("Cannot build raw URL for {Repo}. Only GitHub URLs and local paths are supported.", source.Repo);
             return null;
         }
 
@@ -141,6 +151,35 @@ internal sealed class GitTemplateIndexService : IGitTemplateIndexService
             _logger.LogDebug(ex, "Failed to fetch index from {Url}.", rawUrl);
             return null;
         }
+    }
+
+    private async Task<GitTemplateIndex?> FetchLocalIndexAsync(string localPath, CancellationToken cancellationToken)
+    {
+        var indexPath = Path.Combine(localPath, IndexFileName);
+
+        if (!File.Exists(indexPath))
+        {
+            _logger.LogDebug("No index file at {Path}.", indexPath);
+            return null;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(indexPath, cancellationToken).ConfigureAwait(false);
+            return JsonSerializer.Deserialize(json, GitTemplateJsonContext.Default.GitTemplateIndex);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            _logger.LogDebug(ex, "Failed to read local index at {Path}.", indexPath);
+            return null;
+        }
+    }
+
+    private static bool IsLocalPath(string repo)
+    {
+        return repo.StartsWith('/') ||
+               repo.StartsWith('.') ||
+               (repo.Length >= 3 && repo[1] == ':' && (repo[2] == '/' || repo[2] == '\\'));
     }
 
     private async Task<List<GitTemplateSource>> GetSourcesAsync(CancellationToken cancellationToken)
