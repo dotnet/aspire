@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
+[Trait("Partition", "3")]
 public class ParameterProcessorTests
 {
     [Fact]
