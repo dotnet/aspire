@@ -14,7 +14,9 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -2914,17 +2916,44 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     /// <summary>
     /// Creates a PKCS#12 trust store containing the specified certificates (public keys only, no private keys).
-    /// The resulting trust store is compatible with Java's keytool and can be used as a javax.net.ssl.trustStore.
+    /// Each certificate entry includes the Oracle/Java trust anchor bag attribute
+    /// (OID <c>2.16.840.1.113894.746875.1.1</c>) so that Java's <c>KeyStore</c> recognizes entries as
+    /// <c>trustedCertEntry</c> instances. The resulting trust store is compatible with Java's keytool and
+    /// can be used as a <c>javax.net.ssl.trustStore</c>.
     /// </summary>
+    /// <remarks>
+    /// The trust anchor OID is defined in the OpenJDK source as <c>ORACLE_TrustedKeyUsage</c>:
+    /// <see href="https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/sun/security/util/KnownOIDs.java">KnownOIDs.java</see>.
+    /// </remarks>
     internal static byte[] CreatePkcs12TrustStore(X509Certificate2Collection certificates, string password)
     {
-        // Create a collection with only public certificates (strip any private keys) to produce a trust-only store.
-        var publicCerts = new X509Certificate2Collection();
-        foreach (var cert in certificates)
+        var builder = new Pkcs12Builder();
+        var safeContents = new Pkcs12SafeContents();
+
+        // The Oracle/Java trust anchor OID marks a CertBag as a trustedCertEntry in Java's KeyStore.
+        // The attribute value is an empty ASN.1 SEQUENCE (0x30, 0x00), matching the encoding produced
+        // by Java's keytool -importcert -trustcacerts.
+        var trustAnchorOid = new Oid("2.16.840.1.113894.746875.1.1");
+        var asnWriter = new AsnWriter(AsnEncodingRules.DER);
+        asnWriter.PushSequence();
+        asnWriter.PopSequence();
+        var trustAnchorValue = asnWriter.Encode();
+
+        for (var i = 0; i < certificates.Count; i++)
         {
-            publicCerts.Add(new X509Certificate2(cert.Export(X509ContentType.Cert)));
+            // Strip any private keys — trust stores contain only public certificates.
+            var publicCert = new X509Certificate2(certificates[i].Export(X509ContentType.Cert));
+            var certBag = safeContents.AddCertificate(publicCert);
+
+            certBag.Attributes.Add(
+                new CryptographicAttributeObject(
+                    trustAnchorOid,
+                    new AsnEncodedDataCollection(new AsnEncodedData(trustAnchorOid, trustAnchorValue))));
         }
 
-        return publicCerts.Export(X509ContentType.Pkcs12, password) ?? [];
+        builder.AddSafeContentsUnencrypted(safeContents);
+        builder.SealWithMac(password, HashAlgorithmName.SHA256, iterationCount: 2048);
+
+        return builder.Encode();
     }
 }

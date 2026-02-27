@@ -93,6 +93,7 @@
     <MicrosoftExtensionsPrimitivesPreviewVersion>10.0.2</MicrosoftExtensionsPrimitivesPreviewVersion>
     <MicrosoftExtensionsHttpPreviewVersion>10.0.2</MicrosoftExtensionsHttpPreviewVersion>
     <SystemFormatsAsn1PreviewVersion>10.0.2</SystemFormatsAsn1PreviewVersion>
+    <SystemSecurityCryptographyPkcsVersion>10.0.2</SystemSecurityCryptographyPkcsVersion>
     <SystemTextJsonPreviewVersion>10.0.2</SystemTextJsonPreviewVersion>
   </PropertyGroup>
   <!-- .NET 9.0 Package Versions -->

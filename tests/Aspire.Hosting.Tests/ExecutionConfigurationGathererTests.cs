@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Utils;
@@ -488,6 +489,41 @@ public class ExecutionConfigurationGathererTests
         var loaded = new X509Certificate2Collection();
         loaded.Import(pkcs12Bytes, password, X509KeyStorageFlags.DefaultKeySet);
         Assert.Equal(2, loaded.Count);
+    }
+
+    [Fact]
+    public void CreatePkcs12TrustStore_ContainsJavaTrustAnchorAttribute()
+    {
+        var cert1 = CreateTestCertificate();
+        var cert2 = CreateTestCertificate();
+        var certs = new X509Certificate2Collection { cert1, cert2 };
+        var password = "test-password";
+
+        var pkcs12Bytes = DcpExecutor.CreatePkcs12TrustStore(certs, password);
+
+        // Decode the raw PKCS#12 and verify each CertBag has the Oracle/Java trust anchor attribute
+        var info = Pkcs12Info.Decode(pkcs12Bytes, out _, skipCopy: true);
+        var trustAnchorOid = "2.16.840.1.113894.746875.1.1";
+        var bagsWithTrustAnchor = 0;
+
+        foreach (var safeContents in info.AuthenticatedSafe)
+        {
+            safeContents.Decrypt(password);
+
+            foreach (var bag in safeContents.GetBags())
+            {
+                foreach (CryptographicAttributeObject attr in bag.Attributes)
+                {
+                    if (attr.Oid.Value == trustAnchorOid)
+                    {
+                        bagsWithTrustAnchor++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(2, bagsWithTrustAnchor);
     }
 
     #endregion
