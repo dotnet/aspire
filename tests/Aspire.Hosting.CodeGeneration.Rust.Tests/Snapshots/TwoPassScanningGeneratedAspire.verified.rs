@@ -3678,17 +3678,6 @@ impl TestDatabaseResource {
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
 
-    /// Sets environment variables via async callback
-    pub fn with_environment_callback_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        let callback_id = register_callback(callback);
-        args.insert("callback".to_string(), Value::String(callback_id));
-        let result = self.client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
     /// Adds arguments
     pub fn with_args(&self, args: Vec<String>) -> Result<IResourceWithArgs, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -3706,17 +3695,6 @@ impl TestDatabaseResource {
         let callback_id = register_callback(callback);
         args.insert("callback".to_string(), Value::String(callback_id));
         let result = self.client.invoke_capability("Aspire.Hosting/withArgsCallback", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithArgs::new(handle, self.client.clone()))
-    }
-
-    /// Sets command-line arguments via async callback
-    pub fn with_args_callback_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResourceWithArgs, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        let callback_id = register_callback(callback);
-        args.insert("callback".to_string(), Value::String(callback_id));
-        let result = self.client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithArgs::new(handle, self.client.clone()))
     }
@@ -3863,17 +3841,6 @@ impl TestDatabaseResource {
         let callback_id = register_callback(callback);
         args.insert("callback".to_string(), Value::String(callback_id));
         let result = self.client.invoke_capability("Aspire.Hosting/withUrlsCallback", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Customizes displayed URLs via async callback
-    pub fn with_urls_callback_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        let callback_id = register_callback(callback);
-        args.insert("callback".to_string(), Value::String(callback_id));
-        let result = self.client.invoke_capability("Aspire.Hosting/withUrlsCallbackAsync", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }

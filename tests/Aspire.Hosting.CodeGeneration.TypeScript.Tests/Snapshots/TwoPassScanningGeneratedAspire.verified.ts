@@ -5095,26 +5095,6 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
-    private async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<TestDatabaseResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withEnvironmentCallbackAsync',
-            rpcArgs
-        );
-        return new TestDatabaseResource(result, this._client);
-    }
-
-    /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
-    }
-
-    /** @internal */
     private async _withArgsInternal(args: string[]): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
@@ -5147,26 +5127,6 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     /** Sets command-line arguments via callback */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._withArgsCallbackInternal(callback));
-    }
-
-    /** @internal */
-    private async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<TestDatabaseResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
-            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withArgsCallbackAsync',
-            rpcArgs
-        );
-        return new TestDatabaseResource(result, this._client);
-    }
-
-    /** Sets command-line arguments via async callback */
-    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._withArgsCallbackAsyncInternal(callback));
     }
 
     /** @internal */
@@ -5341,26 +5301,6 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     /** Customizes displayed URLs via callback */
     withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._withUrlsCallbackInternal(callback));
-    }
-
-    /** @internal */
-    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<TestDatabaseResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
-            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withUrlsCallbackAsync',
-            rpcArgs
-        );
-        return new TestDatabaseResource(result, this._client);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
     }
 
     /** @internal */
@@ -5911,11 +5851,6 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
     }
 
-    /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
-    }
-
     /** Adds arguments */
     withArgs(args: string[]): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withArgs(args)));
@@ -5924,11 +5859,6 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Sets command-line arguments via callback */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
-    }
-
-    /** Sets command-line arguments via async callback */
-    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
     /** Adds a reference to another resource */
@@ -5974,11 +5904,6 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Customizes displayed URLs via callback */
     withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
-    }
-
-    /** Customizes displayed URLs via async callback */
-    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
     }
 
     /** Adds or modifies displayed URLs */
