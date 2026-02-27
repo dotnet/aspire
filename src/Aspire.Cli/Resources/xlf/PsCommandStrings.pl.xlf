@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">Wyświetl listę uruchomionych hostów aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
