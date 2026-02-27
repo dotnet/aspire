@@ -33,6 +33,7 @@ internal static class WellKnownTypeData
         System_Collections_Generic_IList_1,
         System_Collections_Generic_IReadOnlyList_1,
         System_Collections_Generic_IReadOnlyCollection_1,
+        System_Collections_Generic_IEnumerable_1,
         System_Collections_Generic_IReadOnlyDictionary_2
     }
 
@@ -63,6 +64,7 @@ internal static class WellKnownTypeData
         "System.Collections.Generic.IList`1",
         "System.Collections.Generic.IReadOnlyList`1",
         "System.Collections.Generic.IReadOnlyCollection`1",
+        "System.Collections.Generic.IEnumerable`1",
         "System.Collections.Generic.IReadOnlyDictionary`2"
     ];
 }

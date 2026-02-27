@@ -13,6 +13,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -331,8 +332,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Signal that build/preparation is complete
             context.BuildCompletionSource?.TrySetResult(true);
 
-            // Read launchSettings.json if it exists, or create defaults
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
             foreach (var kvp in certEnvVars)
@@ -345,6 +346,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
+
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
 
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
@@ -483,6 +487,21 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
     }
 
+    private Dictionary<string, string> GetServerEnvironmentVariables(DirectoryInfo directory)
+    {
+        var envVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+        // Support ASPIRE_ENVIRONMENT from the launch profile to set both DOTNET_ENVIRONMENT and ASPNETCORE_ENVIRONMENT
+        envVars.TryGetValue("ASPIRE_ENVIRONMENT", out var environment);
+        environment ??= "Development";
+
+        // Set the environment for the AppHost server process
+        envVars["DOTNET_ENVIRONMENT"] = environment;
+        envVars["ASPNETCORE_ENVIRONMENT"] = environment;
+
+        return envVars;
+    }
+
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
         // For guest apphosts, look for apphost.run.json
@@ -596,8 +615,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Store output collector in context for exception handling
             context.OutputCollector = prepareOutput;
 
-            // Read launchSettings.json if it exists
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? [];
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -605,7 +624,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
+            // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
             var (jsonRpcSocketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
 
@@ -1143,5 +1165,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+    }
+
+    /// <summary>
+    /// Computes a deterministic synthetic UserSecretsId from the AppHost file path.
+    /// </summary>
+    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var id = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+        return Task.FromResult<string?>(id);
     }
 }

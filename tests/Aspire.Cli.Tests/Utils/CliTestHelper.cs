@@ -17,6 +17,7 @@ using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
+using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
@@ -200,6 +201,12 @@ internal static class CliTestHelper
         services.AddTransient<DocsListCommand>();
         services.AddTransient<DocsSearchCommand>();
         services.AddTransient<DocsGetCommand>();
+        services.AddTransient<SecretCommand>();
+        services.AddTransient<SecretSetCommand>();
+        services.AddTransient<SecretGetCommand>();
+        services.AddTransient<SecretListCommand>();
+        services.AddTransient<SecretDeleteCommand>();
+        services.AddTransient<SecretStoreResolver>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;

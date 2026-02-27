@@ -155,7 +155,7 @@ internal sealed class DescribeCommand : BaseCommand
         // Filter by resource name if specified
         if (resourceName is not null)
         {
-            snapshots = snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)).ToList();
+            snapshots = ResourceSnapshotMapper.ResolveResources(resourceName, snapshots).ToList();
         }
 
         // Check if resource was not found
@@ -200,9 +200,13 @@ internal sealed class DescribeCommand : BaseCommand
             allResources[snapshot.Name] = snapshot;
 
             // Filter by resource name if specified
-            if (resourceName is not null && !string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase))
+            if (resourceName is not null)
             {
-                continue;
+                var resolved = ResourceSnapshotMapper.ResolveResources(resourceName, allResources.Values.ToList());
+                if (!resolved.Any(r => string.Equals(r.Name, snapshot.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
             }
 
             var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources.Values.ToList(), dashboardBaseUrl);
@@ -238,11 +242,11 @@ internal sealed class DescribeCommand : BaseCommand
             .ToList();
 
         var table = new Table();
-        table.AddColumn("Name");
-        table.AddColumn("Type");
-        table.AddColumn("State");
-        table.AddColumn("Health");
-        table.AddColumn("Endpoints");
+        table.AddBoldColumn(DescribeCommandStrings.HeaderName);
+        table.AddBoldColumn(DescribeCommandStrings.HeaderType);
+        table.AddBoldColumn(DescribeCommandStrings.HeaderState);
+        table.AddBoldColumn(DescribeCommandStrings.HeaderHealth);
+        table.AddBoldColumn(DescribeCommandStrings.HeaderEndpoints);
 
         foreach (var (snapshot, displayName) in orderedItems)
         {
@@ -276,7 +280,7 @@ internal sealed class DescribeCommand : BaseCommand
             table.AddRow(displayName, type, stateText, healthText, endpoints);
         }
 
-        AnsiConsole.Write(table);
+        _interactionService.DisplayRenderable(table);
     }
 
     private void DisplayResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)
