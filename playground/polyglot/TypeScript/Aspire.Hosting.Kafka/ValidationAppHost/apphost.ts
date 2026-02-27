@@ -6,10 +6,10 @@ import { createBuilder } from './.modules/aspire.js';
 const builder = await createBuilder();
 
 // addKafka — factory method with optional port
-const kafka = builder.addKafka("broker");
+const kafka = await builder.addKafka("broker");
 
 // withKafkaUI — adds Kafka UI management container with callback
-const kafkaWithUi = kafka.withKafkaUI({
+const kafkaWithUi = await kafka.withKafkaUI({
     configureContainer: async (ui) => {
         // withHostPort — sets the host port for Kafka UI
         await ui.withHostPort({ port: 9000 });
@@ -18,10 +18,10 @@ const kafkaWithUi = kafka.withKafkaUI({
 });
 
 // withDataVolume — adds a data volume
-kafkaWithUi.withDataVolume();
+await kafkaWithUi.withDataVolume();
 
 // withDataBindMount — adds a data bind mount
-const kafka2 = builder.addKafka("broker2", { port: 19092 });
+const kafka2 = await builder.addKafka("broker2", { port: 19092 });
 await kafka2.withDataBindMount("/tmp/kafka-data");
 
 await builder.build().run();
