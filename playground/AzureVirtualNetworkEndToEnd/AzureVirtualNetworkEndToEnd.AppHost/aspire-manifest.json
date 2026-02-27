@@ -117,9 +117,9 @@
         "sql_outputs_id": "{sql.outputs.id}"
       }
     },
-    "sql-stor": {
+    "sql-store": {
       "type": "azure.bicep.v0",
-      "path": "sql-stor.module.bicep"
+      "path": "sql-store.module.bicep"
     },
     "sql-admin-identity": {
       "type": "azure.bicep.v0",
@@ -141,7 +141,7 @@
       "params": {
         "privatelink_file_core_windows_net_outputs_name": "{privatelink-file-core-windows-net.outputs.name}",
         "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
-        "sql_stor_outputs_id": "{sql-stor.outputs.id}"
+        "sql_store_outputs_id": "{sql-store.outputs.id}"
       }
     },
     "sql-nsg": {
@@ -215,7 +215,7 @@
         "sql_outputs_name": "{sql.outputs.name}",
         "sql_outputs_sqlserveradminname": "{sql.outputs.sqlServerAdminName}",
         "vnet_outputs_sql_aci_subnet_id": "{vnet.outputs.sql_aci_subnet_Id}",
-        "sql_stor_outputs_name": "{sql-stor.outputs.name}",
+        "sql_store_outputs_name": "{sql-store.outputs.name}",
         "principalId": "{api-identity.outputs.principalId}",
         "principalName": "{api-identity.outputs.principalName}"
       }
@@ -228,11 +228,11 @@
         "principalId": "{api-identity.outputs.principalId}"
       }
     },
-    "sql-admin-identity-roles-sql-stor": {
+    "sql-admin-identity-roles-sql-store": {
       "type": "azure.bicep.v0",
-      "path": "sql-admin-identity-roles-sql-stor.module.bicep",
+      "path": "sql-admin-identity-roles-sql-store.module.bicep",
       "params": {
-        "sql_stor_outputs_name": "{sql-stor.outputs.name}",
+        "sql_store_outputs_name": "{sql-store.outputs.name}",
         "principalId": "{sql-admin-identity.outputs.principalId}"
       }
     }

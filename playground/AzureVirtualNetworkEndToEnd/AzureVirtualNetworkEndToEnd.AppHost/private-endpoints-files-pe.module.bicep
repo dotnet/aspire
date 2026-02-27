@@ -5,7 +5,7 @@ param privatelink_file_core_windows_net_outputs_name string
 
 param vnet_outputs_private_endpoints_id string
 
-param sql_stor_outputs_id string
+param sql_store_outputs_id string
 
 resource privatelink_file_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   name: privatelink_file_core_windows_net_outputs_name
@@ -18,7 +18,7 @@ resource private_endpoints_files_pe 'Microsoft.Network/privateEndpoints@2025-05-
     privateLinkServiceConnections: [
       {
         properties: {
-          privateLinkServiceId: sql_stor_outputs_id
+          privateLinkServiceId: sql_store_outputs_id
           groupIds: [
             'file'
           ]
