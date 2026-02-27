@@ -44,7 +44,7 @@
   <!-- Enhanced test splitting with auto-detection -->
   <Target Name="GenerateTestPartitionsForCI"
           BeforeTargets="ZipTestArchive"
-          Condition=" '$(IsTestProject)' == 'true' and '$(SplitTestsOnCI)' == 'true' and ('$(GenerateCIPartitions)' == 'true' or ('$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true')) and '$(IsTestUtilityProject)' != 'true'">
+          Condition=" '$(IsTestProject)' == 'true' and '$(SplitTestsOnCI)' == 'true' and ('$(GenerateCIPartitions)' == 'true' or ('$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsGitHubActionsRunner)' != 'true')) and '$(IsTestUtilityProject)' != 'true'">
 
     <Error Condition="'$(TestClassNamePrefixForCI)' == ''"
            Text="%24(TestClassNamePrefixForCI) must be set when SplitTestsOnCI=true. Example: -p:TestClassNamePrefixForCI=Aspire.Hosting.Tests" />
