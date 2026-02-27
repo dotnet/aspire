@@ -10,6 +10,7 @@ internal sealed class AgentEnvironmentScanContext
 {
     private readonly List<AgentEnvironmentApplicator> _applicators = [];
     private readonly HashSet<string> _skillFileApplicatorPaths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _skillBaseDirectories = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the working directory being scanned.
@@ -62,4 +63,19 @@ internal sealed class AgentEnvironmentScanContext
     /// Gets the collection of detected applicators.
     /// </summary>
     public IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
+
+    /// <summary>
+    /// Registers a skill base directory for an agent environment (e.g., ".claude/skills", ".github/skills").
+    /// These directories are used to mirror skill files across all detected agent environments.
+    /// </summary>
+    /// <param name="relativeSkillBaseDir">The relative path to the skill base directory from the repository root.</param>
+    public void AddSkillBaseDirectory(string relativeSkillBaseDir)
+    {
+        _skillBaseDirectories.Add(relativeSkillBaseDir);
+    }
+
+    /// <summary>
+    /// Gets the registered skill base directories for all detected agent environments.
+    /// </summary>
+    public IReadOnlyCollection<string> SkillBaseDirectories => _skillBaseDirectories;
 }

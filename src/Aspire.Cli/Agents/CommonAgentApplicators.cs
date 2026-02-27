@@ -81,10 +81,15 @@ internal static class CommonAgentApplicators
     /// </summary>
     /// <param name="context">The scan context.</param>
     /// <param name="installer">The Playwright CLI installer that handles secure installation.</param>
+    /// <param name="skillBaseDirectory">The relative path to the skill base directory for this agent environment (e.g., ".claude/skills", ".github/skills").</param>
     public static void AddPlaywrightCliApplicator(
         AgentEnvironmentScanContext context,
-        PlaywrightCliInstaller installer)
+        PlaywrightCliInstaller installer,
+        string skillBaseDirectory)
     {
+        // Register the skill base directory so skill files can be mirrored to all environments
+        context.AddSkillBaseDirectory(skillBaseDirectory);
+
         // Only add the Playwright applicator prompt once across all environments
         if (context.PlaywrightApplicatorAdded)
         {
@@ -94,7 +99,7 @@ internal static class CommonAgentApplicators
         context.PlaywrightApplicatorAdded = true;
         context.AddApplicator(new AgentEnvironmentApplicator(
             "Install Playwright CLI for browser automation",
-            installer.InstallAsync,
+            ct => installer.InstallAsync(context, ct),
             promptGroup: McpInitPromptGroup.AdditionalOptions,
             priority: 1));
     }

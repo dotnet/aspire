@@ -18,6 +18,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string McpConfigFileName = ".mcp.json";
     private const string AspireServerName = "aspire";
     private static readonly string s_skillFilePath = Path.Combine(".claude", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private static readonly string s_skillBaseDirectory = Path.Combine(".claude", "skills");
     private const string SkillFileDescription = "Create Aspire skill file (.claude/skills/aspire/SKILL.md)";
 
     private readonly IClaudeCodeCliRunner _claudeCodeCliRunner;
@@ -74,7 +75,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
             }
 
             // Register Playwright CLI installation applicator
-            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller);
+            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
 
             // Try to add skill file applicator for Claude Code
             CommonAgentApplicators.TryAddSkillFileApplicator(
@@ -105,7 +106,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 }
 
                 // Register Playwright CLI installation applicator
-                CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller);
+                CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
 
                 // Try to add skill file applicator for Claude Code
                 CommonAgentApplicators.TryAddSkillFileApplicator(

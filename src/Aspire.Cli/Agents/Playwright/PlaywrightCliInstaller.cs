@@ -48,6 +48,16 @@ internal sealed class PlaywrightCliInstaller(
     internal const string ExpectedBuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1";
 
     /// <summary>
+    /// The name of the playwright-cli skill directory.
+    /// </summary>
+    internal const string PlaywrightCliSkillName = "playwright-cli";
+
+    /// <summary>
+    /// The primary skill base directory where playwright-cli installs skills.
+    /// </summary>
+    internal static readonly string s_primarySkillBaseDirectory = Path.Combine(".claude", "skills");
+
+    /// <summary>
     /// Configuration key that disables package validation when set to "true".
     /// This is a break-glass mechanism for debugging npm service issues and must never be the default.
     /// </summary>
@@ -62,16 +72,17 @@ internal sealed class PlaywrightCliInstaller(
     /// <summary>
     /// Installs the Playwright CLI with supply chain verification and generates skill files.
     /// </summary>
+    /// <param name="context">The agent environment scan context containing detected skill directories.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>True if installation succeeded or was skipped (already up-to-date), false on failure.</returns>
-    public async Task<bool> InstallAsync(CancellationToken cancellationToken)
+    public async Task<bool> InstallAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
             "Installing Playwright CLI...",
-            () => InstallCoreAsync(cancellationToken));
+            () => InstallCoreAsync(context, cancellationToken));
     }
 
-    private async Task<bool> InstallCoreAsync(CancellationToken cancellationToken)
+    private async Task<bool> InstallCoreAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         // Step 1: Resolve the target version and integrity hash from the npm registry.
         var versionOverride = configuration[VersionOverrideKey];
@@ -106,7 +117,12 @@ internal sealed class PlaywrightCliInstaller(
                     packageInfo.Version);
 
                 // Still install skills in case they're missing.
-                return await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
+                var skillsInstalled = await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
+                if (skillsInstalled)
+                {
+                    MirrorSkillFiles(context);
+                }
+                return skillsInstalled;
             }
 
             logger.LogDebug(
@@ -213,7 +229,12 @@ internal sealed class PlaywrightCliInstaller(
 
             // Step 8: Generate skill files.
             logger.LogDebug("Generating Playwright CLI skill files");
-            return await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
+            var skillsResult = await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
+            if (skillsResult)
+            {
+                MirrorSkillFiles(context);
+            }
+            return skillsResult;
         }
         finally
         {
@@ -228,6 +249,93 @@ internal sealed class PlaywrightCliInstaller(
             catch (IOException ex)
             {
                 logger.LogDebug(ex, "Failed to clean up temporary directory: {TempDir}", tempDir);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Mirrors the playwright-cli skill directory from the primary location to all other
+    /// detected agent environment skill directories so that every configured environment
+    /// has an identical copy of the skill files.
+    /// </summary>
+    private void MirrorSkillFiles(AgentEnvironmentScanContext context)
+    {
+        var repoRoot = context.RepositoryRoot.FullName;
+        var primarySkillDir = Path.Combine(repoRoot, s_primarySkillBaseDirectory, PlaywrightCliSkillName);
+
+        if (!Directory.Exists(primarySkillDir))
+        {
+            logger.LogDebug("Primary skill directory does not exist: {PrimarySkillDir}", primarySkillDir);
+            return;
+        }
+
+        foreach (var skillBaseDir in context.SkillBaseDirectories)
+        {
+            // Skip the primary directory — it's the source
+            if (string.Equals(skillBaseDir, s_primarySkillBaseDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var targetSkillDir = Path.Combine(repoRoot, skillBaseDir, PlaywrightCliSkillName);
+
+            try
+            {
+                SyncDirectory(primarySkillDir, targetSkillDir);
+                logger.LogDebug("Mirrored playwright-cli skills to {TargetDir}", targetSkillDir);
+            }
+            catch (IOException ex)
+            {
+                logger.LogWarning(ex, "Failed to mirror playwright-cli skills to {TargetDir}", targetSkillDir);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes the contents of the source directory to the target directory,
+    /// creating, updating, and removing files so the target matches the source exactly.
+    /// </summary>
+    internal static void SyncDirectory(string sourceDir, string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+
+        // Copy all files from source to target
+        foreach (var sourceFile in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDir, sourceFile);
+            var targetFile = Path.Combine(targetDir, relativePath);
+
+            var targetFileDir = Path.GetDirectoryName(targetFile);
+            if (!string.IsNullOrEmpty(targetFileDir))
+            {
+                Directory.CreateDirectory(targetFileDir);
+            }
+
+            File.Copy(sourceFile, targetFile, overwrite: true);
+        }
+
+        // Remove files in target that don't exist in source
+        if (Directory.Exists(targetDir))
+        {
+            foreach (var targetFile in Directory.GetFiles(targetDir, "*", SearchOption.AllDirectories))
+            {
+                var relativePath = Path.GetRelativePath(targetDir, targetFile);
+                var sourceFile = Path.Combine(sourceDir, relativePath);
+
+                if (!File.Exists(sourceFile))
+                {
+                    File.Delete(targetFile);
+                }
+            }
+
+            // Remove empty directories in target
+            foreach (var dir in Directory.GetDirectories(targetDir, "*", SearchOption.AllDirectories)
+                .OrderByDescending(d => d.Length))
+            {
+                if (Directory.Exists(dir) && Directory.GetFileSystemEntries(dir).Length == 0)
+                {
+                    Directory.Delete(dir);
+                }
             }
         }
     }
