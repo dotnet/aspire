@@ -74,7 +74,7 @@
       <_DiscoveryCommand>$(_DiscoveryCommand) -RunCommand &quot;$(RunCommand)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -TestClassNamePrefixForCI &quot;$(TestClassNamePrefixForCI)&quot;</_DiscoveryCommand>
       <_DiscoveryCommand>$(_DiscoveryCommand) -TestPartitionsJsonFile &quot;$(_TestPartitionsJsonAbsolutePath)&quot;</_DiscoveryCommand>
-      <_DiscoveryCommand>$(_DiscoveryCommand) -RepoRoot &quot;$(RepoRoot)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -RepoRoot &quot;$(RepoRoot.TrimEnd('\'))&quot;</_DiscoveryCommand>
     </PropertyGroup>
 
     <Exec Command="$(_DiscoveryCommand)"
