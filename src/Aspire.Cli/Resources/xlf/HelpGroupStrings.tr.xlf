@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="AppCommands">
         <source>App commands:</source>
-        <target state="new">App commands:</target>
+        <target state="translated">Uygulama komutları:</target>
         <note />
       </trans-unit>
       <trans-unit id="Deployment">
         <source>Deployment:</source>
-        <target state="new">Deployment:</target>
+        <target state="translated">Dağıtım:</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpHint">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="Monitoring">
         <source>Monitoring:</source>
-        <target state="new">Monitoring:</target>
+        <target state="translated">İzleme:</target>
         <note />
       </trans-unit>
       <trans-unit id="Options">
@@ -29,17 +29,17 @@
       </trans-unit>
       <trans-unit id="OtherCommands">
         <source>Other commands:</source>
-        <target state="new">Other commands:</target>
+        <target state="translated">Diğer komutlar:</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceManagement">
         <source>Resource management:</source>
-        <target state="new">Resource management:</target>
+        <target state="translated">Kaynak yönetimi:</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolsAndConfiguration">
         <source>Tools &amp; configuration:</source>
-        <target state="new">Tools &amp; configuration:</target>
+        <target state="translated">Araçlar ve yapılandırma:</target>
         <note />
       </trans-unit>
       <trans-unit id="Usage">
