@@ -5,11 +5,12 @@
 .DESCRIPTION
   Determines how to split a test project for parallel CI execution:
 
-  1. Attempts partition extraction using ExtractTestPartitions tool:
+  1. Extracts partitions using ExtractTestPartitions tool:
      - Scans assembly for [Trait("Partition", "name")] attributes
      - If partitions found → partition mode
+     - Fails if the tool cannot be built or run
 
-  2. Falls back to class-based splitting if no partitions:
+  2. Uses class-based splitting if no partitions are found:
      - Runs --list-tests to enumerate test classes
      - Creates one entry per test class
 
@@ -37,8 +38,9 @@
 
 .NOTES
   PowerShell 7+
+  Fails fast if ExtractTestPartitions cannot be built or run.
   Fails fast if zero test classes discovered when in class mode.
-  Optimized to only run --list-tests when partition extraction fails.
+  Only runs --list-tests when no partitions are found in the assembly.
 #>
 
 [CmdletBinding()]
@@ -70,7 +72,6 @@ $collections = [System.Collections.Generic.HashSet[string]]::new()
 $classes     = [System.Collections.Generic.HashSet[string]]::new()
 
 # Extract partitions using the ExtractTestPartitions tool
-# This step is optional - if it fails, we'll fall back to class-based splitting
 $partitionsFile = Join-Path ([System.IO.Path]::GetTempPath()) "partitions-$([System.Guid]::NewGuid()).txt"
 try {
   $toolPath = Join-Path $RepoRoot "artifacts/bin/ExtractTestPartitions/Release/net8.0/ExtractTestPartitions.dll"
@@ -81,40 +82,39 @@ try {
     $toolProjectPath = Join-Path $RepoRoot "tools/ExtractTestPartitions/ExtractTestPartitions.csproj"
     & dotnet build $toolProjectPath -c Release --nologo -v quiet
     if ($LASTEXITCODE -ne 0) {
-      Write-Host "Warning: Failed to build ExtractTestPartitions tool. Using class-based splitting."
+      Write-Error "Failed to build ExtractTestPartitions tool."
     }
   }
 
-  if (Test-Path $toolPath) {
-    Write-Host "Extracting partitions from assembly: $TestAssemblyPath"
-    $toolOutput = & dotnet $toolPath --assembly-path $TestAssemblyPath --output-file $partitionsFile 2>&1
-    $toolExitCode = $LASTEXITCODE
+  if (-not (Test-Path $toolPath)) {
+    Write-Error "ExtractTestPartitions tool not found at $toolPath after build."
+  }
 
-    # Display tool output (informational)
-    if ($toolOutput) {
-      $toolOutput | Write-Host
-    }
+  Write-Host "Extracting partitions from assembly: $TestAssemblyPath"
+  $toolOutput = & dotnet $toolPath --assembly-path $TestAssemblyPath --output-file $partitionsFile 2>&1
+  $toolExitCode = $LASTEXITCODE
 
-    # If partitions file was created, read it (even if exit code is non-zero)
-    if (Test-Path $partitionsFile) {
-      $partitionLines = Get-Content $partitionsFile -ErrorAction SilentlyContinue
-      if ($partitionLines) {
-        foreach ($partition in $partitionLines) {
-          if (-not [string]::IsNullOrWhiteSpace($partition)) {
-            $collections.Add($partition.Trim()) | Out-Null
-          }
+  # Display tool output (informational)
+  if ($toolOutput) {
+    $toolOutput | Write-Host
+  }
+
+  if ($toolExitCode -ne 0) {
+    Write-Error "ExtractTestPartitions failed with exit code $toolExitCode."
+  }
+
+  # Read partitions if the file was created
+  if (Test-Path $partitionsFile) {
+    $partitionLines = Get-Content $partitionsFile -ErrorAction SilentlyContinue
+    if ($partitionLines) {
+      foreach ($partition in $partitionLines) {
+        if (-not [string]::IsNullOrWhiteSpace($partition)) {
+          $collections.Add($partition.Trim()) | Out-Null
         }
-        Write-Host "Found $($collections.Count) partition(s) via attribute extraction"
       }
-    }
-    elseif ($toolExitCode -ne 0) {
-      Write-Host "Partition extraction completed with warnings. Falling back to class-based splitting."
+      Write-Host "Found $($collections.Count) partition(s) via attribute extraction"
     }
   }
-} catch {
-  # Partition extraction is optional - if it fails, we fall back to class-based splitting
-  Write-Host "Partition extraction encountered an issue. Falling back to class-based splitting."
-  Write-Host "Details: $_"
 }
 finally {
   # Clean up temp file
