@@ -129,8 +129,15 @@ internal sealed class GitTemplate : ITemplate
     private async Task<bool> FetchTemplateAsync(string targetDir, CancellationToken cancellationToken)
     {
         var repo = _resolved.EffectiveRepo;
-        var gitRef = _resolved.Source.Ref ?? "HEAD";
         var templatePath = _resolved.Entry.Path;
+
+        // For local sources, copy files directly instead of git clone.
+        if (IsLocalPath(repo))
+        {
+            return CopyLocalTemplate(repo, templatePath, targetDir);
+        }
+
+        var gitRef = _resolved.Source.Ref ?? "HEAD";
 
         // Use git clone with sparse checkout for the template path
         Directory.CreateDirectory(targetDir);
@@ -219,6 +226,58 @@ internal sealed class GitTemplate : ITemplate
             _logger.LogError(ex, "Failed to fetch template from {Repo}.", repo);
             return false;
         }
+    }
+
+    private bool CopyLocalTemplate(string repoPath, string templatePath, string targetDir)
+    {
+        try
+        {
+            // Resolve the template path relative to the repo (index) directory
+            var sourceDir = Path.GetFullPath(Path.Combine(repoPath, templatePath));
+
+            if (!Directory.Exists(sourceDir))
+            {
+                _logger.LogError("Local template directory not found: {Path}.", sourceDir);
+                return false;
+            }
+
+            CopyDirectoryRecursive(sourceDir, targetDir);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to copy local template from {Repo}/{Path}.", repoPath, templatePath);
+            return false;
+        }
+    }
+
+    private static void CopyDirectoryRecursive(string sourceDir, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            var destFile = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, destFile, overwrite: true);
+        }
+
+        foreach (var dir in Directory.GetDirectories(sourceDir))
+        {
+            var dirName = Path.GetFileName(dir);
+            if (string.Equals(dirName, ".git", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            CopyDirectoryRecursive(dir, Path.Combine(destDir, dirName));
+        }
+    }
+
+    private static bool IsLocalPath(string path)
+    {
+        return path.StartsWith('/') ||
+               path.StartsWith('.') ||
+               (path.Length >= 3 && path[1] == ':' && (path[2] == '/' || path[2] == '\\'));
     }
 
     private static async Task<int> RunGitAsync(string workingDir, string[] args, CancellationToken cancellationToken)
