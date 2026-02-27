@@ -156,6 +156,8 @@ public class NpmProvenanceCheckerTests
             "https://github.com/microsoft/playwright-cli",
             ".github/workflows/publish.yml",
             "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            refInfo => string.Equals(refInfo.Kind, "tags", StringComparison.Ordinal) &&
+                       string.Equals(refInfo.Name, "v0.1.1", StringComparison.Ordinal),
             CancellationToken.None);
 
         Assert.Equal(ProvenanceVerificationOutcome.WorkflowRefMismatch, result.Outcome);
@@ -179,6 +181,31 @@ public class NpmProvenanceCheckerTests
             "https://github.com/microsoft/playwright-cli",
             ".github/workflows/publish.yml",
             "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            refInfo => string.Equals(refInfo.Kind, "tags", StringComparison.Ordinal) &&
+                       string.Equals(refInfo.Name, "v0.1.1", StringComparison.Ordinal),
+            CancellationToken.None);
+
+        Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Outcome);
+    }
+
+    [Fact]
+    public async Task VerifyProvenanceAsync_WithNullCallback_SkipsRefValidation()
+    {
+        var json = BuildAttestationJson(
+            "https://github.com/microsoft/playwright-cli",
+            workflowRef: "refs/tags/any-format-at-all");
+
+        var handler = new TestHttpMessageHandler(json);
+        var httpClient = new HttpClient(handler);
+        var checker = new NpmProvenanceChecker(httpClient, Microsoft.Extensions.Logging.Abstractions.NullLogger<NpmProvenanceChecker>.Instance);
+
+        var result = await checker.VerifyProvenanceAsync(
+            "@playwright/cli",
+            "0.1.1",
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            validateWorkflowRef: null,
             CancellationToken.None);
 
         Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Outcome);
@@ -247,5 +274,35 @@ public class NpmProvenanceCheckerTests
                 Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
             });
         }
+    }
+
+    [Theory]
+    [InlineData("refs/tags/v0.1.1", "tags", "v0.1.1")]
+    [InlineData("refs/heads/main", "heads", "main")]
+    [InlineData("refs/tags/@scope/pkg@1.0.0", "tags", "@scope/pkg@1.0.0")]
+    [InlineData("refs/tags/release/1.0.0", "tags", "release/1.0.0")]
+    public void WorkflowRefInfo_TryParse_ValidRefs_ParsesCorrectly(string raw, string expectedKind, string expectedName)
+    {
+        var success = WorkflowRefInfo.TryParse(raw, out var refInfo);
+
+        Assert.True(success);
+        Assert.NotNull(refInfo);
+        Assert.Equal(raw, refInfo.Raw);
+        Assert.Equal(expectedKind, refInfo.Kind);
+        Assert.Equal(expectedName, refInfo.Name);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-a-ref")]
+    [InlineData("refs/")]
+    [InlineData("refs/tags/")]
+    public void WorkflowRefInfo_TryParse_InvalidRefs_ReturnsFalse(string? raw)
+    {
+        var success = WorkflowRefInfo.TryParse(raw, out var refInfo);
+
+        Assert.False(success);
+        Assert.Null(refInfo);
     }
 }

@@ -56,7 +56,7 @@ internal enum ProvenanceVerificationOutcome
     BuildTypeMismatch,
 
     /// <summary>
-    /// The workflow ref (git tag) does not match the expected version tag (e.g., <c>refs/tags/v{version}</c>),
+    /// The workflow ref did not pass the caller-provided validation callback,
     /// indicating the build was not triggered from the expected release tag.
     /// </summary>
     WorkflowRefMismatch
@@ -118,6 +118,53 @@ internal sealed class ProvenanceVerificationResult
 }
 
 /// <summary>
+/// Represents a parsed workflow ref from an SLSA provenance attestation.
+/// A workflow ref like <c>refs/tags/v0.1.1</c> is decomposed into its kind (e.g., "tags")
+/// and name (e.g., "v0.1.1") to enable structured validation by callers.
+/// </summary>
+/// <param name="Raw">The original unmodified ref string (e.g., <c>refs/tags/v0.1.1</c>).</param>
+/// <param name="Kind">The ref kind (e.g., "tags", "heads"). Extracted from the second segment of the ref path.</param>
+/// <param name="Name">The ref name after the kind prefix (e.g., "v0.1.1", "main").</param>
+internal sealed record WorkflowRefInfo(string Raw, string Kind, string Name)
+{
+    /// <summary>
+    /// Attempts to parse a git ref string into its structured components.
+    /// Expected format: <c>refs/{kind}/{name}</c> (e.g., <c>refs/tags/v0.1.1</c>).
+    /// </summary>
+    /// <param name="refString">The raw ref string to parse.</param>
+    /// <param name="refInfo">The parsed <see cref="WorkflowRefInfo"/> if successful.</param>
+    /// <returns><c>true</c> if the ref was successfully parsed; <c>false</c> otherwise.</returns>
+    public static bool TryParse(string? refString, out WorkflowRefInfo? refInfo)
+    {
+        refInfo = null;
+
+        if (string.IsNullOrEmpty(refString))
+        {
+            return false;
+        }
+
+        // Expected format: refs/{kind}/{name...}
+        // The name can contain slashes (e.g., refs/tags/@scope/pkg@1.0.0)
+        if (!refString.StartsWith("refs/", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var afterRefs = refString["refs/".Length..];
+        var slashIndex = afterRefs.IndexOf('/');
+        if (slashIndex <= 0 || slashIndex == afterRefs.Length - 1)
+        {
+            return false;
+        }
+
+        var kind = afterRefs[..slashIndex];
+        var name = afterRefs[(slashIndex + 1)..];
+        refInfo = new WorkflowRefInfo(refString, kind, name);
+        return true;
+    }
+}
+
+/// <summary>
 /// Verifies npm package provenance by checking SLSA attestations from the npm registry.
 /// </summary>
 internal interface INpmProvenanceChecker
@@ -131,7 +178,12 @@ internal interface INpmProvenanceChecker
     /// <param name="expectedSourceRepository">The expected source repository URL (e.g., "https://github.com/microsoft/playwright-cli").</param>
     /// <param name="expectedWorkflowPath">The expected workflow file path (e.g., ".github/workflows/publish.yml").</param>
     /// <param name="expectedBuildType">The expected SLSA build type URI identifying the CI system.</param>
+    /// <param name="validateWorkflowRef">
+    /// An optional callback that validates the parsed workflow ref. The callback receives a <see cref="WorkflowRefInfo"/>
+    /// with the ref decomposed into its kind and name. If <c>null</c>, the workflow ref gate is skipped.
+    /// If the callback returns <c>false</c>, verification fails with <see cref="ProvenanceVerificationOutcome.WorkflowRefMismatch"/>.
+    /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A <see cref="ProvenanceVerificationResult"/> indicating the outcome and any extracted provenance data.</returns>
-    Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, CancellationToken cancellationToken);
+    Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken);
 }

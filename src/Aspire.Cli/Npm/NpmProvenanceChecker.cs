@@ -16,7 +16,7 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
     internal const string SlsaProvenancePredicateType = "https://slsa.dev/provenance/v1";
 
     /// <inheritdoc />
-    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, CancellationToken cancellationToken)
+    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken)
     {
         // Gate 1: Fetch attestations from the npm registry.
         string json;
@@ -115,20 +115,36 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
             };
         }
 
-        // Gate 6: Verify the workflow ref corresponds to a version tag matching the package version.
-        var expectedRef = $"refs/tags/v{version}";
-        if (!string.Equals(provenance.WorkflowRef, expectedRef, StringComparison.Ordinal))
+        // Gate 6: Verify the workflow ref using the caller-provided validation callback.
+        // Different packages use different tag formats (e.g., "v0.1.1", "0.1.1", "@scope/pkg@0.1.1"),
+        // so the caller decides what constitutes a valid ref.
+        if (validateWorkflowRef is not null)
         {
-            logger.LogWarning(
-                "Provenance verification failed: expected workflow ref {Expected} but attestation says {Actual}",
-                expectedRef,
-                provenance.WorkflowRef);
-
-            return new ProvenanceVerificationResult
+            if (!WorkflowRefInfo.TryParse(provenance.WorkflowRef, out var refInfo) || refInfo is null)
             {
-                Outcome = ProvenanceVerificationOutcome.WorkflowRefMismatch,
-                Provenance = provenance
-            };
+                logger.LogWarning(
+                    "Provenance verification failed: could not parse workflow ref {WorkflowRef}",
+                    provenance.WorkflowRef);
+
+                return new ProvenanceVerificationResult
+                {
+                    Outcome = ProvenanceVerificationOutcome.WorkflowRefMismatch,
+                    Provenance = provenance
+                };
+            }
+
+            if (!validateWorkflowRef(refInfo))
+            {
+                logger.LogWarning(
+                    "Provenance verification failed: workflow ref {WorkflowRef} did not pass validation",
+                    provenance.WorkflowRef);
+
+                return new ProvenanceVerificationResult
+                {
+                    Outcome = ProvenanceVerificationOutcome.WorkflowRefMismatch,
+                    Provenance = provenance
+                };
+            }
         }
 
         return new ProvenanceVerificationResult

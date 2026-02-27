@@ -167,6 +167,8 @@ internal sealed class PlaywrightCliInstaller(
                 ExpectedSourceRepository,
                 ExpectedWorkflowPath,
                 ExpectedBuildType,
+                refInfo => string.Equals(refInfo.Kind, "tags", StringComparison.Ordinal) &&
+                           string.Equals(refInfo.Name, $"v{packageInfo.Version}", StringComparison.Ordinal),
                 cancellationToken);
 
             if (!provenanceResult.IsVerified)
