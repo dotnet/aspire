@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Templating.Git;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands.Template;
@@ -28,10 +30,63 @@ internal sealed class TemplateNewIndexCommand : BaseTemplateSubCommand
         Arguments.Add(s_pathArgument);
     }
 
-    protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var path = parseResult.GetValue(s_pathArgument);
-        InteractionService.DisplayMessage("information", $"Template index scaffolding is not yet implemented.{(path is not null ? $" Path: {path}" : "")}");
-        return Task.FromResult(ExitCodeConstants.Success);
+        var targetDir = parseResult.GetValue(s_pathArgument) ?? Directory.GetCurrentDirectory();
+        targetDir = Path.GetFullPath(targetDir);
+
+        var outputPath = Path.Combine(targetDir, "aspire-template-index.json");
+
+        if (File.Exists(outputPath))
+        {
+            var overwrite = await InteractionService.ConfirmAsync(
+                $"aspire-template-index.json already exists in {targetDir}. Overwrite?",
+                defaultValue: false,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (!overwrite)
+            {
+                InteractionService.DisplayMessage("information", "Cancelled.");
+                return ExitCodeConstants.Success;
+            }
+        }
+
+        var publisherName = await InteractionService.PromptForStringAsync(
+            "Publisher name",
+            required: true,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var publisherUrl = await InteractionService.PromptForStringAsync(
+            "Publisher URL (optional)",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var index = new GitTemplateIndex
+        {
+            Schema = "https://aka.ms/aspire/template-index-schema/v1",
+            Publisher = new GitTemplateIndexPublisher
+            {
+                Name = publisherName,
+                Url = string.IsNullOrWhiteSpace(publisherUrl) ? null : publisherUrl
+            },
+            Templates =
+            [
+                new GitTemplateIndexEntry
+                {
+                    Name = "my-template",
+                    DisplayName = "My Template",
+                    Description = "A template created with aspire template new-index.",
+                    Path = "templates/my-template"
+                }
+            ]
+        };
+
+        Directory.CreateDirectory(targetDir);
+
+        var json = JsonSerializer.Serialize(index, GitTemplateJsonContext.RelaxedEscaping.GitTemplateIndex);
+        await File.WriteAllTextAsync(outputPath, json, cancellationToken).ConfigureAwait(false);
+
+        InteractionService.DisplaySuccess($"Created {outputPath}");
+        InteractionService.DisplayMessage("information", "Edit the file to add your templates, then run 'aspire template new' in each template directory.");
+        return ExitCodeConstants.Success;
     }
 }
