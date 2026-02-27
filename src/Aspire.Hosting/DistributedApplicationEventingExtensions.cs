@@ -25,18 +25,6 @@ public static class DistributedApplicationEventingExtensions
         => builder.OnApplicationEvent(callback);
 
     /// <summary>
-    /// Subscribes a callback to the <see cref="AfterResourcesCreatedEvent"/> event within the AppHost.
-    /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    /// <remarks>If you need to ensure you only subscribe to the event once, see <see cref="Lifecycle.IDistributedApplicationEventingSubscriber"/>.</remarks>
-    [AspireExport("onAfterResourcesCreated", Description = "Subscribes a callback to the AfterResourcesCreatedEvent event within the AppHost.")]
-    public static T OnAfterResourcesCreated<T>(this T builder, Func<AfterResourcesCreatedEvent, CancellationToken, Task> callback)
-        where T : IDistributedApplicationBuilder
-        => builder.OnApplicationEvent(callback);
-
-    /// <summary>
     /// Subscribes a callback to the <see cref="BeforePublishEvent"/> event within the AppHost.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
