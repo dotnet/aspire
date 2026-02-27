@@ -4,6 +4,6 @@
   "channel": "staging",
   "sdkVersion": "13.2.0-preview.1.26126.10",
   "packages": {
-    "Aspire.Hosting.RabbitMQ": ""
+    "Aspire.Hosting.SqlServer": ""
   }
 }
