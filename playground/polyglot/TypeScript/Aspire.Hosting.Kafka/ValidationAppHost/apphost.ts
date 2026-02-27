@@ -22,6 +22,6 @@ kafkaWithUi.withDataVolume();
 
 // withDataBindMount — adds a data bind mount
 const kafka2 = builder.addKafka("broker2", { port: 19092 });
-kafka2.withDataBindMount("/tmp/kafka-data");
+await kafka2.withDataBindMount("/tmp/kafka-data");
 
 await builder.build().run();
