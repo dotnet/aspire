@@ -53,12 +53,23 @@ on:
         required: false
         type: boolean
         default: false
+      # When true, the test project is built from source in the extracted archive
+      # (e.g., Playground tests that need to build playground projects from source)
+      buildOnTarget:
+        required: false
+        type: boolean
+        default: false
+      # Job-level timeout in minutes (default: 60)
+      jobTimeout:
+        required: false
+        type: number
+        default: 60
 
 jobs:
 
   test:
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ inputs.jobTimeout }}
     name: ${{ inputs.testShortName }} (${{ inputs.os }})
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
@@ -240,7 +251,7 @@ jobs:
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
-        if: inputs.testShortName == 'Playground'
+        if: inputs.testShortName == 'Playground' && !inputs.buildOnTarget
         run: |
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
 
@@ -285,8 +296,59 @@ jobs:
         if: runner.os == 'macOS'
         uses: ./.github/actions/unlock-macos-keychain
 
+      - name: Build test from source (Linux/macOS)
+        if: ${{ inputs.buildOnTarget && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
+        working-directory: ${{ env.TEST_RUN_PATH }}/tests/${{ env.TEST_ASSEMBLY_NAME }}/
+        env:
+          TestsRunningOutsideOfRepo: true
+          SkipDashboardProjectReference: true
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          DOCKER_BUILDKIT: 1
+        run: |
+          dotnet build -bl:${{ github.workspace }}/testresults/build.binlog /p:TreatWarningsAsErrors=true
+
+      - name: Run build-on-target tests (Linux/macOS)
+        if: ${{ inputs.buildOnTarget && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
+        working-directory: ${{ env.TEST_RUN_PATH }}/tests/${{ env.TEST_ASSEMBLY_NAME }}/
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+          SkipDashboardProjectReference: true
+          DOCKER_BUILDKIT: 1
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+        run: |
+          # Start heartbeat monitor in background
+          ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
+          HEARTBEAT_PID=$!
+
+          # Run tests with a hard process timeout to prevent hanging tests from
+          # consuming the entire job timeout. Uses SIGTERM first, then SIGKILL.
+          timeout --signal=TERM --kill-after=30s ${{ inputs.testSessionTimeout }} \
+          dotnet test --no-build -- \
+            --ignore-exit-code 8 \
+            --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
+            --crashdump \
+            --hangdump \
+            --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump \
+            --hangdump-timeout ${{ inputs.testHangTimeout }} \
+            --results-directory ${{ github.workspace }}/testresults \
+            --filter-not-trait "category=failing" \
+            ${{ inputs.extraTestArgs }} \
+            ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+          TEST_EXIT_CODE=$?
+
+          # Stop heartbeat monitor
+          kill $HEARTBEAT_PID 2>/dev/null || true
+          wait $HEARTBEAT_PID 2>/dev/null || true
+
+          exit $TEST_EXIT_CODE
+
       - name: Run nuget dependent tests (Linux/macOS)
-        if: ${{ inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
+        if: ${{ inputs.requiresNugets && !inputs.buildOnTarget && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
@@ -323,7 +385,7 @@ jobs:
           exit $TEST_EXIT_CODE
 
       - name: Run nuget dependent tests (Windows)
-        if: ${{ inputs.requiresNugets && inputs.os == 'windows-latest' }}
+        if: ${{ inputs.requiresNugets && !inputs.buildOnTarget && inputs.os == 'windows-latest' }}
         working-directory: ${{ github.workspace }}/run-tests/
         shell: pwsh
         env:
