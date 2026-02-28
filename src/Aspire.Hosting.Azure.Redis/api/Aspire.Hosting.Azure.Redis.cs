@@ -43,15 +43,19 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureManagedRedisResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureManagedRedisResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IAzurePrivateEndpointTarget
     {
         public AzureManagedRedisResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
 
+        BicepOutputReference IAzurePrivateEndpointTarget.Id { get { throw null; } }
+
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
@@ -70,6 +74,10 @@ namespace Aspire.Hosting.Azure
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzureManagedRedis instead which provisions Azure Managed Redis.")]

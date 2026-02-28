@@ -45,6 +45,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, ConsumerGroup = {ConsumerGroupName}")]
     public partial class AzureEventHubConsumerGroupResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureEventHubResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureEventHubConsumerGroupResource(string name, string consumerGroupName, AzureEventHubResource parent) : base(default!) { }
@@ -60,6 +61,7 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
     public partial class AzureEventHubResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureEventHubsResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent) : base(default!) { }
@@ -86,15 +88,19 @@ namespace Aspire.Hosting.Azure
         public override string Name { get { throw null; } }
     }
 
-    public partial class AzureEventHubsResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
+    public partial class AzureEventHubsResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints, IResourceWithAzureFunctionsConfig, IAzurePrivateEndpointTarget
     {
         public AzureEventHubsResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        BicepOutputReference IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference EventHubsEndpoint { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
@@ -107,6 +113,10 @@ namespace Aspire.Hosting.Azure
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

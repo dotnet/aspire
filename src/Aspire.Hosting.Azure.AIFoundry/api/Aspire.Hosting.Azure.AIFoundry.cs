@@ -46,13 +46,16 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel ClaudeHaiku45;
             public static readonly AIFoundryModel ClaudeOpus41;
             public static readonly AIFoundryModel ClaudeOpus45;
+            public static readonly AIFoundryModel ClaudeOpus46;
             public static readonly AIFoundryModel ClaudeSonnet45;
+            public static readonly AIFoundryModel ClaudeSonnet46;
         }
 
         public static partial class BlackForestLabs
         {
             public static readonly AIFoundryModel Flux11Pro;
             public static readonly AIFoundryModel Flux1KontextPro;
+            public static readonly AIFoundryModel Flux2Pro;
         }
 
         public static partial class Cohere
@@ -71,6 +74,8 @@ namespace Aspire.Hosting.Azure
 
         public static partial class Core42
         {
+            [System.Obsolete("This model is no longer available.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel Jais30bChat;
         }
 
@@ -81,6 +86,8 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel DeepSeekV3;
             public static readonly AIFoundryModel DeepSeekV30324;
             public static readonly AIFoundryModel DeepSeekV31;
+            public static readonly AIFoundryModel DeepSeekV32;
+            public static readonly AIFoundryModel DeepSeekV32Speciale;
         }
 
         public static partial class Local
@@ -107,6 +114,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Qwen25Coder14b;
             public static readonly AIFoundryModel Qwen25Coder15b;
             public static readonly AIFoundryModel Qwen25Coder7b;
+            public static readonly AIFoundryModel Qwen306b;
         }
 
         public static partial class Meta
@@ -135,6 +143,8 @@ namespace Aspire.Hosting.Azure
             [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel AzureAITranslator;
             public static readonly AIFoundryModel AzureAIVision;
+            public static readonly AIFoundryModel AzureContentUnderstandingLayout;
+            public static readonly AIFoundryModel AzureContentUnderstandingRead;
             public static readonly AIFoundryModel AzureLanguageLanguageDetection;
             public static readonly AIFoundryModel AzureLanguageTextPiiRedaction;
             public static readonly AIFoundryModel AzureSpeechSpeechToText;
@@ -172,6 +182,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Codestral2501;
             public static readonly AIFoundryModel Ministral3B;
             public static readonly AIFoundryModel MistralDocumentAi2505;
+            public static readonly AIFoundryModel MistralDocumentAi2512;
             public static readonly AIFoundryModel MistralLarge2407;
             public static readonly AIFoundryModel MistralLarge2411;
             public static readonly AIFoundryModel MistralLarge3;
@@ -214,6 +225,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Gpt51CodexMini;
             public static readonly AIFoundryModel Gpt52;
             public static readonly AIFoundryModel Gpt52Chat;
+            public static readonly AIFoundryModel Gpt52Codex;
             public static readonly AIFoundryModel Gpt5Chat;
             public static readonly AIFoundryModel Gpt5Codex;
             public static readonly AIFoundryModel Gpt5Mini;
@@ -222,6 +234,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel GptAudio;
             public static readonly AIFoundryModel GptAudioMini;
             public static readonly AIFoundryModel GptImage1;
+            public static readonly AIFoundryModel GptImage15;
             public static readonly AIFoundryModel GptImage1Mini;
             public static readonly AIFoundryModel GptOss120b;
             public static readonly AIFoundryModel GptOss20b;

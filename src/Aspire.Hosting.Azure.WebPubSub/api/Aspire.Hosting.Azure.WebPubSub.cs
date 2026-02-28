@@ -27,6 +27,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
     public partial class AzureWebPubSubHubResource : Resource, IResourceWithParent<AzureWebPubSubResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : base(default!) { }
@@ -40,13 +41,17 @@ namespace Aspire.Hosting.ApplicationModel
         public AzureWebPubSubResource Parent { get { throw null; } }
     }
 
-    public partial class AzureWebPubSubResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
+    public partial class AzureWebPubSubResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, Azure.IAzurePrivateEndpointTarget
     {
         public AzureWebPubSubResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        Azure.BicepOutputReference Azure.IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference Endpoint { get { throw null; } }
+
+        public Azure.BicepOutputReference Id { get { throw null; } }
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
@@ -55,5 +60,9 @@ namespace Aspire.Hosting.ApplicationModel
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string Azure.IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> Azure.IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }

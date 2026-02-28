@@ -361,6 +361,14 @@ namespace Aspire.Hosting.Azure
         public System.Collections.Generic.IReadOnlySet<RoleDefinition> Roles { get { throw null; } }
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public sealed partial class DelegatedSubnetAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public DelegatedSubnetAnnotation(ApplicationModel.ReferenceExpression subnetId) { }
+
+        public ApplicationModel.ReferenceExpression SubnetId { get { throw null; } }
+    }
+
     public sealed partial class ExistingAzureResourceAnnotation : ApplicationModel.IResourceAnnotation
     {
         public ExistingAzureResourceAnnotation(object name, object? resourceGroup = null) { }
@@ -398,13 +406,26 @@ namespace Aspire.Hosting.Azure
 
     public partial interface IAzureComputeEnvironmentResource : ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
+        IAzureContainerRegistryResource? ContainerRegistry { get; }
     }
 
+    [System.Obsolete("Use IAzureContainerRegistryResource instead and access container registry through IAzureComputeEnvironmentResource.ContainerRegistry property.")]
     public partial interface IAzureContainerRegistry : ApplicationModel.IContainerRegistry
     {
         ApplicationModel.ReferenceExpression ManagedIdentityId { get; }
     }
 
+    public partial interface IAzureContainerRegistryResource : ApplicationModel.IContainerRegistry, ApplicationModel.IAzureResource, ApplicationModel.IResource
+    {
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public partial interface IAzureDelegatedSubnetResource : ApplicationModel.IResource
+    {
+        string DelegatedSubnetServiceName { get; }
+    }
+
+    [AspireExport]
     public partial interface IAzureKeyVaultResource : ApplicationModel.IResource, ApplicationModel.IAzureResource
     {
         BicepOutputReference NameOutputReference { get; }
@@ -416,6 +437,7 @@ namespace Aspire.Hosting.Azure
         IAzureKeyVaultSecretReference GetSecret(string secretName);
     }
 
+    [AspireExport]
     public partial interface IAzureKeyVaultSecretReference : ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueWithReferences
     {
         System.Collections.Generic.IEnumerable<object> ApplicationModel.IValueWithReferences.References { get; }
@@ -427,9 +449,23 @@ namespace Aspire.Hosting.Azure
         ApplicationModel.IResource? SecretOwner { get; set; }
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public partial interface IAzurePrivateEndpointTarget : ApplicationModel.IResource
+    {
+        BicepOutputReference Id { get; }
+
+        string GetPrivateDnsZoneName();
+        System.Collections.Generic.IEnumerable<string> GetPrivateLinkGroupIds();
+    }
+
     public partial interface IResourceWithAzureFunctionsConfig : ApplicationModel.IResource
     {
         void ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName);
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public sealed partial class PrivateEndpointTargetAnnotation : ApplicationModel.IResourceAnnotation
+    {
     }
 
     public partial class RoleAssignmentAnnotation : ApplicationModel.IResourceAnnotation
