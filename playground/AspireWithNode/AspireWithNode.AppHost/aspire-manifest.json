@@ -13,7 +13,7 @@
     "cache": {
       "type": "container.v0",
       "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={pass.value}",
-      "image": "docker.io/library/redis:8.2",
+      "image": "docker.io/library/redis:8.6",
       "entrypoint": "/bin/sh",
       "args": [
         "-c",
