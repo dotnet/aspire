@@ -504,9 +504,37 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets the UserSecretsId from a project file.
+    /// Gets the UserSecretsId from a project file, optionally initializing if not configured.
     /// </summary>
-    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var userSecretsId = await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+
+        if (!string.IsNullOrEmpty(userSecretsId) || !autoInit)
+        {
+            return userSecretsId;
+        }
+
+        // Auto-initialize user secrets (only for csproj projects - file-based apphosts
+        // always have a UserSecretsId provided by the SDK)
+        if (!s_projectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
+        {
+            return userSecretsId;
+        }
+
+        _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
+        _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
+
+        await _runner.InitUserSecretsAsync(
+            projectFile,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
+
+        // Re-query
+        return await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+    }
+
+    private async Task<string?> QueryUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {
@@ -526,7 +554,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             if (rootElement.TryGetProperty("Properties", out var properties) &&
                 properties.TryGetProperty("UserSecretsId", out var userSecretsIdElement))
             {
-                return userSecretsIdElement.GetString();
+                var value = userSecretsIdElement.GetString();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
             }
 
             return null;
@@ -554,7 +583,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         env["DcpPublisher__RandomizePorts"] = "true";
 
         // Get the UserSecretsId from the project and create isolated copy
-        var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+        var userSecretsId = await QueryUserSecretsIdAsync(appHostFile, cancellationToken);
         if (!string.IsNullOrEmpty(userSecretsId))
         {
             _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);

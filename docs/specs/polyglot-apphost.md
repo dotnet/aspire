@@ -353,7 +353,7 @@ ATS categorizes types for serialization and code generation using `AtsTypeCatego
 | `Handle` | Opaque object references | `{ "$handle": "42", "$type": "..." }` |
 | `Dto` | Data transfer objects with `[AspireDto]` | JSON object |
 | `Callback` | Guest-provided delegate functions | String (callback ID) |
-| `Array` | Immutable arrays/readonly collections | JSON array (copied by value) |
+| `Array` | Immutable arrays/readonly collections (for example, `IReadOnlyList<T>`/`IEnumerable<T>`) | JSON array (copied by value) |
 | `List` | Mutable `List<T>` | Handle when exposed as property; JSON array when passed as parameter |
 | `Dict` | Mutable `Dictionary<K,V>` | Handle when exposed as property; JSON object when passed as parameter |
 
@@ -857,7 +857,7 @@ Fields starting with `$` are reserved for ATS protocol metadata:
 |------|------------|---------------|
 | Handle | `{ "$handle": "42", "$type": "Assembly/Namespace.Type" }` | Always handle |
 | DTO | Plain object (requires `[AspireDto]`) | Copied by value |
-| Array/IReadOnlyList | JSON array | Copied by value |
+| Array/IReadOnlyList/IEnumerable | JSON array | Copied by value |
 | `List<T>` | JSON array (parameter) or Handle (return/property) | Handle if returned |
 | `Dictionary<K,V>` | JSON object (parameter) or Handle (return/property) | Handle if returned |
 | Nullable | Value or `null` | Same as inner type |

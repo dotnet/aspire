@@ -51,9 +51,9 @@
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
+        <target state="needs-review-translation">'{0}' parametresinin değerini silmek istediğinizden emin misiniz?
 
-The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</target>
+Değer şu anda [kullanıcı gizli dizinleri](https://learn.microsoft.com/aspnet/core/security/app-secrets) içinde kaydedilmiştir. Oradan da silmeyi seçebilirsiniz.</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
@@ -107,8 +107,8 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Run `aspire secret set` in the AppHost directory to configure secrets.</source>
-        <target state="new">Run `aspire secret set` in the AppHost directory to configure secrets.</target>
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <target state="needs-review-translation">AppHost proje dosyasında bir `UserSecretsId` yapılandırılması gerekir. Yapılandırmak için AppHost dizininde `dotnet user-secrets init` komutunu çalıştırın.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -145,9 +145,9 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
+        <target state="needs-review-translation">Lütfen parametre için bir değer girin. Parametre, ileride kullanmak üzere [kullanıcı gizli dizinleri](https://learn.microsoft.com/aspnet/core/security/app-secrets) bölümüne kaydedilebilir.
 
-New parameter values may not be used until dependent resources are restarted.</target>
+Bağımlı kaynaklar yeniden başlatılana kadar yeni parametre değerleri kullanılamaz.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">
