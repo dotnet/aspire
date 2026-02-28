@@ -86,5 +86,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("IsolatedOptionDescription", resourceCulture);
             }
         }
+
+        internal static string UsingAppHost {
+            get {
+                return ResourceManager.GetString("UsingAppHost", resourceCulture);
+            }
+        }
+
+        internal static string MultipleInScopeAppHosts {
+            get {
+                return ResourceManager.GetString("MultipleInScopeAppHosts", resourceCulture);
+            }
+        }
     }
 }

@@ -138,4 +138,10 @@
   <data name="IsolatedOptionDescription" xml:space="preserve">
     <value>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</value>
   </data>
+  <data name="UsingAppHost" xml:space="preserve">
+    <value>Using AppHost: {0}</value>
+  </data>
+  <data name="MultipleInScopeAppHosts" xml:space="preserve">
+    <value>Multiple running AppHosts found in the current directory:</value>
+  </data>
 </root>

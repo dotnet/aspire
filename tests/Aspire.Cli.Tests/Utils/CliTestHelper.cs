@@ -253,28 +253,35 @@ internal sealed class CliServiceCollectionTestOptions
 
     public TestOutputTextWriter? OutputTextWriter { get; set; }
     public StringWriter? ErrorTextWriter { get; set; }
+    public bool DisableAnsi { get; set; }
 
     public Func<IServiceProvider, ConsoleEnvironment> ConsoleEnvironmentFactory => (IServiceProvider serviceProvider) =>
     {
         var outputTextWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
         var errorTextWriter = ErrorTextWriter ?? new StringWriter();
 
-        var outConsole = CreateAnsiConsole(outputTextWriter);
-        var errorConsole = CreateAnsiConsole(errorTextWriter);
+        var outConsole = CreateAnsiConsole(outputTextWriter, !DisableAnsi);
+        var errorConsole = CreateAnsiConsole(errorTextWriter, !DisableAnsi);
 
         return new ConsoleEnvironment(outConsole, errorConsole);
     };
 
-    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter)
+    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter, bool ansi = true)
     {
         var settings = new AnsiConsoleSettings()
         {
-            Ansi = AnsiSupport.Yes,
+            Ansi = ansi ? AnsiSupport.Yes : AnsiSupport.No,
             Interactive = InteractionSupport.Yes,
-            ColorSystem = ColorSystemSupport.Standard,
+            ColorSystem = ansi ? ColorSystemSupport.Standard : ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(textWriter)
         };
-        return AnsiConsole.Create(settings);
+        var console = AnsiConsole.Create(settings);
+        if (!ansi)
+        {
+            // Use a large width to prevent Spectre.Console from word-wrapping output lines.
+            console.Profile.Width = int.MaxValue;
+        }
+        return console;
     }
 
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -597,6 +604,7 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
 internal sealed class TestOutputTextWriter : TextWriter
 {
     private readonly ITestOutputHelper _outputHelper;
+    private readonly StringBuilder _buffer = new();
     public List<string> Logs { get; } = new List<string>();
 
     public TestOutputTextWriter(ITestOutputHelper outputHelper) : this(outputHelper, null)
@@ -612,20 +620,52 @@ internal sealed class TestOutputTextWriter : TextWriter
 
     public override void WriteLine(string? message)
     {
-        _outputHelper.WriteLine(message!);
-        if (message is not null)
-        {
-            Logs.Add(message);
-        }
+        _buffer.Append(message);
+        FlushLine();
     }
 
     public override void Write(string? message)
     {
-        _outputHelper.Write(message!);
-        if (message is not null)
+        if (message is null)
         {
-            Logs.Add(message);
+            return;
         }
+
+        // Spectre.Console writes content and newlines via Write() calls.
+        // Split on newline boundaries so each logical line ends up as one Logs entry.
+        var remaining = message.AsSpan();
+        while (remaining.Length > 0)
+        {
+            var nlIndex = remaining.IndexOf('\n');
+            if (nlIndex < 0)
+            {
+                _buffer.Append(remaining);
+                break;
+            }
+
+            // Append everything before the newline (excluding any \r before \n)
+            var lineEnd = nlIndex > 0 && remaining[nlIndex - 1] == '\r' ? nlIndex - 1 : nlIndex;
+            _buffer.Append(remaining[..lineEnd]);
+            FlushLine();
+            remaining = remaining[(nlIndex + 1)..];
+        }
+    }
+
+    public override void Flush()
+    {
+        if (_buffer.Length > 0)
+        {
+            FlushLine();
+        }
+        base.Flush();
+    }
+
+    private void FlushLine()
+    {
+        var line = _buffer.ToString();
+        _buffer.Clear();
+        _outputHelper.WriteLine(line);
+        Logs.Add(line);
     }
 
 }
