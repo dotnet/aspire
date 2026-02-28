@@ -16,6 +16,7 @@ using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -61,6 +62,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private readonly Option<string?> _channelOption;
     private readonly Option<string?>? _languageOption;
+    private readonly Option<string?>? _templateOption;
+    private readonly IGitTemplateService? _gitTemplateService;
+    private readonly ILogger<NewCommand> _logger;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -86,7 +90,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
         ILanguageDiscovery languageDiscovery,
-        IScaffoldingService scaffoldingService)
+        IScaffoldingService scaffoldingService,
+        IGitTemplateService gitTemplateService,
+        ILogger<NewCommand> logger)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -100,6 +106,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _executionContext = executionContext;
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
+        _gitTemplateService = gitTemplateService;
+        _logger = logger;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
@@ -125,6 +133,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 Description = "The programming language for the AppHost (csharp, typescript)"
             };
             Options.Add(_languageOption);
+        }
+
+        // Only add --template option when git templates feature is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.GitTemplatesEnabled, false))
+        {
+            _templateOption = new Option<string?>("--template")
+            {
+                Description = "A local path or Git URL to use as a project template"
+            };
+            Options.Add(_templateOption);
         }
 
         _templates = templateProvider.GetTemplates();
@@ -155,6 +173,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
+
+        // Check for git template mode first (highest priority when enabled)
+        if (_features.IsFeatureEnabled(KnownFeatures.GitTemplatesEnabled, false) && _templateOption is not null)
+        {
+            var templateValue = parseResult.GetValue(_templateOption);
+            if (!string.IsNullOrWhiteSpace(templateValue))
+            {
+                return await ApplyGitTemplateAsync(parseResult, templateValue, cancellationToken);
+            }
+        }
 
         // Only check for language option when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
@@ -200,6 +228,30 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return templateResult.ExitCode;
+    }
+
+    private async Task<int> ApplyGitTemplateAsync(ParseResult parseResult, string templatePathOrUrl, CancellationToken cancellationToken)
+    {
+        Debug.Assert(_gitTemplateService is not null);
+
+        var outputPath = parseResult.GetValue(s_outputOption);
+
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = await _prompter.PromptForDestinationPathAsync(Environment.CurrentDirectory, cancellationToken);
+        }
+
+        _logger.LogDebug("Applying git template from '{TemplatePathOrUrl}' to '{OutputPath}'", templatePathOrUrl, outputPath);
+
+        var result = await _gitTemplateService.ApplyGitTemplateAsync(templatePathOrUrl, outputPath, cancellationToken);
+
+        if (result == ExitCodeConstants.Success &&
+            ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return result;
     }
 
     private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
@@ -252,6 +304,7 @@ internal interface INewCommandPrompter
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
+    Task<string> PromptForDestinationPathAsync(string defaultPath, CancellationToken cancellationToken);
 }
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
@@ -385,6 +438,14 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => t.Description.EscapeMarkup(),
             cancellationToken
         );
+    }
+
+    public virtual async Task<string> PromptForDestinationPathAsync(string defaultPath, CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForStringAsync(
+            "Enter the destination path",
+            defaultValue: defaultPath.EscapeMarkup(),
+            cancellationToken: cancellationToken);
     }
 }
 
