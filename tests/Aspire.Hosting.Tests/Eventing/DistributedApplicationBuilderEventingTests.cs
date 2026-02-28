@@ -365,7 +365,7 @@ public class DistributedApplicationBuilderEventingTests(ITestOutputHelper testOu
         var eventFired = new ManualResetEventSlim();
 
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        builder.OnAfterResourcesCreated((e, ct) =>
+        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Model);
@@ -441,7 +441,7 @@ public class DistributedApplicationBuilderEventingTests(ITestOutputHelper testOu
     public void OnAfterResourcesCreatedReturnsBuilderForChaining()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var result = builder.OnAfterResourcesCreated((e, ct) => Task.CompletedTask);
+        var result = builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => Task.CompletedTask);
 
         Assert.Same(builder, result);
     }
