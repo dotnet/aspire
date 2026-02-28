@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
 
 # Pre-configure Aspire CLI path
 ENV PATH="/root/.aspire/bin:${PATH}"
+ENV ASPIRE_CLI_TELEMETRY_OPTOUT=1
 
 WORKDIR /workspace
 
@@ -36,8 +37,8 @@ RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-java.sh
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
     /scripts/setup-local-cli.sh && \
-    aspire config set features:polyglotSupportEnabled true --global && \
-    aspire config set features:experimentalPolyglot:java true --global && \
+    aspire --nologo config set features:polyglotSupportEnabled true --global && \
+    aspire --nologo config set features:experimentalPolyglot:java true --global && \
     echo '' && \
     echo '=== Running validation ===' && \
     /scripts/test-java.sh \

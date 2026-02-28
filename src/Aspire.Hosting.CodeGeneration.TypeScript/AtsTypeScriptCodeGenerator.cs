@@ -134,10 +134,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return "unknown";
         }
 
-        // Check for wrapper class first (handles custom types like ReferenceExpression)
+        // Check for wrapper class first (handles custom types like resource builders)
         if (_wrapperClassNames.TryGetValue(typeRef.TypeId, out var wrapperClassName))
         {
             return wrapperClassName;
+        }
+
+        // ReferenceExpression is a value type defined in base.ts, not a handle-based wrapper
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        {
+            return "ReferenceExpression";
         }
 
         return typeRef.Category switch
@@ -435,8 +441,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 _typesWithPromiseWrappers.Add(typeClass.TypeId);
             }
         }
-        // Add ReferenceExpression (defined in base.ts, not generated)
-        _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
+        // Note: ReferenceExpression is intentionally NOT added to _wrapperClassNames.
+        // It is a value type defined in base.ts with a private constructor and static factory,
+        // not a handle-based wrapper. It is handled via MapTypeRefToTypeScript instead.
 
         // Pre-scan all capabilities to collect options interfaces
         // This must happen AFTER wrapper class names are populated so types resolve correctly
