@@ -196,6 +196,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       buildOnTarget: true
+      jobTimeout: 90
 
   cli_e2e_tests:
     name: Cli E2E Linux

@@ -59,12 +59,17 @@ on:
         required: false
         type: boolean
         default: false
+      # Job-level timeout in minutes (default: 60)
+      jobTimeout:
+        required: false
+        type: number
+        default: 60
 
 jobs:
 
   test:
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ inputs.jobTimeout }}
     name: ${{ inputs.testShortName }} (${{ inputs.os }})
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
