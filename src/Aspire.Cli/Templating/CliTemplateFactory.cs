@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -16,6 +17,22 @@ namespace Aspire.Cli.Templating;
 
 internal sealed partial class CliTemplateFactory : ITemplateFactory
 {
+    private static readonly HashSet<string> s_binaryTemplateExtensions =
+    [
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".ico",
+        ".bmp",
+        ".webp",
+        ".svg",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".otf"
+    ];
+
     private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
     {
         Description = TemplatingStrings.UseLocalhostTld_Description
@@ -56,7 +73,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         [
             new CallbackTemplate(
                 KnownTemplateId.TypeScriptStarter,
-                "Starter App (TypeScript/React)",
+                "Starter App (Express/React)",
                 projectName => $"./{projectName}",
                 static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
                 ApplyTypeScriptStarterTemplateAsync,
@@ -153,12 +170,6 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 
         foreach (var resourceName in resourceNames)
         {
-            using var stream = assembly.GetManifestResourceStream(resourceName)
-                ?? throw new InvalidOperationException($"Embedded template resource not found: {resourceName}");
-            using var reader = new StreamReader(stream);
-
-            var content = await reader.ReadToEndAsync(cancellationToken);
-            var transformedContent = tokenReplacer(content);
             var relativePath = resourceName[resourcePrefix.Length..].Replace('/', Path.DirectorySeparatorChar);
             var filePath = Path.Combine(outputPath, relativePath);
             var fileDirectory = Path.GetDirectoryName(filePath);
@@ -167,8 +178,25 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                 Directory.CreateDirectory(fileDirectory);
             }
 
+            using var stream = assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidOperationException($"Embedded template resource not found: {resourceName}");
+
             _logger.LogDebug("Writing embedded template resource '{ResourceName}' to '{FilePath}'.", resourceName, filePath);
-            await File.WriteAllTextAsync(filePath, transformedContent, cancellationToken);
+            if (s_binaryTemplateExtensions.Contains(Path.GetExtension(filePath)))
+            {
+                await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                await stream.CopyToAsync(fileStream, cancellationToken);
+            }
+            else
+            {
+                using var reader = new StreamReader(stream);
+                var content = await reader.ReadToEndAsync(cancellationToken);
+                var transformedContent = tokenReplacer(content);
+                await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                await using var writer = new StreamWriter(fileStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                await writer.WriteAsync(transformedContent.AsMemory(), cancellationToken);
+                await writer.FlushAsync(cancellationToken);
+            }
         }
     }
 

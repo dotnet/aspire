@@ -61,21 +61,11 @@ internal sealed partial class CliTemplateFactory
             return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
 
-        // Scaffold frontend via npm create vite (-y to skip confirmation prompt)
         var npmPath = PathLookupHelper.FindFullPathFromPath("npm") ?? PathLookupHelper.FindFullPathFromPath("npm.cmd");
         if (npmPath is null)
         {
             _interactionService.DisplayError("npm is not installed or not found in PATH. Please install Node.js and try again.");
             return new TemplateResult(ExitCodeConstants.InvalidCommand);
-        }
-
-        _logger.LogDebug("Running npm create vite for TypeScript starter in '{OutputPath}'.", outputPath);
-        var viteResult = await RunProcessAsync(npmPath, "create -y vite@latest frontend -- --template react-ts", outputPath, cancellationToken);
-        if (viteResult.ExitCode != 0)
-        {
-            _interactionService.DisplayError("Failed to scaffold frontend with 'npm create vite@latest'.");
-            DisplayProcessOutput(viteResult, treatStandardErrorAsError: true);
-            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
 
         // Run npm install in the output directory (non-fatal — package may not be published yet)
