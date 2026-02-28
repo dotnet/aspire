@@ -75,7 +75,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task NewCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode()
+    public async Task NewCommand_WhenSdkNotInstalled_OnlyShowsCliTemplates()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
@@ -90,10 +90,12 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("new");
+        // With no SDK, aspire-starter shouldn't be a valid subcommand
+        var result = command.Parse("new aspire-starter");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
-        Assert.Equal(ExitCodeConstants.SdkNotInstalled, exitCode);
+        // aspire-starter is not registered when SDK is unavailable, so it's an invalid command
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 
     [Fact]

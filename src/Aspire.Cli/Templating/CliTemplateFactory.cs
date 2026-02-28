@@ -1,0 +1,249 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using System.Diagnostics;
+using System.Globalization;
+using Aspire.Cli.Commands;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
+using Microsoft.Extensions.Logging;
+
+namespace Aspire.Cli.Templating;
+
+internal sealed partial class CliTemplateFactory : ITemplateFactory
+{
+
+    private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
+    {
+        Description = TemplatingStrings.UseLocalhostTld_Description,
+        DefaultValueFactory = _ => false
+    };
+
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
+    private readonly INewCommandPrompter _prompter;
+    private readonly CliExecutionContext _executionContext;
+    private readonly IInteractionService _interactionService;
+    private readonly ILogger<CliTemplateFactory> _logger;
+
+    public CliTemplateFactory(
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService,
+        INewCommandPrompter prompter,
+        CliExecutionContext executionContext,
+        IInteractionService interactionService,
+        ILogger<CliTemplateFactory> logger)
+    {
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
+        _prompter = prompter;
+        _executionContext = executionContext;
+        _interactionService = interactionService;
+        _logger = logger;
+    }
+
+    public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+
+        IEnumerable<ITemplate> templates =
+        [
+            new CallbackTemplate(
+            "aspire-ts-starter",
+            "Starter App (TypeScript/React)",
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTypeScriptStarterTemplateAsync,
+            runtime: TemplateRuntime.Cli,
+            supportsLanguageCallback: static languageId =>
+                languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
+                languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)),
+            new CallbackTemplate(
+            "aspire-empty",
+            "Empty AppHost",
+            projectName => $"./{projectName}",
+            static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
+            ApplyEmptyAppHostTemplateAsync,
+            runtime: TemplateRuntime.Cli,
+            supportsLanguageCallback: static languageId =>
+                languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
+                languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
+                languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
+            selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
+        ];
+
+        return Task.FromResult(templates);
+    }
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        return Task.FromResult<IEnumerable<ITemplate>>([]);
+    }
+
+    private static string ApplyTokens(string content, string projectName, string projectNameLower, string aspireVersion, TemplatePorts ports, string hostName = "localhost")
+    {
+        return content
+            .Replace("{{projectName}}", projectName)
+            .Replace("{{projectNameLower}}", projectNameLower)
+            .Replace("{{aspireVersion}}", aspireVersion)
+            .Replace("{{hostName}}", hostName)
+            .Replace("{{httpPort}}", ports.HttpPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{httpsPort}}", ports.HttpsPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{otlpHttpPort}}", ports.OtlpHttpPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{otlpHttpsPort}}", ports.OtlpHttpsPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{mcpHttpPort}}", ports.McpHttpPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{mcpHttpsPort}}", ports.McpHttpsPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{resourceHttpPort}}", ports.ResourceHttpPort.ToString(CultureInfo.InvariantCulture))
+            .Replace("{{resourceHttpsPort}}", ports.ResourceHttpsPort.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static TemplatePorts GenerateRandomPorts()
+    {
+        return new TemplatePorts(
+            HttpPort: Random.Shared.Next(15000, 15300),
+            HttpsPort: Random.Shared.Next(17000, 17300),
+            OtlpHttpPort: Random.Shared.Next(19000, 19300),
+            OtlpHttpsPort: Random.Shared.Next(21000, 21300),
+            McpHttpPort: Random.Shared.Next(18000, 18300),
+            McpHttpsPort: Random.Shared.Next(23000, 23300),
+            ResourceHttpPort: Random.Shared.Next(20000, 20300),
+            ResourceHttpsPort: Random.Shared.Next(22000, 22300));
+    }
+
+    private sealed record TemplatePorts(
+        int HttpPort, int HttpsPort,
+        int OtlpHttpPort, int OtlpHttpsPort,
+        int McpHttpPort, int McpHttpsPort,
+        int ResourceHttpPort, int ResourceHttpsPort);
+
+    private static bool ResolveLocalhostTld(System.CommandLine.ParseResult parseResult)
+    {
+        // Read from --localhost-tld option — available when running via subcommand
+        // (e.g., aspire new aspire-empty --localhost-tld). Defaults to false.
+        var value = parseResult.GetValue(s_localhostTldOption);
+        return value ?? false;
+    }
+
+    private static void AddOptionIfMissing(System.CommandLine.Command command, System.CommandLine.Option option)
+    {
+        if (!command.Options.Contains(option))
+        {
+            command.Options.Add(option);
+        }
+    }
+
+    private async Task CopyTemplateTreeToDiskAsync(string templateRoot, string outputPath, Func<string, string> tokenReplacer, CancellationToken cancellationToken)
+    {
+        var assembly = typeof(CliTemplateFactory).Assembly;
+        _logger.LogDebug("Copying embedded template tree '{TemplateRoot}' to '{OutputPath}'.", templateRoot, outputPath);
+
+        var allResourceNames = assembly.GetManifestResourceNames();
+        var resourcePrefix = $"{templateRoot}.";
+        var resourceNames = allResourceNames
+            .Where(name => name.StartsWith(resourcePrefix, StringComparison.Ordinal))
+            .OrderBy(static name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        if (resourceNames.Length == 0)
+        {
+            _logger.LogDebug("No embedded resources found for template root '{TemplateRoot}'. Available manifest resources: {ManifestResources}", templateRoot, string.Join(", ", allResourceNames));
+            throw new InvalidOperationException($"No embedded template resources found for '{templateRoot}'.");
+        }
+
+        _logger.LogDebug("Found {ResourceCount} embedded resources for template root '{TemplateRoot}': {TemplateResources}", resourceNames.Length, templateRoot, string.Join(", ", resourceNames));
+
+        foreach (var resourceName in resourceNames)
+        {
+            using var stream = assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidOperationException($"Embedded template resource not found: {resourceName}");
+            using var reader = new StreamReader(stream);
+
+            var content = await reader.ReadToEndAsync(cancellationToken);
+            var transformedContent = tokenReplacer(content);
+            var relativePath = resourceName[resourcePrefix.Length..].Replace('/', Path.DirectorySeparatorChar);
+            var filePath = Path.Combine(outputPath, relativePath);
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(fileDirectory))
+            {
+                Directory.CreateDirectory(fileDirectory);
+            }
+
+            _logger.LogDebug("Writing embedded template resource '{ResourceName}' to '{FilePath}'.", resourceName, filePath);
+            await File.WriteAllTextAsync(filePath, transformedContent, cancellationToken);
+        }
+    }
+
+    private void DisplayProcessOutput(ProcessExecutionResult result, bool treatStandardErrorAsError)
+    {
+        if (!string.IsNullOrWhiteSpace(result.StandardOutput))
+        {
+            _interactionService.DisplaySubtleMessage(result.StandardOutput.TrimEnd());
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.StandardError))
+        {
+            var message = result.StandardError.TrimEnd();
+            if (treatStandardErrorAsError)
+            {
+                _interactionService.DisplayError(message);
+            }
+            else
+            {
+                _interactionService.DisplaySubtleMessage(message);
+            }
+        }
+    }
+
+    private static async Task<ProcessExecutionResult> RunProcessAsync(string fileName, string arguments, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo(fileName, arguments)
+        {
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workingDirectory
+        };
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        process.StandardInput.Close(); // Prevent hanging on prompts
+
+        // Drain output streams to prevent deadlocks
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            throw;
+        }
+
+        return new ProcessExecutionResult(
+            process.ExitCode,
+            await outputTask.ConfigureAwait(false),
+            await errorTask.ConfigureAwait(false));
+    }
+
+    private sealed record ProcessExecutionResult(int ExitCode, string StandardOutput, string StandardError);
+}

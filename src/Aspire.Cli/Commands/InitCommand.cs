@@ -29,8 +29,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private readonly IDotNetCliRunner _runner;
     private readonly ICertificateService _certificateService;
-    private readonly INewCommandPrompter _prompter;
-    private readonly ITemplateFactory _templateFactory;
+    private readonly ITemplateVersionPrompter _templateVersionPrompter;
+    private readonly ITemplateProvider _templateProvider;
     private readonly IPackagingService _packagingService;
     private readonly ISolutionLocator _solutionLocator;
     private readonly IDotNetSdkInstaller _sdkInstaller;
@@ -70,8 +70,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     public InitCommand(
         IDotNetCliRunner runner,
         ICertificateService certificateService,
-        INewCommandPrompter prompter,
-        ITemplateFactory templateFactory,
+        ITemplateVersionPrompter templateVersionPrompter,
+        ITemplateProvider templateProvider,
         IPackagingService packagingService,
         ISolutionLocator solutionLocator,
         AspireCliTelemetry telemetry,
@@ -89,8 +89,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         _runner = runner;
         _certificateService = certificateService;
-        _prompter = prompter;
-        _templateFactory = templateFactory;
+        _templateVersionPrompter = templateVersionPrompter;
+        _templateProvider = templateProvider;
         _packagingService = packagingService;
         _solutionLocator = solutionLocator;
         _sdkInstaller = sdkInstaller;
@@ -577,7 +577,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Use single-file AppHost template
-        var singleFileTemplate = _templateFactory.GetInitTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+        var initTemplates = await _templateProvider.GetInitTemplatesAsync(cancellationToken);
+        var singleFileTemplate = initTemplates.FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
         if (singleFileTemplate is null)
         {
             InteractionService.DisplayError("Single-file AppHost template not found.");
@@ -778,7 +779,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         InteractionService.DisplayEmptyLine();
 
         // Prompt user to select from available versions/channels
-        var selectedPackageFromChannel = await _prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
+        var selectedPackageFromChannel = await _templateVersionPrompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
     }
 }
