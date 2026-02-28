@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">找不到正在執行的 AppHost。請先使用 'aspire run' 啟動一個。</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">中斷連接 AppHost 結果的輸出格式。</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedOptionDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">在隔離模式中搭配隨機化連接埠和隔離的使用者袐密執行，允許同時執行多個執行個體。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
+        <target state="translated">目前目錄中找不到正在執行的 AppHost。顯示所有正在執行的 AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost 專案檔案的路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">正在掃描執行中的 AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
-        <target state="new">Select an AppHost to {0}:</target>
+        <target state="translated">選取 AppHost 以 {0}:</target>
         <note />
       </trans-unit>
     </body>

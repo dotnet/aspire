@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
-        <target state="new">view telemetry for</target>
+        <target state="translated">Telemetrie anzeigen für</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
