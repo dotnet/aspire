@@ -70,6 +70,7 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .WaitUntil(s => waitingForEmptyAppHostTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter() // select "Empty AppHost"
+            .Enter() // select C#
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("AspireEmptyApp")
             .Enter()
