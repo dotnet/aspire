@@ -8,8 +8,7 @@
       "applicationUrl": "https://{{hostName}}:{{httpsPort}};http://{{hostName}}:{{httpPort}}",
       "environmentVariables": {
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://{{hostName}}:{{otlpHttpsPort}}",
-        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://{{hostName}}:{{resourceHttpsPort}}",
-        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://{{hostName}}:{{resourceHttpsPort}}"
       }
     },
     "http": {
@@ -20,7 +19,6 @@
       "environmentVariables": {
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://{{hostName}}:{{otlpHttpPort}}",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://{{hostName}}:{{resourceHttpPort}}",
-        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     }
