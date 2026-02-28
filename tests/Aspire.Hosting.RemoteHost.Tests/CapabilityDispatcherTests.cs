@@ -1153,6 +1153,53 @@ public class CapabilityDispatcherTests
         Assert.Equal("No value", result.GetValue<string>());
     }
 
+    [Fact]
+    public void GetDto_DeserializesEnumPropertyFromString()
+    {
+        var args = new JsonObject
+        {
+            ["dto"] = new JsonObject
+            {
+                ["label"] = "test-item",
+                ["status"] = "ValueB"
+            }
+        };
+
+        var result = args.GetDto<TestDtoWithEnum>("dto");
+
+        Assert.NotNull(result);
+        Assert.Equal("test-item", result.Label);
+        Assert.Equal(TestDispatchEnum.ValueB, result.Status);
+    }
+
+    [Fact]
+    public void GetDto_DeserializesEnumPropertyFromStringCaseInsensitive()
+    {
+        var args = new JsonObject
+        {
+            ["dto"] = new JsonObject
+            {
+                ["label"] = "item",
+                ["status"] = "valuec"
+            }
+        };
+
+        var result = args.GetDto<TestDtoWithEnum>("dto");
+
+        Assert.NotNull(result);
+        Assert.Equal(TestDispatchEnum.ValueC, result.Status);
+    }
+
+    [Fact]
+    public void GetDto_ReturnsNullWhenPropertyMissing()
+    {
+        var args = new JsonObject();
+
+        var result = args.GetDto<TestDtoWithEnum>("dto");
+
+        Assert.Null(result);
+    }
+
     private static CapabilityDispatcher CreateDispatcher(params System.Reflection.Assembly[] assemblies)
     {
         var handles = new HandleRegistry();
@@ -1430,4 +1477,13 @@ internal static class TestEnumCapabilities
     {
         return value.HasValue ? $"Received: {value.Value}" : "No value";
     }
+}
+
+/// <summary>
+/// Test DTO with an enum property for GetDto deserialization tests.
+/// </summary>
+internal sealed class TestDtoWithEnum
+{
+    public string? Label { get; set; }
+    public TestDispatchEnum Status { get; set; }
 }

@@ -16,7 +16,10 @@ public class AtsMarshallerTests
         {
             Capabilities = [],
             HandleTypes = [],
-            DtoTypes = [new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] }],
+            DtoTypes = [
+                new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/TestDtoWithEnum", Name = "TestDtoWithEnum", ClrType = typeof(TestDtoWithEnum), Properties = [] }
+            ],
             EnumTypes = []
         };
     }
@@ -561,6 +564,56 @@ public class AtsMarshallerTests
     }
 
     [Fact]
+    public void JsonOptions_ContainsJsonStringEnumConverter()
+    {
+        var options = AtsMarshaller.JsonOptions;
+
+        Assert.Contains(options.Converters, c => c is System.Text.Json.Serialization.JsonStringEnumConverter);
+    }
+
+    [Fact]
+    public void MarshalToJson_MarshalsDtoWithEnumPropertyAsString()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new TestDtoWithEnum { Label = "item", Status = TestEnum.ValueB };
+
+        var result = marshaller.MarshalToJson(dto);
+
+        Assert.NotNull(result);
+        Assert.IsType<JsonObject>(result);
+        var jsonObj = (JsonObject)result;
+        Assert.Equal("item", jsonObj["label"]?.GetValue<string>());
+        Assert.Equal("ValueB", jsonObj["status"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsDtoWithEnumPropertyFromString()
+    {
+        var (marshaller, context) = CreateMarshallerWithContext();
+        var json = new JsonObject { ["label"] = "item", ["status"] = "ValueA" };
+
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestDtoWithEnum), context);
+
+        Assert.NotNull(result);
+        var dto = Assert.IsType<TestDtoWithEnum>(result);
+        Assert.Equal("item", dto.Label);
+        Assert.Equal(TestEnum.ValueA, dto.Status);
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsDtoWithEnumPropertyCaseInsensitive()
+    {
+        var (marshaller, context) = CreateMarshallerWithContext();
+        var json = new JsonObject { ["label"] = "test", ["status"] = "valueb" };
+
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestDtoWithEnum), context);
+
+        Assert.NotNull(result);
+        var dto = Assert.IsType<TestDtoWithEnum>(result);
+        Assert.Equal(TestEnum.ValueB, dto.Status);
+    }
+
+    [Fact]
     public void UnmarshalFromJson_UnmarshalsEnumFromString()
     {
         var (marshaller, context) = CreateMarshallerWithContext();
@@ -642,5 +695,12 @@ public class AtsMarshallerTests
     {
         public string? Name { get; set; }
         public int Count { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class TestDtoWithEnum
+    {
+        public string? Label { get; set; }
+        public TestEnum Status { get; set; }
     }
 }
