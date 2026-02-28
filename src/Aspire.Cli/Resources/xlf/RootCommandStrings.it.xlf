@@ -64,7 +64,7 @@ Altre informazioni sui dati di telemetria dell'interfaccia della riga di comando
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Eseguire il comando in modalità non interattiva, disabilitando tutti i prompt e gli indicatori di caricamento interattivi.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

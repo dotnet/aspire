@@ -64,7 +64,7 @@ Další informace o telemetrii rozhraní příkazového řádku Aspire: https://
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Spusťte příkaz v neinteraktivním režimu, který zakáže všechny interaktivní výzvy a indikátory průběhu.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
