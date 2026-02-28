@@ -132,6 +132,7 @@ internal sealed class RootCommand : BaseRootCommand
         TelemetryCommand telemetryCommand,
         DocsCommand docsCommand,
         SdkCommand sdkCommand,
+        Template.TemplateCommand templateCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
@@ -229,6 +230,11 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.GitTemplatesEnabled, false))
+        {
+            Subcommands.Add(templateCommand);
         }
 
         // Replace the default --help action with grouped help output.

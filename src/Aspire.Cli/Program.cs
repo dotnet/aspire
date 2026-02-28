@@ -325,6 +325,7 @@ public class Program
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, Templating.Git.GitTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
@@ -392,6 +393,23 @@ public class Program
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateListCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateSearchCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateRefreshCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateNewManifestCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateNewIndexCommand>();
+
+        // Git template index services
+        builder.Services.AddSingleton(sp =>
+        {
+            var cacheDir = Path.Combine(GetCacheDirectory().FullName, "git-templates");
+            return new Templating.Git.GitTemplateCache(cacheDir);
+        });
+        builder.Services.AddSingleton<Templating.Git.IGitTemplateIndexService, Templating.Git.GitTemplateIndexService>();
+        builder.Services.AddSingleton<Templating.Git.IGitTemplateEngine, Templating.Git.GitTemplateEngine>();
+        builder.Services.AddSingleton<GitHub.IGitHubCliRunner, GitHub.GitHubCliRunner>();
+        builder.Services.AddHttpClient("git-templates");
         builder.Services.AddTransient<SetupCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
