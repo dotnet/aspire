@@ -325,7 +325,9 @@ jobs:
           ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
           HEARTBEAT_PID=$!
 
-          # Run tests
+          # Run tests with a hard process timeout to prevent hanging tests from
+          # consuming the entire job timeout. Uses SIGTERM first, then SIGKILL.
+          timeout --signal=TERM --kill-after=30s ${{ inputs.testSessionTimeout }} \
           dotnet test --no-build -- \
             --ignore-exit-code 8 \
             --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
@@ -335,7 +337,6 @@ jobs:
             --hangdump-timeout ${{ inputs.testHangTimeout }} \
             --results-directory ${{ github.workspace }}/testresults \
             --filter-not-trait "category=failing" \
-            --timeout ${{ inputs.testSessionTimeout }} \
             ${{ inputs.extraTestArgs }} \
             ${{ inputs.ignoreTestFailures && '|| true' || '' }}
           TEST_EXIT_CODE=$?

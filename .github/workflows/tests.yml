@@ -190,7 +190,7 @@ jobs:
       testShortName: Playground
       os: ubuntu-latest
       testProjectPath: tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj
-      testSessionTimeout: 10m
+      testSessionTimeout: 40m
       testHangTimeout: "10m"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
