@@ -25,7 +25,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     /// </summary>
     public Func<string, IEnumerable, Func<object, string>, CancellationToken, object>? PromptForSelectionCallback { get; set; }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null)
     {
         ShowStatusCallback?.Invoke(statusText);
         return action();

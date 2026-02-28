@@ -937,7 +937,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     }
 
     // Default implementations for other interface methods
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null) => action();
     public void ShowStatus(string statusText, Action action) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);

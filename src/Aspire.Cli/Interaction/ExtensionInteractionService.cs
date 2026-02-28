@@ -64,12 +64,13 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         });
     }
 
-    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null)
     {
+        var displayText = emojiName is not null ? $":{emojiName}:  {statusText}" : statusText;
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action).ConfigureAwait(false);
+        var value = await _consoleInteractionService.ShowStatusAsync(displayText, action).ConfigureAwait(false);
         result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
         Debug.Assert(result);
         return value;

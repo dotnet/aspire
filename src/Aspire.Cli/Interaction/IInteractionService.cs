@@ -9,7 +9,7 @@ namespace Aspire.Cli.Interaction;
 
 internal interface IInteractionService
 {
-    Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action);
+    Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null);
     void ShowStatus(string statusText, Action action);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default);
