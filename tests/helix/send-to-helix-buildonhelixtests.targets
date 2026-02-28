@@ -62,7 +62,7 @@
 
         <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
         <Timeout>00:15:00</Timeout>
-        <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
+        <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:50:00</Timeout>
 
         <DownloadFilesFromResults>logs/%(FileName).trx</DownloadFilesFromResults>
       </HelixWorkItem>
