@@ -38,6 +38,7 @@ using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -495,6 +496,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseStaticFiles(new StaticFileOptions()
         {
+            FileProvider = new PhysicalFileProvider(Path.Combine(AppContext.BaseDirectory, "wwwroot")),
             OnPrepareResponse = context =>
             {
                 // If Cache-Control isn't already set to something, set it to 'no-cache' so that the
