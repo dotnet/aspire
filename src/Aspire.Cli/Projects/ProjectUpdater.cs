@@ -106,11 +106,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             interactionService.DisplayEmptyLine();
 
-            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
+            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForFilePathAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
-                isSecret: false,
+                directory: true,
                 required: true,
                 cancellationToken: cancellationToken);
 

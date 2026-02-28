@@ -94,5 +94,7 @@
   "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
-  "aspire-vscode.strings.dismissLabel": "Dismiss"
+  "aspire-vscode.strings.dismissLabel": "Dismiss",
+  "aspire-vscode.strings.selectDirectoryTitle": "Select directory",
+  "aspire-vscode.strings.selectFileTitle": "Select file"
 }

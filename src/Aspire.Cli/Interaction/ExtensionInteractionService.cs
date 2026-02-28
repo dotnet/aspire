@@ -133,6 +133,58 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
+    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        if (_extensionPromptEnabled)
+        {
+            var hasFilePickersCapability = await Backchannel.HasCapabilityAsync(KnownCapabilities.FilePickers, _cancellationToken).ConfigureAwait(false);
+
+            if (hasFilePickersCapability)
+            {
+                var tcs = new TaskCompletionSource<string?>();
+
+                await _extensionTaskChannel.Writer.WriteAsync(async () =>
+                {
+                    try
+                    {
+                        var result = await Backchannel.PromptForFilePathAsync(promptText.RemoveSpectreFormatting(), defaultValue, directory, _cancellationToken).ConfigureAwait(false);
+                        tcs.SetResult(result);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.SetException(ex);
+                    }
+                }, cancellationToken).ConfigureAwait(false);
+
+                var picked = await tcs.Task.ConfigureAwait(false);
+
+                if (picked is null)
+                {
+                    throw new ExtensionOperationCanceledException(promptText);
+                }
+
+                if (validator is not null)
+                {
+                    var validationResult = validator(picked);
+
+                    if (!validationResult.Successful)
+                    {
+                        var errorMessage = validationResult.Message ?? "Invalid selection.";
+                        DisplayError(errorMessage);
+                        throw new InvalidOperationException(errorMessage);
+                    }
+                }
+
+                return picked;
+            }
+
+            // Fall back to string prompt for older extensions without file picker support
+            return await PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await _consoleInteractionService.PromptForFilePathAsync(promptText, defaultValue, validator, directory, required, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)

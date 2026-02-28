@@ -5,6 +5,7 @@ export type Capability =
     | 'prompting' // Support using VS Code to capture user input instead of CLI
     | 'baseline.v1' 
     | 'secret-prompts.v1'
+    | 'file-pickers.v1'
     | 'build-dotnet-using-cli' // Support building .NET projects using the CLI
     | 'devkit' // Support for .NET DevKit extension (old, used for determining whether to build .NET projects in extension)
     | 'ms-dotnettools.csdevkit' // Older AppHost versions used this extension identifier instead of devkit
@@ -33,7 +34,7 @@ export function isPythonInstalled() {
 }
 
 export function getSupportedCapabilities(): Capabilities {
-    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'build-dotnet-using-cli'];
+    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");
