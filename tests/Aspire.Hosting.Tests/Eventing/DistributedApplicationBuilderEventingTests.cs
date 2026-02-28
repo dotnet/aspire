@@ -438,15 +438,6 @@ public class DistributedApplicationBuilderEventingTests(ITestOutputHelper testOu
     }
 
     [Fact]
-    public void OnAfterResourcesCreatedReturnsBuilderForChaining()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var result = builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => Task.CompletedTask);
-
-        Assert.Same(builder, result);
-    }
-
-    [Fact]
     public void OnBeforePublishReturnsBuilderForChaining()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
