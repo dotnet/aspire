@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>describe</source>
-        <target state="new">describe</target>
+        <target state="translated">説明</target>
         <note />
       </trans-unit>
     </body>

@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">실행 중인 AppHost를 찾을 수 없습니다. 'aspire run'을 사용하여 먼저 하나를 시작합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">분리된 AppHost 결과의 출력 형식입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedOptionDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">임의의 포트와 격리된 사용자 암호를 사용해 격리 모드로 실행하면 여러 인스턴스를 동시에 실행할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
+        <target state="translated">현재 디렉터리에서 실행 중인 AppHost가 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">실행 중인 AppHost를 검색하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">

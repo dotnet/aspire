@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
+        <target state="translated">Visualizzare i dati di OpenTelemetry (log, span, tracce) da un apphost in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
-        <target state="new">view telemetry for</target>
+        <target state="translated">visualizzare dati di telemetria per</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

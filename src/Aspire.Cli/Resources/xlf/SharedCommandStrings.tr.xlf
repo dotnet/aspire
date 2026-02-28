@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
@@ -14,22 +14,22 @@
       </trans-unit>
       <trans-unit id="IsolatedOptionDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">Rastgele bağlantı noktaları ve yalıtılmış kullanıcı gizli dizileri ile yalıtılmış modda çalıştırarak birden çok örneğin aynı anda çalışmasına olanak tanıyın.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
+        <target state="translated">Geçerli dizinde çalışan AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor:</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">

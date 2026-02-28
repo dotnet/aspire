@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">Detenga todos los AppHosts en ejecución.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Se están ejecutando varios AppHost. Use {0} para especificar cuál detener o use {1} para detenerlos todos.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">Se están ejecutando varios AppHost. Use --apphost para especificar cuál se va a detener o seleccione uno:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stop</source>
-        <target state="new">stop</target>
+        <target state="translated">detener</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="new">The {0} and {1} options cannot be used together.</target>
+        <target state="translated">Las opciones {0} y {1} no se pueden usar juntas.</target>
         <note />
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">La opción {0} no se puede usar con un argumento de recurso.</target>
         <note />
       </trans-unit>
     </body>

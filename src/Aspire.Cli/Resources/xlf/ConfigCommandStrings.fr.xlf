@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage CLI configuration including feature flags.</source>
-        <target state="new">Manage CLI configuration including feature flags.</target>
+        <target state="translated">Gérer la configuration de l’interface en ligne de commande, y compris les indicateurs de fonctionnalités.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -194,7 +194,7 @@
       </trans-unit>
       <trans-unit id="SetFeatureHint">
         <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
-        <target state="new">Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</target>
+        <target state="translated">Utilisez « aspire config set features.&lt;name&gt; true|false » pour activer ou désactiver une fonctionnalité.</target>
         <note />
       </trans-unit>
     </body>

@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Запущенные хосты приложений не найдены. Сначала запустите один из них с помощью команды "aspire run".</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Формат вывода для результатов отсоединённого AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedOptionDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">Запускайте в изолированном режиме со случайными портами и изолированными пользовательскими секретами, что позволяет одновременно работать нескольким экземплярам.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
+        <target state="translated">В текущем каталоге не найдены запущенные хосты приложений. Отображаются все запущенные хосты приложений:</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Выполняется сканирование на наличие запущенных хостов приложений...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">

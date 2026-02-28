@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost.</source>
-        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost.</target>
+        <target state="translated">Zobrazte data OpenTelemetry (protokoly, rozsahy, trasování) ze spuštěného hostitele aplikace.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
-        <target state="new">view telemetry for</target>
+        <target state="translated">zobrazit telemetrii pro</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

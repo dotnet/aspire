@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="new">Run an Aspire AppHost interactively for development.</target>
+        <target state="translated">開発用に Aspire AppHost を対話形式で実行します。</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">デタッチされた AppHost 結果の出力形式です。</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

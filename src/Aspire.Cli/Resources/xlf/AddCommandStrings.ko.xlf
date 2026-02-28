@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
+        <target state="translated">통합을 추가할 Scarlet AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">

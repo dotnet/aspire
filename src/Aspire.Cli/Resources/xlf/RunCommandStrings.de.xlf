@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="new">Run an Aspire AppHost interactively for development.</target>
+        <target state="translated">Führen Sie einen Aspire AppHost interaktiv zur Entwicklung aus.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Ausgabeformat für getrennte AppHost-Ergebnisse.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

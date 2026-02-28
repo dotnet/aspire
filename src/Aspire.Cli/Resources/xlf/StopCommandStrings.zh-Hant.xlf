@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">多個 AppHost 正在執行。請使用 --apphost 指定要停止的 AppHost，或從中選取一個:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stop</source>
-        <target state="new">stop</target>
+        <target state="translated">停止</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

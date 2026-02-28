@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="OptionNotValidWithResource">
         <source>The '{0}' option is not valid when starting a resource.</source>
-        <target state="new">The '{0}' option is not valid when starting a resource.</target>
+        <target state="translated">Možnost {0} není při spouštění prostředku platná.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>connect to</source>
-        <target state="new">connect to</target>
+        <target state="translated">připojit k</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start an apphost in the background, or start a stopped resource.</source>
-        <target state="new">Start an apphost in the background, or start a stopped resource.</target>
+        <target state="translated">Spusťte hostitele aplikace na pozadí nebo spusťte zastavený prostředek.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
         <source>The name of the resource to start. If not specified, starts the AppHost in the background.</source>
-        <target state="new">The name of the resource to start. If not specified, starts the AppHost in the background.</target>
+        <target state="translated">Název prostředku, který se má spustit Pokud se nezadá, spustí AppHost na pozadí.</target>
         <note />
       </trans-unit>
     </body>

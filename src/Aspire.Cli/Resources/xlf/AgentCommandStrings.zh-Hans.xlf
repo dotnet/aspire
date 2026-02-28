@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent specific setup.</source>
-        <target state="new">Manage AI agent specific setup.</target>
+        <target state="translated">管理特定于 AI 智能体的设置。</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
         <source>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</source>
-        <target state="new">The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</target>
+        <target state="translated">配置文件 "{0}" 包含格式错误的 JSON。请手动修复文件，然后重新运行该命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="McpCommand_Description">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">
         <source>Skipping update of '{0}'.</source>
-        <target state="new">Skipping update of '{0}'.</target>
+        <target state="translated">正在跳过 "{0}" 的更新。</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationCompletedWithErrors">
         <source>Configuration completed with errors. Please fix the reported issues and re-run the command.</source>
-        <target state="new">Configuration completed with errors. Please fix the reported issues and re-run the command.</target>
+        <target state="translated">配置已完成，但出现错误。请修复报告的问题，然后重新运行该命令。</target>
         <note />
       </trans-unit>
     </body>

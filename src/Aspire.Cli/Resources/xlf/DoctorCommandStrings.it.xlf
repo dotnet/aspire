@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Diagnose Aspire environment issues and verify setup.</source>
-        <target state="new">Diagnose Aspire environment issues and verify setup.</target>
+        <target state="translated">Diagnosticare i problemi dell'ambiente Aspire e verificare la configurazione.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">

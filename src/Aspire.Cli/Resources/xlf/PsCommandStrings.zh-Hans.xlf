@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">列出正在运行的 apphosts。</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="needs-review-translation">CLI_PID</target>
+        <target state="new">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="needs-review-translation">仪表板</target>
+        <target state="new">Dashboard</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="needs-review-translation">PATH</target>
+        <target state="new">Path</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="needs-review-translation">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
