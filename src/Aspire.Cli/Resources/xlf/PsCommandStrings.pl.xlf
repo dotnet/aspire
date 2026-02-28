@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">Wyświetl listę uruchomionych hostów aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="needs-review-translation">CLI_PID</target>
+        <target state="new">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="needs-review-translation">PULPIT NAWIGACYJNY</target>
+        <target state="new">Dashboard</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="needs-review-translation">ŚCIEŻKA</target>
+        <target state="new">Path</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="needs-review-translation">Identyfikator PID</target>
+        <target state="translated">Identyfikator PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
