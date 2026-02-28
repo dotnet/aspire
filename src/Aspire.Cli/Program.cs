@@ -481,8 +481,10 @@ public class Program
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
-        if (showBanner || (isFirstRun && !noLogo))
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo or non-interactive output)
+        if (showBanner || (isFirstRun && !noLogo && hostEnvironment.SupportsInteractiveOutput))
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);
