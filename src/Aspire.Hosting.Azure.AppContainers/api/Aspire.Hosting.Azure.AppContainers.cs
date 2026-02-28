@@ -31,7 +31,12 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzureLogAnalyticsWorkspace(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureLogAnalyticsWorkspaceResource> workspaceBuilder) { throw null; }
 
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREACANAMING001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithCompactResourceNaming(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, bool enable = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithHttpsUpgrade(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, bool upgrade = true) { throw null; }
     }
 
     public static partial class AzureContainerAppProjectExtensions
@@ -79,7 +84,7 @@ namespace Aspire.Hosting.Azure
 
 namespace Aspire.Hosting.Azure.AppContainers
 {
-    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry, IAzureDelegatedSubnetResource
     {
         public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -87,13 +92,20 @@ namespace Aspire.Hosting.Azure.AppContainers
 
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
+        IAzureContainerRegistryResource? IAzureComputeEnvironmentResource.ContainerRegistry { get { throw null; } }
+
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
+
+        string IAzureDelegatedSubnetResource.DelegatedSubnetServiceName { get { throw null; } }
+
+        public AzureContainerRegistryResource? ContainerRegistry { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
-        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public ApplicationModel.ReferenceExpression GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
     }
 
     public partial class AzureContainerAppResource : AzureProvisioningResource

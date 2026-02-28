@@ -69,6 +69,7 @@ namespace Aspire.Hosting.DevTunnels
         public DevTunnelPortOptions Options { get { throw null; } }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, TunnelId = {TunnelId}")]
     public sealed partial class DevTunnelResource : ApplicationModel.ExecutableResource
     {
         public DevTunnelResource(string name, string tunnelId, string command, string workingDirectory, DevTunnelOptions? options = null) : base(default!, default!, default!) { }
