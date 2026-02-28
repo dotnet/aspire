@@ -55,41 +55,20 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            yarpBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.UseForHttps)
+                // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                yarpBuilder
+                    .WithEndpoint("https", ep =>
                     {
-                        // If no specific certificate is configured
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                    // configure the environment variables to use it.
-                    yarpBuilder
-                        .WithEndpoint("https", ep =>
-                        {
-                            // Create or update the HTTPS endpoint
-                            ep.TargetPort ??= HttpsPort;
-                            ep.UriScheme = "https";
-                            ep.Port ??= resource.HostHttpsPort;
-                        }, createIfNotExists: true)
-                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
-                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
-                }
-
-                return Task.CompletedTask;
+                        // Create or update the HTTPS endpoint
+                        ep.TargetPort ??= HttpsPort;
+                        ep.UriScheme = "https";
+                        ep.Port ??= resource.HostHttpsPort;
+                    }, createIfNotExists: true)
+                    .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
+                    .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
             });
         }
 

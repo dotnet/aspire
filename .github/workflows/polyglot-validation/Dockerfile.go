@@ -32,12 +32,11 @@ COPY setup-local-cli.sh /scripts/setup-local-cli.sh
 COPY test-go.sh /scripts/test-go.sh
 RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-go.sh
 
-# Entrypoint: Set up Aspire CLI, enable polyglot, run validation
+# Entrypoint: Set up Aspire CLI and run validation
 # Bundle extraction happens lazily on first command that needs the layout
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
     /scripts/setup-local-cli.sh && \
-    aspire --nologo config set features:polyglotSupportEnabled true --global && \
     aspire --nologo config set features:experimentalPolyglot:go true --global && \
     echo '' && \
     echo '=== Running validation ===' && \
