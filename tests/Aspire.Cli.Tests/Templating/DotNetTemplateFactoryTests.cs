@@ -375,6 +375,7 @@ public class DotNetTemplateFactoryTests
         var configurationService = new FakeConfigurationService();
         var telemetry = TestTelemetryHelper.CreateInitializedTelemetry();
         var hostEnvironment = new FakeCliHostEnvironment(nonInteractive);
+        var templateNuGetConfigService = new TemplateNuGetConfigService(interactionService, executionContext, packagingService, configurationService);
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -388,7 +389,8 @@ public class DotNetTemplateFactoryTests
             features,
             configurationService,
             telemetry,
-            hostEnvironment);
+            hostEnvironment,
+            templateNuGetConfigService);
     }
 
     private sealed class FakeConfigurationService : IConfigurationService

@@ -27,6 +27,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     private readonly CliExecutionContext _executionContext;
     private readonly IInteractionService _interactionService;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly TemplateNuGetConfigService _templateNuGetConfigService;
     private readonly ILogger<CliTemplateFactory> _logger;
 
     public CliTemplateFactory(
@@ -36,6 +37,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         CliExecutionContext executionContext,
         IInteractionService interactionService,
         ICliHostEnvironment hostEnvironment,
+        TemplateNuGetConfigService templateNuGetConfigService,
         ILogger<CliTemplateFactory> logger)
     {
         _languageDiscovery = languageDiscovery;
@@ -44,6 +46,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         _executionContext = executionContext;
         _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
+        _templateNuGetConfigService = templateNuGetConfigService;
         _logger = logger;
     }
 

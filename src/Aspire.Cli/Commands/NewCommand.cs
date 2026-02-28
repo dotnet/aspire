@@ -325,8 +325,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)
     {
-        return template.Runtime is TemplateRuntime.Cli &&
-               !template.Name.Equals(KnownTemplateId.EmptyAppHost, StringComparison.OrdinalIgnoreCase);
+        return template.Runtime is TemplateRuntime.Cli;
     }
 
     private enum AppHostLanguage

@@ -60,6 +60,7 @@ internal sealed partial class CliTemplateFactory
             {
                 _logger.LogDebug("Using embedded C# empty AppHost template for '{OutputPath}'.", outputPath);
                 await WriteCSharpEmptyAppHostAsync(inputs.Version, outputPath, projectName, useLocalhostTld, cancellationToken);
+                await _templateNuGetConfigService.PromptToCreateOrUpdateNuGetConfigAsync(inputs.Channel, outputPath, cancellationToken);
             }
             else
             {

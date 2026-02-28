@@ -30,7 +30,8 @@ internal class DotNetTemplateFactory(
     IFeatures features,
     IConfigurationService configurationService,
     AspireCliTelemetry telemetry,
-    ICliHostEnvironment hostEnvironment)
+    ICliHostEnvironment hostEnvironment,
+    TemplateNuGetConfigService templateNuGetConfigService)
     : ITemplateFactory
 {
     // Template-specific options
@@ -532,7 +533,7 @@ internal class DotNetTemplateFactory(
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.
-            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
+            await templateNuGetConfigService.PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
 
@@ -662,45 +663,4 @@ internal class DotNetTemplateFactory(
         return selectedPackageFromChannel;
     }
 
-    /// <summary>
-    /// Prompts to create or update a NuGet.config for explicit channels.
-    /// When the output directory differs from the working directory, a NuGet.config is created/updated
-    /// only in the output directory. When they are the same (in-place creation), existing behavior
-    /// is preserved where the working directory NuGet.config is considered for updates.
-    /// </summary>
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
-    {
-        if (channel.Type is not PackageChannelType.Explicit)
-        {
-            return;
-        }
-
-        var mappings = channel.Mappings;
-        if (mappings is null || mappings.Length == 0)
-        {
-            return;
-        }
-
-        var workingDir = executionContext.WorkingDirectory;
-        var outputDir = new DirectoryInfo(outputPath);
-
-        // Determine if we're creating the project in-place (output directory same as working directory)
-        var normalizedOutputPath = Path.GetFullPath(outputPath);
-        var normalizedWorkingPath = workingDir.FullName;
-        var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
-
-        var nugetConfigPrompter = new NuGetConfigPrompter(interactionService);
-
-        if (!isInPlaceCreation)
-        {
-            // For subdirectory creation, always create/update NuGet.config in the output directory only
-            // and ignore any existing NuGet.config in the working directory
-            await nugetConfigPrompter.CreateOrUpdateWithoutPromptAsync(outputDir, channel, cancellationToken);
-            return;
-        }
-
-        // In-place creation: preserve existing behavior
-        // Prompt user before creating or updating NuGet.config
-        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(workingDir, channel, cancellationToken);
-    }
 }
