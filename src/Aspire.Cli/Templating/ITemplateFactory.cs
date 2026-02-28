@@ -5,6 +5,6 @@ namespace Aspire.Cli.Templating;
 
 internal interface ITemplateFactory
 {
-    IEnumerable<ITemplate> GetTemplates();
-    IEnumerable<ITemplate> GetInitTemplates();
+    Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default);
 }

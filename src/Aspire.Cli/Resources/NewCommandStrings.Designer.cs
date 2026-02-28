@@ -124,6 +124,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ChannelOptionDescriptionWithStaging", resourceCulture);
             }
         }
+
+        public static string LanguageOptionDescription
+        {
+            get
+            {
+                return ResourceManager.GetString("LanguageOptionDescription", resourceCulture);
+            }
+        }
         
         public static string PromptToUsePrereleaseTemplates {
             get {

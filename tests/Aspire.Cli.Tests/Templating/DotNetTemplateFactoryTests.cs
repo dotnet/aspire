@@ -12,6 +12,8 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Tests.Telemetry;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
@@ -272,14 +274,14 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsEnabled_ReturnsAllTemplates()
+    public async Task GetTemplates_WhenShowAllTemplatesIsEnabled_ReturnsAllTemplates()
     {
         // Arrange
         var features = new TestFeatures(showAllTemplates: true);
         var factory = CreateTemplateFactory(features);
 
         // Act
-        var templates = factory.GetTemplates().ToList();
+        var templates = (await factory.GetTemplatesAsync()).ToList();
 
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
@@ -291,14 +293,14 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_ReturnsOnlyStarterTemplates()
+    public async Task GetTemplates_WhenShowAllTemplatesIsDisabled_ReturnsOnlyStarterTemplates()
     {
         // Arrange
         var features = new TestFeatures(showAllTemplates: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
-        var templates = factory.GetTemplates().ToList();
+        var templates = (await factory.GetTemplatesAsync()).ToList();
 
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
@@ -310,22 +312,55 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_SingleFileAppHostIsAlwaysVisible()
+    public async Task GetTemplates_SingleFileAppHostIsNotReturned()
     {
-        // Arrange - single-file templates should always be visible now
+        // Arrange
         var features = new TestFeatures(showAllTemplates: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
-        var templates = factory.GetTemplates().ToList();
+        var templates = (await factory.GetTemplatesAsync()).ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
+        Assert.Contains("aspire-py-starter", templateNames);
+    }
+
+    [Fact]
+    public async Task GetInitTemplates_IncludesSingleFileAppHostTemplate()
+    {
+        // Arrange
+        var features = new TestFeatures(showAllTemplates: false);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = (await factory.GetInitTemplatesAsync()).ToList();
 
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
-        Assert.Contains("aspire-py-starter", templateNames);
     }
 
-    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features, bool nonInteractive = false)
+    [Fact]
+    public async Task GetTemplates_WhenDotNetSdkIsUnavailable_ReturnsNoTemplates()
+    {
+        // Arrange
+        var features = new TestFeatures(showAllTemplates: true);
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (false, null, "10.0.100", false)
+        };
+        var factory = CreateTemplateFactory(features, sdkInstaller: sdkInstaller);
+
+        // Act
+        var templates = await factory.GetTemplatesAsync();
+
+        // Assert
+        Assert.Empty(templates);
+    }
+
+    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features, bool nonInteractive = false, TestDotNetSdkInstaller? sdkInstaller = null)
     {
         var interactionService = new TestInteractionService();
         var runner = new TestDotNetCliRunner();
@@ -336,8 +371,11 @@ public class DotNetTemplateFactoryTests
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
         var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        sdkInstaller ??= new TestDotNetSdkInstaller();
         var configurationService = new FakeConfigurationService();
+        var telemetry = TestTelemetryHelper.CreateInitializedTelemetry();
         var hostEnvironment = new FakeCliHostEnvironment(nonInteractive);
+        var templateNuGetConfigService = new TemplateNuGetConfigService(interactionService, executionContext, packagingService, configurationService);
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -345,10 +383,14 @@ public class DotNetTemplateFactoryTests
             certificateService,
             packagingService,
             prompter,
+            prompter,
             executionContext,
+            sdkInstaller,
             features,
             configurationService,
-            hostEnvironment);
+            telemetry,
+            hostEnvironment,
+            templateNuGetConfigService);
     }
 
     private sealed class FakeConfigurationService : IConfigurationService
@@ -504,7 +546,7 @@ public class DotNetTemplateFactoryTests
             => throw new NotImplementedException();
     }
 
-    private sealed class TestNewCommandPrompter : INewCommandPrompter
+    private sealed class TestNewCommandPrompter : INewCommandPrompter, ITemplateVersionPrompter
     {
         public Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
             => throw new NotImplementedException();
