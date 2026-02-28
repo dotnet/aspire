@@ -1290,7 +1290,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
 {
     public ConsoleOutput Console { get; set; }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null)
     {
         return action();
     }

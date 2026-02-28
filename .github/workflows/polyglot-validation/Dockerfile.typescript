@@ -24,17 +24,20 @@ RUN apt-get update && apt-get install -y \
 
 # Pre-configure Aspire CLI path
 ENV PATH="/root/.aspire/bin:${PATH}"
+ENV ASPIRE_CLI_TELEMETRY_OPTOUT=1
 
 WORKDIR /workspace
 
 COPY setup-local-cli.sh /scripts/setup-local-cli.sh
 COPY test-typescript.sh /scripts/test-typescript.sh
-RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-typescript.sh
+COPY test-typescript-playground.sh /scripts/test-typescript-playground.sh
+RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-typescript.sh /scripts/test-typescript-playground.sh
 
 # Entrypoint: Set up Aspire CLI and run validation
 # Bundle extraction happens lazily on first command that needs the layout
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
     /scripts/setup-local-cli.sh && \
-    /scripts/test-typescript.sh \
+    /scripts/test-typescript.sh && \
+    /scripts/test-typescript-playground.sh \
 "]

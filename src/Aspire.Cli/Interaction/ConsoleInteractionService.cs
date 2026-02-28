@@ -42,8 +42,10 @@ internal class ConsoleInteractionService : IInteractionService
         _hostEnvironment = hostEnvironment;
     }
 
-    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null)
     {
+        var displayText = emojiName is not null ? $":{emojiName}:  {statusText}" : statusText;
+
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
@@ -56,7 +58,7 @@ internal class ConsoleInteractionService : IInteractionService
             // Skip displaying if status text is empty (e.g., when outputting JSON)
             if (!string.IsNullOrEmpty(statusText))
             {
-                DisplaySubtleMessage(statusText);
+                DisplaySubtleMessage(displayText);
             }
             return await action();
         }
@@ -65,7 +67,7 @@ internal class ConsoleInteractionService : IInteractionService
         {
             return await MessageConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
-                .StartAsync(statusText, (context) => action());
+                .StartAsync(displayText, (context) => action());
         }
         finally
         {

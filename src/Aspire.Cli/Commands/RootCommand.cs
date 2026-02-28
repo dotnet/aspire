@@ -133,6 +133,7 @@ internal sealed class RootCommand : BaseRootCommand
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
+        RestoreCommand restoreCommand,
         SetupCommand setupCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
@@ -229,6 +230,7 @@ internal sealed class RootCommand : BaseRootCommand
         }
 
         Subcommands.Add(sdkCommand);
+        Subcommands.Add(restoreCommand);
 
         // Replace the default --help action with grouped help output.
         // Add -v as a short alias for --version.

@@ -466,7 +466,7 @@ public class DotNetTemplateFactoryTests
         public Task<bool> ConfirmAsync(string prompt, bool defaultAnswer, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<TResult> ShowStatusAsync<TResult>(string message, Func<Task<TResult>> work)
+        public Task<TResult> ShowStatusAsync<TResult>(string message, Func<Task<TResult>> work, string? emojiName = null)
             => throw new NotImplementedException();
 
         public Task ShowStatusAsync(string message, Func<Task> work)

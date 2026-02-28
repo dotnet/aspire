@@ -954,7 +954,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         _innerService = innerService;
     }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => _innerService.ShowStatusAsync(statusText, action);
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null) => _innerService.ShowStatusAsync(statusText, action, emojiName);
     public void ShowStatus(string statusText, Action action) => _innerService.ShowStatus(statusText, action);
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) 
         => _innerService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken);

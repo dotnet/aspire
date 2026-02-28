@@ -180,7 +180,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Builds the AppHost server project and generates SDK code.
     /// </summary>
-    private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    /// <returns><see langword="true"/> if the code was generated successfully; otherwise, <see langword="false"/>.</returns>
+    internal async Task<bool> BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
@@ -197,7 +198,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _interactionService.DisplayLines(buildOutput.GetLines());
             }
             _interactionService.DisplayError("Failed to prepare AppHost server.");
-            return;
+            return false;
         }
 
         // Step 2: Start the AppHost server temporarily for code generation
@@ -218,6 +219,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 rpcClient,
                 packages,
                 cancellationToken);
+
+            return true;
         }
         finally
         {
@@ -849,9 +852,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         config.Save(directory.FullName);
 
         // Build and regenerate SDK code with the new package
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
-
-        return true;
+        return await BuildAndGenerateSdkAsync(directory, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -964,7 +965,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplaySubtleMessage("Regenerating SDK code with updated packages...");
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
+        var regenerateSuccess = await BuildAndGenerateSdkAsync(directory, cancellationToken);
+
+        if (!regenerateSuccess)
+        {
+            return new UpdatePackagesResult { UpdatesApplied = false };
+        }
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);

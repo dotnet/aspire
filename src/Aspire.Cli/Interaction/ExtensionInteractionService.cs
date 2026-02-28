@@ -64,25 +64,39 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         });
     }
 
-    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, string? emojiName = null)
     {
+        var displayText = emojiName is not null ? $":{emojiName}:  {statusText}" : statusText;
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action).ConfigureAwait(false);
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
-        return value;
+        try
+        {
+            return await _consoleInteractionService.ShowStatusAsync(displayText, action).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public void ShowStatus(string statusText, Action action)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.ShowStatus(statusText, action);
 
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
+        try
+        {
+            _consoleInteractionService.ShowStatus(statusText, action);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
