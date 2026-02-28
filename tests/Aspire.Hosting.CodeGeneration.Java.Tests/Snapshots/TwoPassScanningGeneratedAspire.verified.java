@@ -472,6 +472,14 @@ class TestDeeplyNestedDto {
 // Handle Wrappers
 // ============================================================================
 
+/** Wrapper for System.Private.CoreLib/System.Threading.CancellationToken. */
+class CancellationToken extends HandleWrapperBase {
+    CancellationToken(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext. */
 class CommandLineArgsCallbackContext extends HandleWrapperBase {
     CommandLineArgsCallbackContext(Handle handle, AspireClient client) {
@@ -1756,6 +1764,30 @@ class ExecuteCommandContext extends HandleWrapperBase {
 
 }
 
+/** Wrapper for Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration. */
+class IConfiguration extends HandleWrapperBase {
+    IConfiguration(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets a configuration value by key */
+    public String getConfigValue(String key) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("configuration", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("key", AspireClient.serializeValue(key));
+        return (String) getClient().invokeCapability("Aspire.Hosting/getConfigValue", reqArgs);
+    }
+
+    /** Gets a connection string by name */
+    public String getConnectionString(String name) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("configuration", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        return (String) getClient().invokeCapability("Aspire.Hosting/getConnectionString", reqArgs);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder. */
 class IDistributedApplicationBuilder extends HandleWrapperBase {
     IDistributedApplicationBuilder(Handle handle, AspireClient client) {
@@ -1887,6 +1919,28 @@ class IDistributedApplicationResourceEvent extends HandleWrapperBase {
 
 }
 
+/** Wrapper for Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment. */
+class IHostEnvironment extends HandleWrapperBase {
+    IHostEnvironment(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the environment name */
+    public String getEnvironmentName() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("environment", AspireClient.serializeValue(getHandle()));
+        return (String) getClient().invokeCapability("Aspire.Hosting/getEnvironmentName", reqArgs);
+    }
+
+    /** Checks if running in Development environment */
+    public boolean isDevelopment() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("environment", AspireClient.serializeValue(getHandle()));
+        return (boolean) getClient().invokeCapability("Aspire.Hosting/isDevelopment", reqArgs);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource. */
 class IResource extends ResourceBuilderBase {
     IResource(Handle handle, AspireClient client) {
@@ -1896,7 +1950,7 @@ class IResource extends ResourceBuilderBase {
 }
 
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs. */
-class IResourceWithArgs extends HandleWrapperBase {
+class IResourceWithArgs extends ResourceBuilderBase {
     IResourceWithArgs(Handle handle, AspireClient client) {
         super(handle, client);
     }
@@ -1912,7 +1966,7 @@ class IResourceWithConnectionString extends ResourceBuilderBase {
 }
 
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints. */
-class IResourceWithEndpoints extends HandleWrapperBase {
+class IResourceWithEndpoints extends ResourceBuilderBase {
     IResourceWithEndpoints(Handle handle, AspireClient client) {
         super(handle, client);
     }
@@ -1920,8 +1974,16 @@ class IResourceWithEndpoints extends HandleWrapperBase {
 }
 
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment. */
-class IResourceWithEnvironment extends HandleWrapperBase {
+class IResourceWithEnvironment extends ResourceBuilderBase {
     IResourceWithEnvironment(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent. */
+class IResourceWithParent extends ResourceBuilderBase {
+    IResourceWithParent(Handle handle, AspireClient client) {
         super(handle, client);
     }
 
@@ -1936,9 +1998,33 @@ class IResourceWithServiceDiscovery extends ResourceBuilderBase {
 }
 
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport. */
-class IResourceWithWaitSupport extends HandleWrapperBase {
+class IResourceWithWaitSupport extends ResourceBuilderBase {
     IResourceWithWaitSupport(Handle handle, AspireClient client) {
         super(handle, client);
+    }
+
+}
+
+/** Wrapper for System.ComponentModel/System.IServiceProvider. */
+class IServiceProvider extends HandleWrapperBase {
+    IServiceProvider(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets a service by ATS type ID */
+    public Object getService(String typeId) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("serviceProvider", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("typeId", AspireClient.serializeValue(typeId));
+        return (Object) getClient().invokeCapability("Aspire.Hosting/getService", reqArgs);
+    }
+
+    /** Gets a required service by ATS type ID */
+    public Object getRequiredService(String typeId) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("serviceProvider", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("typeId", AspireClient.serializeValue(typeId));
+        return (Object) getClient().invokeCapability("Aspire.Hosting/getRequiredService", reqArgs);
     }
 
 }
@@ -2649,6 +2735,96 @@ class ProjectResource extends ResourceBuilderBase {
             reqArgs.put("operation", getClient().registerCallback(operation));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService. */
+class ResourceLoggerService extends HandleWrapperBase {
+    ResourceLoggerService(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Completes the log stream for a resource */
+    public void completeLog(IResource resource) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("loggerService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resource", AspireClient.serializeValue(resource));
+        getClient().invokeCapability("Aspire.Hosting/completeLog", reqArgs);
+    }
+
+    /** Completes the log stream by resource name */
+    public void completeLogByName(String resourceName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("loggerService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceName", AspireClient.serializeValue(resourceName));
+        getClient().invokeCapability("Aspire.Hosting/completeLogByName", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService. */
+class ResourceNotificationService extends HandleWrapperBase {
+    ResourceNotificationService(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Waits for a resource to reach a specified state */
+    public void waitForResourceState(String resourceName, String targetState) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceName", AspireClient.serializeValue(resourceName));
+        if (targetState != null) {
+            reqArgs.put("targetState", AspireClient.serializeValue(targetState));
+        }
+        getClient().invokeCapability("Aspire.Hosting/waitForResourceState", reqArgs);
+    }
+
+    /** Waits for a resource to reach one of the specified states */
+    public String waitForResourceStates(String resourceName, String[] targetStates) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceName", AspireClient.serializeValue(resourceName));
+        reqArgs.put("targetStates", AspireClient.serializeValue(targetStates));
+        return (String) getClient().invokeCapability("Aspire.Hosting/waitForResourceStates", reqArgs);
+    }
+
+    /** Waits for a resource to become healthy */
+    public ResourceEventDto waitForResourceHealthy(String resourceName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceName", AspireClient.serializeValue(resourceName));
+        return (ResourceEventDto) getClient().invokeCapability("Aspire.Hosting/waitForResourceHealthy", reqArgs);
+    }
+
+    /** Waits for all dependencies of a resource to be ready */
+    public void waitForDependencies(IResource resource) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resource", AspireClient.serializeValue(resource));
+        getClient().invokeCapability("Aspire.Hosting/waitForDependencies", reqArgs);
+    }
+
+    /** Tries to get the current state of a resource */
+    public ResourceEventDto tryGetResourceState(String resourceName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceName", AspireClient.serializeValue(resourceName));
+        return (ResourceEventDto) getClient().invokeCapability("Aspire.Hosting/tryGetResourceState", reqArgs);
+    }
+
+    /** Publishes an update for a resource's state */
+    public void publishResourceUpdate(IResource resource, String state, String stateStyle) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("notificationService", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resource", AspireClient.serializeValue(resource));
+        if (state != null) {
+            reqArgs.put("state", AspireClient.serializeValue(state));
+        }
+        if (stateStyle != null) {
+            reqArgs.put("stateStyle", AspireClient.serializeValue(stateStyle));
+        }
+        getClient().invokeCapability("Aspire.Hosting/publishResourceUpdate", reqArgs);
     }
 
 }
@@ -4110,39 +4286,46 @@ class UpdateCommandStateContext extends HandleWrapperBase {
 /** Static initializer to register handle wrappers. */
 class AspireRegistrations {
     static {
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", (h, c) -> new IDistributedApplicationBuilder(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplication", (h, c) -> new DistributedApplication(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", (h, c) -> new EndpointReference(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", (h, c) -> new IResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", (h, c) -> new IResourceWithEnvironment(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", (h, c) -> new IResourceWithEndpoints(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", (h, c) -> new IResourceWithArgs(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", (h, c) -> new IResourceWithConnectionString(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", (h, c) -> new IResourceWithWaitSupport(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent", (h, c) -> new IResourceWithParent(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", (h, c) -> new ContainerResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", (h, c) -> new ExecutableResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", (h, c) -> new ProjectResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", (h, c) -> new ParameterResource(h, c));
+        AspireClient.registerHandleWrapper("System.ComponentModel/System.IServiceProvider", (h, c) -> new IServiceProvider(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService", (h, c) -> new ResourceNotificationService(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService", (h, c) -> new ResourceLoggerService(h, c));
+        AspireClient.registerHandleWrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration", (h, c) -> new IConfiguration(h, c));
+        AspireClient.registerHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", (h, c) -> new IHostEnvironment(h, c));
+        AspireClient.registerHandleWrapper("System.Private.CoreLib/System.Threading.CancellationToken", (h, c) -> new CancellationToken(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", (h, c) -> new DistributedApplicationEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", (h, c) -> new DistributedApplicationExecutionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", (h, c) -> new DistributedApplicationExecutionContextOptions(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", (h, c) -> new IDistributedApplicationBuilder(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", (h, c) -> new DistributedApplicationEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", (h, c) -> new DistributedApplicationResourceEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEvent", (h, c) -> new IDistributedApplicationEvent(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent", (h, c) -> new IDistributedApplicationResourceEvent(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing", (h, c) -> new IDistributedApplicationEventing(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", (h, c) -> new CommandLineArgsCallbackContext(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", (h, c) -> new EndpointReference(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", (h, c) -> new EndpointReferenceExpression(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", (h, c) -> new EnvironmentCallbackContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext", (h, c) -> new UpdateCommandStateContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", (h, c) -> new ExecuteCommandContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", (h, c) -> new ResourceUrlsCallbackContext(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", (h, c) -> new ContainerResource(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", (h, c) -> new ExecutableResource(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", (h, c) -> new ParameterResource(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", (h, c) -> new IResourceWithConnectionString(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", (h, c) -> new ProjectResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", (h, c) -> new IResourceWithServiceDiscovery(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", (h, c) -> new IResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", (h, c) -> new TestCallbackContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", (h, c) -> new TestResourceContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", (h, c) -> new TestEnvironmentContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", (h, c) -> new TestCollectionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", (h, c) -> new TestRedisResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", (h, c) -> new TestDatabaseResource(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", (h, c) -> new IResourceWithEnvironment(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", (h, c) -> new IResourceWithArgs(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", (h, c) -> new IResourceWithEndpoints(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", (h, c) -> new IResourceWithWaitSupport(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,any>", (h, c) -> new AspireDict(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/List<any>", (h, c) -> new AspireList(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", (h, c) -> new AspireDict(h, c));

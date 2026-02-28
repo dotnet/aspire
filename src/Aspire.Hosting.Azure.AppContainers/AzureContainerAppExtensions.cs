@@ -30,8 +30,6 @@ public static class AzureContainerAppExtensions
     /// Adds the necessary infrastructure for Azure Container Apps to the distributed application builder.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    /// <remarks>This method is obsolete and not available in polyglot app hosts. Use <see cref="AddAzureContainerAppEnvironment"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Obsolete API. Use AddAzureContainerAppEnvironment instead.")]
     [Obsolete($"Use {nameof(AddAzureContainerAppEnvironment)} instead. This method will be removed in a future version.")]
     public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) =>
         AddAzureContainerAppsInfrastructureCore(builder);

@@ -281,6 +281,18 @@ func (d *TestDeeplyNestedDto) ToMap() map[string]any {
 // Handle Wrappers
 // ============================================================================
 
+// CancellationToken wraps a handle for System.Private.CoreLib/System.Threading.CancellationToken.
+type CancellationToken struct {
+	HandleWrapperBase
+}
+
+// NewCancellationToken creates a new CancellationToken.
+func NewCancellationToken(handle *Handle, client *AspireClient) *CancellationToken {
+	return &CancellationToken{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
 // CommandLineArgsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.
 type CommandLineArgsCallbackContext struct {
 	HandleWrapperBase
@@ -2103,6 +2115,44 @@ func (s *ExecuteCommandContext) SetCancellationToken(value *CancellationToken) (
 	return result.(*ExecuteCommandContext), nil
 }
 
+// IConfiguration wraps a handle for Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration.
+type IConfiguration struct {
+	HandleWrapperBase
+}
+
+// NewIConfiguration creates a new IConfiguration.
+func NewIConfiguration(handle *Handle, client *AspireClient) *IConfiguration {
+	return &IConfiguration{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// GetConfigValue gets a configuration value by key
+func (s *IConfiguration) GetConfigValue(key string) (*string, error) {
+	reqArgs := map[string]any{
+		"configuration": SerializeValue(s.Handle()),
+	}
+	reqArgs["key"] = SerializeValue(key)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getConfigValue", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// GetConnectionString gets a connection string by name
+func (s *IConfiguration) GetConnectionString(name string) (*string, error) {
+	reqArgs := map[string]any{
+		"configuration": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getConnectionString", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
 // IDistributedApplicationBuilder wraps a handle for Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder.
 type IDistributedApplicationBuilder struct {
 	HandleWrapperBase
@@ -2296,6 +2346,42 @@ func NewIDistributedApplicationResourceEvent(handle *Handle, client *AspireClien
 	}
 }
 
+// IHostEnvironment wraps a handle for Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment.
+type IHostEnvironment struct {
+	HandleWrapperBase
+}
+
+// NewIHostEnvironment creates a new IHostEnvironment.
+func NewIHostEnvironment(handle *Handle, client *AspireClient) *IHostEnvironment {
+	return &IHostEnvironment{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// GetEnvironmentName gets the environment name
+func (s *IHostEnvironment) GetEnvironmentName() (*string, error) {
+	reqArgs := map[string]any{
+		"environment": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getEnvironmentName", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// IsDevelopment checks if running in Development environment
+func (s *IHostEnvironment) IsDevelopment() (*bool, error) {
+	reqArgs := map[string]any{
+		"environment": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/isDevelopment", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
 // IResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource.
 type IResource struct {
 	ResourceBuilderBase
@@ -2310,13 +2396,13 @@ func NewIResource(handle *Handle, client *AspireClient) *IResource {
 
 // IResourceWithArgs wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs.
 type IResourceWithArgs struct {
-	HandleWrapperBase
+	ResourceBuilderBase
 }
 
 // NewIResourceWithArgs creates a new IResourceWithArgs.
 func NewIResourceWithArgs(handle *Handle, client *AspireClient) *IResourceWithArgs {
 	return &IResourceWithArgs{
-		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
 	}
 }
 
@@ -2334,25 +2420,37 @@ func NewIResourceWithConnectionString(handle *Handle, client *AspireClient) *IRe
 
 // IResourceWithEndpoints wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints.
 type IResourceWithEndpoints struct {
-	HandleWrapperBase
+	ResourceBuilderBase
 }
 
 // NewIResourceWithEndpoints creates a new IResourceWithEndpoints.
 func NewIResourceWithEndpoints(handle *Handle, client *AspireClient) *IResourceWithEndpoints {
 	return &IResourceWithEndpoints{
-		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
 	}
 }
 
 // IResourceWithEnvironment wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment.
 type IResourceWithEnvironment struct {
-	HandleWrapperBase
+	ResourceBuilderBase
 }
 
 // NewIResourceWithEnvironment creates a new IResourceWithEnvironment.
 func NewIResourceWithEnvironment(handle *Handle, client *AspireClient) *IResourceWithEnvironment {
 	return &IResourceWithEnvironment{
-		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
+	}
+}
+
+// IResourceWithParent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent.
+type IResourceWithParent struct {
+	ResourceBuilderBase
+}
+
+// NewIResourceWithParent creates a new IResourceWithParent.
+func NewIResourceWithParent(handle *Handle, client *AspireClient) *IResourceWithParent {
+	return &IResourceWithParent{
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
 	}
 }
 
@@ -2370,14 +2468,52 @@ func NewIResourceWithServiceDiscovery(handle *Handle, client *AspireClient) *IRe
 
 // IResourceWithWaitSupport wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport.
 type IResourceWithWaitSupport struct {
-	HandleWrapperBase
+	ResourceBuilderBase
 }
 
 // NewIResourceWithWaitSupport creates a new IResourceWithWaitSupport.
 func NewIResourceWithWaitSupport(handle *Handle, client *AspireClient) *IResourceWithWaitSupport {
 	return &IResourceWithWaitSupport{
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
+	}
+}
+
+// IServiceProvider wraps a handle for System.ComponentModel/System.IServiceProvider.
+type IServiceProvider struct {
+	HandleWrapperBase
+}
+
+// NewIServiceProvider creates a new IServiceProvider.
+func NewIServiceProvider(handle *Handle, client *AspireClient) *IServiceProvider {
+	return &IServiceProvider{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// GetService gets a service by ATS type ID
+func (s *IServiceProvider) GetService(typeId string) (any, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	reqArgs["typeId"] = SerializeValue(typeId)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetRequiredService gets a required service by ATS type ID
+func (s *IServiceProvider) GetRequiredService(typeId string) (any, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	reqArgs["typeId"] = SerializeValue(typeId)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getRequiredService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // ParameterResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource.
@@ -3375,6 +3511,123 @@ func (s *ProjectResource) WithCancellableOperation(operation func(...any) any) (
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// ResourceLoggerService wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService.
+type ResourceLoggerService struct {
+	HandleWrapperBase
+}
+
+// NewResourceLoggerService creates a new ResourceLoggerService.
+func NewResourceLoggerService(handle *Handle, client *AspireClient) *ResourceLoggerService {
+	return &ResourceLoggerService{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// CompleteLog completes the log stream for a resource
+func (s *ResourceLoggerService) CompleteLog(resource *IResource) error {
+	reqArgs := map[string]any{
+		"loggerService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resource"] = SerializeValue(resource)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeLog", reqArgs)
+	return err
+}
+
+// CompleteLogByName completes the log stream by resource name
+func (s *ResourceLoggerService) CompleteLogByName(resourceName string) error {
+	reqArgs := map[string]any{
+		"loggerService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceName"] = SerializeValue(resourceName)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeLogByName", reqArgs)
+	return err
+}
+
+// ResourceNotificationService wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService.
+type ResourceNotificationService struct {
+	HandleWrapperBase
+}
+
+// NewResourceNotificationService creates a new ResourceNotificationService.
+func NewResourceNotificationService(handle *Handle, client *AspireClient) *ResourceNotificationService {
+	return &ResourceNotificationService{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// WaitForResourceState waits for a resource to reach a specified state
+func (s *ResourceNotificationService) WaitForResourceState(resourceName string, targetState string) error {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceName"] = SerializeValue(resourceName)
+	reqArgs["targetState"] = SerializeValue(targetState)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/waitForResourceState", reqArgs)
+	return err
+}
+
+// WaitForResourceStates waits for a resource to reach one of the specified states
+func (s *ResourceNotificationService) WaitForResourceStates(resourceName string, targetStates []string) (*string, error) {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceName"] = SerializeValue(resourceName)
+	reqArgs["targetStates"] = SerializeValue(targetStates)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/waitForResourceStates", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// WaitForResourceHealthy waits for a resource to become healthy
+func (s *ResourceNotificationService) WaitForResourceHealthy(resourceName string) (*ResourceEventDto, error) {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceName"] = SerializeValue(resourceName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/waitForResourceHealthy", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceEventDto), nil
+}
+
+// WaitForDependencies waits for all dependencies of a resource to be ready
+func (s *ResourceNotificationService) WaitForDependencies(resource *IResource) error {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resource"] = SerializeValue(resource)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/waitForDependencies", reqArgs)
+	return err
+}
+
+// TryGetResourceState tries to get the current state of a resource
+func (s *ResourceNotificationService) TryGetResourceState(resourceName string) (*ResourceEventDto, error) {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceName"] = SerializeValue(resourceName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/tryGetResourceState", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceEventDto), nil
+}
+
+// PublishResourceUpdate publishes an update for a resource's state
+func (s *ResourceNotificationService) PublishResourceUpdate(resource *IResource, state string, stateStyle string) error {
+	reqArgs := map[string]any{
+		"notificationService": SerializeValue(s.Handle()),
+	}
+	reqArgs["resource"] = SerializeValue(resource)
+	reqArgs["state"] = SerializeValue(state)
+	reqArgs["stateStyle"] = SerializeValue(stateStyle)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/publishResourceUpdate", reqArgs)
+	return err
 }
 
 // ResourceUrlsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext.
@@ -5414,20 +5667,74 @@ func NewUpdateCommandStateContext(handle *Handle, client *AspireClient) *UpdateC
 // ============================================================================
 
 func init() {
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", func(h *Handle, c *AspireClient) any {
+		return NewIDistributedApplicationBuilder(h, c)
+	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplication", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplication(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", func(h *Handle, c *AspireClient) any {
+		return NewEndpointReference(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", func(h *Handle, c *AspireClient) any {
+		return NewIResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithEnvironment(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithEndpoints(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithArgs(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithConnectionString(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithWaitSupport(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithParent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", func(h *Handle, c *AspireClient) any {
+		return NewContainerResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", func(h *Handle, c *AspireClient) any {
+		return NewExecutableResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", func(h *Handle, c *AspireClient) any {
+		return NewProjectResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", func(h *Handle, c *AspireClient) any {
+		return NewParameterResource(h, c)
+	})
+	RegisterHandleWrapper("System.ComponentModel/System.IServiceProvider", func(h *Handle, c *AspireClient) any {
+		return NewIServiceProvider(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService", func(h *Handle, c *AspireClient) any {
+		return NewResourceNotificationService(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService", func(h *Handle, c *AspireClient) any {
+		return NewResourceLoggerService(h, c)
+	})
+	RegisterHandleWrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration", func(h *Handle, c *AspireClient) any {
+		return NewIConfiguration(h, c)
+	})
+	RegisterHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", func(h *Handle, c *AspireClient) any {
+		return NewIHostEnvironment(h, c)
+	})
+	RegisterHandleWrapper("System.Private.CoreLib/System.Threading.CancellationToken", func(h *Handle, c *AspireClient) any {
+		return NewCancellationToken(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", func(h *Handle, c *AspireClient) any {
+		return NewDistributedApplicationEventSubscription(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationExecutionContext(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationExecutionContextOptions(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", func(h *Handle, c *AspireClient) any {
-		return NewIDistributedApplicationBuilder(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", func(h *Handle, c *AspireClient) any {
-		return NewDistributedApplicationEventSubscription(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationResourceEventSubscription(h, c)
@@ -5444,9 +5751,6 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewCommandLineArgsCallbackContext(h, c)
 	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", func(h *Handle, c *AspireClient) any {
-		return NewEndpointReference(h, c)
-	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", func(h *Handle, c *AspireClient) any {
 		return NewEndpointReferenceExpression(h, c)
 	})
@@ -5462,26 +5766,8 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewResourceUrlsCallbackContext(h, c)
 	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", func(h *Handle, c *AspireClient) any {
-		return NewContainerResource(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", func(h *Handle, c *AspireClient) any {
-		return NewExecutableResource(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", func(h *Handle, c *AspireClient) any {
-		return NewParameterResource(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithConnectionString(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", func(h *Handle, c *AspireClient) any {
-		return NewProjectResource(h, c)
-	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", func(h *Handle, c *AspireClient) any {
 		return NewIResourceWithServiceDiscovery(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", func(h *Handle, c *AspireClient) any {
-		return NewIResource(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewTestCallbackContext(h, c)
@@ -5500,18 +5786,6 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", func(h *Handle, c *AspireClient) any {
 		return NewTestDatabaseResource(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithEnvironment(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithArgs(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithEndpoints(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithWaitSupport(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Dict<string,any>", func(h *Handle, c *AspireClient) any {
 		return &AspireDict[any, any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}

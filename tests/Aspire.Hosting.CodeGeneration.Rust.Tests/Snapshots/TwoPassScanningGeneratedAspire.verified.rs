@@ -508,6 +508,32 @@ impl TestDeeplyNestedDto {
 // Handle Wrappers
 // ============================================================================
 
+/// Wrapper for System.Private.CoreLib/System.Threading.CancellationToken
+pub struct CancellationToken {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for CancellationToken {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl CancellationToken {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
 pub struct CommandLineArgsCallbackContext {
     handle: Handle,
@@ -2197,6 +2223,50 @@ impl ExecuteCommandContext {
     }
 }
 
+/// Wrapper for Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration
+pub struct IConfiguration {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IConfiguration {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IConfiguration {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets a configuration value by key
+    pub fn get_config_value(&self, key: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("configuration".to_string(), self.handle.to_json());
+        args.insert("key".to_string(), serde_json::to_value(&key).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/getConfigValue", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Gets a connection string by name
+    pub fn get_connection_string(&self, name: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("configuration".to_string(), self.handle.to_json());
+        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/getConnectionString", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder
 pub struct IDistributedApplicationBuilder {
     handle: Handle,
@@ -2420,6 +2490,48 @@ impl IDistributedApplicationResourceEvent {
     }
 }
 
+/// Wrapper for Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment
+pub struct IHostEnvironment {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IHostEnvironment {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IHostEnvironment {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the environment name
+    pub fn get_environment_name(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("environment".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting/getEnvironmentName", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Checks if running in Development environment
+    pub fn is_development(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("environment".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting/isDevelopment", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 pub struct IResource {
     handle: Handle,
@@ -2550,6 +2662,32 @@ impl IResourceWithEnvironment {
     }
 }
 
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent
+pub struct IResourceWithParent {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IResourceWithParent {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IResourceWithParent {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery
 pub struct IResourceWithServiceDiscovery {
     handle: Handle,
@@ -2599,6 +2737,50 @@ impl IResourceWithWaitSupport {
 
     pub fn client(&self) -> &Arc<AspireClient> {
         &self.client
+    }
+}
+
+/// Wrapper for System.ComponentModel/System.IServiceProvider
+pub struct IServiceProvider {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IServiceProvider {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IServiceProvider {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets a service by ATS type ID
+    pub fn get_service(&self, type_id: &str) -> Result<Value, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("serviceProvider".to_string(), self.handle.to_json());
+        args.insert("typeId".to_string(), serde_json::to_value(&type_id).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/getService", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Gets a required service by ATS type ID
+    pub fn get_required_service(&self, type_id: &str) -> Result<Value, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("serviceProvider".to_string(), self.handle.to_json());
+        args.insert("typeId".to_string(), serde_json::to_value(&type_id).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/getRequiredService", args)?;
+        Ok(serde_json::from_value(result)?)
     }
 }
 
@@ -3461,6 +3643,140 @@ impl ProjectResource {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/withCancellableOperation", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService
+pub struct ResourceLoggerService {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for ResourceLoggerService {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl ResourceLoggerService {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Completes the log stream for a resource
+    pub fn complete_log(&self, resource: &IResource) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("loggerService".to_string(), self.handle.to_json());
+        args.insert("resource".to_string(), resource.handle().to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting/completeLog", args)?;
+        Ok(())
+    }
+
+    /// Completes the log stream by resource name
+    pub fn complete_log_by_name(&self, resource_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("loggerService".to_string(), self.handle.to_json());
+        args.insert("resourceName".to_string(), serde_json::to_value(&resource_name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/completeLogByName", args)?;
+        Ok(())
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService
+pub struct ResourceNotificationService {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for ResourceNotificationService {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl ResourceNotificationService {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Waits for a resource to reach a specified state
+    pub fn wait_for_resource_state(&self, resource_name: &str, target_state: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resourceName".to_string(), serde_json::to_value(&resource_name).unwrap_or(Value::Null));
+        if let Some(ref v) = target_state {
+            args.insert("targetState".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/waitForResourceState", args)?;
+        Ok(())
+    }
+
+    /// Waits for a resource to reach one of the specified states
+    pub fn wait_for_resource_states(&self, resource_name: &str, target_states: Vec<String>) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resourceName".to_string(), serde_json::to_value(&resource_name).unwrap_or(Value::Null));
+        args.insert("targetStates".to_string(), serde_json::to_value(&target_states).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/waitForResourceStates", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Waits for a resource to become healthy
+    pub fn wait_for_resource_healthy(&self, resource_name: &str) -> Result<ResourceEventDto, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resourceName".to_string(), serde_json::to_value(&resource_name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/waitForResourceHealthy", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Waits for all dependencies of a resource to be ready
+    pub fn wait_for_dependencies(&self, resource: &IResource) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resource".to_string(), resource.handle().to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting/waitForDependencies", args)?;
+        Ok(())
+    }
+
+    /// Tries to get the current state of a resource
+    pub fn try_get_resource_state(&self, resource_name: &str) -> Result<ResourceEventDto, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resourceName".to_string(), serde_json::to_value(&resource_name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/tryGetResourceState", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Publishes an update for a resource's state
+    pub fn publish_resource_update(&self, resource: &IResource, state: Option<&str>, state_style: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("notificationService".to_string(), self.handle.to_json());
+        args.insert("resource".to_string(), resource.handle().to_json());
+        if let Some(ref v) = state {
+            args.insert("state".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = state_style {
+            args.insert("stateStyle".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/publishResourceUpdate", args)?;
+        Ok(())
     }
 }
 
