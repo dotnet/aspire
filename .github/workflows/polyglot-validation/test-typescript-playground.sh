@@ -34,15 +34,11 @@ fi
 
 echo "Playground root: $PLAYGROUND_ROOT"
 
-# Discover all TypeScript apps with an apphost.ts
+# Discover all TypeScript ValidationAppHost apps
 APP_DIRS=()
 for integration_dir in "$PLAYGROUND_ROOT"/*/; do
-    # Pattern 1: Integration/ValidationAppHost/apphost.ts
     if [ -f "$integration_dir/ValidationAppHost/apphost.ts" ]; then
         APP_DIRS+=("$integration_dir/ValidationAppHost")
-    # Pattern 2: Integration/apphost.ts (e.g., Aspire.Hosting.SqlServer)
-    elif [ -f "$integration_dir/apphost.ts" ]; then
-        APP_DIRS+=("$integration_dir")
     fi
 done
 
