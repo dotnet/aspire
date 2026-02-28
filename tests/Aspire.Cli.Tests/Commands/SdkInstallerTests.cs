@@ -32,7 +32,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             // Use TestDotNetCliRunner to avoid real process execution
@@ -57,7 +57,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -82,7 +82,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -117,7 +117,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             // Use TestDotNetCliRunner to avoid real process execution
@@ -155,7 +155,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             // Use TestDotNetCliRunner to avoid real process execution
@@ -181,7 +181,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -203,7 +203,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (true, "9.0.302", "9.0.302", false) // SDK installed
+                CheckAsyncCallback = _ => (true, "9.0.302", "9.0.302") // SDK installed
             };
             // Make sure project locator doesn't find projects so it fails at the expected point
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();

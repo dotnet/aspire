@@ -159,7 +159,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         // For C#, we need the .NET SDK
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

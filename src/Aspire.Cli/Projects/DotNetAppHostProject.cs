@@ -191,7 +191,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Signal build failure so RunCommand doesn't wait forever
             context.BuildCompletionSource?.TrySetResult(false);
@@ -362,7 +362,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Throw an exception that will be caught by the command and result in SdkNotInstalled exit code
             // This is cleaner than trying to signal through the backchannel pattern

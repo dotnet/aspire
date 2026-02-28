@@ -4,7 +4,7 @@
 namespace Aspire.Cli.Utils;
 
 /// <summary>
-/// Result of an SDK installation attempt.
+/// Result of an SDK availability check.
 /// </summary>
 internal enum SdkInstallResult
 {
@@ -14,27 +14,7 @@ internal enum SdkInstallResult
     AlreadyInstalled,
 
     /// <summary>
-    /// The SDK was successfully installed during this operation.
+    /// The SDK is missing or does not meet the minimum required version.
     /// </summary>
-    Installed,
-
-    /// <summary>
-    /// The SDK installation feature is not enabled.
-    /// </summary>
-    FeatureNotEnabled,
-
-    /// <summary>
-    /// The CLI is not running in an interactive environment.
-    /// </summary>
-    NotInteractive,
-
-    /// <summary>
-    /// The user declined the installation prompt.
-    /// </summary>
-    UserDeclined,
-
-    /// <summary>
-    /// An error occurred during installation.
-    /// </summary>
-    InstallError
+    NotInstalled
 }

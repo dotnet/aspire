@@ -179,7 +179,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

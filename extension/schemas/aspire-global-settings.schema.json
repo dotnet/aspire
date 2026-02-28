@@ -29,22 +29,6 @@
           "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
           "default": false
         },
-        "dotnetSdkInstallationEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
-          "default": true
-        },
         "execCommandEnabled": {
           "anyOf": [
             {

@@ -20,7 +20,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
 
         // Check if SDK is installed before attempting to prefetch packages
         // This prevents dirtying the cache when SDK is not available
-        var (sdkAvailable, _, _, _) = await sdkInstaller.CheckAsync(stoppingToken);
+        var (sdkAvailable, _, _) = await sdkInstaller.CheckAsync(stoppingToken);
 
         if (!sdkAvailable)
         {
