@@ -96,7 +96,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<AppHostLanguage?>("--language")
         {
-            Description = "The programming language for the AppHost.",
+            Description = NewCommandStrings.LanguageOptionDescription,
             Recursive = true
         };
         Options.Add(_languageOption);
@@ -198,9 +198,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return (true, selectedLanguageId);
     }
 
-    private Task<ITemplate[]> GetTemplatesForPromptAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private ITemplate[] GetTemplatesForPrompt(ParseResult parseResult)
     {
-        _ = cancellationToken;
         var explicitLanguageId = ParseExplicitLanguageId(parseResult);
         var templatesForPrompt = _templates.ToList();
 
@@ -211,7 +210,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 .ToList();
         }
 
-        return Task.FromResult(templatesForPrompt.ToArray());
+        return templatesForPrompt.ToArray();
     }
 
     private async Task<ITemplate?> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -226,7 +225,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
         }
 
-        var templatesForPrompt = await GetTemplatesForPromptAsync(parseResult, cancellationToken);
+        var templatesForPrompt = GetTemplatesForPrompt(parseResult);
         if (templatesForPrompt.Length == 0)
         {
             InteractionService.DisplayError("No templates are available for the current environment.");
@@ -327,7 +326,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)
     {
         return template.Runtime is TemplateRuntime.Cli &&
-               !template.Name.Equals("aspire-empty", StringComparison.OrdinalIgnoreCase);
+               !template.Name.Equals(KnownTemplateId.EmptyAppHost, StringComparison.OrdinalIgnoreCase);
     }
 
     private enum AppHostLanguage

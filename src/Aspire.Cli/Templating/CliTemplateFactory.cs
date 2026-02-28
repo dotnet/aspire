@@ -52,7 +52,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         IEnumerable<ITemplate> templates =
         [
             new CallbackTemplate(
-            "aspire-ts-starter",
+            KnownTemplateId.TypeScriptStarter,
             "Starter App (TypeScript/React)",
             projectName => $"./{projectName}",
             _ => { },
@@ -62,7 +62,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                 languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
                 languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)),
             new CallbackTemplate(
-            "aspire-empty",
+            KnownTemplateId.EmptyAppHost,
             "Empty AppHost",
             projectName => $"./{projectName}",
             static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
