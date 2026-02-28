@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="new">Describe resources in a running apphost.</target>
+        <target state="translated">Opisz zasoby w działającym hoście aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes.</source>
-        <target state="new">Continuously stream resource state changes.</target>
+        <target state="translated">Ciągłe przesyłanie zmian stanu zasobów.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>describe</source>
-        <target state="new">describe</target>
+        <target state="translated">opisz</target>
         <note />
       </trans-unit>
     </body>
