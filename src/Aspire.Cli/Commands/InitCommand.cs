@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -55,7 +54,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     };
 
     private readonly Option<string?> _channelOption;
-    private readonly Option<string?>? _languageOption;
+    private readonly Option<string?> _languageOption;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -117,45 +116,36 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_channelOption);
 
-        // Only add --language option when polyglot support is enabled
-        if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        _languageOption = new Option<string?>("--language")
         {
-            _languageOption = new Option<string?>("--language")
-            {
-                Description = "The programming language for the AppHost (csharp, typescript)"
-            };
-            Options.Add(_languageOption);
-        }
+            Description = "The programming language for the AppHost (csharp, typescript)"
+        };
+        Options.Add(_languageOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        // Only do language selection when polyglot support is enabled
-        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        // Get the language selection (from command line, config, or prompt).
+        var explicitLanguage = parseResult.GetValue(_languageOption);
+        var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+
+        // For non-C# languages, skip solution detection and create polyglot apphost.
+        if (selectedProject.LanguageId != KnownLanguageId.CSharp)
         {
-            // Get the language selection (from command line, config, or prompt)
-            Debug.Assert(_languageOption is not null);
-            var explicitLanguage = parseResult.GetValue(_languageOption);
-            var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
-
-            // For non-C# languages, skip solution detection and create polyglot apphost
-            if (selectedProject.LanguageId != KnownLanguageId.CSharp)
+            // Get the language info for scaffolding
+            var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
+            if (languageInfo is null)
             {
-                // Get the language info for scaffolding
-                var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
-                if (languageInfo is null)
-                {
-                    InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
-                    return ExitCodeConstants.FailedToCreateNewProject;
-                }
-
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
-                InteractionService.DisplayEmptyLine();
-                return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+                InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
+                return ExitCodeConstants.FailedToCreateNewProject;
             }
+
+            InteractionService.DisplayEmptyLine();
+            InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
+            InteractionService.DisplayEmptyLine();
+            return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
         }
 
         // For C#, we need the .NET SDK

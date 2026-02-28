@@ -63,7 +63,8 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Empty AppHost" which is the 4th option
+            // Navigate down to "Empty AppHost" which is the 5th option
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)

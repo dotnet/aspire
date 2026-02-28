@@ -15,7 +15,6 @@ namespace Aspire.Cli.Templating;
 
 internal sealed partial class CliTemplateFactory : ITemplateFactory
 {
-
     private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
     {
         Description = TemplatingStrings.UseLocalhostTld_Description,
@@ -47,32 +46,31 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 
     public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        _ = cancellationToken;
-
         IEnumerable<ITemplate> templates =
         [
             new CallbackTemplate(
-            KnownTemplateId.TypeScriptStarter,
-            "Starter App (TypeScript/React)",
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTypeScriptStarterTemplateAsync,
-            runtime: TemplateRuntime.Cli,
-            supportsLanguageCallback: static languageId =>
-                languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
-                languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)),
+                KnownTemplateId.TypeScriptStarter,
+                "Starter App (TypeScript/React)",
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTypeScriptStarterTemplateAsync,
+                runtime: TemplateRuntime.Cli,
+                supportsLanguageCallback: static languageId =>
+                    languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
+                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)),
+
             new CallbackTemplate(
-            KnownTemplateId.EmptyAppHost,
-            "Empty AppHost",
-            projectName => $"./{projectName}",
-            static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
-            ApplyEmptyAppHostTemplateAsync,
-            runtime: TemplateRuntime.Cli,
-            supportsLanguageCallback: static languageId =>
-                languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
-                languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
-                languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-            selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
+                KnownTemplateId.EmptyAppHost,
+                "Empty AppHost",
+                projectName => $"./{projectName}",
+                static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
+                ApplyEmptyAppHostTemplateAsync,
+                runtime: TemplateRuntime.Cli,
+                supportsLanguageCallback: static languageId =>
+                    languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
+                    languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
+                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
         ];
 
         return Task.FromResult(templates);
@@ -80,7 +78,6 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 
     public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        _ = cancellationToken;
         return Task.FromResult<IEnumerable<ITemplate>>([]);
     }
 

@@ -228,10 +228,7 @@ internal sealed class RootCommand : BaseRootCommand
             Subcommands.Add(execCommand);
         }
 
-        if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
-        {
-            Subcommands.Add(sdkCommand);
-        }
+        Subcommands.Add(sdkCommand);
 
         // Replace the default --help action with grouped help output.
         // Add -v as a short alias for --version.

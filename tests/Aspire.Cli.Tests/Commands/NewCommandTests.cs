@@ -44,7 +44,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.PolyglotSupportEnabled];
         });
         var provider = services.BuildServiceProvider();
 
@@ -839,7 +838,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.PolyglotSupportEnabled];
             options.NewCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
@@ -884,7 +882,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.PolyglotSupportEnabled];
             options.NewCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
@@ -934,7 +931,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.PolyglotSupportEnabled];
             options.LanguageServiceFactory = (sp) =>
             {
                 return new TestLanguageService
@@ -984,8 +980,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.PolyglotSupportEnabled];
-
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();

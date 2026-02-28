@@ -1425,24 +1425,9 @@ This section explains how to develop and test custom language SDKs using a local
    ./build.cmd  # Windows
    ```
 
-### Enabling Polyglot Support
+### Polyglot Support
 
-Polyglot support is behind a feature flag that must be enabled before you can use non-.NET languages. Enable it using the `aspire config` command:
-
-```bash
-# Enable polyglot support globally (recommended for SDK development)
-aspire config set features:polyglotSupportEnabled true --global
-
-# Or enable it locally for a specific project
-aspire config set features:polyglotSupportEnabled true
-```
-
-This enables the `--language` option on `aspire init` and `aspire new` commands, and allows the CLI to detect and run non-.NET app hosts.
-
-> **Note:** When running the CLI from source with `dotnet run`, use the full command:
-> ```bash
-> dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- config set features:polyglotSupportEnabled true --global
-> ```
+Polyglot support is enabled by default. The `--language` option is available on `aspire init` and `aspire new`, and the CLI can detect and run non-.NET AppHosts without additional configuration.
 
 ### Setting Up Local Development Mode
 
