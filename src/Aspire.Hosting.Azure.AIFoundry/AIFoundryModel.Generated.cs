@@ -75,6 +75,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Flux1KontextPro = new() { Name = "FLUX.1-Kontext-pro", Version = "1", Format = "Black Forest Labs" };
 
         /// <summary>
+        /// Professional text-to-image generation with adjustable inference steps and guidance scale for fine-tuned control. Features superior typography and text rendering, supports up to 4MP resolution, 32K prompt tokens, and up to 8 reference images. Ideal for deve
+        /// </summary>
+        public static readonly AIFoundryModel Flux2Flex = new() { Name = "FLUX.2-flex", Version = "1", Format = "Black Forest Labs" };
+
+        /// <summary>
         /// Generate and edit images through both text and image prompts. FLUX.2-pro is a multimodal flow matching model that enables both text-to-image generation and in-context image editing. Modify images while maintaining character consistency and performing local
         /// </summary>
         public static readonly AIFoundryModel Flux2Pro = new() { Name = "FLUX.2-pro", Version = "1", Format = "Black Forest Labs" };
@@ -2758,7 +2763,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// gpt-5.2-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
-        public static readonly AIFoundryModel Gpt52Chat = new() { Name = "gpt-5.2-chat", Version = "2025-12-11", Format = "OpenAI" };
+        public static readonly AIFoundryModel Gpt52Chat = new() { Name = "gpt-5.2-chat", Version = "2026-02-10", Format = "OpenAI" };
 
         /// <summary>
         /// gpt-5.2-codex is designed for steerability, front end development, and interactivity.
@@ -2766,9 +2771,19 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt52Codex = new() { Name = "gpt-5.2-codex", Version = "2026-01-14", Format = "OpenAI" };
 
         /// <summary>
+        /// gpt-5.3-codex is designed for steerability, front end development, and interactivity.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt53Codex = new() { Name = "gpt-5.3-codex", Version = "2026-02-24", Format = "OpenAI" };
+
+        /// <summary>
         /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
         /// </summary>
         public static readonly AIFoundryModel GptAudio = new() { Name = "gpt-audio", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// A new S2S (speech to speech) model with improved instruction following.
+        /// </summary>
+        public static readonly AIFoundryModel GptAudio15 = new() { Name = "gpt-audio-1.5", Version = "2026-02-23", Format = "OpenAI" };
 
         /// <summary>
         /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
@@ -2804,6 +2819,11 @@ public partial class AIFoundryModel
         /// A new S2S (speech to speech) model with improved instruction following.
         /// </summary>
         public static readonly AIFoundryModel GptRealtime = new() { Name = "gpt-realtime", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// A new S2S (speech to speech) model with improved instruction following.
+        /// </summary>
+        public static readonly AIFoundryModel GptRealtime15 = new() { Name = "gpt-realtime-1.5", Version = "2026-02-23", Format = "OpenAI" };
 
         /// <summary>
         /// gpt-realtime-mini is a smaller version of gpt-realtime S2S (speech to speech) model built on chive architecture. This model excels at instruction following and is optimized for cost efficiency.
@@ -3912,6 +3932,11 @@ public partial class AIFoundryModel
         /// Grok 4 is the latest reasoning model from xAI with advanced reasoning and tool-use capabilities, enabling it to achieve new state-of-the-art performance across challenging academic and industry benchmarks.
         /// </summary>
         public static readonly AIFoundryModel Grok4 = new() { Name = "grok-4", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok 4.1 Fast Non‑Reasoning is designed for low‑latency, near‑instant responses, emphasizing speed, high‑quality outputs, and smooth tool‑calling in agentic workflows, making it well‑suited for high‑throughput, real‑time scenarios where immediate responses
+        /// </summary>
+        public static readonly AIFoundryModel Grok41FastNonReasoning = new() { Name = "grok-4-1-fast-non-reasoning", Version = "1", Format = "xAI" };
 
         /// <summary>
         /// Grok 4 Fast is an efficiency-focused large language model developed by xAI, pre-trained on general-purpose data and post-trained on task demonstrations and tool use, with built-in safety features including refusal behaviors, a fixed system prompt enforcing
