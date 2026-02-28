@@ -9,6 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Templating;
@@ -17,8 +18,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 {
     private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
     {
-        Description = TemplatingStrings.UseLocalhostTld_Description,
-        DefaultValueFactory = _ => false
+        Description = TemplatingStrings.UseLocalhostTld_Description
     };
 
     private readonly ILanguageDiscovery _languageDiscovery;
@@ -26,6 +26,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     private readonly INewCommandPrompter _prompter;
     private readonly CliExecutionContext _executionContext;
     private readonly IInteractionService _interactionService;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly ILogger<CliTemplateFactory> _logger;
 
     public CliTemplateFactory(
@@ -34,6 +35,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         INewCommandPrompter prompter,
         CliExecutionContext executionContext,
         IInteractionService interactionService,
+        ICliHostEnvironment hostEnvironment,
         ILogger<CliTemplateFactory> logger)
     {
         _languageDiscovery = languageDiscovery;
@@ -41,6 +43,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         _prompter = prompter;
         _executionContext = executionContext;
         _interactionService = interactionService;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -52,7 +55,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                 KnownTemplateId.TypeScriptStarter,
                 "Starter App (TypeScript/React)",
                 projectName => $"./{projectName}",
-                _ => { },
+                static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
                 ApplyTypeScriptStarterTemplateAsync,
                 runtime: TemplateRuntime.Cli,
                 supportsLanguageCallback: static languageId =>
@@ -116,14 +119,6 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         int OtlpHttpPort, int OtlpHttpsPort,
         int McpHttpPort, int McpHttpsPort,
         int ResourceHttpPort, int ResourceHttpsPort);
-
-    private static bool ResolveLocalhostTld(System.CommandLine.ParseResult parseResult)
-    {
-        // Read from --localhost-tld option — available when running via subcommand
-        // (e.g., aspire new aspire-empty --localhost-tld). Defaults to false.
-        var value = parseResult.GetValue(s_localhostTldOption);
-        return value ?? false;
-    }
 
     private static void AddOptionIfMissing(System.CommandLine.Command command, System.CommandLine.Option option)
     {

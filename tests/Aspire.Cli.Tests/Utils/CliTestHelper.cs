@@ -464,7 +464,7 @@ internal sealed class CliServiceCollectionTestOptions
         var scaffoldingService = serviceProvider.GetRequiredService<IScaffoldingService>();
         var cliTemplateLogger = serviceProvider.GetRequiredService<ILogger<CliTemplateFactory>>();
         var dotNetFactory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, templateVersionPrompter, executionContext, sdkInstaller, features, configurationService, telemetry, hostEnvironment);
-        var cliFactory = new CliTemplateFactory(languageDiscovery, scaffoldingService, prompter, executionContext, interactionService, cliTemplateLogger);
+        var cliFactory = new CliTemplateFactory(languageDiscovery, scaffoldingService, prompter, executionContext, interactionService, hostEnvironment, cliTemplateLogger);
         return new TemplateProvider([dotNetFactory, cliFactory]);
     };
 

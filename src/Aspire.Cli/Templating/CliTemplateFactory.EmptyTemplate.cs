@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -46,8 +47,7 @@ internal sealed partial class CliTemplateFactory
 
         _logger.LogDebug("Applying empty AppHost template. LanguageId: {LanguageId}, Language: {LanguageDisplayName}, ProjectName: {ProjectName}, OutputPath: {OutputPath}.", languageId, language.DisplayName, projectName, outputPath);
 
-        // Resolve localhost TLD from --localhost-tld option (defaults to false)
-        var useLocalhostTld = ResolveLocalhostTld(parseResult);
+        var useLocalhostTld = await ResolveUseLocalhostTldAsync(parseResult, cancellationToken);
 
         try
         {
@@ -66,6 +66,11 @@ internal sealed partial class CliTemplateFactory
                 _logger.LogDebug("Using scaffolding service for language '{LanguageDisplayName}' in '{OutputPath}'.", language.DisplayName, outputPath);
                 var context = new ScaffoldContext(language, new DirectoryInfo(outputPath), projectName);
                 await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+                if (useLocalhostTld)
+                {
+                    await ApplyLocalhostTldToScaffoldedRunProfileAsync(outputPath, projectName, cancellationToken);
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -78,6 +83,57 @@ internal sealed partial class CliTemplateFactory
         _interactionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
 
         return new TemplateResult(ExitCodeConstants.Success, outputPath);
+    }
+
+    private async Task<bool> ResolveUseLocalhostTldAsync(System.CommandLine.ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var localhostTldOptionSpecified = parseResult.Tokens.Any(token =>
+            string.Equals(token.Value, "--localhost-tld", StringComparisons.CliInputOrOutput));
+        var useLocalhostTld = parseResult.GetValue(s_localhostTldOption);
+        if (!localhostTldOptionSpecified)
+        {
+            if (!_hostEnvironment.SupportsInteractiveInput)
+            {
+                return false;
+            }
+
+            useLocalhostTld = await _interactionService.PromptForSelectionAsync(
+                TemplatingStrings.UseLocalhostTld_Prompt,
+                [TemplatingStrings.No, TemplatingStrings.Yes],
+                choice => choice,
+                cancellationToken) switch
+            {
+                var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
+                var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
+                _ => throw new InvalidOperationException(TemplatingStrings.UseLocalhostTld_UnexpectedChoice)
+            };
+        }
+
+        if (useLocalhostTld ?? false)
+        {
+            _interactionService.DisplayMessage("check_mark", TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
+        }
+
+        return useLocalhostTld ?? false;
+    }
+
+    private async Task ApplyLocalhostTldToScaffoldedRunProfileAsync(string outputPath, string projectName, CancellationToken cancellationToken)
+    {
+        var appHostRunProfilePath = Path.Combine(outputPath, "apphost.run.json");
+        if (!File.Exists(appHostRunProfilePath))
+        {
+            _logger.LogDebug("Skipping localhost TLD update because '{RunProfilePath}' was not found.", appHostRunProfilePath);
+            return;
+        }
+
+        var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
+        var content = await File.ReadAllTextAsync(appHostRunProfilePath, cancellationToken);
+        var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
+
+        if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appHostRunProfilePath, updatedContent, cancellationToken);
+        }
     }
 
     private async Task WriteCSharpEmptyAppHostAsync(string? templateVersion, string outputPath, string projectName, bool useLocalhostTld, CancellationToken cancellationToken)

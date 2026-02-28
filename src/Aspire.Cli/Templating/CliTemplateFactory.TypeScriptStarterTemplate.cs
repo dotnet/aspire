@@ -8,7 +8,7 @@ namespace Aspire.Cli.Templating;
 
 internal sealed partial class CliTemplateFactory
 {
-    private async Task<TemplateResult> ApplyTypeScriptStarterTemplateAsync(CallbackTemplate _, TemplateInputs inputs, System.CommandLine.ParseResult __, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTypeScriptStarterTemplateAsync(CallbackTemplate _, TemplateInputs inputs, System.CommandLine.ParseResult parseResult, CancellationToken cancellationToken)
     {
         var projectName = inputs.Name;
         if (string.IsNullOrWhiteSpace(projectName))
@@ -37,6 +37,8 @@ internal sealed partial class CliTemplateFactory
 
         _logger.LogDebug("Applying TypeScript starter template. ProjectName: {ProjectName}, OutputPath: {OutputPath}, AspireVersion: {AspireVersion}.", projectName, outputPath, aspireVersion);
 
+        var useLocalhostTld = await ResolveUseLocalhostTldAsync(parseResult, cancellationToken);
+
         try
         {
             if (!Directory.Exists(outputPath))
@@ -48,7 +50,8 @@ internal sealed partial class CliTemplateFactory
 
             // Generate random ports (matching .NET template port ranges)
             var ports = GenerateRandomPorts();
-            string ApplyAllTokens(string content) => ApplyTokens(content, projectName, projectNameLower, aspireVersion, ports);
+            var hostName = useLocalhostTld ? $"{projectNameLower}.dev.localhost" : "localhost";
+            string ApplyAllTokens(string content) => ApplyTokens(content, projectName, projectNameLower, aspireVersion, ports, hostName);
             _logger.LogDebug("Copying embedded TypeScript starter template files to '{OutputPath}'.", outputPath);
             await CopyTemplateTreeToDiskAsync("ts-starter", outputPath, ApplyAllTokens, cancellationToken);
         }
