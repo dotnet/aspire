@@ -144,7 +144,7 @@ namespace Aspire.Hosting.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to delete the value for parameter `{0}`?
         ///
-        ///The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there..
+        ///The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there..
         /// </summary>
         internal static string DeleteParameterMessageWithUserSecrets {
             get {
@@ -252,7 +252,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure..
+        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information..
         /// </summary>
         internal static string ParametersInputsRememberDescriptionNotConfigured {
             get {
@@ -270,7 +270,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
         ///
         ///New parameter values may not be used until dependent resources are restarted..
         /// </summary>
