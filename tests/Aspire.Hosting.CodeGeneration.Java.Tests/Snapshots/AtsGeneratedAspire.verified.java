@@ -697,6 +697,16 @@ class TestRedisResource extends ResourceBuilderBase {
         return (boolean) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/waitForReadyAsync", reqArgs);
     }
 
+    /** Tests multi-param callback destructuring */
+    public TestRedisResource withMultiParamHandleCallback(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withMultiParamHandleCallback", reqArgs);
+    }
+
 }
 
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext. */
