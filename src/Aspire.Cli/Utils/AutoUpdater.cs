@@ -88,19 +88,21 @@ internal static class AutoUpdater
 
         try
         {
-            var arguments = version is not null
-                ? $"internal-auto-update {cliDownloadBaseUrl} {version}"
-                : $"internal-auto-update {cliDownloadBaseUrl}";
-
             var psi = new ProcessStartInfo
             {
                 FileName = processPath,
-                Arguments = arguments,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+
+            psi.ArgumentList.Add("internal-auto-update");
+            psi.ArgumentList.Add(cliDownloadBaseUrl);
+            if (version is not null)
+            {
+                psi.ArgumentList.Add(version);
+            }
 
             Process.Start(psi);
             // Don't wait — fire and forget
@@ -163,9 +165,21 @@ internal static class AutoUpdater
                     return 1;
                 }
 
-                // Stage the new binary
+                // Stage the new binary atomically: write to temp file, then rename
+                // This prevents concurrent processes from reading a partially-written binary
                 Directory.CreateDirectory(stagingDir);
-                File.Copy(newExePath, Path.Combine(stagingDir, exeName), overwrite: true);
+                var tempStagedPath = Path.Combine(stagingDir, $"{exeName}.tmp.{Environment.ProcessId}");
+                try
+                {
+                    File.Copy(newExePath, tempStagedPath, overwrite: true);
+                    File.Move(tempStagedPath, Path.Combine(stagingDir, exeName), overwrite: true);
+                }
+                catch
+                {
+                    // Clean up temp file on failure
+                    try { File.Delete(tempStagedPath); } catch { }
+                    throw;
+                }
 
                 // Write version marker
                 if (version is not null)
@@ -216,6 +230,14 @@ internal static class AutoUpdater
 
             var currentExePath = Environment.ProcessPath;
             if (string.IsNullOrEmpty(currentExePath))
+            {
+                return null;
+            }
+
+            // Guard: ensure we're updating the aspire executable, not the dotnet host.
+            // When running as a dotnet tool, Environment.ProcessPath points to the dotnet host.
+            var currentExeFileName = Path.GetFileName(currentExePath);
+            if (!string.Equals(currentExeFileName, exeName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

@@ -82,13 +82,13 @@ public class AutoUpdaterTests
     }
 
     [Fact]
-    public void HasStagedUpdate_ReturnsFalse_WhenNoStagingDirectory()
+    public void HasStagedUpdate_DoesNotThrow_WhenCheckingStagingDirectory()
     {
-        // Staging directory shouldn't exist in the test environment
+        // Call HasStagedUpdate and ensure it can be invoked without throwing.
         var result = AutoUpdater.HasStagedUpdate();
 
-        // This could be true if a real staging dir exists, but typically it won't in test
-        // Just verify it doesn't throw
+        // The return value may vary depending on whether a staging directory exists.
+        // This test only verifies that a boolean is returned and no exception is thrown.
         Assert.IsType<bool>(result);
     }
 

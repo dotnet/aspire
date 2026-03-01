@@ -57,22 +57,19 @@ internal sealed class NuGetPackagePrefetcher(
         {
             _ = Task.Run(async () =>
             {
-                if (features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
+                try
                 {
-                    try
-                    {
-                        await cliUpdateNotifier.CheckForCliUpdatesAsync(
-                            workingDirectory: executionContext.WorkingDirectory,
-                            cancellationToken: stoppingToken
-                            );
+                    await cliUpdateNotifier.CheckForCliUpdatesAsync(
+                        workingDirectory: executionContext.WorkingDirectory,
+                        cancellationToken: stoppingToken
+                        );
 
-                        // Trigger auto-update if an update is available
-                        await TryTriggerAutoUpdateAsync(command, stoppingToken);
-                    }
-                    catch (System.Exception ex)
-                    {
-                        logger.LogDebug(ex, "Non-fatal error while prefetching CLI packages. This is not critical to the operation of the CLI.");
-                    }
+                    // Trigger auto-update if an update is available (independent of update notifications)
+                    await TryTriggerAutoUpdateAsync(command, stoppingToken);
+                }
+                catch (System.Exception ex)
+                {
+                    logger.LogDebug(ex, "Non-fatal error while prefetching CLI packages. This is not critical to the operation of the CLI.");
                 }
             }, stoppingToken);
         }
