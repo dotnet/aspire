@@ -89,19 +89,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     protected override bool UpdateNotificationsEnabled => false;
 
-    private static bool IsRunningAsDotNetTool()
-    {
-        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
-        // When running as a native binary, it points to "aspire" or "aspire.exe"
-        var processPath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(processPath))
-        {
-            return false;
-        }
-
-        var fileName = Path.GetFileNameWithoutExtension(processPath);
-        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsRunningAsDotNetTool() => CliUpdateHelper.IsRunningAsDotNetTool();
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -340,7 +328,7 @@ internal sealed class UpdateCommand : BaseCommand
             throw new InvalidOperationException($"Unable to determine installation directory from: {currentExePath}");
         }
 
-        var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
+        var exeName = CliUpdateHelper.ExeName;
         var targetExePath = Path.Combine(installDir, exeName);
         var tempExtractDir = Directory.CreateTempSubdirectory("aspire-cli-extract").FullName;
 
@@ -357,33 +345,16 @@ internal sealed class UpdateCommand : BaseCommand
                 throw new FileNotFoundException($"Extracted CLI executable not found: {newExePath}");
             }
 
-            // Backup current executable if it exists
-            var unixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var backupPath = $"{targetExePath}.old.{unixTimestamp}";
-            if (File.Exists(targetExePath))
-            {
-                InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, "Backing up current CLI...");
-                _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
+            // Backup current executable and replace with new one
+            InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, "Backing up current CLI...");
 
-                // Clean up old backup files
-                CleanupOldBackupFiles(targetExePath);
+            // Clean up old backup files first
+            CliUpdateHelper.CleanupOldBackupFiles(targetExePath);
 
-                // Rename current executable to .old.[timestamp]
-                File.Move(targetExePath, backupPath);
-            }
+            var backupPath = CliUpdateHelper.ReplaceExecutable(targetExePath, newExePath);
 
             try
             {
-                // Copy new executable to install location
-                InteractionService.DisplayMessage(KnownEmojis.Wrench, $"Installing new CLI to {installDir}...");
-                File.Copy(newExePath, targetExePath, overwrite: true);
-
-                // On Unix systems, ensure the executable bit is set
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    SetExecutablePermission(targetExePath);
-                }
-
                 // Test the new executable and display its version
                 _logger.LogDebug("Testing new CLI executable and displaying version");
                 var newVersion = await GetNewVersionAsync(targetExePath, cancellationToken);
@@ -393,7 +364,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
 
                 // If we get here, the update was successful, clean up old backups
-                CleanupOldBackupFiles(targetExePath);
+                CliUpdateHelper.CleanupOldBackupFiles(targetExePath);
 
                 // The new binary will extract its embedded bundle on first run via EnsureExtractedAsync.
                 // No proactive extraction needed — the payload is inside the new binary's embedded resources,
@@ -407,9 +378,9 @@ internal sealed class UpdateCommand : BaseCommand
             }
             catch
             {
-                // If anything goes wrong, restore the backup
+                // If verification fails, restore the backup
                 _logger.LogWarning("Update failed, restoring backup");
-                if (File.Exists(backupPath))
+                if (backupPath is not null && File.Exists(backupPath))
                 {
                     if (File.Exists(targetExePath))
                     {
@@ -451,23 +422,6 @@ internal sealed class UpdateCommand : BaseCommand
                     : StringComparison.Ordinal));
     }
 
-    private void SetExecutablePermission(string filePath)
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            try
-            {
-                var mode = File.GetUnixFileMode(filePath);
-                mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-                File.SetUnixFileMode(filePath, mode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to set executable permission on {FilePath}", filePath);
-            }
-        }
-    }
-
     private async Task<string?> GetNewVersionAsync(string exePath, CancellationToken cancellationToken)
     {
         try
@@ -489,14 +443,14 @@ internal sealed class UpdateCommand : BaseCommand
 
             var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
-            
+
             if (process.ExitCode == 0)
             {
                 var version = output.Trim();
                 InteractionService.DisplaySuccess($"Updated to version: {version}");
                 return version;
             }
-            
+
             return null;
         }
         catch
@@ -505,38 +459,7 @@ internal sealed class UpdateCommand : BaseCommand
         }
     }
 
-    internal void CleanupOldBackupFiles(string targetExePath)
-    {
-        try
-        {
-            var directory = Path.GetDirectoryName(targetExePath);
-            if (string.IsNullOrEmpty(directory))
-            {
-                return;
-            }
-
-            var exeName = Path.GetFileName(targetExePath);
-            var searchPattern = $"{exeName}.old.*";
-
-            var oldBackupFiles = Directory.GetFiles(directory, searchPattern);
-            foreach (var backupFile in oldBackupFiles)
-            {
-                try
-                {
-                    File.Delete(backupFile);
-                    _logger.LogDebug("Deleted old backup file: {BackupFile}", backupFile);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to delete old backup file: {BackupFile}", backupFile);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to cleanup old backup files for: {TargetExePath}", targetExePath);
-        }
-    }
+    internal static void CleanupOldBackupFiles(string targetExePath) => CliUpdateHelper.CleanupOldBackupFiles(targetExePath);
 
     private void CleanupDirectory(string directory)
     {

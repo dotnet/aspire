@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Processes;
 
@@ -62,7 +59,7 @@ internal static class AutoUpdater
         }
 
         // Skip for dotnet tool installs (use 'dotnet tool update' instead)
-        if (IsRunningAsDotNetTool())
+        if (CliUpdateHelper.IsRunningAsDotNetTool())
         {
             return false;
         }
@@ -111,16 +108,10 @@ internal static class AutoUpdater
     {
         try
         {
-            var (os, arch) = DetectPlatform();
-            var rid = $"{os}-{arch}";
-            var ext = os == "win" ? "zip" : "tar.gz";
-            var archiveFilename = $"aspire-cli-{rid}.{ext}";
-            var checksumFilename = $"{archiveFilename}.sha512";
-            var archiveUrl = $"{baseUrl}/{archiveFilename}";
-            var checksumUrl = $"{baseUrl}/{checksumFilename}";
+            var (archiveUrl, checksumUrl, archiveFilename) = CliUpdateHelper.GetDownloadUrls(baseUrl);
+            var exeName = CliUpdateHelper.ExeName;
 
             var stagingDir = GetStagingDirectory();
-            var exeName = OperatingSystem.IsWindows() ? "aspire.exe" : "aspire";
 
             // If staging already has an update, skip
             if (File.Exists(Path.Combine(stagingDir, exeName)))
@@ -133,16 +124,16 @@ internal static class AutoUpdater
             try
             {
                 var archivePath = Path.Combine(tempDir, archiveFilename);
-                var checksumPath = Path.Combine(tempDir, checksumFilename);
+                var checksumPath = Path.Combine(tempDir, $"{archiveFilename}.sha512");
 
                 // Download archive and checksum
                 using var httpClient = new HttpClient();
 
-                await DownloadFileAsync(httpClient, archiveUrl, archivePath, DownloadTimeoutSeconds);
-                await DownloadFileAsync(httpClient, checksumUrl, checksumPath, ChecksumTimeoutSeconds);
+                await CliUpdateHelper.DownloadFileAsync(httpClient, archiveUrl, archivePath, DownloadTimeoutSeconds);
+                await CliUpdateHelper.DownloadFileAsync(httpClient, checksumUrl, checksumPath, ChecksumTimeoutSeconds);
 
                 // Validate checksum
-                await ValidateChecksumAsync(archivePath, checksumPath);
+                await CliUpdateHelper.ValidateChecksumAsync(archivePath, checksumPath);
 
                 // Extract archive
                 var extractDir = Path.Combine(tempDir, "extracted");
@@ -210,7 +201,7 @@ internal static class AutoUpdater
         try
         {
             var stagingDir = GetStagingDirectory();
-            var exeName = OperatingSystem.IsWindows() ? "aspire.exe" : "aspire";
+            var exeName = CliUpdateHelper.ExeName;
             var stagedExePath = Path.Combine(stagingDir, exeName);
 
             if (!File.Exists(stagedExePath))
@@ -225,7 +216,6 @@ internal static class AutoUpdater
             }
 
             // Guard: ensure we're updating the aspire executable, not the dotnet host.
-            // When running as a dotnet tool, Environment.ProcessPath points to the dotnet host.
             var currentExeFileName = Path.GetFileName(currentExePath);
             if (!string.Equals(currentExeFileName, exeName, StringComparison.OrdinalIgnoreCase))
             {
@@ -240,48 +230,12 @@ internal static class AutoUpdater
                 version = File.ReadAllText(versionFile).Trim();
             }
 
-            // Rename current exe to .old.{timestamp} (Windows allows renaming a running exe)
-            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var backupPath = $"{currentExePath}.old.{timestamp}";
-
             try
             {
-                File.Move(currentExePath, backupPath);
+                CliUpdateHelper.ReplaceExecutable(currentExePath, stagedExePath);
             }
             catch
             {
-                // Can't rename current exe (maybe another process has it locked) — abort
-                return null;
-            }
-
-            try
-            {
-                // Copy staged exe to current location
-                File.Copy(stagedExePath, currentExePath, overwrite: true);
-
-                // On Unix, set executable permissions
-                if (!OperatingSystem.IsWindows())
-                {
-                    var mode = File.GetUnixFileMode(currentExePath);
-                    mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-                    File.SetUnixFileMode(currentExePath, mode);
-                }
-            }
-            catch
-            {
-                // Rollback — restore backup
-                try
-                {
-                    if (File.Exists(currentExePath))
-                    {
-                        File.Delete(currentExePath);
-                    }
-                    File.Move(backupPath, currentExePath);
-                }
-                catch
-                {
-                    // Critical failure — both files may be in an inconsistent state
-                }
                 return null;
             }
 
@@ -295,8 +249,7 @@ internal static class AutoUpdater
                 // Ignore cleanup errors
             }
 
-            // Clean up old backup files (best-effort — they may still be locked by other instances)
-            CleanupOldBackupFiles(currentExePath);
+            CliUpdateHelper.CleanupOldBackupFiles(currentExePath);
 
             return version;
         }
@@ -312,138 +265,6 @@ internal static class AutoUpdater
     public static bool HasStagedUpdate()
     {
         var stagingDir = GetStagingDirectory();
-        var exeName = OperatingSystem.IsWindows() ? "aspire.exe" : "aspire";
-        return File.Exists(Path.Combine(stagingDir, exeName));
-    }
-
-    private static bool IsRunningAsDotNetTool()
-    {
-        var processPath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(processPath))
-        {
-            return false;
-        }
-
-        var fileName = Path.GetFileNameWithoutExtension(processPath);
-        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void CleanupOldBackupFiles(string targetExePath)
-    {
-        try
-        {
-            var directory = Path.GetDirectoryName(targetExePath);
-            if (string.IsNullOrEmpty(directory))
-            {
-                return;
-            }
-
-            var exeName = Path.GetFileName(targetExePath);
-            var searchPattern = $"{exeName}.old.*";
-
-            foreach (var backupFile in Directory.GetFiles(directory, searchPattern))
-            {
-                try
-                {
-                    File.Delete(backupFile);
-                }
-                catch
-                {
-                    // Ignore — file may still be locked by another running instance
-                }
-            }
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-    }
-
-    private static (string os, string arch) DetectPlatform()
-    {
-        var os = DetectOperatingSystem();
-        var arch = RuntimeInformation.ProcessArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException($"Unsupported architecture: {RuntimeInformation.ProcessArchitecture}")
-        };
-        return (os, arch);
-    }
-
-    private static string DetectOperatingSystem()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return "win";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            // Check for musl-based systems (Alpine, etc.)
-            try
-            {
-                var lddPath = "/usr/bin/ldd";
-                if (File.Exists(lddPath))
-                {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = lddPath,
-                        Arguments = "--version",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false
-                    };
-                    using var process = Process.Start(psi);
-                    if (process is not null)
-                    {
-                        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-                        process.WaitForExit();
-                        if (output.Contains("musl", StringComparison.OrdinalIgnoreCase))
-                        {
-                            return "linux-musl";
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Fall back to regular linux
-            }
-            return "linux";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return "osx";
-        }
-        else
-        {
-            throw new PlatformNotSupportedException($"Unsupported operating system: {RuntimeInformation.OSDescription}");
-        }
-    }
-
-    private static async Task DownloadFileAsync(HttpClient httpClient, string url, string outputPath, int timeoutSeconds)
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-        using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-        response.EnsureSuccessStatusCode();
-
-        await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await response.Content.CopyToAsync(fileStream, cts.Token);
-    }
-
-    private static async Task ValidateChecksumAsync(string archivePath, string checksumPath)
-    {
-        var expectedChecksum = (await File.ReadAllTextAsync(checksumPath)).Trim().ToLowerInvariant();
-
-        using var sha512 = SHA512.Create();
-        await using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var hashBytes = await sha512.ComputeHashAsync(fileStream);
-        var actualChecksum = Convert.ToHexString(hashBytes).ToLowerInvariant();
-
-        if (expectedChecksum != actualChecksum)
-        {
-            throw new InvalidOperationException($"Checksum validation failed. Expected: {expectedChecksum}, Actual: {actualChecksum}");
-        }
+        return File.Exists(Path.Combine(stagingDir, CliUpdateHelper.ExeName));
     }
 }
