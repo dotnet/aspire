@@ -253,9 +253,9 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
     /// <summary>
     /// Generates a synthetic .csproj file that references all integration packages and projects.
-    /// Publishing this project produces the full transitive DLL closure.
+    /// Building this project with CopyLocalLockFileAssemblies produces the full transitive DLL closure.
     /// </summary>
-    private static string GenerateIntegrationProjectFile(
+    internal static string GenerateIntegrationProjectFile(
         List<IntegrationReference> packageRefs,
         List<IntegrationReference> projectRefs,
         string outputDir)
