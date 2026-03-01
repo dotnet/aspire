@@ -229,24 +229,36 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
         }
 
-        // Merge channel-specific NuGet sources if a channel is configured
+        // Ensure the synthetic project can find NuGet packages from the configured channel
+        // NuGetConfigMerger only works for explicit channels, so for implicit/hive channels
+        // we need to get the sources directly and write a nuget.config
         if (channelName is not null)
         {
             try
             {
-                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
-                var channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
-                if (channel is not null)
+                var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+                if (sources is not null)
                 {
-                    await NuGetConfigMerger.CreateOrUpdateAsync(
-                        new DirectoryInfo(restoreDir),
-                        channel,
-                        cancellationToken: cancellationToken);
+                    var nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
+                    var sourceElements = string.Join("\n    ",
+                        sources.Select((s, i) => $"""<add key="channel-source-{i}" value="{System.Security.SecurityElement.Escape(s)}" />"""));
+
+                    var nugetConfig = $"""
+                        <?xml version="1.0" encoding="utf-8"?>
+                        <configuration>
+                          <packageSources>
+                            <clear />
+                            {sourceElements}
+                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                          </packageSources>
+                        </configuration>
+                        """;
+                    await File.WriteAllTextAsync(nugetConfigPath, nugetConfig, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to merge channel NuGet sources, relying on user nuget.config");
+                _logger.LogWarning(ex, "Failed to configure NuGet sources for integration project build");
             }
         }
 
