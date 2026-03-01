@@ -299,6 +299,13 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
         foreach (var integration in integrations)
         {
+            // Skip SDK-only packages that don't produce runtime assemblies
+            if (integration.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
+                integration.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
             {
                 atsAssemblies.Add(integration.Name);
