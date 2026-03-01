@@ -416,7 +416,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             {
                 BaseAddress = new Uri($"https://{app.McpEndPointAccessor().EndPoint}")
             };
-            var mcpRequest = McpServiceTests.CreateListToolsRequest();
+            var mcpSessionId = await McpServiceTests.InitializeSessionAsync(mcpHttpClient);
+            var mcpRequest = McpServiceTests.CreateListToolsRequest(mcpSessionId);
 
             var responseMessage = await mcpHttpClient.SendAsync(mcpRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
             responseMessage.EnsureSuccessStatusCode();
