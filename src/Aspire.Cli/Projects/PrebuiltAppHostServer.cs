@@ -7,7 +7,6 @@ using System.Text;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
-using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -26,7 +25,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly string _appPath;
     private readonly string _socketPath;
     private readonly LayoutConfiguration _layout;
-    private readonly BundleNuGetService _nugetService;
     private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
@@ -43,7 +41,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         string appPath,
         string socketPath,
         LayoutConfiguration layout,
-        BundleNuGetService nugetService,
         IDotNetCliRunner dotNetCliRunner,
         IPackagingService packagingService,
         IConfigurationService configurationService,
@@ -52,7 +49,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _appPath = Path.GetFullPath(appPath);
         _socketPath = socketPath;
         _layout = layout;
-        _nugetService = nugetService;
         _dotNetCliRunner = dotNetCliRunner;
         _packagingService = packagingService;
         _configurationService = configurationService;
@@ -89,7 +85,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         CancellationToken cancellationToken = default)
     {
         var integrationList = integrations.ToList();
-        var packageRefs = integrationList.Where(r => r.IsPackageReference).Select(r => (r.Name, r.Version!)).ToList();
+        var packageRefs = integrationList.Where(r => r.IsPackageReference).ToList();
         var projectRefs = integrationList.Where(r => r.IsProjectReference).ToList();
 
         try
@@ -100,70 +96,65 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             // Resolve the configured channel (local settings.json → global config fallback)
             var channelName = await ResolveChannelNameAsync(cancellationToken);
 
-            // Restore NuGet integration packages
-            if (packageRefs.Count > 0)
+            if (packageRefs.Count > 0 || projectRefs.Count > 0)
             {
-                _logger.LogDebug("Restoring {Count} integration packages", packageRefs.Count);
+                // Create a single synthetic project file with all package and project references,
+                // then publish it once to get the full transitive closure of DLLs.
+                var restoreDir = Path.Combine(_workingDirectory, "integration-restore");
+                Directory.CreateDirectory(restoreDir);
 
-                // Get NuGet sources filtered to the resolved channel
-                var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+                var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs);
+                var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
+                await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
 
-                // Pass apphost directory for nuget.config discovery
-                var appHostDirectory = Path.GetDirectoryName(_appPath);
-
-                _integrationLibsPath = await _nugetService.RestorePackagesAsync(
-                    packageRefs,
-                    "net10.0",
-                    sources: sources,
-                    workingDirectory: appHostDirectory,
-                    ct: cancellationToken);
-            }
-
-            // Build and publish project references
-            if (projectRefs.Count > 0)
-            {
-                _logger.LogDebug("Building {Count} project references", projectRefs.Count);
-
-                // Ensure we have a libs directory to copy into
-                if (_integrationLibsPath is null)
+                // Copy nuget.config from the user's apphost directory if present
+                var appHostDirectory = Path.GetDirectoryName(_appPath)!;
+                var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
+                if (File.Exists(userNugetConfig))
                 {
-                    _integrationLibsPath = Path.Combine(Path.GetTempPath(), ".aspire", "project-refs", Guid.NewGuid().ToString("N")[..12]);
-                    Directory.CreateDirectory(_integrationLibsPath);
+                    File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
                 }
 
-                foreach (var projectRef in projectRefs)
+                // Merge channel-specific NuGet sources if a channel is configured
+                if (channelName is not null)
                 {
-                    var projectFile = new FileInfo(projectRef.ProjectPath!);
-                    if (!projectFile.Exists)
+                    try
                     {
-                        _logger.LogError("Project reference not found: {Path}", projectRef.ProjectPath);
-                        throw new FileNotFoundException($"Project reference not found: {projectRef.ProjectPath}");
+                        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                        var channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+                        if (channel is not null)
+                        {
+                            await NuGetConfigMerger.CreateOrUpdateAsync(
+                                new DirectoryInfo(restoreDir),
+                                channel,
+                                cancellationToken: cancellationToken);
+                        }
                     }
-
-                    // Publish to a temp directory to get the full transitive closure
-                    var publishDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), ".aspire", "publish", Guid.NewGuid().ToString("N")[..12]));
-                    Directory.CreateDirectory(publishDir.FullName);
-
-                    _logger.LogDebug("Publishing project reference {Name} from {Path} to {OutputDir}", projectRef.Name, projectRef.ProjectPath, publishDir.FullName);
-
-                    var exitCode = await _dotNetCliRunner.PublishProjectAsync(
-                        projectFile,
-                        publishDir,
-                        new DotNetCliRunnerInvocationOptions(),
-                        cancellationToken);
-
-                    if (exitCode != 0)
+                    catch (Exception ex)
                     {
-                        throw new InvalidOperationException($"Failed to publish project reference '{projectRef.Name}' at {projectRef.ProjectPath}. Exit code: {exitCode}");
-                    }
-
-                    // Copy all DLLs from publish output into the integration libs path
-                    foreach (var dll in Directory.GetFiles(publishDir.FullName, "*.dll"))
-                    {
-                        var destPath = Path.Combine(_integrationLibsPath, Path.GetFileName(dll));
-                        File.Copy(dll, destPath, overwrite: true);
+                        _logger.LogWarning(ex, "Failed to merge channel NuGet sources, relying on user nuget.config");
                     }
                 }
+
+                // Publish to the integration libs path
+                var publishDir = new DirectoryInfo(Path.Combine(restoreDir, "publish"));
+                Directory.CreateDirectory(publishDir.FullName);
+
+                _logger.LogDebug("Publishing integration project with {PackageCount} packages and {ProjectCount} project references to {OutputDir}",
+                    packageRefs.Count, projectRefs.Count, publishDir.FullName);
+
+                var exitCode = await _dotNetCliRunner.PublishProjectAsync(
+                    new FileInfo(projectFilePath),
+                    publishDir,
+                    new DotNetCliRunnerInvocationOptions(),
+                    cancellationToken);
+
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"Failed to publish integration project. Exit code: {exitCode}");
+                }
+
+                _integrationLibsPath = publishDir.FullName;
             }
 
             return new AppHostServerPrepareResult(
@@ -183,6 +174,36 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 ChannelName: null,
                 NeedsCodeGeneration: false);
         }
+    }
+
+    /// <summary>
+    /// Generates a synthetic .csproj file that references all integration packages and projects.
+    /// Publishing this project produces the full transitive DLL closure.
+    /// </summary>
+    private static string GenerateIntegrationProjectFile(
+        List<IntegrationReference> packageRefs,
+        List<IntegrationReference> projectRefs)
+    {
+        var packageElements = string.Join("\n    ",
+            packageRefs.Select(p => $"""<PackageReference Include="{p.Name}" Version="{p.Version}" />"""));
+
+        var projectElements = string.Join("\n    ",
+            projectRefs.Select(p => $"""<ProjectReference Include="{p.ProjectPath}" />"""));
+
+        return $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <EnableDefaultItems>false</EnableDefaultItems>
+              </PropertyGroup>
+              <ItemGroup>
+                {{packageElements}}
+              </ItemGroup>
+              <ItemGroup>
+                {{projectElements}}
+              </ItemGroup>
+            </Project>
+            """;
     }
 
     /// <summary>
@@ -206,55 +227,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         }
 
         return channelName;
-    }
-
-    /// <summary>
-    /// Gets NuGet sources from the resolved channel, or all explicit channels if no channel is configured.
-    /// </summary>
-    private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(string? channelName, CancellationToken cancellationToken)
-    {
-        var sources = new List<string>();
-
-        try
-        {
-            var channels = await _packagingService.GetChannelsAsync(cancellationToken);
-
-            IEnumerable<PackageChannel> explicitChannels;
-            if (!string.IsNullOrEmpty(channelName))
-            {
-                // Filter to the configured channel
-                var matchingChannel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
-                explicitChannels = matchingChannel is not null ? [matchingChannel] : channels.Where(c => c.Type == PackageChannelType.Explicit);
-            }
-            else
-            {
-                // No channel configured, use all explicit channels
-                explicitChannels = channels.Where(c => c.Type == PackageChannelType.Explicit);
-            }
-
-            foreach (var channel in explicitChannels)
-            {
-                if (channel.Mappings is null)
-                {
-                    continue;
-                }
-
-                foreach (var mapping in channel.Mappings)
-                {
-                    if (!sources.Contains(mapping.Source, StringComparer.OrdinalIgnoreCase))
-                    {
-                        sources.Add(mapping.Source);
-                        _logger.LogDebug("Using channel '{Channel}' NuGet source: {Source}", channel.Name, mapping.Source);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to get package channels, relying on nuget.config and nuget.org fallback");
-        }
-
-        return sources.Count > 0 ? sources : null;
     }
 
     /// <inheritdoc />
