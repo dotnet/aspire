@@ -108,18 +108,25 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         // Walk up the directory tree to find existing settings file
         while (searchDirectory is not null)
         {
-            var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);
-
-            if (File.Exists(settingsFilePath))
+            // Prefer aspire.config.json (new format)
+            var newSettingsPath = Path.Combine(searchDirectory.FullName, AspireConfigFile.FileName);
+            if (File.Exists(newSettingsPath))
             {
-                return settingsFilePath;
+                return newSettingsPath;
+            }
+
+            // Fall back to .aspire/settings.json (legacy)
+            var legacySettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);
+            if (File.Exists(legacySettingsPath))
+            {
+                return legacySettingsPath;
             }
 
             searchDirectory = searchDirectory.Parent;
         }
 
-        // If no existing settings file found, create one in current directory
-        return ConfigurationHelper.BuildPathToSettingsJsonFile(executionContext.WorkingDirectory.FullName);
+        // If no existing settings file found, default to aspire.config.json in current directory
+        return Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
     }
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)

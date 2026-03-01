@@ -11,16 +11,24 @@ internal static class ConfigurationHelper
     {
         var currentDirectory = workingDirectory;
 
-        // Find the nearest local settings file
+        // Find the nearest local settings file (prefer aspire.config.json, fall back to .aspire/settings.json)
         FileInfo? localSettingsFile = null;
 
         while (currentDirectory is not null)
         {
-            var settingsFilePath = BuildPathToSettingsJsonFile(currentDirectory.FullName);
-
-            if (File.Exists(settingsFilePath))
+            // Check for aspire.config.json first (new format)
+            var newSettingsPath = Path.Combine(currentDirectory.FullName, "aspire.config.json");
+            if (File.Exists(newSettingsPath))
             {
-                localSettingsFile = new FileInfo(settingsFilePath);
+                localSettingsFile = new FileInfo(newSettingsPath);
+                break;
+            }
+
+            // Fall back to .aspire/settings.json (legacy format)
+            var legacySettingsPath = BuildPathToSettingsJsonFile(currentDirectory.FullName);
+            if (File.Exists(legacySettingsPath))
+            {
+                localSettingsFile = new FileInfo(legacySettingsPath);
                 break;
             }
 
