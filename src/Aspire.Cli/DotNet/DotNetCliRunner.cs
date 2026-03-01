@@ -39,7 +39,6 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> InitUserSecretsAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> PublishProjectAsync(FileInfo projectFilePath, DirectoryInfo outputDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -709,27 +708,6 @@ internal sealed class DotNetCliRunner(
         cliArgs = [.. cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg))];
 
         // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
-        var env = new Dictionary<string, string>
-        {
-            ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
-        };
-
-        return await ExecuteAsync(
-            args: cliArgs,
-            env: env,
-            projectFile: projectFilePath,
-            workingDirectory: projectFilePath.Directory!,
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-    }
-
-    public async Task<int> PublishProjectAsync(FileInfo projectFilePath, DirectoryInfo outputDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.StartDiagnosticActivity();
-
-        string[] cliArgs = ["publish", projectFilePath.FullName, "-o", outputDirectory.FullName];
-
         var env = new Dictionary<string, string>
         {
             ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
