@@ -523,7 +523,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
-        _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
+        _interactionService.DisplayMessage(KnownEmojis.Key, $"Initializing user secrets for {projectFile.Name}...");
 
         await _runner.InitUserSecretsAsync(
             projectFile,
@@ -586,7 +586,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         var userSecretsId = await QueryUserSecretsIdAsync(appHostFile, cancellationToken);
         if (!string.IsNullOrEmpty(userSecretsId))
         {
-            _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+            _interactionService.DisplayMessage(KnownEmojis.Key, RunCommandStrings.CopyingUserSecrets);
             var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
             if (!string.IsNullOrEmpty(isolatedUserSecretsId))
             {

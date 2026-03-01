@@ -116,7 +116,7 @@ internal static class TelemetryCommandHelpers
 
         if (!result.Success)
         {
-            interactionService.DisplayMessage("information", result.ErrorMessage);
+            interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return (false, null, null, null, ExitCodeConstants.Success);
         }
 

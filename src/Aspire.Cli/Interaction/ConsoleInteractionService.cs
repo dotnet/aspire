@@ -42,8 +42,18 @@ internal class ConsoleInteractionService : IInteractionService
         _hostEnvironment = hostEnvironment;
     }
 
-    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
+        if (!allowMarkup)
+        {
+            statusText = statusText.EscapeMarkup();
+        }
+
+        if (emoji is { } e)
+        {
+            statusText = FormatEmojiPrefix(e.Name) + statusText;
+        }
+
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
@@ -56,7 +66,8 @@ internal class ConsoleInteractionService : IInteractionService
             // Skip displaying if status text is empty (e.g., when outputting JSON)
             if (!string.IsNullOrEmpty(statusText))
             {
-                DisplaySubtleMessage(statusText);
+                // Text has already been escaped and emoji prepended, so pass as markup
+                DisplaySubtleMessage(statusText, allowMarkup: true);
             }
             return await action();
         }
@@ -73,8 +84,18 @@ internal class ConsoleInteractionService : IInteractionService
         }
     }
 
-    public void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
+        if (!allowMarkup)
+        {
+            statusText = statusText.EscapeMarkup();
+        }
+
+        if (emoji is { } e)
+        {
+            statusText = FormatEmojiPrefix(e.Name) + statusText;
+        }
+
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
@@ -86,7 +107,8 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (!string.IsNullOrEmpty(statusText))
             {
-                DisplaySubtleMessage(statusText);
+                // Text has already been escaped and emoji prepended, so pass as markup
+                DisplaySubtleMessage(statusText, allowMarkup: true);
             }
             action();
             return;
@@ -157,7 +179,7 @@ internal class ConsoleInteractionService : IInteractionService
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
-        
+
         prompt.SearchHighlightStyle = s_searchHighlightStyle;
 
         return await _outConsole.PromptAsync(prompt, cancellationToken);
@@ -206,18 +228,13 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("cross_mark", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
+        DisplayMessage(KnownEmojis.CrossMark, $"[red bold]{errorMessage.EscapeMarkup()}[/]", allowMarkup: true);
     }
 
-    public void DisplayMessage(string emojiName, string message)
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
-        // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
-        // on the same line before writing the message. This ensures that the message starts at the same position regardless
-        // of the emoji used. I'm not OCD .. you are!
-        var console = MessageConsole;
-        console.Markup($":{emojiName}:");
-        console.Write("\u001b[4G");
-        console.MarkupLine(message);
+        var displayMessage = allowMarkup ? message : message.EscapeMarkup();
+        MessageConsole.MarkupLine(FormatEmojiPrefix(emoji.Name) + displayMessage);
     }
 
     public void DisplayPlainText(string message)
@@ -262,9 +279,9 @@ internal class ConsoleInteractionService : IInteractionService
         MessageConsole.WriteLine($"{prefix}{message}", style);
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplaySuccess(string message, bool allowMarkup = false)
     {
-        DisplayMessage("check_mark", message);
+        DisplayMessage(KnownEmojis.CheckMark, message, allowMarkup);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
@@ -290,7 +307,7 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayCancellationMessage()
     {
         MessageConsole.WriteLine();
-        DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
+        DisplayMessage(KnownEmojis.StopSign, $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]", allowMarkup: true);
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
@@ -303,9 +320,9 @@ internal class ConsoleInteractionService : IInteractionService
         return _outConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false)
     {
-        var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
+        var displayMessage = allowMarkup ? message : message.EscapeMarkup();
         MessageConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
@@ -321,12 +338,21 @@ internal class ConsoleInteractionService : IInteractionService
         // Write to stderr to avoid corrupting stdout when JSON output is used
         _errorConsole.WriteLine();
         _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion.EscapeMarkup()));
-        
+
         if (!string.IsNullOrEmpty(updateCommand))
         {
             _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand.EscapeMarkup()));
         }
-        
+
         _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+    }
+
+    private string FormatEmojiPrefix(string emojiName)
+    {
+        const int emojiTargetWidth = 3; // 2 for emoji and 1 trailing space
+
+        var cellLength = EmojiWidth.GetCachedCellWidth(emojiName, MessageConsole);
+        var padding = Math.Max(1, emojiTargetWidth - cellLength);
+        return $":{emojiName}:" + new string(' ', padding);
     }
 }

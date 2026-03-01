@@ -143,7 +143,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
+            InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
             InteractionService.DisplayEmptyLine();
             return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
         }
@@ -163,14 +163,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (initContext.SelectedSolutionFile is not null)
         {
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
+            InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
             InteractionService.DisplayEmptyLine();
             return await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
         }
         else
         {
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage("information", InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
+            InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
             InteractionService.DisplayEmptyLine();
             return await CreateEmptyAppHostAsync(parseResult, cancellationToken);
         }
@@ -214,7 +214,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         if (initContext.AlreadyHasAppHost)
         {
-            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
+            InteractionService.DisplayMessage(KnownEmojis.CheckMark, InitCommandStrings.SolutionAlreadyInitialized);
             return ExitCodeConstants.Success;
         }
 
@@ -246,12 +246,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage("information", "The following projects will be added to the AppHost:");
+                InteractionService.DisplayMessage(KnownEmojis.Information, "The following projects will be added to the AppHost:");
                 InteractionService.DisplayEmptyLine();
 
                 foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
-                    InteractionService.DisplayMessage("check_box_with_check", project.ProjectFile.Name);
+                    InteractionService.DisplayMessage(KnownEmojis.CheckBoxWithCheck, project.ProjectFile.Name);
                 }
 
                 var addServiceDefaultsMessage = """
@@ -550,7 +550,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
             if (File.Exists(appHostPath))
             {
-                InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, $"{appHostFileName} already exists in this directory.");
                 return ExitCodeConstants.Success;
             }
         }
@@ -560,7 +560,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
-        InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
+        InteractionService.DisplayMessage(KnownEmojis.Information, $"Run 'aspire run' to start your AppHost.");
         return ExitCodeConstants.Success;
     }
 

@@ -8,7 +8,6 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands.Sdk;
 
@@ -94,8 +93,9 @@ internal sealed class SdkGenerateCommand : BaseCommand
         }
 
         return await InteractionService.ShowStatusAsync(
-            $":hammer: Generating {languageInfo.DisplayName} SDK from {integrationProject.Name}...",
-            async () => await GenerateSdkAsync(integrationProject, languageInfo, outputDir, cancellationToken));
+            $"Generating {languageInfo.DisplayName} SDK from {integrationProject.Name}...",
+            async () => await GenerateSdkAsync(integrationProject, languageInfo, outputDir, cancellationToken),
+            emoji: KnownEmojis.Hammer);
     }
 
     private async Task<LanguageInfo?> GetLanguageInfoAsync(string language, CancellationToken cancellationToken)
@@ -155,7 +155,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
                 InteractionService.DisplayError("Failed to build SDK generation server.");
                 foreach (var (_, line) in buildOutput.GetLines())
                 {
-                    InteractionService.DisplayMessage("wrench", line.EscapeMarkup());
+                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }

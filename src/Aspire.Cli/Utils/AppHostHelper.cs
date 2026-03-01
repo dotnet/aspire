@@ -56,11 +56,12 @@ internal static class AppHostHelper
 
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         var appHostInformationResult = await interactionService.ShowStatusAsync(
-            $":microscope: {InteractionServiceStrings.CheckingProjectType}: {relativePath}",
+            $"{InteractionServiceStrings.CheckingProjectType}: {relativePath}",
             () => runner.GetAppHostInformationAsync(
                 projectFile,
                 new DotNetCliRunnerInvocationOptions(),
-                cancellationToken));
+                cancellationToken),
+            emoji: KnownEmojis.Microscope);
 
         return appHostInformationResult;
     }
@@ -69,12 +70,13 @@ internal static class AppHostHelper
     {
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         return await interactionService.ShowStatusAsync(
-            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost} {relativePath}",
+            $"{InteractionServiceStrings.BuildingAppHost} {relativePath}",
             () => runner.BuildAsync(
                 projectFile,
                 noRestore,
                 options,
-                cancellationToken));
+                cancellationToken),
+            emoji: KnownEmojis.HammerAndWrench);
     }
 
     /// <summary>
