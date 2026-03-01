@@ -112,11 +112,18 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
             }
             settings["packages"] = new Dictionary<string, string>
             {
-                ["MyIntegration"] = "../MyIntegration/MyIntegration.csproj"
+                ["MyIntegration"] = "./MyIntegration/MyIntegration.csproj"
             };
 
             var updatedJson = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(settingsPath, updatedJson);
+
+            // Delete the generated .modules folder to force re-codegen with the new integration
+            var modulesDir = Path.Combine(workDir, ".modules");
+            if (Directory.Exists(modulesDir))
+            {
+                Directory.Delete(modulesDir, recursive: true);
+            }
 
             // Update apphost.ts to use the custom integration
             File.WriteAllText(Path.Combine(workDir, "apphost.ts"), """
