@@ -175,7 +175,7 @@ internal sealed class AppHostConnectionResolver(
         Func<string, string> formatPath,
         CancellationToken cancellationToken)
     {
-        interactionService.DisplayMessage("information", contextMessage);
+        interactionService.DisplayMessage(KnownEmojis.Information, contextMessage);
 
         // Order by most recently started first
         var choices = candidateConnections
