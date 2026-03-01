@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,7 @@ internal sealed class AppHostServerProjectFactory(
     IPackagingService packagingService,
     IConfigurationService configurationService,
     IBundleService bundleService,
+    BundleNuGetService bundleNuGetService,
     ILoggerFactory loggerFactory) : IAppHostServerProjectFactory
 {
     public async Task<IAppHostServerProject> CreateAsync(string appPath, CancellationToken cancellationToken = default)
@@ -80,6 +82,7 @@ internal sealed class AppHostServerProjectFactory(
                 appPath,
                 socketPath,
                 layout,
+                bundleNuGetService,
                 dotNetCliRunner,
                 packagingService,
                 configurationService,
