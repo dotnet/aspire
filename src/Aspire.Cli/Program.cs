@@ -124,8 +124,24 @@ public class Program
     private static string GetGlobalSettingsPath()
     {
         var usersAspirePath = GetUsersAspirePath();
-        var globalSettingsPath = Path.Combine(usersAspirePath, "globalsettings.json");
-        return globalSettingsPath;
+        var newPath = Path.Combine(usersAspirePath, Configuration.AspireConfigFile.FileName);
+
+        // Migrate legacy globalsettings.json → aspire.config.json on first access
+        var legacyPath = Path.Combine(usersAspirePath, "globalsettings.json");
+        if (!File.Exists(newPath) && File.Exists(legacyPath))
+        {
+            try
+            {
+                File.Move(legacyPath, newPath);
+            }
+            catch
+            {
+                // If move fails, fall back to legacy
+                return legacyPath;
+            }
+        }
+
+        return newPath;
     }
 
     internal static async Task<IHost> BuildApplicationAsync(string[] args, Dictionary<string, string?>? configurationValues = null)
