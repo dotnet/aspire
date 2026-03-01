@@ -1,8 +1,10 @@
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREFILESYSTEM001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -19,6 +21,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
+        TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
+            options.TrustDeveloperCertificate ??
+            true;
+
         _certificates = new Lazy<ImmutableList<X509Certificate2>>(() =>
         {
             try
@@ -33,25 +39,31 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
                 // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                 var now = DateTimeOffset.Now;
-                
+
                 // Get all valid ASP.NET Core development certificates
                 var validCerts = store.Certificates
                     .Where(c => c.IsAspNetCoreDevelopmentCertificate())
                     .Where(c => c.NotBefore <= now && now <= c.NotAfter)
                     .ToList();
-                
+
                 // If any certificate has a Subject Key Identifier extension, exclude certificates without it
                 if (validCerts.Any(c => c.HasSubjectKeyIdentifier()))
                 {
                     validCerts = validCerts.Where(c => c.HasSubjectKeyIdentifier()).ToList();
                 }
-                
+
                 // Take the highest version valid certificate for each unique SKI
                 devCerts.AddRange(
                     validCerts
                         .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
                         .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
                         .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
+
+                // Release the unused certificates
+                foreach (var unusedCert in validCerts.Except(devCerts))
+                {
+                    unusedCert.Dispose();
+                }
 
                 if (devCerts.Count == 0)
                 {
@@ -82,15 +94,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             return supportsTlsTermination;
         });
 
-        // Environment variable config > DistributedApplicationOptions > default true
-        TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
-            options.TrustDeveloperCertificate ??
-            true;
-
         // By default, only use for server authentication if trust is also enabled (and a developer certificate with a private key is available)
         UseForHttps = (configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultHttpsTermination) ??
             options.DeveloperCertificateDefaultHttpsTerminationEnabled ??
-            true ) && TrustCertificate && _supportsTlsTermination.Value;
+            true) && TrustCertificate && _supportsTlsTermination.Value;
     }
 
     /// <inheritdoc />
@@ -104,4 +111,71 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     /// <inheritdoc />
     public bool UseForHttps { get; }
+
+    internal static async Task<bool> IsCertificateTrustedAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        if (OperatingSystem.IsMacOS())
+        {
+            // On MacOS we have to verify against the Keychain
+            return await IsCertificateTrustedInMacOsKeychainAsync(fileSystemService, certificate, cancellationToken).ConfigureAwait(false);
+        }
+
+        try
+        {
+            // On Linux and Windows, we need to check if the certificate is in the Root store
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadOnly);
+
+            var matches = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, validOnly: false);
+            try
+            {
+                return matches.Count > 0;
+            }
+            finally
+            {
+                foreach (var cert in matches)
+                {
+                    cert.Dispose();
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors and assume not trusted
+            return false;
+        }
+    }
+
+    // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
+    // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
+    private static async Task<bool> IsCertificateTrustedInMacOsKeychainAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-devcert-check");
+            var certPath = Path.Combine(tempDirectory.Path, $"aspire-devcert-{certificate.Thumbprint}.cer");
+
+            File.WriteAllBytes(certPath, certificate.Export(X509ContentType.Cert));
+
+            var processSpec = new ProcessSpec("security")
+            {
+                Arguments = $"verify-cert -p basic -p ssl -c \"{certPath}\"",
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            var (task, processDisposable) = ProcessUtil.Run(processSpec);
+            await using (processDisposable.ConfigureAwait(false))
+            {
+                var result = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return result.ExitCode == 0;
+            }
+        }
+        catch
+        {
+            // Ignore errors and assume not trusted
+            return false;
+        }
+    }
 }

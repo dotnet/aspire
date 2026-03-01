@@ -182,8 +182,9 @@ public class BuildEnvironment
 
         if (OperatingSystem.IsMacOS())
         {
-            // Disable default developer certificate server authentication in MacOS due to test performance issues
-            EnvVars["ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_SERVER_AUTHENTICATION"] = "false";
+            // Disable developer certificate trust and HTTPS termination in macOS template tests to avoid keychain prompts.
+            EnvVars["ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST"] = "false";
+            EnvVars["ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_HTTPS_TERMINATION"] = "false";
         }
 
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");

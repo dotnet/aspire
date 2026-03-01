@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only
+
 public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
@@ -459,6 +461,33 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName);
         Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName);
+    }
+
+    [Fact]
+    public async Task DashboardResource_HttpsEndpoint_ConfiguresKestrelCertificateCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        {
+            options.DisableDashboard = false;
+            options.TrustDeveloperCertificate = true;
+        }, testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.AspNetCoreUrls] = "https://localhost",
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+
+        Assert.True(dashboard.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>());
     }
 
     [Fact]
