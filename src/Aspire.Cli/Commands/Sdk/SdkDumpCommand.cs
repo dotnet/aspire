@@ -122,20 +122,11 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         try
         {
-            // TODO: Support bundle mode by using DLL references instead of project references.
-            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
-            // using additionalProjectReferences. For now, SDK dump only works with .NET SDK.
-            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
-            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
-            {
-                InteractionService.DisplayError("SDK dump is only available with .NET SDK installed.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
 
-            // Build integrations list - empty since we only need core capabilities + optional integration
+            // Build integrations list - optional integration project reference
             var integrations = new List<IntegrationReference>();
 
-            // Add integration project reference if specified
             if (integrationProject is not null)
             {
                 integrations.Add(new IntegrationReference(
@@ -146,18 +137,20 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             _logger.LogDebug("Building AppHost server for capability scanning");
 
-            await appHostServerProject.CreateProjectFilesAsync(
+            var prepareResult = await appHostServerProject.PrepareAsync(
+                DotNetBasedAppHostServerProject.DefaultSdkVersion,
                 integrations,
                 cancellationToken);
 
-            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
-
-            if (!buildSuccess)
+            if (!prepareResult.Success)
             {
                 InteractionService.DisplayError("Failed to build capability scanner.");
-                foreach (var (_, line) in buildOutput.GetLines())
+                if (prepareResult.Output is not null)
                 {
-                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    foreach (var (_, line) in prepareResult.Output.GetLines())
+                    {
+                        InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    }
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
