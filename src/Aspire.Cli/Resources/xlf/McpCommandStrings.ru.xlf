@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Предварительно настроить сервер MCP Playwright?</target>
+        <source>Install Playwright CLI for browser automation?</source>
+        <target state="needs-review-translation">Предварительно настроить сервер MCP Playwright?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
