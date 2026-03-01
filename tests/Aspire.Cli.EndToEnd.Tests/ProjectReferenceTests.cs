@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
@@ -49,107 +50,86 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 1: Capture the CLI version for use in the integration project
-        sequenceBuilder
-            .Type("ASPIRE_VER=$(aspire --version)")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("echo \"Aspire version: $ASPIRE_VER\"")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Step 2: Create the .NET hosting integration project
-        sequenceBuilder
-            .Type("mkdir -p MyIntegration")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Write the .csproj — uses the captured CLI version for the Aspire.Hosting package reference
-        sequenceBuilder
-            .Type("""cat > MyIntegration/MyIntegration.csproj << CSPROJ""")
-            .Enter()
-            .Type("""<Project Sdk="Microsoft.NET.Sdk">""")
-            .Enter()
-            .Type("  <PropertyGroup>")
-            .Enter()
-            .Type("    <TargetFramework>net10.0</TargetFramework>")
-            .Enter()
-            .Type("""    <NoWarn>\$(NoWarn);ASPIREATS001</NoWarn>""")
-            .Enter()
-            .Type("  </PropertyGroup>")
-            .Enter()
-            .Type("  <ItemGroup>")
-            .Enter()
-            .Type("""    <PackageReference Include="Aspire.Hosting" Version="$ASPIRE_VER" />""")
-            .Enter()
-            .Type("  </ItemGroup>")
-            .Enter()
-            .Type("</Project>")
-            .Enter()
-            .Type("CSPROJ")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Write the integration source code with [AspireExport]
-        sequenceBuilder
-            .Type("""cat > MyIntegration/MyIntegrationExtensions.cs << 'CS'""")
-            .Enter()
-            .Type("using Aspire.Hosting;")
-            .Enter()
-            .Type("using Aspire.Hosting.ApplicationModel;")
-            .Enter()
-            .Type("namespace Aspire.Hosting;")
-            .Enter()
-            .Type("public static class MyIntegrationExtensions")
-            .Enter()
-            .Type("{")
-            .Enter()
-            .Type("""    [AspireExport("addMyService")]""")
-            .Enter()
-            .Type("    public static IResourceBuilder<ContainerResource> AddMyService(")
-            .Enter()
-            .Type("        this IDistributedApplicationBuilder builder, string name)")
-            .Enter()
-            .Type("""        => builder.AddContainer(name, "myservice", "latest");""")
-            .Enter()
-            .Type("}")
-            .Enter()
-            .Type("CS")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Step 3: Create a TypeScript AppHost using aspire init
+        // Step 1: Create a TypeScript AppHost first (so we get the sdkVersion in settings.json)
         sequenceBuilder
             .Type("aspire init --language typescript --non-interactive")
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
-        // Step 4: Update settings.json to add the project reference
-        // Use jq to add the packages section with the project reference
-        sequenceBuilder
-            .Type("""jq '. + {"packages": {"MyIntegration": "../MyIntegration/MyIntegration.csproj"}}' .aspire/settings.json > .aspire/settings.tmp && mv .aspire/settings.tmp .aspire/settings.json""")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("cat .aspire/settings.json")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        // Step 2: Create the integration project and update settings.json from C#
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            var workDir = workspace.WorkspaceRoot.FullName;
 
-        // Step 5: Start the AppHost and verify it works
+            // Read the sdkVersion from the settings.json that aspire init created
+            var settingsPath = Path.Combine(workDir, ".aspire", "settings.json");
+            var settingsJson = File.ReadAllText(settingsPath);
+            using var doc = JsonDocument.Parse(settingsJson);
+            var sdkVersion = doc.RootElement.GetProperty("sdkVersion").GetString()!;
+
+            // Create the .NET hosting integration project
+            var integrationDir = Path.Combine(workDir, "MyIntegration");
+            Directory.CreateDirectory(integrationDir);
+
+            File.WriteAllText(Path.Combine(integrationDir, "MyIntegration.csproj"), $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <NoWarn>$(NoWarn);ASPIREATS001</NoWarn>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting" Version="{{sdkVersion}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+
+            File.WriteAllText(Path.Combine(integrationDir, "MyIntegrationExtensions.cs"), """
+                using Aspire.Hosting;
+                using Aspire.Hosting.ApplicationModel;
+
+                namespace Aspire.Hosting;
+
+                public static class MyIntegrationExtensions
+                {
+                    [AspireExport("addMyService")]
+                    public static IResourceBuilder<ContainerResource> AddMyService(
+                        this IDistributedApplicationBuilder builder, string name)
+                        => builder.AddContainer(name, "myservice", "latest");
+                }
+                """);
+
+            // Update settings.json to add the project reference
+            using var settingsDoc = JsonDocument.Parse(settingsJson);
+            var settings = new Dictionary<string, object>();
+            foreach (var prop in settingsDoc.RootElement.EnumerateObject())
+            {
+                settings[prop.Name] = prop.Value.Clone();
+            }
+            settings["packages"] = new Dictionary<string, string>
+            {
+                ["MyIntegration"] = "../MyIntegration/MyIntegration.csproj"
+            };
+
+            var updatedJson = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(settingsPath, updatedJson);
+        });
+
+        // Step 3: Start the AppHost (this triggers the project ref build + codegen)
         sequenceBuilder
             .Type("aspire start --non-interactive")
             .Enter()
             .WaitUntil(s => waitForStartSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
-        // Step 6: Verify the custom integration was code-generated
+        // Step 4: Verify the custom integration was code-generated
         sequenceBuilder
             .Type("grep addMyService .modules/aspire.ts")
             .Enter()
             .WaitUntil(s => waitForAddMyServiceInCodegen.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
 
-        // Step 7: Clean up
+        // Step 5: Clean up
         sequenceBuilder
             .Type("aspire stop --all 2>/dev/null || true")
             .Enter()
