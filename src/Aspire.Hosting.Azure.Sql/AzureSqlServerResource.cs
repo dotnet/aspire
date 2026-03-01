@@ -542,34 +542,37 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     private static void PrepareDeploymentScriptInfrastructure(DistributedApplicationModel appModel, AzureSqlServerResource sql, AzureStorageResource? implicitStorage)
     {
         var hasPe = sql.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+        var hasRoleAssignments = sql.HasAnnotationOfType<DefaultRoleAssignmentsAnnotation>();
 
-        if (implicitStorage is not null)
+        // When there's no private endpoint or no role assignments (e.g. ClearDefaultRoleAssignments was called),
+        // remove all deployment script infrastructure since the deployment scripts won't run.
+        if (!hasPe || !hasRoleAssignments)
         {
-            if (!hasPe)
-            {
-                // No private endpoint — implicitStorage not needed
-                sql.RemoveDeploymentScriptStorage(appModel, implicitStorage);
-
-                if (sql.AdminIdentity is not null)
-                {
-                    appModel.Resources.Remove(sql.AdminIdentity);
-                    sql.AdminIdentity = null;
-                }
-
-                if (sql.DeploymentScriptNetworkSecurityGroup is not null)
-                {
-                    appModel.Resources.Remove(sql.DeploymentScriptNetworkSecurityGroup);
-                    sql.DeploymentScriptNetworkSecurityGroup = null;
-                }
-                return;
-            }
-
-            // If the implicitStorage was swapped out by WithAdminDeploymentScriptStorage,
-            // remove the original default from the model.
-            if (sql.DeploymentScriptStorage != implicitStorage)
+            if (implicitStorage is not null)
             {
                 sql.RemoveDeploymentScriptStorage(appModel, implicitStorage);
             }
+
+            if (sql.AdminIdentity is not null)
+            {
+                appModel.Resources.Remove(sql.AdminIdentity);
+                sql.AdminIdentity = null;
+            }
+
+            if (sql.DeploymentScriptNetworkSecurityGroup is not null)
+            {
+                appModel.Resources.Remove(sql.DeploymentScriptNetworkSecurityGroup);
+                sql.DeploymentScriptNetworkSecurityGroup = null;
+            }
+
+            return;
+        }
+
+        // If the implicitStorage was swapped out by WithAdminDeploymentScriptStorage,
+        // remove the original default from the model.
+        if (implicitStorage is not null && sql.DeploymentScriptStorage != implicitStorage)
+        {
+            sql.RemoveDeploymentScriptStorage(appModel, implicitStorage);
         }
 
         // Find the private endpoint targeting this SQL server to get the VirtualNetwork

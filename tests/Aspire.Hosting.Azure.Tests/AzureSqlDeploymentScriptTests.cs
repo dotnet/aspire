@@ -151,6 +151,27 @@ public class AzureSqlDeploymentScriptTests
         await VerifyAllAzureBicep(builder);
     }
 
+    [Fact]
+    public async Task SqlWithPrivateEndpoint_ClearDefaultRoleAssignments_RemovesDeploymentScriptInfra()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var peSubnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+
+        var sqlServer = builder.AddAzureSqlServer("sql")
+            .ClearDefaultRoleAssignments();
+        var db = sqlServer.AddDatabase("db");
+
+        peSubnet.AddPrivateEndpoint(sqlServer);
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(db);
+
+        await VerifyAllAzureBicep(builder);
+    }
+
     private static async Task VerifyAllAzureBicep(IDistributedApplicationBuilder builder)
     {
         var app = builder.Build();
