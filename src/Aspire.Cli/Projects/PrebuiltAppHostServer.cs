@@ -116,7 +116,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             if (projectRefs.Count > 0)
             {
                 // Project references require .NET SDK — verify it's available
-                var (sdkAvailable, _, minimumRequired, _) = await _sdkInstaller.CheckAsync(cancellationToken);
+                var (sdkAvailable, _, minimumRequired) = await _sdkInstaller.CheckAsync(cancellationToken);
                 if (!sdkAvailable)
                 {
                     throw new InvalidOperationException(
