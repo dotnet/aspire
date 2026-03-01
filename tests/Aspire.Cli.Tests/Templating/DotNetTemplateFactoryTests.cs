@@ -566,5 +566,6 @@ public class DotNetTemplateFactoryTests
         public bool SupportsInteractiveInput => !nonInteractive;
         public bool SupportsInteractiveOutput => !nonInteractive;
         public bool SupportsAnsi => false;
+        public bool IsRunningInCI => false;
     }
 }

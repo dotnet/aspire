@@ -51,7 +51,11 @@ internal abstract class BaseCommand : Command
 
             var exitCode = await ExecuteAsync(parseResult, cancellationToken);
 
-            if (UpdateNotificationsEnabled && features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
+            if (AutoUpdater.AppliedVersion is not null)
+            {
+                interactionService.DisplayMessage(KnownEmojis.Rocket, $"Auto-updated to version {AutoUpdater.AppliedVersion}. Changes take effect on next run.");
+            }
+            else if (UpdateNotificationsEnabled && features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
             {
                 try
                 {

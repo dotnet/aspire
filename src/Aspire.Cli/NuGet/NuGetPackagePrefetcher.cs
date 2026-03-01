@@ -10,7 +10,14 @@ using SystemCommand = System.CommandLine.Command;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(
+    ILogger<NuGetPackagePrefetcher> logger,
+    CliExecutionContext executionContext,
+    IFeatures features,
+    IPackagingService packagingService,
+    ICliUpdateNotifier cliUpdateNotifier,
+    ICliHostEnvironment hostEnvironment,
+    IConfigurationService configurationService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -58,6 +65,9 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                             workingDirectory: executionContext.WorkingDirectory,
                             cancellationToken: stoppingToken
                             );
+
+                        // Trigger auto-update if an update is available
+                        await TryTriggerAutoUpdateAsync(command, stoppingToken);
                     }
                     catch (System.Exception ex)
                     {
@@ -65,6 +75,47 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                     }
                 }
             }, stoppingToken);
+        }
+    }
+
+    private async Task TryTriggerAutoUpdateAsync(SystemCommand? command, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!cliUpdateNotifier.IsUpdateAvailable())
+            {
+                return;
+            }
+
+            // Skip auto-update for 'aspire update' command (user is managing updates)
+            if (command?.Name is "update")
+            {
+                return;
+            }
+
+            if (!AutoUpdater.ShouldAutoUpdate(hostEnvironment, features, executionContext))
+            {
+                return;
+            }
+
+            // Determine which channel to use for download
+            var channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken) ?? PackageChannelNames.Stable;
+            var channels = await packagingService.GetChannelsAsync(cancellationToken);
+            var channel = channels.FirstOrDefault(c => c.Name.Equals(channelName, StringComparison.OrdinalIgnoreCase));
+
+            if (channel?.CliDownloadBaseUrl is null)
+            {
+                return;
+            }
+
+            var newerVersion = cliUpdateNotifier.GetNewerVersionString();
+            AutoUpdater.SpawnBackgroundDownload(channel.CliDownloadBaseUrl, newerVersion);
+
+            logger.LogDebug("Spawned background auto-update process for channel {Channel}", channelName);
+        }
+        catch (System.Exception ex)
+        {
+            logger.LogDebug(ex, "Non-fatal error while triggering auto-update.");
         }
     }
 
