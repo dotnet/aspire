@@ -123,33 +123,18 @@ internal sealed partial class CliTemplateFactory
     {
         var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
 
-        // Check aspire.config.json first
         var aspireConfigPath = Path.Combine(outputPath, Configuration.AspireConfigFile.FileName);
-        if (File.Exists(aspireConfigPath))
+        if (!File.Exists(aspireConfigPath))
         {
-            var content = await File.ReadAllTextAsync(aspireConfigPath, cancellationToken);
-            var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
-            if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
-            {
-                await File.WriteAllTextAsync(aspireConfigPath, updatedContent, cancellationToken);
-            }
+            _logger.LogDebug("Skipping localhost TLD update because aspire.config.json was not found in '{OutputPath}'.", outputPath);
             return;
         }
 
-        // Fall back to apphost.run.json
-        var appHostRunProfilePath = Path.Combine(outputPath, "apphost.run.json");
-        if (!File.Exists(appHostRunProfilePath))
+        var content = await File.ReadAllTextAsync(aspireConfigPath, cancellationToken);
+        var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
+        if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
         {
-            _logger.LogDebug("Skipping localhost TLD update because neither aspire.config.json nor apphost.run.json was found in '{OutputPath}'.", outputPath);
-            return;
-        }
-
-        var runContent = await File.ReadAllTextAsync(appHostRunProfilePath, cancellationToken);
-        var updatedRunContent = runContent.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
-
-        if (!string.Equals(runContent, updatedRunContent, StringComparison.Ordinal))
-        {
-            await File.WriteAllTextAsync(appHostRunProfilePath, updatedRunContent, cancellationToken);
+            await File.WriteAllTextAsync(aspireConfigPath, updatedContent, cancellationToken);
         }
     }
 
