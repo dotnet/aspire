@@ -131,7 +131,17 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 language,
                 cancellationToken);
 
-            // Save channel and language to settings.json
+            // Save channel and language to aspire.config.json (new format)
+            var aspireConfigFile = AspireConfigFile.FromLegacy(config, profiles: null);
+            if (prepareResult.ChannelName is not null)
+            {
+                aspireConfigFile.Channel = prepareResult.ChannelName;
+            }
+            aspireConfigFile.AppHost ??= new AspireConfigAppHost();
+            aspireConfigFile.AppHost.Language = language.LanguageId;
+            aspireConfigFile.Save(directory.FullName);
+
+            // Also save legacy settings.json for backward compatibility
             if (prepareResult.ChannelName is not null)
             {
                 config.Channel = prepareResult.ChannelName;

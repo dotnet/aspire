@@ -121,20 +121,35 @@ internal sealed partial class CliTemplateFactory
 
     private async Task ApplyLocalhostTldToScaffoldedRunProfileAsync(string outputPath, string projectName, CancellationToken cancellationToken)
     {
-        var appHostRunProfilePath = Path.Combine(outputPath, "apphost.run.json");
-        if (!File.Exists(appHostRunProfilePath))
+        var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
+
+        // Check aspire.config.json first
+        var aspireConfigPath = Path.Combine(outputPath, Configuration.AspireConfigFile.FileName);
+        if (File.Exists(aspireConfigPath))
         {
-            _logger.LogDebug("Skipping localhost TLD update because '{RunProfilePath}' was not found.", appHostRunProfilePath);
+            var content = await File.ReadAllTextAsync(aspireConfigPath, cancellationToken);
+            var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
+            if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
+            {
+                await File.WriteAllTextAsync(aspireConfigPath, updatedContent, cancellationToken);
+            }
             return;
         }
 
-        var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
-        var content = await File.ReadAllTextAsync(appHostRunProfilePath, cancellationToken);
-        var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
-
-        if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
+        // Fall back to apphost.run.json
+        var appHostRunProfilePath = Path.Combine(outputPath, "apphost.run.json");
+        if (!File.Exists(appHostRunProfilePath))
         {
-            await File.WriteAllTextAsync(appHostRunProfilePath, updatedContent, cancellationToken);
+            _logger.LogDebug("Skipping localhost TLD update because neither aspire.config.json nor apphost.run.json was found in '{OutputPath}'.", outputPath);
+            return;
+        }
+
+        var runContent = await File.ReadAllTextAsync(appHostRunProfilePath, cancellationToken);
+        var updatedRunContent = runContent.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
+
+        if (!string.Equals(runContent, updatedRunContent, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appHostRunProfilePath, updatedRunContent, cancellationToken);
         }
     }
 

@@ -505,8 +505,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // For guest apphosts, look for apphost.run.json
-        // similar to how .NET single-file apphosts use apphost.run.json
+        // Check aspire.config.json first for launch profiles
+        var aspireConfig = AspireConfigFile.Load(directory.FullName);
+        if (aspireConfig?.Profiles is { Count: > 0 })
+        {
+            return ReadProfileFromAspireConfig(aspireConfig);
+        }
+
+        // Fall back to apphost.run.json / launchSettings.json
         var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
         var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
 
@@ -514,7 +520,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (!File.Exists(configPath))
         {
-            _logger.LogDebug("No apphost.run.json or launchSettings.json found in {Path}", directory.FullName);
+            _logger.LogDebug("No aspire.config.json, apphost.run.json, or launchSettings.json found in {Path}", directory.FullName);
             return null;
         }
 
@@ -583,6 +589,49 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _logger.LogWarning(ex, "Failed to read launchSettings.json");
             return null;
         }
+    }
+
+    private Dictionary<string, string>? ReadProfileFromAspireConfig(AspireConfigFile aspireConfig)
+    {
+        AspireConfigProfile? profile;
+
+        // Prefer 'https' profile, then fall back to first
+        if (aspireConfig.Profiles!.TryGetValue("https", out var httpsProfile))
+        {
+            profile = httpsProfile;
+        }
+        else
+        {
+            profile = aspireConfig.Profiles.Values.FirstOrDefault();
+        }
+
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var result = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(profile.ApplicationUrl))
+        {
+            result["ASPNETCORE_URLS"] = profile.ApplicationUrl;
+        }
+
+        if (profile.EnvironmentVariables is not null)
+        {
+            foreach (var kvp in profile.EnvironmentVariables)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+
+        if (result.Count == 0)
+        {
+            return null;
+        }
+
+        _logger.LogDebug("Read {Count} environment variables from aspire.config.json", result.Count);
+        return result;
     }
 
     /// <inheritdoc />

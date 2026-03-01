@@ -1055,7 +1055,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.True(localhostPrompted);
 
-        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json");
+        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
         Assert.True(File.Exists(runProfilePath));
         var runProfile = await File.ReadAllTextAsync(runProfilePath);
         Assert.Contains("testapp.dev.localhost", runProfile);
