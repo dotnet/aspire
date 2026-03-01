@@ -40,6 +40,15 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <summary>
     /// Initializes a new instance of the PrebuiltAppHostServer class.
     /// </summary>
+    /// <param name="appPath">The path to the user's polyglot app host directory.</param>
+    /// <param name="socketPath">The socket path for JSON-RPC communication.</param>
+    /// <param name="layout">The bundle layout configuration.</param>
+    /// <param name="nugetService">The NuGet service for restoring integration packages (NuGet-only path).</param>
+    /// <param name="dotNetCliRunner">The .NET CLI runner for building project references.</param>
+    /// <param name="sdkInstaller">The SDK installer for checking .NET SDK availability.</param>
+    /// <param name="packagingService">The packaging service for channel resolution.</param>
+    /// <param name="configurationService">The configuration service for reading channel settings.</param>
+    /// <param name="logger">The logger for diagnostic output.</param>
     public PrebuiltAppHostServer(
         string appPath,
         string socketPath,
@@ -181,6 +190,12 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         Directory.CreateDirectory(restoreDir);
 
         var outputDir = Path.Combine(restoreDir, "libs");
+        // Clean stale DLLs from previous builds to prevent leftover assemblies
+        // from removed integrations being picked up by the assembly resolver
+        if (Directory.Exists(outputDir))
+        {
+            Directory.Delete(outputDir, recursive: true);
+        }
         Directory.CreateDirectory(outputDir);
 
         var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir);
@@ -260,31 +275,34 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         List<IntegrationReference> projectRefs,
         string outputDir)
     {
-        var packageElements = string.Join("\n    ",
-            packageRefs.Select(p => $"""<PackageReference Include="{p.Name}" Version="{p.Version}" />"""));
+        var doc = new System.Xml.Linq.XDocument(
+            new System.Xml.Linq.XElement("Project",
+                new System.Xml.Linq.XAttribute("Sdk", "Microsoft.NET.Sdk"),
+                new System.Xml.Linq.XElement("PropertyGroup",
+                    new System.Xml.Linq.XElement("TargetFramework", "net10.0"),
+                    new System.Xml.Linq.XElement("EnableDefaultItems", "false"),
+                    new System.Xml.Linq.XElement("CopyLocalLockFileAssemblies", "true"),
+                    new System.Xml.Linq.XElement("ProduceReferenceAssembly", "false"),
+                    new System.Xml.Linq.XElement("EnableNETAnalyzers", "false"),
+                    new System.Xml.Linq.XElement("GenerateDocumentationFile", "false"),
+                    new System.Xml.Linq.XElement("OutDir", outputDir))));
 
-        var projectElements = string.Join("\n    ",
-            projectRefs.Select(p => $"""<ProjectReference Include="{p.ProjectPath}" />"""));
+        if (packageRefs.Count > 0)
+        {
+            doc.Root!.Add(new System.Xml.Linq.XElement("ItemGroup",
+                packageRefs.Select(p => new System.Xml.Linq.XElement("PackageReference",
+                    new System.Xml.Linq.XAttribute("Include", p.Name),
+                    new System.Xml.Linq.XAttribute("Version", p.Version!)))));
+        }
 
-        return $$"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <EnableDefaultItems>false</EnableDefaultItems>
-                <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-                <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-                <EnableNETAnalyzers>false</EnableNETAnalyzers>
-                <GenerateDocumentationFile>false</GenerateDocumentationFile>
-                <OutDir>{{outputDir}}</OutDir>
-              </PropertyGroup>
-              <ItemGroup>
-                {{packageElements}}
-              </ItemGroup>
-              <ItemGroup>
-                {{projectElements}}
-              </ItemGroup>
-            </Project>
-            """;
+        if (projectRefs.Count > 0)
+        {
+            doc.Root!.Add(new System.Xml.Linq.XElement("ItemGroup",
+                projectRefs.Select(p => new System.Xml.Linq.XElement("ProjectReference",
+                    new System.Xml.Linq.XAttribute("Include", p.ProjectPath!)))));
+        }
+
+        return doc.ToString();
     }
 
     /// <summary>

@@ -201,16 +201,25 @@ internal sealed class AspireJsonConfiguration
                 continue;
             }
 
-            if (value.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            var trimmedValue = value?.Trim();
+
+            if (string.IsNullOrEmpty(trimmedValue))
+            {
+                // NuGet package reference with no explicit version — fall back to the SDK version
+                yield return new IntegrationReference(packageName, sdkVersion, ProjectPath: null);
+                continue;
+            }
+
+            if (trimmedValue.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             {
                 // Project reference — resolve relative path to absolute
-                var absolutePath = Path.GetFullPath(Path.Combine(settingsDirectory, value));
+                var absolutePath = Path.GetFullPath(Path.Combine(settingsDirectory, trimmedValue));
                 yield return new IntegrationReference(packageName, Version: null, ProjectPath: absolutePath);
             }
             else
             {
-                // NuGet package reference
-                yield return new IntegrationReference(packageName, string.IsNullOrWhiteSpace(value) ? sdkVersion : value, ProjectPath: null);
+                // NuGet package reference with explicit version
+                yield return new IntegrationReference(packageName, trimmedValue, ProjectPath: null);
             }
         }
     }
