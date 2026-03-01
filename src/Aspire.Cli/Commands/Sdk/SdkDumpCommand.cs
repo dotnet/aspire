@@ -132,20 +132,23 @@ internal sealed class SdkDumpCommand : BaseCommand
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            // Build packages list - empty since we only need core capabilities + optional integration
-            var packages = new List<(string Name, string Version)>();
+            // Build integrations list - empty since we only need core capabilities + optional integration
+            var integrations = new List<IntegrationReference>();
+
+            // Add integration project reference if specified
+            if (integrationProject is not null)
+            {
+                integrations.Add(new IntegrationReference(
+                    Path.GetFileNameWithoutExtension(integrationProject.FullName),
+                    Version: null,
+                    ProjectPath: integrationProject.FullName));
+            }
 
             _logger.LogDebug("Building AppHost server for capability scanning");
 
-            // Create project files with the integration project reference if specified
-            var additionalProjectRefs = integrationProject is not null
-                ? new[] { integrationProject.FullName }
-                : null;
-
             await appHostServerProject.CreateProjectFilesAsync(
-                packages,
-                cancellationToken,
-                additionalProjectReferences: additionalProjectRefs);
+                integrations,
+                cancellationToken);
 
             var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
 

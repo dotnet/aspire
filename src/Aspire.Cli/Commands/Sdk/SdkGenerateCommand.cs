@@ -134,19 +134,24 @@ internal sealed class SdkGenerateCommand : BaseCommand
             var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(languageInfo.LanguageId, cancellationToken);
 
             // Build packages list - include the code generator
-            var packages = new List<(string Name, string Version)>();
+            var integrations = new List<IntegrationReference>();
             if (codeGenPackage is not null)
             {
-                packages.Add((codeGenPackage, DotNetBasedAppHostServerProject.DefaultSdkVersion));
+                integrations.Add(new IntegrationReference(codeGenPackage, DotNetBasedAppHostServerProject.DefaultSdkVersion, ProjectPath: null));
             }
+
+            // Add the integration project as a project reference
+            integrations.Add(new IntegrationReference(
+                Path.GetFileNameWithoutExtension(integrationProject.FullName),
+                Version: null,
+                ProjectPath: integrationProject.FullName));
 
             _logger.LogDebug("Building AppHost server for SDK generation");
 
             // Create project files with the integration project reference
             await appHostServerProject.CreateProjectFilesAsync(
-                packages,
-                cancellationToken,
-                additionalProjectReferences: [integrationProject.FullName]);
+                integrations,
+                cancellationToken);
 
             var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
 

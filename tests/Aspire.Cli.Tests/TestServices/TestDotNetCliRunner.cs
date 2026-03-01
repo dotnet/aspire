@@ -121,4 +121,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
 
     public Task<int> InitUserSecretsAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
         => Task.FromResult(0);
+
+    public Task<int> PublishProjectAsync(FileInfo projectFilePath, DirectoryInfo outputDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        => Task.FromResult(0);
 }

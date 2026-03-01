@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.InternalTesting;
 using System.Xml.Linq;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
@@ -47,12 +48,12 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     {
         // Arrange
         var project = CreateProject();
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0"),
-            ("Aspire.Hosting.Redis", "13.1.0"),
-            ("Aspire.Hosting.PostgreSQL", "13.1.0"),
-            ("Aspire.Hosting.CodeGeneration.TypeScript", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.Redis", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.PostgreSQL", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.CodeGeneration.TypeScript", "13.1.0", null)
         };
 
         // Act
@@ -71,9 +72,9 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     {
         // Arrange
         var project = CreateProject();
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null)
         };
 
         // Act
@@ -93,9 +94,9 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     {
         // Arrange
         var project = CreateProject();
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null)
         };
 
         // Act
@@ -114,11 +115,11 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     {
         // Arrange
         var project = CreateProject();
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0"),
-            ("Aspire.Hosting.Redis", "13.1.0"),
-            ("Aspire.Hosting.CodeGeneration.TypeScript", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.Redis", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.CodeGeneration.TypeScript", "13.1.0", null)
         };
 
         // Act
@@ -140,9 +141,9 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     {
         // Arrange
         var project = CreateProject();
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null)
         };
 
         // Act
@@ -260,11 +261,11 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         var projectModelPath = Path.Combine(appPath, ".aspire_server");
         var project = new DotNetBasedAppHostServerProject(appPath, "test.sock", appPath, runner, packagingService, configurationService, logger, projectModelPath);
 
-        var packages = new List<(string Name, string Version)>
+        var packages = new List<IntegrationReference>
         {
-            ("Aspire.Hosting", "13.1.0"),
-            ("Aspire.Hosting.AppHost", "13.1.0"),
-            ("Aspire.Hosting.Redis", "13.1.0")
+            new IntegrationReference("Aspire.Hosting", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.AppHost", "13.1.0", null),
+            new IntegrationReference("Aspire.Hosting.Redis", "13.1.0", null)
         };
 
         // Act

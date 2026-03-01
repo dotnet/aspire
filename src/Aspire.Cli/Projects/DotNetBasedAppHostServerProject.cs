@@ -135,7 +135,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// <summary>
     /// Creates the project .csproj content using project references to the local Aspire repository.
     /// </summary>
-    private XDocument CreateProjectFile(IEnumerable<(string Name, string Version)> packages)
+    private XDocument CreateProjectFile(IEnumerable<IntegrationReference> integrations)
     {
         // Determine OS/architecture for DCP package name
         var (buildOs, buildArch) = GetBuildPlatform();
@@ -183,12 +183,22 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         var addedProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var otherPackages = new List<(string Name, string Version)>();
 
-        foreach (var (name, version) in packages)
+        foreach (var integration in integrations)
         {
-            if (name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase))
+            if (integration.IsProjectReference)
             {
-                var projectPath = Path.Combine(_repoRoot, "src", name, $"{name}.csproj");
-                if (File.Exists(projectPath) && addedProjects.Add(name))
+                // Explicit project reference from settings.json
+                if (addedProjects.Add(integration.Name))
+                {
+                    projectRefGroup.Add(new XElement("ProjectReference",
+                        new XAttribute("Include", integration.ProjectPath!),
+                        new XElement("IsAspireProjectResource", "false")));
+                }
+            }
+            else if (integration.Name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase))
+            {
+                var projectPath = Path.Combine(_repoRoot, "src", integration.Name, $"{integration.Name}.csproj");
+                if (File.Exists(projectPath) && addedProjects.Add(integration.Name))
                 {
                     projectRefGroup.Add(new XElement("ProjectReference",
                         new XAttribute("Include", projectPath),
@@ -197,7 +207,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             }
             else
             {
-                otherPackages.Add((name, version));
+                otherPackages.Add((integration.Name, integration.Version!));
             }
         }
 
@@ -262,9 +272,8 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// Scaffolds the project files.
     /// </summary>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(
-        IEnumerable<(string Name, string Version)> packages,
-        CancellationToken cancellationToken = default,
-        IEnumerable<string>? additionalProjectReferences = null)
+        IEnumerable<IntegrationReference> integrations,
+        CancellationToken cancellationToken = default)
     {
         // Clean obj folder to ensure fresh NuGet restore
         var objPath = Path.Combine(_projectModelPath, "obj");
@@ -288,23 +297,11 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
 
         // Create appsettings.json with ATS assemblies
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
-        foreach (var pkg in packages)
+        foreach (var integration in integrations)
         {
-            if (!atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
+            if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
             {
-                atsAssemblies.Add(pkg.Name);
-            }
-        }
-
-        if (additionalProjectReferences is not null)
-        {
-            foreach (var projectPath in additionalProjectReferences)
-            {
-                var assemblyName = Path.GetFileNameWithoutExtension(projectPath);
-                if (!atsAssemblies.Contains(assemblyName, StringComparer.OrdinalIgnoreCase))
-                {
-                    atsAssemblies.Add(assemblyName);
-                }
+                atsAssemblies.Add(integration.Name);
             }
         }
 
@@ -364,22 +361,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         }
 
         // Create the project file
-        var doc = CreateProjectFile(packages);
-
-        // Add additional project references
-        if (additionalProjectReferences is not null)
-        {
-            var additionalProjectRefs = additionalProjectReferences
-                .Select(path => new XElement("ProjectReference",
-                    new XAttribute("Include", path),
-                    new XElement("IsAspireProjectResource", "false")))
-                .ToList();
-
-            if (additionalProjectRefs.Count > 0)
-            {
-                doc.Root!.Add(new XElement("ItemGroup", additionalProjectRefs));
-            }
-        }
+        var doc = CreateProjectFile(integrations);
 
         // Add appsettings.json to output
         doc.Root!.Add(new XElement("ItemGroup",
@@ -433,10 +415,10 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// <inheritdoc />
     public async Task<AppHostServerPrepareResult> PrepareAsync(
         string sdkVersion,
-        IEnumerable<(string Name, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken = default)
     {
-        var (_, channelName) = await CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await CreateProjectFilesAsync(integrations, cancellationToken);
         var (buildSuccess, buildOutput) = await BuildAsync(cancellationToken);
 
         if (!buildSuccess)
