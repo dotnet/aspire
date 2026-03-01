@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
@@ -275,31 +276,31 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         List<IntegrationReference> projectRefs,
         string outputDir)
     {
-        var doc = new System.Xml.Linq.XDocument(
-            new System.Xml.Linq.XElement("Project",
-                new System.Xml.Linq.XAttribute("Sdk", "Microsoft.NET.Sdk"),
-                new System.Xml.Linq.XElement("PropertyGroup",
-                    new System.Xml.Linq.XElement("TargetFramework", "net10.0"),
-                    new System.Xml.Linq.XElement("EnableDefaultItems", "false"),
-                    new System.Xml.Linq.XElement("CopyLocalLockFileAssemblies", "true"),
-                    new System.Xml.Linq.XElement("ProduceReferenceAssembly", "false"),
-                    new System.Xml.Linq.XElement("EnableNETAnalyzers", "false"),
-                    new System.Xml.Linq.XElement("GenerateDocumentationFile", "false"),
-                    new System.Xml.Linq.XElement("OutDir", outputDir))));
+        var doc = new XDocument(
+            new XElement("Project",
+                new XAttribute("Sdk", "Microsoft.NET.Sdk"),
+                new XElement("PropertyGroup",
+                    new XElement("TargetFramework", "net10.0"),
+                    new XElement("EnableDefaultItems", "false"),
+                    new XElement("CopyLocalLockFileAssemblies", "true"),
+                    new XElement("ProduceReferenceAssembly", "false"),
+                    new XElement("EnableNETAnalyzers", "false"),
+                    new XElement("GenerateDocumentationFile", "false"),
+                    new XElement("OutDir", outputDir))));
 
         if (packageRefs.Count > 0)
         {
-            doc.Root!.Add(new System.Xml.Linq.XElement("ItemGroup",
-                packageRefs.Select(p => new System.Xml.Linq.XElement("PackageReference",
-                    new System.Xml.Linq.XAttribute("Include", p.Name),
-                    new System.Xml.Linq.XAttribute("Version", p.Version!)))));
+            doc.Root!.Add(new XElement("ItemGroup",
+                packageRefs.Select(p => new XElement("PackageReference",
+                    new XAttribute("Include", p.Name),
+                    new XAttribute("Version", p.Version!)))));
         }
 
         if (projectRefs.Count > 0)
         {
-            doc.Root!.Add(new System.Xml.Linq.XElement("ItemGroup",
-                projectRefs.Select(p => new System.Xml.Linq.XElement("ProjectReference",
-                    new System.Xml.Linq.XAttribute("Include", p.ProjectPath!)))));
+            doc.Root!.Add(new XElement("ItemGroup",
+                projectRefs.Select(p => new XElement("ProjectReference",
+                    new XAttribute("Include", p.ProjectPath!)))));
         }
 
         return doc.ToString();
