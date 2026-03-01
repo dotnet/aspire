@@ -270,6 +270,42 @@ internal static class AtsCapabilityScanner
             types = ex.Types.Where(t => t != null).ToArray()!;
         }
 
+        // Process assembly-level [AspireExport(typeof(T))] attributes for cross-assembly type exports
+        // This enables exporting types from external assemblies (e.g., Azure.Provisioning types)
+        foreach (var assemblyExportAttr in assembly.GetCustomAttributes<AspireExportAttribute>())
+        {
+            if (assemblyExportAttr.Type is null)
+            {
+                continue;
+            }
+
+            var exportedType = assemblyExportAttr.Type;
+
+            // Register the type info for the exported type
+            var typeInfo = CreateTypeInfo(exportedType, assemblyExportAttr);
+            if (typeInfo != null)
+            {
+                typeInfos.Add(typeInfo);
+            }
+
+            // If ExposeProperties or ExposeMethods, create context type capabilities
+            if (assemblyExportAttr.ExposeProperties || assemblyExportAttr.ExposeMethods)
+            {
+                var contextResult = CreateContextTypeCapabilities(exportedType, assemblyName);
+                capabilities.AddRange(contextResult.Capabilities);
+                diagnostics.AddRange(contextResult.Diagnostics);
+
+                foreach (var (id, method) in contextResult.Methods)
+                {
+                    methods[id] = method;
+                }
+                foreach (var (id, property) in contextResult.Properties)
+                {
+                    properties[id] = property;
+                }
+            }
+        }
+
         foreach (var type in types)
         {
             // Check for [AspireDto] attribute - scan DTO types for code generation
@@ -522,6 +558,19 @@ internal static class AtsCapabilityScanner
             foreach (var param in capability.Parameters)
             {
                 ResolveTypeRef(param.Type, validTypes);
+
+                // Also resolve callback parameter types and return type
+                if (param.IsCallback)
+                {
+                    if (param.CallbackParameters != null)
+                    {
+                        foreach (var cbParam in param.CallbackParameters)
+                        {
+                            ResolveTypeRef(cbParam.Type, validTypes);
+                        }
+                    }
+                    ResolveTypeRef(param.CallbackReturnType, validTypes);
+                }
             }
         }
     }

@@ -225,6 +225,12 @@ class TestDeeplyNestedDto:
 # Handle Wrappers
 # ============================================================================
 
+class CancellationToken(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    pass
+
 class CommandLineArgsCallbackContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -1169,6 +1175,23 @@ class ExecuteCommandContext(HandleWrapperBase):
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken", args)
 
 
+class IConfiguration(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def get_config_value(self, key: str) -> str:
+        """Gets a configuration value by key"""
+        args: Dict[str, Any] = { "configuration": serialize_value(self._handle) }
+        args["key"] = serialize_value(key)
+        return self._client.invoke_capability("Aspire.Hosting/getConfigValue", args)
+
+    def get_connection_string(self, name: str) -> str:
+        """Gets a connection string by name"""
+        args: Dict[str, Any] = { "configuration": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting/getConnectionString", args)
+
+
 class IDistributedApplicationBuilder(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -1271,13 +1294,28 @@ class IDistributedApplicationResourceEvent(HandleWrapperBase):
 
     pass
 
+class IHostEnvironment(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def get_environment_name(self) -> str:
+        """Gets the environment name"""
+        args: Dict[str, Any] = { "environment": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/getEnvironmentName", args)
+
+    def is_development(self) -> bool:
+        """Checks if running in Development environment"""
+        args: Dict[str, Any] = { "environment": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/isDevelopment", args)
+
+
 class IResource(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
     pass
 
-class IResourceWithArgs(HandleWrapperBase):
+class IResourceWithArgs(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
@@ -1289,13 +1327,19 @@ class IResourceWithConnectionString(ResourceBuilderBase):
 
     pass
 
-class IResourceWithEndpoints(HandleWrapperBase):
+class IResourceWithEndpoints(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
     pass
 
-class IResourceWithEnvironment(HandleWrapperBase):
+class IResourceWithEnvironment(ResourceBuilderBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    pass
+
+class IResourceWithParent(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
@@ -1307,11 +1351,28 @@ class IResourceWithServiceDiscovery(ResourceBuilderBase):
 
     pass
 
-class IResourceWithWaitSupport(HandleWrapperBase):
+class IResourceWithWaitSupport(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
     pass
+
+class IServiceProvider(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def get_service(self, type_id: str) -> Any:
+        """Gets a service by ATS type ID"""
+        args: Dict[str, Any] = { "serviceProvider": serialize_value(self._handle) }
+        args["typeId"] = serialize_value(type_id)
+        return self._client.invoke_capability("Aspire.Hosting/getService", args)
+
+    def get_required_service(self, type_id: str) -> Any:
+        """Gets a required service by ATS type ID"""
+        args: Dict[str, Any] = { "serviceProvider": serialize_value(self._handle) }
+        args["typeId"] = serialize_value(type_id)
+        return self._client.invoke_capability("Aspire.Hosting/getRequiredService", args)
+
 
 class ITestVaultResource(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -1847,6 +1908,76 @@ class ReferenceExpression(HandleWrapperBase):
         super().__init__(handle, client)
 
     pass
+
+class ResourceLoggerService(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def complete_log(self, resource: IResource) -> None:
+        """Completes the log stream for a resource"""
+        args: Dict[str, Any] = { "loggerService": serialize_value(self._handle) }
+        args["resource"] = serialize_value(resource)
+        self._client.invoke_capability("Aspire.Hosting/completeLog", args)
+        return None
+
+    def complete_log_by_name(self, resource_name: str) -> None:
+        """Completes the log stream by resource name"""
+        args: Dict[str, Any] = { "loggerService": serialize_value(self._handle) }
+        args["resourceName"] = serialize_value(resource_name)
+        self._client.invoke_capability("Aspire.Hosting/completeLogByName", args)
+        return None
+
+
+class ResourceNotificationService(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def wait_for_resource_state(self, resource_name: str, target_state: str | None = None) -> None:
+        """Waits for a resource to reach a specified state"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resourceName"] = serialize_value(resource_name)
+        if target_state is not None:
+            args["targetState"] = serialize_value(target_state)
+        self._client.invoke_capability("Aspire.Hosting/waitForResourceState", args)
+        return None
+
+    def wait_for_resource_states(self, resource_name: str, target_states: list[str]) -> str:
+        """Waits for a resource to reach one of the specified states"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resourceName"] = serialize_value(resource_name)
+        args["targetStates"] = serialize_value(target_states)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStates", args)
+
+    def wait_for_resource_healthy(self, resource_name: str) -> ResourceEventDto:
+        """Waits for a resource to become healthy"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resourceName"] = serialize_value(resource_name)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceHealthy", args)
+
+    def wait_for_dependencies(self, resource: IResource) -> None:
+        """Waits for all dependencies of a resource to be ready"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resource"] = serialize_value(resource)
+        self._client.invoke_capability("Aspire.Hosting/waitForDependencies", args)
+        return None
+
+    def try_get_resource_state(self, resource_name: str) -> ResourceEventDto:
+        """Tries to get the current state of a resource"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resourceName"] = serialize_value(resource_name)
+        return self._client.invoke_capability("Aspire.Hosting/tryGetResourceState", args)
+
+    def publish_resource_update(self, resource: IResource, state: str | None = None, state_style: str | None = None) -> None:
+        """Publishes an update for a resource's state"""
+        args: Dict[str, Any] = { "notificationService": serialize_value(self._handle) }
+        args["resource"] = serialize_value(resource)
+        if state is not None:
+            args["state"] = serialize_value(state)
+        if state_style is not None:
+            args["stateStyle"] = serialize_value(state_style)
+        self._client.invoke_capability("Aspire.Hosting/publishResourceUpdate", args)
+        return None
+
 
 class ResourceUrlsCallbackContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -2876,6 +3007,14 @@ class TestRedisResource(ResourceBuilderBase):
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/waitForReadyAsync", args)
 
+    def with_multi_param_handle_callback(self, callback: Callable[[TestCallbackContext, TestEnvironmentContext], None]) -> TestRedisResource:
+        """Tests multi-param callback destructuring"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback", args)
+
 
 class TestResourceContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -3348,30 +3487,41 @@ class UpdateCommandStateContext(HandleWrapperBase):
 # Handle wrapper registrations
 # ============================================================================
 
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", lambda handle, client: IDistributedApplicationBuilder(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplication", lambda handle, client: DistributedApplication(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", lambda handle, client: EndpointReference(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, client: ReferenceExpression(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", lambda handle, client: IResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", lambda handle, client: IResourceWithEnvironment(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", lambda handle, client: IResourceWithEndpoints(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", lambda handle, client: IResourceWithArgs(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", lambda handle, client: IResourceWithConnectionString(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", lambda handle, client: IResourceWithWaitSupport(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithParent", lambda handle, client: IResourceWithParent(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", lambda handle, client: ContainerResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", lambda handle, client: ExecutableResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", lambda handle, client: ProjectResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", lambda handle, client: ParameterResource(handle, client))
+register_handle_wrapper("System.ComponentModel/System.IServiceProvider", lambda handle, client: IServiceProvider(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService", lambda handle, client: ResourceNotificationService(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService", lambda handle, client: ResourceLoggerService(handle, client))
+register_handle_wrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration", lambda handle, client: IConfiguration(handle, client))
+register_handle_wrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", lambda handle, client: IHostEnvironment(handle, client))
+register_handle_wrapper("System.Private.CoreLib/System.Threading.CancellationToken", lambda handle, client: CancellationToken(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", lambda handle, client: DistributedApplicationEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", lambda handle, client: DistributedApplicationExecutionContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", lambda handle, client: DistributedApplicationExecutionContextOptions(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", lambda handle, client: IDistributedApplicationBuilder(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", lambda handle, client: DistributedApplicationEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", lambda handle, client: DistributedApplicationResourceEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEvent", lambda handle, client: IDistributedApplicationEvent(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent", lambda handle, client: IDistributedApplicationResourceEvent(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing", lambda handle, client: IDistributedApplicationEventing(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", lambda handle, client: CommandLineArgsCallbackContext(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", lambda handle, client: EndpointReference(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", lambda handle, client: EndpointReferenceExpression(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", lambda handle, client: EnvironmentCallbackContext(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, client: ReferenceExpression(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext", lambda handle, client: UpdateCommandStateContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", lambda handle, client: ExecuteCommandContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", lambda handle, client: ResourceUrlsCallbackContext(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", lambda handle, client: ContainerResource(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource", lambda handle, client: ExecutableResource(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", lambda handle, client: ParameterResource(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", lambda handle, client: IResourceWithConnectionString(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", lambda handle, client: ProjectResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", lambda handle, client: IResourceWithServiceDiscovery(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", lambda handle, client: IResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", lambda handle, client: TestCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", lambda handle, client: TestResourceContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", lambda handle, client: TestEnvironmentContext(handle, client))
@@ -3380,10 +3530,6 @@ register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosti
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", lambda handle, client: TestDatabaseResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", lambda handle, client: ITestVaultResource(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", lambda handle, client: IResourceWithEnvironment(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs", lambda handle, client: IResourceWithArgs(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", lambda handle, client: IResourceWithEndpoints(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport", lambda handle, client: IResourceWithWaitSupport(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,any>", lambda handle, client: AspireDict(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<any>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", lambda handle, client: AspireDict(handle, client))
