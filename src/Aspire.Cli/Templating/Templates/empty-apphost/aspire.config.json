@@ -1,4 +1,7 @@
 {
+  "appHost": {
+    "path": "apphost.cs"
+  },
   "profiles": {
     "https": {
       "applicationUrl": "https://{{hostName}}:{{httpsPort}};http://{{hostName}}:{{httpPort}}",
