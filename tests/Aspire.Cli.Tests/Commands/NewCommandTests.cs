@@ -1163,8 +1163,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = async (context, cancellationToken) =>
             {
                 scaffoldingInvoked = true;
-                await File.WriteAllTextAsync(Path.Combine(context.TargetDirectory.FullName, "apphost.run.json"), """
+                await File.WriteAllTextAsync(Path.Combine(context.TargetDirectory.FullName, "aspire.config.json"), """
                     {
+                      "appHost": {
+                        "path": "apphost.ts",
+                        "language": "typescript/nodejs"
+                      },
                       "profiles": {
                         "https": {
                           "applicationUrl": "https://localhost:1234;http://localhost:5678",
@@ -1188,10 +1192,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.True(scaffoldingInvoked);
         Assert.True(localhostPrompted);
 
-        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json");
-        var runProfile = await File.ReadAllTextAsync(runProfilePath);
-        Assert.Contains("testapp.dev.localhost", runProfile);
-        Assert.DoesNotContain("://localhost", runProfile);
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
+        var configContent = await File.ReadAllTextAsync(configPath);
+        Assert.Contains("testapp.dev.localhost", configContent);
+        Assert.DoesNotContain("://localhost", configContent);
     }
 
     [Fact]
