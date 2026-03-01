@@ -28,6 +28,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly LayoutConfiguration _layout;
     private readonly BundleNuGetService _nugetService;
     private readonly IDotNetCliRunner _dotNetCliRunner;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
     private readonly ILogger _logger;
@@ -45,6 +46,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         LayoutConfiguration layout,
         BundleNuGetService nugetService,
         IDotNetCliRunner dotNetCliRunner,
+        IDotNetSdkInstaller sdkInstaller,
         IPackagingService packagingService,
         IConfigurationService configurationService,
         ILogger logger)
@@ -54,6 +56,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _layout = layout;
         _nugetService = nugetService;
         _dotNetCliRunner = dotNetCliRunner;
+        _sdkInstaller = sdkInstaller;
         _packagingService = packagingService;
         _configurationService = configurationService;
         _logger = logger;
@@ -102,8 +105,16 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
             if (projectRefs.Count > 0)
             {
-                // Project references require .NET SDK — create a single synthetic project
-                // with all package and project references, then dotnet publish once.
+                // Project references require .NET SDK — verify it's available
+                var (sdkAvailable, _, minimumRequired, _) = await _sdkInstaller.CheckAsync(cancellationToken);
+                if (!sdkAvailable)
+                {
+                    throw new InvalidOperationException(
+                        $"Project references in settings.json require .NET SDK {minimumRequired} or later. " +
+                        "Install the .NET SDK from https://dotnet.microsoft.com/download or use NuGet package versions instead.");
+                }
+
+                // Build a synthetic project with all package and project references
                 _integrationLibsPath = await BuildIntegrationProjectAsync(
                     packageRefs, projectRefs, channelName, cancellationToken);
             }
@@ -175,6 +186,24 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir);
         var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
         await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
+
+        // Write a Directory.Packages.props to opt out of Central Package Management
+        // This prevents any parent Directory.Packages.props from interfering with our inline versions
+        var directoryPackagesProps = """
+            <Project>
+              <PropertyGroup>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+              </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Packages.props"), directoryPackagesProps, cancellationToken);
+
+        // Also write an empty Directory.Build.props/targets to prevent parent imports
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.props"), "<Project />", cancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.targets"), "<Project />", cancellationToken);
 
         // Copy nuget.config from the user's apphost directory if present
         var appHostDirectory = Path.GetDirectoryName(_appPath)!;
