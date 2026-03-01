@@ -33,6 +33,14 @@ internal static class SubnetAddressAllocator
 
         var (vnetStart, vnetEnd) = ParseCidr(vnetAddressPrefix);
 
+        // Ensure the VNet is large enough to contain at least one /29 block
+        if (vnetEnd - vnetStart + 1 < blockSize)
+        {
+            throw new InvalidOperationException(
+                $"Virtual network '{vnet.Name}' address space '{vnetAddressPrefix}' is too small to allocate a /{prefixLength} subnet (requires at least {blockSize} addresses). " +
+                $"Use 'WithAdminDeploymentScriptSubnet' to provide an explicit subnet.");
+        }
+
         // Collect all existing subnet ranges
         var existingRanges = new List<(uint Start, uint End)>();
         foreach (var subnet in existingSubnets)

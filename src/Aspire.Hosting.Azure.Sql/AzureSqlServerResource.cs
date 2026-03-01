@@ -442,6 +442,14 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         {
             DeploymentScriptDependsOn.Add(privateEndpoint.Resource);
 
+            // Guard: only create deployment script infrastructure once per SQL server.
+            // Multiple private endpoints may trigger this, but the admin identity, NSG,
+            // storage, and BeforeStartEvent subscription should only be set up once.
+            if (AdminIdentity is not null)
+            {
+                return;
+            }
+
             // Create a deployment script storage account (publish mode only).
             // The BeforeStartEvent handler will remove the default storage if it's no longer
             // needed if the user swapped it via WithAdminDeploymentScriptStorage.

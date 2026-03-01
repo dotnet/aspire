@@ -374,6 +374,18 @@ public static class AzureSqlExtensions
     /// and SQL (port 443) service tags.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// Provide a custom ACI subnet for the deployment script:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var peSubnet = vnet.AddSubnet("pe-subnet", "10.0.2.0/24");
+    /// var aciSubnet = vnet.AddSubnet("aci-subnet", "10.0.3.0/29");
+    ///
+    /// var sql = builder.AddAzureSqlServer("sql")
+    ///     .WithAdminDeploymentScriptSubnet(aciSubnet);
+    /// peSubnet.AddPrivateEndpoint(sql);
+    /// </code>
+    /// </example>
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptSubnet(
         this IResourceBuilder<AzureSqlServerResource> builder,
@@ -410,6 +422,18 @@ public static class AzureSqlExtensions
     /// <c>AllowSharedKeyAccess = true</c>.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// Provide a custom storage account for the deployment script:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var peSubnet = vnet.AddSubnet("pe-subnet", "10.0.2.0/24");
+    ///
+    /// var storage = builder.AddAzureStorage("scriptstorage");
+    /// var sql = builder.AddAzureSqlServer("sql")
+    ///     .WithAdminDeploymentScriptStorage(storage);
+    /// peSubnet.AddPrivateEndpoint(sql);
+    /// </code>
+    /// </example>
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptStorage(
         this IResourceBuilder<AzureSqlServerResource> builder,
