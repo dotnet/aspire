@@ -89,6 +89,20 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var pushSteps = context.GetSteps(targetResource, WellKnownPipelineTags.PushContainerImage);
             provisionSteps.DependsOn(pushSteps);
 
+            // The app deployment should depend on role assignment and private endpoint provisioning for the target resource
+            // This ensures required role assignments and private endpoints are in place before the app is deployed
+            if (targetResource.TryGetAnnotationsOfType<ComputedDeploymentPrerequisitesAnnotation>(out var prereqAnnotations))
+            {
+                foreach (var annotation in prereqAnnotations)
+                {
+                    foreach (var prereqResource in annotation.Resources)
+                    {
+                        var prereqSteps = context.GetSteps(prereqResource, WellKnownPipelineTags.ProvisionInfrastructure);
+                        provisionSteps.DependsOn(prereqSteps);
+                    }
+                }
+            }
+
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
         }));

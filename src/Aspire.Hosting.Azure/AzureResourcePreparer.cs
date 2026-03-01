@@ -177,6 +177,8 @@ internal sealed class AzureResourcePreparer(
                 // if the resource references any Azure resources, or has role assignments to Azure resources
                 if (executionContext.IsPublishMode)
                 {
+                    var prerequisiteResources = new List<AzureBicepResource>();
+
                     var roleAssignments = GetAllRoleAssignments(resource);
                     if (roleAssignments.Count > 0)
                     {
@@ -203,6 +205,30 @@ internal sealed class AzureResourcePreparer(
                         {
                             appModel.Resources.Add(roleAssignmentResource);
                         }
+
+                        prerequisiteResources.AddRange(roleAssignmentResources);
+                    }
+
+                    // Find private endpoints that target Azure resources referenced by this compute resource.
+                    // These must be provisioned before the compute resource is deployed.
+                    foreach (var azureRef in azureReferences.OfType<IResource>())
+                    {
+                        var rootRef = GetRootResource(azureRef);
+
+                        if (rootRef.TryGetAnnotationsOfType<PrivateEndpointResourceAnnotation>(out var peAnnotations))
+                        {
+                            foreach (var peAnnotation in peAnnotations)
+                            {
+                                prerequisiteResources.Add(peAnnotation.PrivateEndpointResource);
+                            }
+                        }
+                    }
+
+                    // Annotate the compute resource so downstream resources (e.g. container apps, web sites)
+                    // can discover its deployment prerequisites without string matching.
+                    if (prerequisiteResources.Count > 0)
+                    {
+                        resource.Annotations.Add(new ComputedDeploymentPrerequisitesAnnotation(prerequisiteResources));
                     }
                 }
             }
@@ -425,5 +451,14 @@ internal sealed class AzureResourcePreparer(
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         return Task.CompletedTask;
+    }
+
+    private static IResource GetRootResource(IResource resource)
+    {
+        while (resource is IResourceWithParent parentedResource)
+        {
+            resource = parentedResource.Parent;
+        }
+        return resource;
     }
 }

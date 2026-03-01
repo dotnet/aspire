@@ -80,6 +80,10 @@ public static class AzurePrivateEndpointExtensions
         }
         rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
 
+        // Add annotation to the root resource so that compute resources referencing it
+        // can discover the private endpoint and wait for it to be provisioned.
+        rootResource.Annotations.Add(new PrivateEndpointResourceAnnotation(resource));
+
         return builder.AddResource(resource);
 
         void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra)
