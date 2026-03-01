@@ -125,11 +125,12 @@ internal sealed class SdkGenerateCommand : BaseCommand
             // Get code generation package for the target language
             var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(languageInfo.LanguageId, cancellationToken);
 
-            // Build integrations list - include the code generator and the integration project
+            // Build integrations list — the integration project brings Aspire.Hosting transitively;
+            // we only need to add the codegen package and the project reference itself.
             var integrations = new List<IntegrationReference>();
             if (codeGenPackage is not null)
             {
-                integrations.Add(new IntegrationReference(codeGenPackage, DotNetBasedAppHostServerProject.DefaultSdkVersion, ProjectPath: null));
+                integrations.Add(new IntegrationReference(codeGenPackage, VersionHelper.GetDefaultTemplateVersion(), ProjectPath: null));
             }
 
             // Add the integration project as a project reference
@@ -141,7 +142,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
             _logger.LogDebug("Building AppHost server for SDK generation");
 
             var prepareResult = await appHostServerProject.PrepareAsync(
-                DotNetBasedAppHostServerProject.DefaultSdkVersion,
+                VersionHelper.GetDefaultTemplateVersion(),
                 integrations,
                 cancellationToken);
 

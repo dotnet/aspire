@@ -138,7 +138,7 @@ internal sealed class SdkDumpCommand : BaseCommand
             _logger.LogDebug("Building AppHost server for capability scanning");
 
             var prepareResult = await appHostServerProject.PrepareAsync(
-                DotNetBasedAppHostServerProject.DefaultSdkVersion,
+                VersionHelper.GetDefaultTemplateVersion(),
                 integrations,
                 cancellationToken);
 
