@@ -90,6 +90,22 @@ internal sealed class AspireConfigFile
     }
 
     /// <summary>
+    /// Converts this AspireConfigFile back to an AspireJsonConfiguration for compatibility with existing code.
+    /// </summary>
+    public AspireJsonConfiguration ToLegacyConfiguration()
+    {
+        return new AspireJsonConfiguration
+        {
+            AppHostPath = AppHost?.Path,
+            Language = AppHost?.Language,
+            SdkVersion = Sdk?.Version,
+            Channel = Channel,
+            Features = Features,
+            Packages = Packages
+        };
+    }
+
+    /// <summary>
     /// Creates from a legacy AspireJsonConfiguration + apphost.run.json.
     /// </summary>
     public static AspireConfigFile FromLegacy(AspireJsonConfiguration? settings, Dictionary<string, AspireConfigProfile>? profiles)
