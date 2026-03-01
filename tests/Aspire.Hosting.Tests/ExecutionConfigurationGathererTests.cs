@@ -4,8 +4,11 @@
 #pragma warning disable ASPIRECERTIFICATES001
 
 using System.Collections.Immutable;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -363,6 +366,181 @@ public class ExecutionConfigurationGathererTests
 
     #endregion
 
+    #region CertificateTrustExecutionConfigurationGatherer PKCS#12 Tests
+
+    [Fact]
+    public async Task CertificateTrustExecutionConfigurationGatherer_Pkcs12NotReferencedByDefault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cert = CreateTestCertificate();
+        var caCollection = builder.AddCertificateAuthorityCollection("test-ca").WithCertificate(cert);
+
+        var resource = builder.AddContainer("test", "image")
+            .WithCertificateAuthorityCollection(caCollection)
+            .Resource;
+
+        await builder.BuildAsync();
+
+        var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
+        var context = new ExecutionConfigurationGathererContext();
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
+
+        await gatherer.GatherAsync(context, resource, NullLogger.Instance, builder.ExecutionContext);
+
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
+        Assert.False(metadata.IsPkcs12BundlePathReferenced);
+    }
+
+    [Fact]
+    public async Task CertificateTrustExecutionConfigurationGatherer_Pkcs12ReferencedWhenCallbackResolvesPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cert = CreateTestCertificate();
+        var caCollection = builder.AddCertificateAuthorityCollection("test-ca").WithCertificate(cert);
+
+        var resource = builder.AddContainer("test", "image")
+            .WithCertificateAuthorityCollection(caCollection)
+            .WithCertificateTrustConfiguration(async ctx =>
+            {
+                ctx.EnvironmentVariables["JAVAX_NET_SSL_TRUSTSTORE"] = ctx.Pkcs12BundlePath;
+                ctx.EnvironmentVariables["JAVAX_NET_SSL_TRUSTSTOREPASSWORD"] = ctx.Pkcs12BundlePassword;
+                await Task.CompletedTask;
+            })
+            .Resource;
+
+        await builder.BuildAsync();
+
+        var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
+        var context = new ExecutionConfigurationGathererContext();
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
+
+        await gatherer.GatherAsync(context, resource, NullLogger.Instance, builder.ExecutionContext);
+
+        var metadata = context.AdditionalConfigurationData.OfType<CertificateTrustExecutionConfigurationData>().Single();
+        // PKCS12 is not "referenced" until the env var is resolved
+        Assert.False(metadata.IsPkcs12BundlePathReferenced);
+
+        // Now resolve the environment variable which will trigger the tracked reference
+        var trustStorePath = context.EnvironmentVariables["JAVAX_NET_SSL_TRUSTSTORE"];
+        Assert.IsAssignableFrom<ReferenceExpression>(trustStorePath);
+        var resolvedPath = await ((ReferenceExpression)trustStorePath).GetValueAsync(CancellationToken.None);
+        Assert.Equal("/etc/ssl/certs/truststore.p12", resolvedPath);
+        Assert.True(metadata.IsPkcs12BundlePathReferenced);
+    }
+
+    [Fact]
+    public async Task CertificateTrustExecutionConfigurationGatherer_Pkcs12PasswordAvailableInCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cert = CreateTestCertificate();
+        var caCollection = builder.AddCertificateAuthorityCollection("test-ca").WithCertificate(cert);
+
+        string? capturedPassword = null;
+        var resource = builder.AddContainer("test", "image")
+            .WithCertificateAuthorityCollection(caCollection)
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                capturedPassword = ctx.Pkcs12BundlePassword;
+                return Task.CompletedTask;
+            })
+            .Resource;
+
+        await builder.BuildAsync();
+
+        var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
+        var context = new ExecutionConfigurationGathererContext();
+        var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
+
+        await gatherer.GatherAsync(context, resource, NullLogger.Instance, builder.ExecutionContext);
+
+        Assert.NotNull(capturedPassword);
+        Assert.Equal(string.Empty, capturedPassword);
+    }
+
+    [Fact]
+    public void CreatePkcs12TrustStore_ProducesValidPkcs12()
+    {
+        var cert = CreateTestCertificate();
+        var certs = new X509Certificate2Collection { cert };
+        var password = string.Empty;
+
+        var pkcs12Bytes = DcpExecutor.CreatePkcs12TrustStore(certs, password);
+
+        Assert.NotEmpty(pkcs12Bytes);
+
+        // Verify we can load it back and it contains the original certificate
+        var loaded = new X509Certificate2Collection();
+        loaded.Import(pkcs12Bytes, password, X509KeyStorageFlags.DefaultKeySet);
+        Assert.Single(loaded);
+        Assert.Equal(cert.Thumbprint, loaded[0].Thumbprint);
+        // Trust store entries should not have private keys
+        Assert.False(loaded[0].HasPrivateKey);
+    }
+
+    [Fact]
+    public void CreatePkcs12TrustStore_MultipleCerts_AllIncluded()
+    {
+        var cert1 = CreateTestCertificate();
+        var cert2 = CreateTestCertificate();
+        var certs = new X509Certificate2Collection { cert1, cert2 };
+        var password = "test-password";
+
+        var pkcs12Bytes = DcpExecutor.CreatePkcs12TrustStore(certs, password);
+
+        var loaded = new X509Certificate2Collection();
+        loaded.Import(pkcs12Bytes, password, X509KeyStorageFlags.DefaultKeySet);
+        Assert.Equal(2, loaded.Count);
+    }
+
+    [Fact]
+    public void CreatePkcs12TrustStore_ContainsJavaTrustAnchorAttribute()
+    {
+        var cert1 = CreateTestCertificate();
+        var cert2 = CreateTestCertificate();
+        var certs = new X509Certificate2Collection { cert1, cert2 };
+        var password = "test-password";
+
+        var pkcs12Bytes = DcpExecutor.CreatePkcs12TrustStore(certs, password);
+
+        // Decode the raw PKCS#12 and verify each CertBag has the Oracle/Java trust anchor attribute
+        var info = Pkcs12Info.Decode(pkcs12Bytes, out _, skipCopy: true);
+        var trustAnchorOid = DcpExecutor.JavaTrustedKeyUsageOid;
+        var anyExtendedKeyUsageOid = DcpExecutor.AnyExtendedKeyUsageOid;
+        var bagsWithTrustAnchor = 0;
+
+        foreach (var safeContents in info.AuthenticatedSafe)
+        {
+            if (safeContents.ConfidentialityMode == Pkcs12ConfidentialityMode.Password)
+            {
+                safeContents.Decrypt(password);
+            }
+
+            foreach (var bag in safeContents.GetBags())
+            {
+                foreach (CryptographicAttributeObject attr in bag.Attributes)
+                {
+                    if (attr.Oid.Value == trustAnchorOid)
+                    {
+                        // Verify the attribute value is a DER-encoded OID (anyExtendedKeyUsage)
+                        // matching what Java's PKCS12KeyStore expects via getOID().
+                        Assert.Single(attr.Values);
+                        var reader = new AsnReader(attr.Values[0].RawData, AsnEncodingRules.DER);
+                        var oidValue = reader.ReadObjectIdentifier();
+                        Assert.Equal(anyExtendedKeyUsageOid, oidValue);
+                        Assert.False(reader.HasData);
+
+                        bagsWithTrustAnchor++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(2, bagsWithTrustAnchor);
+    }
+
+    #endregion
+
     #region HttpsCertificateExecutionConfigurationGatherer Tests
 
     [Fact]
@@ -555,7 +733,8 @@ public class ExecutionConfigurationGathererTests
         return scope => new CertificateTrustExecutionConfigurationContext
         {
             CertificateBundlePath = ReferenceExpression.Create($"/etc/ssl/certs/ca-bundle.crt"),
-            CertificateDirectoriesPath = ReferenceExpression.Create($"/etc/ssl/certs")
+            CertificateDirectoriesPath = ReferenceExpression.Create($"/etc/ssl/certs"),
+            Pkcs12BundlePath = ReferenceExpression.Create($"/etc/ssl/certs/truststore.p12"),
         };
     }
 
