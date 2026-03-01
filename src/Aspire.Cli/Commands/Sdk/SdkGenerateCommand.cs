@@ -120,42 +120,41 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
         try
         {
-            // TODO: Support bundle mode by using DLL references instead of project references.
-            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
-            // using additionalProjectReferences. For now, SDK generation only works with .NET SDK.
-            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
-            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
-            {
-                InteractionService.DisplayError("SDK generation is only available with .NET SDK installed.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
 
             // Get code generation package for the target language
             var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(languageInfo.LanguageId, cancellationToken);
 
-            // Build packages list - include the code generator
-            var packages = new List<(string Name, string Version)>();
+            // Build integrations list — the integration project brings Aspire.Hosting transitively;
+            // we only need to add the codegen package and the project reference itself.
+            var integrations = new List<IntegrationReference>();
             if (codeGenPackage is not null)
             {
-                packages.Add((codeGenPackage, DotNetBasedAppHostServerProject.DefaultSdkVersion));
+                integrations.Add(new IntegrationReference(codeGenPackage, VersionHelper.GetDefaultTemplateVersion(), ProjectPath: null));
             }
+
+            // Add the integration project as a project reference
+            integrations.Add(new IntegrationReference(
+                Path.GetFileNameWithoutExtension(integrationProject.FullName),
+                Version: null,
+                ProjectPath: integrationProject.FullName));
 
             _logger.LogDebug("Building AppHost server for SDK generation");
 
-            // Create project files with the integration project reference
-            await appHostServerProject.CreateProjectFilesAsync(
-                packages,
-                cancellationToken,
-                additionalProjectReferences: [integrationProject.FullName]);
+            var prepareResult = await appHostServerProject.PrepareAsync(
+                VersionHelper.GetDefaultTemplateVersion(),
+                integrations,
+                cancellationToken);
 
-            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
-
-            if (!buildSuccess)
+            if (!prepareResult.Success)
             {
                 InteractionService.DisplayError("Failed to build SDK generation server.");
-                foreach (var (_, line) in buildOutput.GetLines())
+                if (prepareResult.Output is not null)
                 {
-                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    foreach (var (_, line) in prepareResult.Output.GetLines())
+                    {
+                        InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    }
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }

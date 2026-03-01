@@ -122,39 +122,35 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         try
         {
-            // TODO: Support bundle mode by using DLL references instead of project references.
-            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
-            // using additionalProjectReferences. For now, SDK dump only works with .NET SDK.
-            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
-            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
-            {
-                InteractionService.DisplayError("SDK dump is only available with .NET SDK installed.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
-            }
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
 
-            // Build packages list - empty since we only need core capabilities + optional integration
-            var packages = new List<(string Name, string Version)>();
+            // Build integrations list - optional integration project reference
+            var integrations = new List<IntegrationReference>();
+
+            if (integrationProject is not null)
+            {
+                integrations.Add(new IntegrationReference(
+                    Path.GetFileNameWithoutExtension(integrationProject.FullName),
+                    Version: null,
+                    ProjectPath: integrationProject.FullName));
+            }
 
             _logger.LogDebug("Building AppHost server for capability scanning");
 
-            // Create project files with the integration project reference if specified
-            var additionalProjectRefs = integrationProject is not null
-                ? new[] { integrationProject.FullName }
-                : null;
+            var prepareResult = await appHostServerProject.PrepareAsync(
+                VersionHelper.GetDefaultTemplateVersion(),
+                integrations,
+                cancellationToken);
 
-            await appHostServerProject.CreateProjectFilesAsync(
-                packages,
-                cancellationToken,
-                additionalProjectReferences: additionalProjectRefs);
-
-            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
-
-            if (!buildSuccess)
+            if (!prepareResult.Success)
             {
                 InteractionService.DisplayError("Failed to build capability scanner.");
-                foreach (var (_, line) in buildOutput.GetLines())
+                if (prepareResult.Output is not null)
                 {
-                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    foreach (var (_, line) in prepareResult.Output.GetLines())
+                    {
+                        InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
+                    }
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }

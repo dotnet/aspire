@@ -4,7 +4,9 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -26,6 +28,8 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly string _socketPath;
     private readonly LayoutConfiguration _layout;
     private readonly BundleNuGetService _nugetService;
+    private readonly IDotNetCliRunner _dotNetCliRunner;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
     private readonly ILogger _logger;
@@ -37,10 +41,12 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <summary>
     /// Initializes a new instance of the PrebuiltAppHostServer class.
     /// </summary>
-    /// <param name="appPath">The path to the user's polyglot app host.</param>
+    /// <param name="appPath">The path to the user's polyglot app host directory.</param>
     /// <param name="socketPath">The socket path for JSON-RPC communication.</param>
     /// <param name="layout">The bundle layout configuration.</param>
-    /// <param name="nugetService">The NuGet service for restoring integration packages.</param>
+    /// <param name="nugetService">The NuGet service for restoring integration packages (NuGet-only path).</param>
+    /// <param name="dotNetCliRunner">The .NET CLI runner for building project references.</param>
+    /// <param name="sdkInstaller">The SDK installer for checking .NET SDK availability.</param>
     /// <param name="packagingService">The packaging service for channel resolution.</param>
     /// <param name="configurationService">The configuration service for reading channel settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
@@ -49,6 +55,8 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         string socketPath,
         LayoutConfiguration layout,
         BundleNuGetService nugetService,
+        IDotNetCliRunner dotNetCliRunner,
+        IDotNetSdkInstaller sdkInstaller,
         IPackagingService packagingService,
         IConfigurationService configurationService,
         ILogger logger)
@@ -57,6 +65,8 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _socketPath = socketPath;
         _layout = layout;
         _nugetService = nugetService;
+        _dotNetCliRunner = dotNetCliRunner;
+        _sdkInstaller = sdkInstaller;
         _packagingService = packagingService;
         _configurationService = configurationService;
         _logger = logger;
@@ -88,36 +98,41 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <inheritdoc />
     public async Task<AppHostServerPrepareResult> PrepareAsync(
         string sdkVersion,
-        IEnumerable<(string Name, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken = default)
     {
-        var packageList = packages.ToList();
+        var integrationList = integrations.ToList();
+        var packageRefs = integrationList.Where(r => r.IsPackageReference).ToList();
+        var projectRefs = integrationList.Where(r => r.IsProjectReference).ToList();
 
         try
         {
             // Generate appsettings.json with ATS assemblies for the server to scan
-            await GenerateAppSettingsAsync(packageList, cancellationToken);
+            await GenerateAppSettingsAsync(integrationList, cancellationToken);
 
             // Resolve the configured channel (local settings.json → global config fallback)
             var channelName = await ResolveChannelNameAsync(cancellationToken);
 
-            // Restore integration packages
-            if (packageList.Count > 0)
+            if (projectRefs.Count > 0)
             {
-                _logger.LogDebug("Restoring {Count} integration packages", packageList.Count);
+                // Project references require .NET SDK — verify it's available
+                var (sdkAvailable, _, minimumRequired, _) = await _sdkInstaller.CheckAsync(cancellationToken);
+                if (!sdkAvailable)
+                {
+                    throw new InvalidOperationException(
+                        $"Project references in settings.json require .NET SDK {minimumRequired} or later. " +
+                        "Install the .NET SDK from https://dotnet.microsoft.com/download or use NuGet package versions instead.");
+                }
 
-                // Get NuGet sources filtered to the resolved channel
-                var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
-
-                // Pass apphost directory for nuget.config discovery
-                var appHostDirectory = Path.GetDirectoryName(_appPath);
-
-                _integrationLibsPath = await _nugetService.RestorePackagesAsync(
-                    packageList,
-                    "net10.0",
-                    sources: sources,
-                    workingDirectory: appHostDirectory,
-                    ct: cancellationToken);
+                // Build a synthetic project with all package and project references
+                _integrationLibsPath = await BuildIntegrationProjectAsync(
+                    packageRefs, projectRefs, channelName, cancellationToken);
+            }
+            else if (packageRefs.Count > 0)
+            {
+                // NuGet-only — use the bundled NuGet service (no SDK required)
+                _integrationLibsPath = await RestoreNuGetPackagesAsync(
+                    packageRefs, channelName, cancellationToken);
             }
 
             return new AppHostServerPrepareResult(
@@ -137,6 +152,158 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 ChannelName: null,
                 NeedsCodeGeneration: false);
         }
+    }
+
+    /// <summary>
+    /// Restores NuGet packages using the bundled NuGet service (no .NET SDK required).
+    /// </summary>
+    private async Task<string> RestoreNuGetPackagesAsync(
+        List<IntegrationReference> packageRefs,
+        string? channelName,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Restoring {Count} integration packages via bundled NuGet", packageRefs.Count);
+
+        var packages = packageRefs.Select(r => (r.Name, r.Version!)).ToList();
+        var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+        var appHostDirectory = Path.GetDirectoryName(_appPath);
+
+        return await _nugetService.RestorePackagesAsync(
+            packages,
+            "net10.0",
+            sources: sources,
+            workingDirectory: appHostDirectory,
+            ct: cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a synthetic .csproj with all package and project references,
+    /// then builds it to get the full transitive DLL closure via CopyLocalLockFileAssemblies.
+    /// Requires .NET SDK.
+    /// </summary>
+    private async Task<string> BuildIntegrationProjectAsync(
+        List<IntegrationReference> packageRefs,
+        List<IntegrationReference> projectRefs,
+        string? channelName,
+        CancellationToken cancellationToken)
+    {
+        var restoreDir = Path.Combine(_workingDirectory, "integration-restore");
+        Directory.CreateDirectory(restoreDir);
+
+        var outputDir = Path.Combine(restoreDir, "libs");
+        // Clean stale DLLs from previous builds to prevent leftover assemblies
+        // from removed integrations being picked up by the assembly resolver
+        if (Directory.Exists(outputDir))
+        {
+            Directory.Delete(outputDir, recursive: true);
+        }
+        Directory.CreateDirectory(outputDir);
+
+        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir);
+        var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
+        await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
+
+        // Write a Directory.Packages.props to opt out of Central Package Management
+        // This prevents any parent Directory.Packages.props from interfering with our inline versions
+        var directoryPackagesProps = """
+            <Project>
+              <PropertyGroup>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+              </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Packages.props"), directoryPackagesProps, cancellationToken);
+
+        // Also write an empty Directory.Build.props/targets to prevent parent imports
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.props"), "<Project />", cancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.targets"), "<Project />", cancellationToken);
+
+        // Copy nuget.config from the user's apphost directory if present
+        var appHostDirectory = Path.GetDirectoryName(_appPath)!;
+        var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
+        if (File.Exists(userNugetConfig))
+        {
+            File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
+        }
+
+        // Merge channel-specific NuGet sources if a channel is configured
+        if (channelName is not null)
+        {
+            try
+            {
+                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                var channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+                if (channel is not null)
+                {
+                    await NuGetConfigMerger.CreateOrUpdateAsync(
+                        new DirectoryInfo(restoreDir),
+                        channel,
+                        cancellationToken: cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to merge channel NuGet sources, relying on user nuget.config");
+            }
+        }
+
+        _logger.LogDebug("Building integration project with {PackageCount} packages and {ProjectCount} project references",
+            packageRefs.Count, projectRefs.Count);
+
+        var exitCode = await _dotNetCliRunner.BuildAsync(
+            new FileInfo(projectFilePath),
+            noRestore: false,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
+
+        if (exitCode != 0)
+        {
+            throw new InvalidOperationException($"Failed to build integration project. Exit code: {exitCode}");
+        }
+
+        return outputDir;
+    }
+
+    /// <summary>
+    /// Generates a synthetic .csproj file that references all integration packages and projects.
+    /// Building this project with CopyLocalLockFileAssemblies produces the full transitive DLL closure.
+    /// </summary>
+    internal static string GenerateIntegrationProjectFile(
+        List<IntegrationReference> packageRefs,
+        List<IntegrationReference> projectRefs,
+        string outputDir)
+    {
+        var doc = new XDocument(
+            new XElement("Project",
+                new XAttribute("Sdk", "Microsoft.NET.Sdk"),
+                new XElement("PropertyGroup",
+                    new XElement("TargetFramework", "net10.0"),
+                    new XElement("EnableDefaultItems", "false"),
+                    new XElement("CopyLocalLockFileAssemblies", "true"),
+                    new XElement("ProduceReferenceAssembly", "false"),
+                    new XElement("EnableNETAnalyzers", "false"),
+                    new XElement("GenerateDocumentationFile", "false"),
+                    new XElement("OutDir", outputDir))));
+
+        if (packageRefs.Count > 0)
+        {
+            doc.Root!.Add(new XElement("ItemGroup",
+                packageRefs.Select(p => new XElement("PackageReference",
+                    new XAttribute("Include", p.Name),
+                    new XAttribute("Version", p.Version!)))));
+        }
+
+        if (projectRefs.Count > 0)
+        {
+            doc.Root!.Add(new XElement("ItemGroup",
+                projectRefs.Select(p => new XElement("ProjectReference",
+                    new XAttribute("Include", p.ProjectPath!)))));
+        }
+
+        return doc.ToString();
     }
 
     /// <summary>
@@ -163,7 +330,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     }
 
     /// <summary>
-    /// Gets NuGet sources from the resolved channel, or all explicit channels if no channel is configured.
+    /// Gets NuGet sources from the resolved channel for bundled restore.
     /// </summary>
     private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(string? channelName, CancellationToken cancellationToken)
     {
@@ -176,13 +343,11 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             IEnumerable<PackageChannel> explicitChannels;
             if (!string.IsNullOrEmpty(channelName))
             {
-                // Filter to the configured channel
                 var matchingChannel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
                 explicitChannels = matchingChannel is not null ? [matchingChannel] : channels.Where(c => c.Type == PackageChannelType.Explicit);
             }
             else
             {
-                // No channel configured, use all explicit channels
                 explicitChannels = channels.Where(c => c.Type == PackageChannelType.Explicit);
             }
 
@@ -198,7 +363,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                     if (!sources.Contains(mapping.Source, StringComparer.OrdinalIgnoreCase))
                     {
                         sources.Add(mapping.Source);
-                        _logger.LogDebug("Using channel '{Channel}' NuGet source: {Source}", channel.Name, mapping.Source);
                     }
                 }
             }
@@ -320,24 +484,24 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     public string GetInstanceIdentifier() => _appPath;
 
     private async Task GenerateAppSettingsAsync(
-        List<(string Name, string Version)> packages,
+        List<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
         // Build the list of ATS assemblies (for [AspireExport] scanning)
         // Skip SDK-only packages that don't have runtime DLLs
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
-        foreach (var (name, _) in packages)
+        foreach (var integration in integrations)
         {
             // Skip SDK packages that don't produce runtime assemblies
-            if (name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
-                name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+            if (integration.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
+                integration.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!atsAssemblies.Contains(name, StringComparer.OrdinalIgnoreCase))
+            if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
             {
-                atsAssemblies.Add(name);
+                atsAssemblies.Add(integration.Name);
             }
         }
 
