@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -26,6 +27,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly string _socketPath;
     private readonly LayoutConfiguration _layout;
     private readonly BundleNuGetService _nugetService;
+    private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
     private readonly ILogger _logger;
@@ -37,18 +39,12 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <summary>
     /// Initializes a new instance of the PrebuiltAppHostServer class.
     /// </summary>
-    /// <param name="appPath">The path to the user's polyglot app host.</param>
-    /// <param name="socketPath">The socket path for JSON-RPC communication.</param>
-    /// <param name="layout">The bundle layout configuration.</param>
-    /// <param name="nugetService">The NuGet service for restoring integration packages.</param>
-    /// <param name="packagingService">The packaging service for channel resolution.</param>
-    /// <param name="configurationService">The configuration service for reading channel settings.</param>
-    /// <param name="logger">The logger for diagnostic output.</param>
     public PrebuiltAppHostServer(
         string appPath,
         string socketPath,
         LayoutConfiguration layout,
         BundleNuGetService nugetService,
+        IDotNetCliRunner dotNetCliRunner,
         IPackagingService packagingService,
         IConfigurationService configurationService,
         ILogger logger)
@@ -57,6 +53,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _socketPath = socketPath;
         _layout = layout;
         _nugetService = nugetService;
+        _dotNetCliRunner = dotNetCliRunner;
         _packagingService = packagingService;
         _configurationService = configurationService;
         _logger = logger;
@@ -88,23 +85,25 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <inheritdoc />
     public async Task<AppHostServerPrepareResult> PrepareAsync(
         string sdkVersion,
-        IEnumerable<(string Name, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken = default)
     {
-        var packageList = packages.ToList();
+        var integrationList = integrations.ToList();
+        var packageRefs = integrationList.Where(r => r.IsPackageReference).Select(r => (r.Name, r.Version!)).ToList();
+        var projectRefs = integrationList.Where(r => r.IsProjectReference).ToList();
 
         try
         {
             // Generate appsettings.json with ATS assemblies for the server to scan
-            await GenerateAppSettingsAsync(packageList, cancellationToken);
+            await GenerateAppSettingsAsync(integrationList, cancellationToken);
 
             // Resolve the configured channel (local settings.json → global config fallback)
             var channelName = await ResolveChannelNameAsync(cancellationToken);
 
-            // Restore integration packages
-            if (packageList.Count > 0)
+            // Restore NuGet integration packages
+            if (packageRefs.Count > 0)
             {
-                _logger.LogDebug("Restoring {Count} integration packages", packageList.Count);
+                _logger.LogDebug("Restoring {Count} integration packages", packageRefs.Count);
 
                 // Get NuGet sources filtered to the resolved channel
                 var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
@@ -113,11 +112,58 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 var appHostDirectory = Path.GetDirectoryName(_appPath);
 
                 _integrationLibsPath = await _nugetService.RestorePackagesAsync(
-                    packageList,
+                    packageRefs,
                     "net10.0",
                     sources: sources,
                     workingDirectory: appHostDirectory,
                     ct: cancellationToken);
+            }
+
+            // Build and publish project references
+            if (projectRefs.Count > 0)
+            {
+                _logger.LogDebug("Building {Count} project references", projectRefs.Count);
+
+                // Ensure we have a libs directory to copy into
+                if (_integrationLibsPath is null)
+                {
+                    _integrationLibsPath = Path.Combine(Path.GetTempPath(), ".aspire", "project-refs", Guid.NewGuid().ToString("N")[..12]);
+                    Directory.CreateDirectory(_integrationLibsPath);
+                }
+
+                foreach (var projectRef in projectRefs)
+                {
+                    var projectFile = new FileInfo(projectRef.ProjectPath!);
+                    if (!projectFile.Exists)
+                    {
+                        _logger.LogError("Project reference not found: {Path}", projectRef.ProjectPath);
+                        throw new FileNotFoundException($"Project reference not found: {projectRef.ProjectPath}");
+                    }
+
+                    // Publish to a temp directory to get the full transitive closure
+                    var publishDir = new DirectoryInfo(Path.Combine(Path.GetTempPath(), ".aspire", "publish", Guid.NewGuid().ToString("N")[..12]));
+                    Directory.CreateDirectory(publishDir.FullName);
+
+                    _logger.LogDebug("Publishing project reference {Name} from {Path} to {OutputDir}", projectRef.Name, projectRef.ProjectPath, publishDir.FullName);
+
+                    var exitCode = await _dotNetCliRunner.PublishProjectAsync(
+                        projectFile,
+                        publishDir,
+                        new DotNetCliRunnerInvocationOptions(),
+                        cancellationToken);
+
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"Failed to publish project reference '{projectRef.Name}' at {projectRef.ProjectPath}. Exit code: {exitCode}");
+                    }
+
+                    // Copy all DLLs from publish output into the integration libs path
+                    foreach (var dll in Directory.GetFiles(publishDir.FullName, "*.dll"))
+                    {
+                        var destPath = Path.Combine(_integrationLibsPath, Path.GetFileName(dll));
+                        File.Copy(dll, destPath, overwrite: true);
+                    }
+                }
             }
 
             return new AppHostServerPrepareResult(
@@ -320,24 +366,24 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     public string GetInstanceIdentifier() => _appPath;
 
     private async Task GenerateAppSettingsAsync(
-        List<(string Name, string Version)> packages,
+        List<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
         // Build the list of ATS assemblies (for [AspireExport] scanning)
         // Skip SDK-only packages that don't have runtime DLLs
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
-        foreach (var (name, _) in packages)
+        foreach (var integration in integrations)
         {
             // Skip SDK packages that don't produce runtime assemblies
-            if (name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
-                name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+            if (integration.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
+                integration.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!atsAssemblies.Contains(name, StringComparer.OrdinalIgnoreCase))
+            if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
             {
-                atsAssemblies.Add(name);
+                atsAssemblies.Add(integration.Name);
             }
         }
 

@@ -172,6 +172,50 @@ internal sealed class AspireJsonConfiguration
     }
 
     /// <summary>
+    /// Gets all integration references (both NuGet packages and project references)
+    /// including the base Aspire.Hosting package.
+    /// A value ending in ".csproj" is treated as a project reference; otherwise as a NuGet version.
+    /// Empty package versions are resolved to the effective SDK version.
+    /// </summary>
+    /// <param name="defaultSdkVersion">Default SDK version to use when not configured.</param>
+    /// <param name="settingsDirectory">The directory containing .aspire/settings.json, used to resolve relative project paths.</param>
+    /// <returns>Enumerable of IntegrationReference objects.</returns>
+    public IEnumerable<IntegrationReference> GetIntegrationReferences(string defaultSdkVersion, string settingsDirectory)
+    {
+        var sdkVersion = GetEffectiveSdkVersion(defaultSdkVersion);
+
+        // Base package always included
+        yield return new IntegrationReference("Aspire.Hosting", sdkVersion, ProjectPath: null);
+
+        if (Packages is null)
+        {
+            yield break;
+        }
+
+        foreach (var (packageName, value) in Packages)
+        {
+            // Skip base packages and SDK-only packages
+            if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (value.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                // Project reference — resolve relative path to absolute
+                var absolutePath = Path.GetFullPath(Path.Combine(settingsDirectory, value));
+                yield return new IntegrationReference(packageName, Version: null, ProjectPath: absolutePath);
+            }
+            else
+            {
+                // NuGet package reference
+                yield return new IntegrationReference(packageName, string.IsNullOrWhiteSpace(value) ? sdkVersion : value, ProjectPath: null);
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets all package references including the base Aspire.Hosting package.
     /// Empty package versions in settings are resolved to the effective SDK version.
     /// </summary>

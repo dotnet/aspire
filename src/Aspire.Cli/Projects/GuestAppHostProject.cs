@@ -137,21 +137,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets all packages including the code generation package for the current language.
+    /// Gets all integration references including the code generation package for the current language.
     /// </summary>
-    private async Task<List<(string Name, string Version)>> GetAllPackagesAsync(
+    private async Task<List<IntegrationReference>> GetAllPackagesAsync(
         AspireJsonConfiguration config,
+        DirectoryInfo directory,
         CancellationToken cancellationToken)
     {
         var defaultSdkVersion = GetEffectiveSdkVersion();
-        var packages = config.GetAllPackages(defaultSdkVersion).ToList();
+        var integrations = config.GetIntegrationReferences(defaultSdkVersion, directory.FullName).ToList();
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(defaultSdkVersion);
-            packages.Add((codeGenPackage, codeGenVersion));
+            integrations.Add(new IntegrationReference(codeGenPackage, codeGenVersion, ProjectPath: null));
         }
-        return packages;
+        return integrations;
     }
 
     private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
@@ -171,10 +172,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private static async Task<(bool Success, OutputCollector? Output, string? ChannelName, bool NeedsCodeGen)> PrepareAppHostServerAsync(
         IAppHostServerProject appHostServerProject,
         string sdkVersion,
-        List<(string Name, string Version)> packages,
+        List<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
-        var result = await appHostServerProject.PrepareAsync(sdkVersion, packages, cancellationToken);
+        var result = await appHostServerProject.PrepareAsync(sdkVersion, integrations, cancellationToken);
         return (result.Success, result.Output, result.ChannelName, result.NeedsCodeGeneration);
     }
 
@@ -187,7 +188,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Step 1: Load config - source of truth for SDK version and packages
         var config = LoadConfiguration(directory);
-        var packages = await GetAllPackagesAsync(config, cancellationToken);
+        var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
         var sdkVersion = GetPrepareSdkVersion(config);
 
         var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
@@ -294,7 +295,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Load config - source of truth for SDK version and packages
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
@@ -598,7 +599,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             // Prepare the AppHost server (build for dev mode, restore for prebuilt)
@@ -1009,16 +1010,16 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private async Task GenerateCodeViaRpcAsync(
         string appPath,
         IAppHostRpcClient rpcClient,
-        IEnumerable<(string PackageId, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
-        var packagesList = packages.ToList();
+        var integrationsList = integrations.ToList();
 
         // Use CodeGenerator (e.g., "TypeScript") not LanguageId (e.g., "typescript/nodejs")
         // The code generator is registered by its Language property, not the runtime ID
         var codeGenerator = _resolvedLanguage.CodeGenerator;
 
-        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, packagesList.Count);
+        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, integrationsList.Count);
 
         // Use the typed RPC method
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
@@ -1039,7 +1040,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Write generation hash for caching
-        SaveGenerationHash(outputPath, packagesList);
+        SaveGenerationHash(outputPath, integrationsList);
 
         _logger.LogInformation("Generated {Count} {CodeGenerator} files in {Path}",
             files.Count, codeGenerator, outputPath);
@@ -1048,24 +1049,24 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Saves a hash of the packages to avoid regenerating code unnecessarily.
     /// </summary>
-    private static void SaveGenerationHash(string generatedPath, List<(string PackageId, string Version)> packages)
+    private static void SaveGenerationHash(string generatedPath, List<IntegrationReference> integrations)
     {
         var hashPath = Path.Combine(generatedPath, ".codegen-hash");
-        var hash = ComputePackagesHash(packages);
+        var hash = ComputePackagesHash(integrations);
         File.WriteAllText(hashPath, hash);
     }
 
     /// <summary>
     /// Computes a hash of the package list for caching purposes.
     /// </summary>
-    private static string ComputePackagesHash(List<(string PackageId, string Version)> packages)
+    private static string ComputePackagesHash(List<IntegrationReference> integrations)
     {
         var sb = new System.Text.StringBuilder();
-        foreach (var (packageId, version) in packages.OrderBy(p => p.PackageId))
+        foreach (var integration in integrations.OrderBy(p => p.Name))
         {
-            sb.Append(packageId);
+            sb.Append(integration.Name);
             sb.Append(':');
-            sb.Append(version);
+            sb.Append(integration.Version ?? integration.ProjectPath ?? "");
             sb.Append(';');
         }
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));

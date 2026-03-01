@@ -83,6 +83,7 @@ internal sealed class AppHostServerProjectFactory(
                 socketPath,
                 layout,
                 bundleNuGetService,
+                dotNetCliRunner,
                 packagingService,
                 configurationService,
                 loggerFactory.CreateLogger<PrebuiltAppHostServer>());
