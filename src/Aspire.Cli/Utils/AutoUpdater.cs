@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Processes;
 
 namespace Aspire.Cli.Utils;
 
@@ -88,24 +89,13 @@ internal static class AutoUpdater
 
         try
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = processPath,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            psi.ArgumentList.Add("internal-auto-update");
-            psi.ArgumentList.Add(cliDownloadBaseUrl);
+            var arguments = new List<string> { "internal-auto-update", cliDownloadBaseUrl };
             if (version is not null)
             {
-                psi.ArgumentList.Add(version);
+                arguments.Add(version);
             }
 
-            Process.Start(psi);
-            // Don't wait — fire and forget
+            DetachedProcessLauncher.Start(processPath, arguments, Environment.CurrentDirectory);
         }
         catch
         {
