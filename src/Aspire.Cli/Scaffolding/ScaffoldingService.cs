@@ -132,7 +132,50 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 cancellationToken);
 
             // Save channel and language to aspire.config.json (new format)
-            var aspireConfigFile = AspireConfigFile.FromLegacy(config, profiles: null);
+            // Read profiles from apphost.run.json (created by codegen) and merge into aspire.config.json
+            Dictionary<string, AspireConfigProfile>? profiles = null;
+            var appHostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
+            if (File.Exists(appHostRunPath))
+            {
+                try
+                {
+                    var runJson = File.ReadAllText(appHostRunPath);
+                    var runDoc = System.Text.Json.JsonDocument.Parse(runJson);
+                    if (runDoc.RootElement.TryGetProperty("profiles", out var profilesElement))
+                    {
+                        profiles = new Dictionary<string, AspireConfigProfile>();
+                        foreach (var profile in profilesElement.EnumerateObject())
+                        {
+                            var configProfile = new AspireConfigProfile();
+                            if (profile.Value.TryGetProperty("applicationUrl", out var appUrl))
+                            {
+                                configProfile.ApplicationUrl = appUrl.GetString();
+                            }
+                            if (profile.Value.TryGetProperty("environmentVariables", out var envVars))
+                            {
+                                configProfile.EnvironmentVariables = new Dictionary<string, string>();
+                                foreach (var envVar in envVars.EnumerateObject())
+                                {
+                                    if (envVar.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                                    {
+                                        configProfile.EnvironmentVariables[envVar.Name] = envVar.Value.GetString()!;
+                                    }
+                                }
+                            }
+                            profiles[profile.Name] = configProfile;
+                        }
+                    }
+
+                    // Delete apphost.run.json since profiles are now in aspire.config.json
+                    File.Delete(appHostRunPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to read profiles from apphost.run.json");
+                }
+            }
+
+            var aspireConfigFile = AspireConfigFile.FromLegacy(config, profiles);
             if (prepareResult.ChannelName is not null)
             {
                 aspireConfigFile.Channel = prepareResult.ChannelName;
