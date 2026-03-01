@@ -97,7 +97,7 @@ internal sealed class PsCommand : BaseCommand
             }
             else
             {
-                _interactionService.DisplayMessage("information", SharedCommandStrings.AppHostNotRunning);
+                _interactionService.DisplayMessage(KnownEmojis.Information, SharedCommandStrings.AppHostNotRunning);
             }
             return ExitCodeConstants.Success;
         }

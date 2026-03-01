@@ -1043,8 +1043,8 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         _innerService = innerService;
     }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => _innerService.ShowStatusAsync(statusText, action);
-    public void ShowStatus(string statusText, Action action) => _innerService.ShowStatus(statusText, action);
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false) => _innerService.ShowStatusAsync(statusText, action, emoji, allowMarkup);
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false) => _innerService.ShowStatus(statusText, action, emoji, allowMarkup);
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) 
         => _innerService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) 
@@ -1056,13 +1056,13 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) 
         => _innerService.DisplayIncompatibleVersionError(ex, appHostHostingVersion);
     public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);
-    public void DisplayMessage(string emojiName, string message) => _innerService.DisplayMessage(emojiName, message);
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) => _innerService.DisplayMessage(emoji, message, allowMarkup);
     public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
     public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) => _innerService.DisplayRawText(text, consoleOverride);
     public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
     public void DisplayMarkupLine(string markup) => _innerService.DisplayMarkupLine(markup);
-    public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) => _innerService.DisplaySubtleMessage(message, escapeMarkup);
+    public void DisplaySuccess(string message, bool allowMarkup = false) => _innerService.DisplaySuccess(message, allowMarkup);
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false) => _innerService.DisplaySubtleMessage(message, allowMarkup);
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) => _innerService.DisplayLines(lines);
     public void DisplayCancellationMessage() 
     {

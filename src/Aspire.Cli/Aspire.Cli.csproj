@@ -177,6 +177,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Templating\Templates\empty-apphost\**\*.cs" />
+    <EmbeddedResource Include="Templating\Templates\empty-apphost\**\*" LogicalName="empty-apphost.%(RecursiveDir)%(Filename)%(Extension)">
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Templating\Templates\ts-starter\**\*" LogicalName="ts-starter.%(RecursiveDir)%(Filename)%(Extension)">
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Resources\dotnet-install.sh" />
     <EmbeddedResource Include="Resources\dotnet-install.ps1" />
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-16.png" Link="Mcp\Resources\aspire-16.png" />

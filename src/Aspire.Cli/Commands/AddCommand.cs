@@ -219,7 +219,7 @@ internal sealed class AddCommand : BaseCommand
 
                 if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
                 {
-                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                    InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
                 }
                 else if (runningInstanceResult == RunningInstanceResult.StopFailed)
                 {

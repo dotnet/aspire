@@ -74,7 +74,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Go language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:java": {
@@ -90,7 +90,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Java language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:python": {
@@ -106,7 +106,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Python language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:rust": {
@@ -122,7 +122,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications",
           "default": false
         },
         "minimumSdkCheckEnabled": {
@@ -172,22 +172,6 @@
           ],
           "description": "Enable or disable disk caching for package search results to improve performance",
           "default": true
-        },
-        "polyglotSupportEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
-          "default": false
         },
         "runningInstanceDetectionEnabled": {
           "anyOf": [

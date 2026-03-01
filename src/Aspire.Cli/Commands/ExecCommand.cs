@@ -189,14 +189,14 @@ internal class ExecCommand : BaseCommand
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
                 backchannel = await InteractionService.ShowStatusAsync(
-                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
+                    RunCommandStrings.StartingAppHost,
                     async () =>
                     {
                         // If we use the --wait-for-debugger option we print out the process ID
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                            InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
@@ -204,10 +204,10 @@ internal class ExecCommand : BaseCommand
                         // good signal that the debugger was attached (or timed out).
                         var backchannel = await backchannelCompletionSource.Task.WaitAsync(cancellationToken);
                         return backchannel;
-                    });
+                    }, emoji: KnownEmojis.LinkedPaperclips);
 
                 commandExitCode = await InteractionService.ShowStatusAsync<int?>(
-                    $":running_shoe: {ExecCommandStrings.Running}",
+                    ExecCommandStrings.Running,
                     async () =>
                     {
                         // execute tool and stream the output
@@ -223,19 +223,19 @@ internal class ExecCommand : BaseCommand
                         }
 
                         return exitCode;
-                    });
+                    }, emoji: KnownEmojis.RunningShoe);
             }
             finally
             {
                 if (backchannel is not null)
                 {
                     _ = await InteractionService.ShowStatusAsync<int>(
-                    $":linked_paperclips: {ExecCommandStrings.StoppingAppHost}",
+                    ExecCommandStrings.StoppingAppHost,
                     async () =>
                     {
                         await backchannel.RequestStopAsync(cancellationToken);
                         return ExitCodeConstants.Success;
-                    });
+                    }, emoji: KnownEmojis.LinkedPaperclips);
                 }
             }
 

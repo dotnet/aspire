@@ -9,21 +9,21 @@ namespace Aspire.Cli.Interaction;
 
 internal interface IInteractionService
 {
-    Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action);
-    void ShowStatus(string statusText, Action action);
+    Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false);
+    void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion);
     void DisplayError(string errorMessage);
-    void DisplayMessage(string emojiName, string message);
+    void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false);
     void DisplayPlainText(string text);
     void DisplayRawText(string text, ConsoleOutput? consoleOverride = null);
     void DisplayMarkdown(string markdown);
     void DisplayMarkupLine(string markup);
-    void DisplaySuccess(string message);
-    void DisplaySubtleMessage(string message, bool escapeMarkup = true);
+    void DisplaySuccess(string message, bool allowMarkup = false);
+    void DisplaySubtleMessage(string message, bool allowMarkup = false);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayRenderable(IRenderable renderable);
     void DisplayCancellationMessage();
