@@ -488,7 +488,7 @@ internal sealed class AtsMarshaller
 
     /// <summary>
     /// Describes a .NET type in a human-readable way for error messages.
-    /// Formats Nullable&lt;T&gt; as "T or null" instead of "Nullable`1".
+    /// Formats Nullable&lt;T&gt; as the underlying type.
     /// </summary>
     private static string DescribeType(Type type)
     {
