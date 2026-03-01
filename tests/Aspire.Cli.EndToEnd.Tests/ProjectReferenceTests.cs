@@ -12,7 +12,7 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// <summary>
 /// End-to-end test for polyglot project reference support.
 /// Creates a .NET hosting integration project and a TypeScript AppHost that references it
-/// via settings.json, then verifies the integration is discovered and code-generated.
+/// via settings.json, then verifies the integration is discovered, code-generated, and functional.
 /// </summary>
 public sealed class ProjectReferenceTests(ITestOutputHelper output)
 {
@@ -38,6 +38,10 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         var waitForAddMyServiceInCodegen = new CellPatternSearcher()
             .Find("addMyService");
 
+        // Pattern to verify the resource appears in describe output
+        var waitForMyServiceInDescribe = new CellPatternSearcher()
+            .Find("my-svc");
+
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -50,14 +54,14 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 1: Create a TypeScript AppHost first (so we get the sdkVersion in settings.json)
+        // Step 1: Create a TypeScript AppHost (so we get the sdkVersion in settings.json)
         sequenceBuilder
             .Type("aspire init --language typescript --non-interactive")
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
-        // Step 2: Create the integration project and update settings.json from C#
+        // Step 2: Create the integration project, update settings.json, and modify apphost.ts
         sequenceBuilder.ExecuteCallback(() =>
         {
             var workDir = workspace.WorkspaceRoot.FullName;
@@ -113,25 +117,50 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
 
             var updatedJson = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(settingsPath, updatedJson);
+
+            // Update apphost.ts to use the custom integration
+            File.WriteAllText(Path.Combine(workDir, "apphost.ts"), """
+                import { createBuilder } from './.modules/aspire.js';
+
+                const builder = await createBuilder();
+                await builder.addMyService("my-svc");
+                await builder.build().run();
+                """);
         });
 
-        // Step 3: Start the AppHost (this triggers the project ref build + codegen)
+        // Step 3: Start the AppHost (triggers project ref build + codegen)
         sequenceBuilder
             .Type("aspire start --non-interactive")
             .Enter()
-            .WaitUntil(s => waitForStartSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+            .WaitUntil(s => waitForStartSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
         // Step 4: Verify the custom integration was code-generated
         sequenceBuilder
             .Type("grep addMyService .modules/aspire.ts")
             .Enter()
-            .WaitUntil(s => waitForAddMyServiceInCodegen.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitForAddMyServiceInCodegen.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .WaitForSuccessPrompt(counter);
 
-        // Step 5: Clean up
+        // Step 5: Wait for the custom resource to be up
         sequenceBuilder
-            .Type("aspire stop --all 2>/dev/null || true")
+            .Type("aspire wait my-svc --timeout 60")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(90));
+
+        // Step 6: Verify the resource appears in describe
+        sequenceBuilder
+            .Type("aspire describe my-svc --format json > /tmp/my-svc-describe.json")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(15))
+            .Type("cat /tmp/my-svc-describe.json")
+            .Enter()
+            .WaitUntil(s => waitForMyServiceInDescribe.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .WaitForSuccessPrompt(counter);
+
+        // Step 7: Clean up
+        sequenceBuilder
+            .Type("aspire stop")
             .Enter()
             .WaitForSuccessPrompt(counter)
             .Type("exit")
