@@ -99,7 +99,7 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
                     [AspireExport("addMyService")]
                     public static IResourceBuilder<ContainerResource> AddMyService(
                         this IDistributedApplicationBuilder builder, string name)
-                        => builder.AddContainer(name, "myservice", "latest");
+                        => builder.AddContainer(name, "redis", "latest");
                 }
                 """);
 
