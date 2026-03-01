@@ -104,7 +104,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             {
                 // Project references require .NET SDK — create a single synthetic project
                 // with all package and project references, then dotnet publish once.
-                _integrationLibsPath = await PublishIntegrationProjectAsync(
+                _integrationLibsPath = await BuildIntegrationProjectAsync(
                     packageRefs, projectRefs, channelName, cancellationToken);
             }
             else if (packageRefs.Count > 0)
@@ -157,9 +157,10 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
     /// <summary>
     /// Creates a synthetic .csproj with all package and project references,
-    /// then publishes it to get the full transitive DLL closure. Requires .NET SDK.
+    /// then builds it to get the full transitive DLL closure via CopyLocalLockFileAssemblies.
+    /// Requires .NET SDK.
     /// </summary>
-    private async Task<string> PublishIntegrationProjectAsync(
+    private async Task<string> BuildIntegrationProjectAsync(
         List<IntegrationReference> packageRefs,
         List<IntegrationReference> projectRefs,
         string? channelName,
@@ -168,7 +169,10 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         var restoreDir = Path.Combine(_workingDirectory, "integration-restore");
         Directory.CreateDirectory(restoreDir);
 
-        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs);
+        var outputDir = Path.Combine(restoreDir, "libs");
+        Directory.CreateDirectory(outputDir);
+
+        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir);
         var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
         await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
 
@@ -201,24 +205,21 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             }
         }
 
-        var publishDir = new DirectoryInfo(Path.Combine(restoreDir, "publish"));
-        Directory.CreateDirectory(publishDir.FullName);
+        _logger.LogDebug("Building integration project with {PackageCount} packages and {ProjectCount} project references",
+            packageRefs.Count, projectRefs.Count);
 
-        _logger.LogDebug("Publishing integration project with {PackageCount} packages and {ProjectCount} project references to {OutputDir}",
-            packageRefs.Count, projectRefs.Count, publishDir.FullName);
-
-        var exitCode = await _dotNetCliRunner.PublishProjectAsync(
+        var exitCode = await _dotNetCliRunner.BuildAsync(
             new FileInfo(projectFilePath),
-            publishDir,
+            noRestore: false,
             new DotNetCliRunnerInvocationOptions(),
             cancellationToken);
 
         if (exitCode != 0)
         {
-            throw new InvalidOperationException($"Failed to publish integration project. Exit code: {exitCode}");
+            throw new InvalidOperationException($"Failed to build integration project. Exit code: {exitCode}");
         }
 
-        return publishDir.FullName;
+        return outputDir;
     }
 
     /// <summary>
@@ -227,7 +228,8 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// </summary>
     private static string GenerateIntegrationProjectFile(
         List<IntegrationReference> packageRefs,
-        List<IntegrationReference> projectRefs)
+        List<IntegrationReference> projectRefs,
+        string outputDir)
     {
         var packageElements = string.Join("\n    ",
             packageRefs.Select(p => $"""<PackageReference Include="{p.Name}" Version="{p.Version}" />"""));
@@ -240,6 +242,11 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
                 <EnableDefaultItems>false</EnableDefaultItems>
+                <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+                <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+                <EnableNETAnalyzers>false</EnableNETAnalyzers>
+                <GenerateDocumentationFile>false</GenerateDocumentationFile>
+                <OutDir>{{outputDir}}</OutDir>
               </PropertyGroup>
               <ItemGroup>
                 {{packageElements}}
