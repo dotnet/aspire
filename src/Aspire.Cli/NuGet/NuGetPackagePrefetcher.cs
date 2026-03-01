@@ -10,8 +10,11 @@ using SystemCommand = System.CommandLine.Command;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(
-    ILogger<NuGetPackagePrefetcher> logger,
+/// <summary>
+/// Background service that prefetches NuGet package metadata and triggers CLI auto-updates.
+/// </summary>
+internal sealed class CliBackgroundService(
+    ILogger<CliBackgroundService> logger,
     CliExecutionContext executionContext,
     IFeatures features,
     IPackagingService packagingService,
@@ -52,7 +55,7 @@ internal sealed class NuGetPackagePrefetcher(
              }, stoppingToken);
         }
 
-        // Prefetch CLI packages if needed
+        // Prefetch CLI packages and trigger auto-update if needed
         if (shouldPrefetchCli)
         {
             _ = Task.Run(async () =>
@@ -64,7 +67,7 @@ internal sealed class NuGetPackagePrefetcher(
                         cancellationToken: stoppingToken
                         );
 
-                    // Trigger auto-update if an update is available (independent of update notifications)
+                    // Trigger auto-update if an update is available
                     await TryTriggerAutoUpdateAsync(command, stoppingToken);
                 }
                 catch (System.Exception ex)

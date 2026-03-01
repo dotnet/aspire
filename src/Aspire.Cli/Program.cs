@@ -278,8 +278,8 @@ public class Program
             return sp.GetRequiredService<NuGetPackageCache>();
         });
 
-        builder.Services.AddSingleton<NuGetPackagePrefetcher>();
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        builder.Services.AddSingleton<CliBackgroundService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<CliBackgroundService>());
         builder.Services.AddSingleton<AuxiliaryBackchannelMonitor>();
         builder.Services.AddSingleton<IAuxiliaryBackchannelMonitor>(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
