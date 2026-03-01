@@ -246,6 +246,7 @@ public class Program
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<ITemplateVersionPrompter>(sp => (ITemplateVersionPrompter)sp.GetRequiredService<INewCommandPrompter>());
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
@@ -324,8 +325,10 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Template factories.
+        builder.Services.AddSingleton<TemplateNuGetConfigService>();
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
@@ -400,6 +403,9 @@ public class Program
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<SetupCommand>();
+#if DEBUG
+        builder.Services.AddTransient<RenderCommand>();
+#endif
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 

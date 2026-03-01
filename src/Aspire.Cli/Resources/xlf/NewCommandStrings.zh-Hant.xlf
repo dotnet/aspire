@@ -32,6 +32,11 @@
         <target state="translated">無效的專案名稱。</target>
         <note />
       </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost.</source>
+        <target state="new">The programming language for the AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
         <target state="translated">要建立專案之名稱。</target>

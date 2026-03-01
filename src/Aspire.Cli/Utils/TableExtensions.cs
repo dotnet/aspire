@@ -13,16 +13,7 @@ internal static class TableExtensions
     /// <summary>
     /// Adds a column with a bold header to the table.
     /// </summary>
-    public static Table AddBoldColumn(this Table table, string header)
-    {
-        table.AddColumn($"[bold]{header.EscapeMarkup()}[/]");
-        return table;
-    }
-
-    /// <summary>
-    /// Adds a column with a bold, non-wrapping header to the table.
-    /// </summary>
-    public static Table AddBoldColumn(this Table table, string header, bool noWrap)
+    public static Table AddBoldColumn(this Table table, string header, bool noWrap = false, int? width = null)
     {
         var column = new TableColumn($"[bold]{header.EscapeMarkup()}[/]");
 
@@ -31,17 +22,11 @@ internal static class TableExtensions
             column.NoWrap();
         }
 
-        table.AddColumn(column);
-        return table;
-    }
+        if (width is not null)
+        {
+            column.Width = width;
+        }
 
-    /// <summary>
-    /// Adds a column with a bold header and a fixed width to the table.
-    /// </summary>
-    public static Table AddBoldColumn(this Table table, string header, int width)
-    {
-        var column = new TableColumn($"[bold]{header.EscapeMarkup()}[/]");
-        column.Width = width;
         table.AddColumn(column);
         return table;
     }

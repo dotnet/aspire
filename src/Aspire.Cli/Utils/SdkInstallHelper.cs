@@ -88,7 +88,7 @@ internal static class SdkInstallHelper
                 {
                     // When alwaysInstallSdk is true, skip the prompt and install directly
                     shouldInstall = true;
-                    interactionService.DisplayMessage("information",
+                    interactionService.DisplayMessage(KnownEmojis.Information,
                         "alwaysInstallSdk is enabled - forcing SDK installation for testing purposes.");
                 }
                 else

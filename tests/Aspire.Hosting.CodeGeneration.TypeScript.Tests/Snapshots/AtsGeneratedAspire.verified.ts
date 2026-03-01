@@ -26,6 +26,9 @@ import {
 // Handle Type Aliases (Internal - not exported to users)
 // ============================================================================
 
+/** Handle to ITestVaultResource */
+type ITestVaultResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource'>;
+
 /** Handle to TestCallbackContext */
 type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext'>;
 
@@ -43,6 +46,9 @@ type TestRedisResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.
 
 /** Handle to TestResourceContext */
 type TestResourceContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext'>;
+
+/** Handle to TestVaultResource */
+type TestVaultResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource'>;
 
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
@@ -446,6 +452,21 @@ export class DistributedApplicationBuilder {
         return new TestRedisResourcePromise(this._addTestRedisInternal(name, port));
     }
 
+    /** Adds a test vault resource */
+    /** @internal */
+    async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    addTestVault(name: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._addTestVaultInternal(name));
+    }
+
 }
 
 /**
@@ -464,6 +485,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a test Redis resource */
     addTestRedis(name: string, options?: AddTestRedisOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.addTestRedis(name, options)));
+    }
+
+    /** Adds a test vault resource */
+    addTestVault(name: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.addTestVault(name)));
     }
 
 }
@@ -1355,6 +1381,379 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
 }
 
 // ============================================================================
+// TestVaultResource
+// ============================================================================
+
+export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHandle> {
+    constructor(handle: TestVaultResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (value !== undefined) rpcArgs.value = value;
+        if (enabled !== undefined) rpcArgs.enabled = enabled;
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Adds an optional string parameter */
+    withOptionalString(options?: WithOptionalStringOptions): TestVaultResourcePromise {
+        const value = options?.value;
+        const enabled = options?.enabled;
+        return new TestVaultResourcePromise(this._withOptionalStringInternal(value, enabled));
+    }
+
+    /** @internal */
+    private async _withConfigInternal(config: TestConfigDto): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConfig',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withConfigInternal(config));
+    }
+
+    /** @internal */
+    private async _testWithEnvironmentCallbackInternal(callback: (arg: TestEnvironmentContext) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as TestEnvironmentContextHandle;
+            const arg = new TestEnvironmentContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWithEnvironmentCallback',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures environment with callback (test version) */
+    testWithEnvironmentCallback(callback: (arg: TestEnvironmentContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._testWithEnvironmentCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withCreatedAtInternal(createdAt: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, createdAt };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCreatedAt',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets the created timestamp */
+    withCreatedAt(createdAt: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withCreatedAtInternal(createdAt));
+    }
+
+    /** @internal */
+    private async _withModifiedAtInternal(modifiedAt: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, modifiedAt };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withModifiedAt',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets the modified timestamp */
+    withModifiedAt(modifiedAt: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withModifiedAtInternal(modifiedAt));
+    }
+
+    /** @internal */
+    private async _withCorrelationIdInternal(correlationId: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, correlationId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCorrelationId',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets the correlation ID */
+    withCorrelationId(correlationId: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withCorrelationIdInternal(correlationId));
+    }
+
+    /** @internal */
+    private async _withOptionalCallbackInternal(callback?: (arg: TestCallbackContext) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = callback ? registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as TestCallbackContextHandle;
+            const arg = new TestCallbackContext(argHandle, this._client);
+            await callback(arg);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (callback !== undefined) rpcArgs.callback = callbackId;
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalCallback',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures with optional callback */
+    withOptionalCallback(options?: WithOptionalCallbackOptions): TestVaultResourcePromise {
+        const callback = options?.callback;
+        return new TestVaultResourcePromise(this._withOptionalCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withStatusInternal(status: TestResourceStatus): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, status };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withStatus',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets the resource status */
+    withStatus(status: TestResourceStatus): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withStatusInternal(status));
+    }
+
+    /** @internal */
+    private async _withNestedConfigInternal(config: TestNestedDto): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withNestedConfig',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withNestedConfigInternal(config));
+    }
+
+    /** @internal */
+    private async _withValidatorInternal(validator: (arg: TestResourceContext) => Promise<boolean>): Promise<TestVaultResource> {
+        const validatorId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as TestResourceContextHandle;
+            const arg = new TestResourceContext(argHandle, this._client);
+            return await validator(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Adds validation callback */
+    withValidator(validator: (arg: TestResourceContext) => Promise<boolean>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withValidatorInternal(validator));
+    }
+
+    /** @internal */
+    private async _testWaitForInternal(dependency: ResourceBuilderBase): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWaitFor',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Waits for another resource (test version) */
+    testWaitFor(dependency: ResourceBuilderBase): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._testWaitForInternal(dependency));
+    }
+
+    /** @internal */
+    private async _withDependencyInternal(dependency: ResourceBuilderBase): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Adds a dependency on another resource */
+    withDependency(dependency: ResourceBuilderBase): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withDependencyInternal(dependency));
+    }
+
+    /** @internal */
+    private async _withEndpointsInternal(endpoints: string[]): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpoints };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEndpoints',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets the endpoints */
+    withEndpoints(endpoints: string[]): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withEndpointsInternal(endpoints));
+    }
+
+    /** @internal */
+    private async _withEnvironmentVariablesInternal(variables: Record<string, string>): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, variables };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentVariables',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Sets environment variables */
+    withEnvironmentVariables(variables: Record<string, string>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withEnvironmentVariablesInternal(variables));
+    }
+
+    /** @internal */
+    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestVaultResource> {
+        const operationId = registerCallback(async (argData: unknown) => {
+            const arg = wrapIfHandle(argData) as AbortSignal;
+            await operation(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Performs a cancellable operation */
+    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withCancellableOperationInternal(operation));
+    }
+
+    /** @internal */
+    private async _withVaultDirectInternal(option: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, option };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withVaultDirect',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures vault using direct interface target */
+    withVaultDirect(option: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withVaultDirectInternal(option));
+    }
+
+}
+
+/**
+ * Thenable wrapper for TestVaultResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> {
+    constructor(private _promise: Promise<TestVaultResource>) {}
+
+    then<TResult1 = TestVaultResource, TResult2 = never>(
+        onfulfilled?: ((value: TestVaultResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds an optional string parameter */
+    withOptionalString(options?: WithOptionalStringOptions): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
+    }
+
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withConfig(config)));
+    }
+
+    /** Configures environment with callback (test version) */
+    testWithEnvironmentCallback(callback: (arg: TestEnvironmentContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.testWithEnvironmentCallback(callback)));
+    }
+
+    /** Sets the created timestamp */
+    withCreatedAt(createdAt: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withCreatedAt(createdAt)));
+    }
+
+    /** Sets the modified timestamp */
+    withModifiedAt(modifiedAt: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withModifiedAt(modifiedAt)));
+    }
+
+    /** Sets the correlation ID */
+    withCorrelationId(correlationId: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withCorrelationId(correlationId)));
+    }
+
+    /** Configures with optional callback */
+    withOptionalCallback(options?: WithOptionalCallbackOptions): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withOptionalCallback(options)));
+    }
+
+    /** Sets the resource status */
+    withStatus(status: TestResourceStatus): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withStatus(status)));
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withNestedConfig(config)));
+    }
+
+    /** Adds validation callback */
+    withValidator(validator: (arg: TestResourceContext) => Promise<boolean>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withValidator(validator)));
+    }
+
+    /** Waits for another resource (test version) */
+    testWaitFor(dependency: ResourceBuilderBase): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.testWaitFor(dependency)));
+    }
+
+    /** Adds a dependency on another resource */
+    withDependency(dependency: ResourceBuilderBase): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withDependency(dependency)));
+    }
+
+    /** Sets the endpoints */
+    withEndpoints(endpoints: string[]): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withEndpoints(endpoints)));
+    }
+
+    /** Sets environment variables */
+    withEnvironmentVariables(variables: Record<string, string>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withEnvironmentVariables(variables)));
+    }
+
+    /** Performs a cancellable operation */
+    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
+    }
+
+    /** Configures vault using direct interface target */
+    withVaultDirect(option: string): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withVaultDirect(option)));
+    }
+
+}
+
+// ============================================================================
 // Resource
 // ============================================================================
 
@@ -1916,6 +2315,7 @@ registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hos
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource', (handle, client) => new TestDatabaseResource(handle as TestDatabaseResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource', (handle, client) => new TestRedisResource(handle as TestRedisResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource', (handle, client) => new TestVaultResource(handle as TestVaultResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));

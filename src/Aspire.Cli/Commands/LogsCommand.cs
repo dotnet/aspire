@@ -172,7 +172,7 @@ internal sealed class LogsCommand : BaseCommand
         if (!result.Success)
         {
             // No running AppHosts is not an error - similar to Unix 'ps' returning empty
-            _interactionService.DisplayMessage("information", result.ErrorMessage);
+            _interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
@@ -195,7 +195,7 @@ internal sealed class LogsCommand : BaseCommand
         {
             if (snapshots.Count == 0)
             {
-                _interactionService.DisplayMessage("information", LogsCommandStrings.NoResourcesFound);
+                _interactionService.DisplayMessage(KnownEmojis.Information, LogsCommandStrings.NoResourcesFound);
                 return ExitCodeConstants.Success;
             }
         }

@@ -72,8 +72,9 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var prepareSdkVersion = config.GetEffectiveSdkVersion(sdkVersion);
 
         var prepareResult = await _interactionService.ShowStatusAsync(
-            ":gear:  Preparing Aspire server...",
-            () => appHostServerProject.PrepareAsync(prepareSdkVersion, packages, cancellationToken));
+            "Preparing Aspire server...",
+            () => appHostServerProject.PrepareAsync(prepareSdkVersion, packages, cancellationToken),
+            emoji: KnownEmojis.Gear);
         if (!prepareResult.Success)
         {
             if (prepareResult.Output is not null)
@@ -115,8 +116,9 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
             // Step 5: Install dependencies using GuestRuntime
             var installResult = await _interactionService.ShowStatusAsync(
-                $":package:  Installing {language.DisplayName} dependencies...",
-                () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken));
+                $"Installing {language.DisplayName} dependencies...",
+                () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken),
+                emoji: KnownEmojis.Package);
             if (installResult != 0)
             {
                 return;

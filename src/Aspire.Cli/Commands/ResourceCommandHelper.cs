@@ -70,7 +70,7 @@ internal static class ResourceCommandHelper
         }
         else if (response.Canceled)
         {
-            interactionService.DisplayMessage("warning", $"Command '{commandName}' on '{resourceName}' was canceled.");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"Command '{commandName}' on '{resourceName}' was canceled.");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
         else
@@ -96,7 +96,7 @@ internal static class ResourceCommandHelper
         }
         else if (response.Canceled)
         {
-            interactionService.DisplayMessage("warning", $"{progressVerb} command for '{resourceName}' was canceled.");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"{progressVerb} command for '{resourceName}' was canceled.");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
         else
