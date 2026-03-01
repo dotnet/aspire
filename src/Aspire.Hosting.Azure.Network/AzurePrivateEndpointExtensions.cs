@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Network;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
 using Azure.Provisioning.PrivateDns;
@@ -80,7 +81,14 @@ public static class AzurePrivateEndpointExtensions
         }
         rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
 
-        return builder.AddResource(resource);
+        var pe = builder.AddResource(resource);
+
+        if (target.Resource is IAzurePrivateEndpointTargetNotification notificationTarget)
+        {
+            notificationTarget.OnPrivateEndpointCreated(pe);
+        }
+
+        return pe;
 
         void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra)
         {
