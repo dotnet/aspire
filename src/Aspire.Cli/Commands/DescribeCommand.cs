@@ -190,9 +190,15 @@ internal sealed class DescribeCommand : BaseCommand
         var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
         var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
 
-        // Maintain a list of all resources seen so far for relationship resolution.
-        // Seed with a snapshot so that display names resolve correctly from the start.
-        var allResources = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        // Maintain a dictionary of the current state per resource for relationship resolution
+        // and display name deduplication. Keyed by snapshot.Name so each resource has exactly
+        // one entry representing its latest state.
+        var initialSnapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        var allResources = new Dictionary<string, ResourceSnapshot>(StringComparers.ResourceName);
+        foreach (var snapshot in initialSnapshots)
+        {
+            allResources[snapshot.Name] = snapshot;
+        }
 
         // Cache the last displayed content per resource to avoid duplicate output.
         // Values are either a string (JSON mode) or a ResourceDisplayState (non-JSON mode).
@@ -201,10 +207,15 @@ internal sealed class DescribeCommand : BaseCommand
         // Stream resource snapshots
         await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
         {
+            // Update the dictionary with the latest state for this resource
+            allResources[snapshot.Name] = snapshot;
+
+            var currentSnapshots = allResources.Values.ToList();
+
             // Filter by resource name if specified
             if (resourceName is not null)
             {
-                var resolved = ResourceSnapshotMapper.ResolveResources(resourceName, allResources);
+                var resolved = ResourceSnapshotMapper.ResolveResources(resourceName, currentSnapshots);
                 if (!resolved.Any(r => string.Equals(r.Name, snapshot.Name, StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
@@ -213,7 +224,7 @@ internal sealed class DescribeCommand : BaseCommand
 
             if (format == OutputFormat.Json)
             {
-                var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources, dashboardBaseUrl);
+                var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, currentSnapshots, dashboardBaseUrl);
 
                 // NDJSON output - compact, one object per line for streaming
                 var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.Ndjson.ResourceJson);
@@ -230,7 +241,7 @@ internal sealed class DescribeCommand : BaseCommand
             else
             {
                 // Human-readable update - build display state and skip if unchanged
-                var displayState = BuildResourceDisplayState(snapshot, allResources);
+                var displayState = BuildResourceDisplayState(snapshot, currentSnapshots);
 
                 if (lastDisplayedContent.TryGetValue(snapshot.Name, out var lastValue) && lastValue.Equals(displayState))
                 {
@@ -268,33 +279,14 @@ internal sealed class DescribeCommand : BaseCommand
         foreach (var (snapshot, displayName) in orderedItems)
         {
             var endpoints = snapshot.Urls.Length > 0
-                ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url))
+                ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url.EscapeMarkup()))
                 : "-";
 
-            var type = snapshot.ResourceType ?? "-";
-            var state = snapshot.State ?? "Unknown";
-            var health = snapshot.HealthStatus ?? "-";
+            var type = snapshot.ResourceType?.EscapeMarkup() ?? "-";
+            var stateText = ColorState(snapshot.State);
+            var healthText = ColorHealth(snapshot.HealthStatus?.EscapeMarkup() ?? "-");
 
-            // Color the state based on value
-            var stateText = state.ToUpperInvariant() switch
-            {
-                "RUNNING" => $"[green]{state}[/]",
-                "FINISHED" or "EXITED" => $"[grey]{state}[/]",
-                "FAILEDTOSTART" or "FAILED" => $"[red]{state}[/]",
-                "STARTING" or "WAITING" => $"[yellow]{state}[/]",
-                _ => state
-            };
-
-            // Color the health based on value
-            var healthText = health.ToUpperInvariant() switch
-            {
-                "HEALTHY" => $"[green]{health}[/]",
-                "UNHEALTHY" => $"[red]{health}[/]",
-                "DEGRADED" => $"[yellow]{health}[/]",
-                _ => health
-            };
-
-            table.AddRow($"[{_resourceColorMap.GetColor(displayName)}]{displayName.EscapeMarkup()}[/]", type, stateText, healthText, endpoints);
+            table.AddRow(ColorResourceName(displayName, displayName.EscapeMarkup()), type, stateText, healthText, endpoints);
         }
 
         _interactionService.DisplayRenderable(table);
@@ -313,12 +305,41 @@ internal sealed class DescribeCommand : BaseCommand
 
     private void DisplayResourceUpdate(ResourceDisplayState state)
     {
-        var health = !string.IsNullOrEmpty(state.HealthStatus) ? $" ({state.HealthStatus})" : "";
-        var endpointsStr = !string.IsNullOrEmpty(state.Endpoints) ? $" - {state.Endpoints}" : "";
+        var stateText = ColorState(state.State);
+        var healthText = !string.IsNullOrEmpty(state.HealthStatus) ? $" ({ColorHealth(state.HealthStatus.EscapeMarkup())})" : "";
+        var endpointsStr = !string.IsNullOrEmpty(state.Endpoints) ? $" - {state.Endpoints.EscapeMarkup()}" : "";
 
-        var color = _resourceColorMap.GetColor(state.DisplayName);
-        _interactionService.DisplayMarkupLine($"[{color}][[{state.DisplayName.EscapeMarkup()}]][/] {(state.State ?? "Unknown").EscapeMarkup()}{health.EscapeMarkup()}{endpointsStr.EscapeMarkup()}");
+        _interactionService.DisplayMarkupLine($"{ColorResourceName(state.DisplayName, $"[[{state.DisplayName.EscapeMarkup()}]]")} {stateText}{healthText}{endpointsStr}");
     }
+
+    private string ColorResourceName(string name, string displayMarkup) =>
+        $"[{_resourceColorMap.GetColor(name)}]{displayMarkup}[/]";
+
+    private static string ColorState(string? state)
+    {
+        if (string.IsNullOrEmpty(state))
+        {
+            return "Unknown";
+        }
+
+        var escaped = state.EscapeMarkup();
+        return state.ToUpperInvariant() switch
+        {
+            "RUNNING" => $"[green]{escaped}[/]",
+            "FINISHED" or "EXITED" => $"[grey]{escaped}[/]",
+            "FAILEDTOSTART" or "FAILED" => $"[red]{escaped}[/]",
+            "STARTING" or "WAITING" => $"[yellow]{escaped}[/]",
+            _ => escaped
+        };
+    }
+
+    private static string ColorHealth(string health) => health.ToUpperInvariant() switch
+    {
+        "HEALTHY" => $"[green]{health}[/]",
+        "UNHEALTHY" => $"[red]{health}[/]",
+        "DEGRADED" => $"[yellow]{health}[/]",
+        _ => health
+    };
 
     /// <summary>
     /// Represents the display state of a resource for deduplication during watch mode.
