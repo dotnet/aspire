@@ -7,6 +7,7 @@ using System.Text;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Layout;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -25,6 +26,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly string _appPath;
     private readonly string _socketPath;
     private readonly LayoutConfiguration _layout;
+    private readonly BundleNuGetService _nugetService;
     private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
@@ -41,6 +43,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         string appPath,
         string socketPath,
         LayoutConfiguration layout,
+        BundleNuGetService nugetService,
         IDotNetCliRunner dotNetCliRunner,
         IPackagingService packagingService,
         IConfigurationService configurationService,
@@ -49,6 +52,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _appPath = Path.GetFullPath(appPath);
         _socketPath = socketPath;
         _layout = layout;
+        _nugetService = nugetService;
         _dotNetCliRunner = dotNetCliRunner;
         _packagingService = packagingService;
         _configurationService = configurationService;
@@ -96,65 +100,18 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             // Resolve the configured channel (local settings.json → global config fallback)
             var channelName = await ResolveChannelNameAsync(cancellationToken);
 
-            if (packageRefs.Count > 0 || projectRefs.Count > 0)
+            if (projectRefs.Count > 0)
             {
-                // Create a single synthetic project file with all package and project references,
-                // then publish it once to get the full transitive closure of DLLs.
-                var restoreDir = Path.Combine(_workingDirectory, "integration-restore");
-                Directory.CreateDirectory(restoreDir);
-
-                var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs);
-                var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
-                await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
-
-                // Copy nuget.config from the user's apphost directory if present
-                var appHostDirectory = Path.GetDirectoryName(_appPath)!;
-                var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
-                if (File.Exists(userNugetConfig))
-                {
-                    File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
-                }
-
-                // Merge channel-specific NuGet sources if a channel is configured
-                if (channelName is not null)
-                {
-                    try
-                    {
-                        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
-                        var channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
-                        if (channel is not null)
-                        {
-                            await NuGetConfigMerger.CreateOrUpdateAsync(
-                                new DirectoryInfo(restoreDir),
-                                channel,
-                                cancellationToken: cancellationToken);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to merge channel NuGet sources, relying on user nuget.config");
-                    }
-                }
-
-                // Publish to the integration libs path
-                var publishDir = new DirectoryInfo(Path.Combine(restoreDir, "publish"));
-                Directory.CreateDirectory(publishDir.FullName);
-
-                _logger.LogDebug("Publishing integration project with {PackageCount} packages and {ProjectCount} project references to {OutputDir}",
-                    packageRefs.Count, projectRefs.Count, publishDir.FullName);
-
-                var exitCode = await _dotNetCliRunner.PublishProjectAsync(
-                    new FileInfo(projectFilePath),
-                    publishDir,
-                    new DotNetCliRunnerInvocationOptions(),
-                    cancellationToken);
-
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"Failed to publish integration project. Exit code: {exitCode}");
-                }
-
-                _integrationLibsPath = publishDir.FullName;
+                // Project references require .NET SDK — create a single synthetic project
+                // with all package and project references, then dotnet publish once.
+                _integrationLibsPath = await PublishIntegrationProjectAsync(
+                    packageRefs, projectRefs, channelName, cancellationToken);
+            }
+            else if (packageRefs.Count > 0)
+            {
+                // NuGet-only — use the bundled NuGet service (no SDK required)
+                _integrationLibsPath = await RestoreNuGetPackagesAsync(
+                    packageRefs, channelName, cancellationToken);
             }
 
             return new AppHostServerPrepareResult(
@@ -174,6 +131,94 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 ChannelName: null,
                 NeedsCodeGeneration: false);
         }
+    }
+
+    /// <summary>
+    /// Restores NuGet packages using the bundled NuGet service (no .NET SDK required).
+    /// </summary>
+    private async Task<string> RestoreNuGetPackagesAsync(
+        List<IntegrationReference> packageRefs,
+        string? channelName,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Restoring {Count} integration packages via bundled NuGet", packageRefs.Count);
+
+        var packages = packageRefs.Select(r => (r.Name, r.Version!)).ToList();
+        var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+        var appHostDirectory = Path.GetDirectoryName(_appPath);
+
+        return await _nugetService.RestorePackagesAsync(
+            packages,
+            "net10.0",
+            sources: sources,
+            workingDirectory: appHostDirectory,
+            ct: cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a synthetic .csproj with all package and project references,
+    /// then publishes it to get the full transitive DLL closure. Requires .NET SDK.
+    /// </summary>
+    private async Task<string> PublishIntegrationProjectAsync(
+        List<IntegrationReference> packageRefs,
+        List<IntegrationReference> projectRefs,
+        string? channelName,
+        CancellationToken cancellationToken)
+    {
+        var restoreDir = Path.Combine(_workingDirectory, "integration-restore");
+        Directory.CreateDirectory(restoreDir);
+
+        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs);
+        var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
+        await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
+
+        // Copy nuget.config from the user's apphost directory if present
+        var appHostDirectory = Path.GetDirectoryName(_appPath)!;
+        var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
+        if (File.Exists(userNugetConfig))
+        {
+            File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
+        }
+
+        // Merge channel-specific NuGet sources if a channel is configured
+        if (channelName is not null)
+        {
+            try
+            {
+                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                var channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+                if (channel is not null)
+                {
+                    await NuGetConfigMerger.CreateOrUpdateAsync(
+                        new DirectoryInfo(restoreDir),
+                        channel,
+                        cancellationToken: cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to merge channel NuGet sources, relying on user nuget.config");
+            }
+        }
+
+        var publishDir = new DirectoryInfo(Path.Combine(restoreDir, "publish"));
+        Directory.CreateDirectory(publishDir.FullName);
+
+        _logger.LogDebug("Publishing integration project with {PackageCount} packages and {ProjectCount} project references to {OutputDir}",
+            packageRefs.Count, projectRefs.Count, publishDir.FullName);
+
+        var exitCode = await _dotNetCliRunner.PublishProjectAsync(
+            new FileInfo(projectFilePath),
+            publishDir,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
+
+        if (exitCode != 0)
+        {
+            throw new InvalidOperationException($"Failed to publish integration project. Exit code: {exitCode}");
+        }
+
+        return publishDir.FullName;
     }
 
     /// <summary>
@@ -227,6 +272,52 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         }
 
         return channelName;
+    }
+
+    /// <summary>
+    /// Gets NuGet sources from the resolved channel for bundled restore.
+    /// </summary>
+    private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(string? channelName, CancellationToken cancellationToken)
+    {
+        var sources = new List<string>();
+
+        try
+        {
+            var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+            IEnumerable<PackageChannel> explicitChannels;
+            if (!string.IsNullOrEmpty(channelName))
+            {
+                var matchingChannel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+                explicitChannels = matchingChannel is not null ? [matchingChannel] : channels.Where(c => c.Type == PackageChannelType.Explicit);
+            }
+            else
+            {
+                explicitChannels = channels.Where(c => c.Type == PackageChannelType.Explicit);
+            }
+
+            foreach (var channel in explicitChannels)
+            {
+                if (channel.Mappings is null)
+                {
+                    continue;
+                }
+
+                foreach (var mapping in channel.Mappings)
+                {
+                    if (!sources.Contains(mapping.Source, StringComparer.OrdinalIgnoreCase))
+                    {
+                        sources.Add(mapping.Source);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get package channels, relying on nuget.config and nuget.org fallback");
+        }
+
+        return sources.Count > 0 ? sources : null;
     }
 
     /// <inheritdoc />
