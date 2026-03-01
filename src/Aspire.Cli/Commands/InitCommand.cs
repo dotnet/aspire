@@ -33,8 +33,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IPackagingService _packagingService;
     private readonly ISolutionLocator _solutionLocator;
     private readonly IDotNetSdkInstaller _sdkInstaller;
-    private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
     private readonly IConfigurationService _configurationService;
@@ -78,7 +76,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService,
         IConfigurationService configurationService,
         ILanguageService languageService,
@@ -93,8 +90,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _packagingService = packagingService;
         _solutionLocator = solutionLocator;
         _sdkInstaller = sdkInstaller;
-        _hostEnvironment = hostEnvironment;
-        _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
         _configurationService = configurationService;
@@ -149,7 +144,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         // For C#, we need the .NET SDK
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

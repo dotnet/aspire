@@ -24,8 +24,6 @@ internal class ExecCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly IDotNetSdkInstaller _sdkInstaller;
-    private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly IFeatures _features;
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", ExecCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_resourceOption = new("--resource", "-r")
@@ -55,7 +53,7 @@ internal class ExecCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -63,8 +61,6 @@ internal class ExecCommand : BaseCommand
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
         _sdkInstaller = sdkInstaller;
-        _hostEnvironment = hostEnvironment;
-        _features = features;
 
         Options.Add(s_appHostOption);
         Options.Add(s_resourceOption);
@@ -79,7 +75,7 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

@@ -431,7 +431,7 @@ internal class DotNetTemplateFactory(
 
     private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, TemplateInputs inputs, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, features, telemetry, hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, telemetry, cancellationToken))
         {
             return new TemplateResult(ExitCodeConstants.SdkNotInstalled);
         }

@@ -349,7 +349,7 @@ public class DotNetTemplateFactoryTests
         var features = new TestFeatures(showAllTemplates: true);
         var sdkInstaller = new TestDotNetSdkInstaller
         {
-            CheckAsyncCallback = _ => (false, null, "10.0.100", false)
+            CheckAsyncCallback = _ => (false, null, "10.0.100")
         };
         var factory = CreateTemplateFactory(features, sdkInstaller: sdkInstaller);
 
