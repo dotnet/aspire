@@ -17,7 +17,7 @@ internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<D
     {
         try
         {
-            var (success, highestVersion, minimumRequiredVersion, _) = await sdkInstaller.CheckAsync(cancellationToken);
+            var (success, highestVersion, minimumRequiredVersion) = await sdkInstaller.CheckAsync(cancellationToken);
 
             if (!success)
             {
