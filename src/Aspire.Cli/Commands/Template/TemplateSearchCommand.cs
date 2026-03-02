@@ -11,7 +11,7 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Commands.Template;
 
-internal sealed class TemplateSearchCommand : BaseTemplateSubCommand
+internal sealed class TemplateSearchCommand : BaseCommand
 {
     private static readonly Argument<string> s_keywordArgument = new("keyword")
     {
@@ -32,6 +32,8 @@ internal sealed class TemplateSearchCommand : BaseTemplateSubCommand
         _indexService = indexService;
         Arguments.Add(s_keywordArgument);
     }
+
+    protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {

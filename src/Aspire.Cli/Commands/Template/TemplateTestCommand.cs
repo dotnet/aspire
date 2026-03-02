@@ -14,7 +14,7 @@ using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands.Template;
 
-internal sealed class TemplateTestCommand : BaseTemplateSubCommand
+internal sealed class TemplateTestCommand : BaseCommand
 {
     private static readonly Argument<string?> s_pathArgument = new("path")
     {
@@ -63,6 +63,8 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
         Options.Add(s_dryRunOption);
         Options.Add(s_jsonOption);
     }
+
+    protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {

@@ -17,8 +17,10 @@ internal sealed class TemplateRefreshCommand(
     CliExecutionContext executionContext,
     IInteractionService interactionService,
     AspireCliTelemetry telemetry)
-    : BaseTemplateSubCommand("refresh", "Force refresh the template index cache", features, updateNotifier, executionContext, interactionService, telemetry)
+    : BaseCommand("refresh", "Force refresh the template index cache", features, updateNotifier, executionContext, interactionService, telemetry)
 {
+    protected override bool UpdateNotificationsEnabled => false;
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity("template-refresh");

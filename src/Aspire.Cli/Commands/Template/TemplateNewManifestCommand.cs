@@ -13,7 +13,7 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Commands.Template;
 
-internal sealed partial class TemplateNewManifestCommand : BaseTemplateSubCommand
+internal sealed partial class TemplateNewManifestCommand : BaseCommand
 {
     private static readonly Argument<string?> s_pathArgument = new("path")
     {
@@ -31,6 +31,8 @@ internal sealed partial class TemplateNewManifestCommand : BaseTemplateSubComman
     {
         Arguments.Add(s_pathArgument);
     }
+
+    protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {

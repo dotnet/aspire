@@ -18,8 +18,10 @@ internal sealed class TemplateListCommand(
     CliExecutionContext executionContext,
     IInteractionService interactionService,
     AspireCliTelemetry telemetry)
-    : BaseTemplateSubCommand("list", "List available templates from all configured sources", features, updateNotifier, executionContext, interactionService, telemetry)
+    : BaseCommand("list", "List available templates from all configured sources", features, updateNotifier, executionContext, interactionService, telemetry)
 {
+    protected override bool UpdateNotificationsEnabled => false;
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity("template-list");
