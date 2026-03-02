@@ -58,6 +58,9 @@ export const errorFetchingAppHosts = (error: string) => vscode.l10n.t('Error fet
 export const resourcesGroupLabel = vscode.l10n.t('Resources');
 export const resourceStateLabel = (name: string, state: string) => vscode.l10n.t('{0} — {1}', name, state);
 export const resourceEndpointLabel = (url: string) => vscode.l10n.t('{0}', url);
+export const stopAppHostLabel = vscode.l10n.t('Stop AppHost');
+export const stopResourceLabel = vscode.l10n.t('Stop Resource');
+export const viewLogsLabel = vscode.l10n.t('View Logs');
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const failedToGetConfigInfo = (exitCode: number) => vscode.l10n.t('Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update', exitCode);
 export const failedToParseConfigInfo = (error: any) => vscode.l10n.t('Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);

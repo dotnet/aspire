@@ -286,6 +286,15 @@
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
     </trans-unit>
+    <trans-unit id="command.stopAppHost">
+      <source xml:lang="en">Stop AppHost</source>
+    </trans-unit>
+    <trans-unit id="command.stopResource">
+      <source xml:lang="en">Stop Resource</source>
+    </trans-unit>
+    <trans-unit id="views.runningAppHosts.errorWelcome">
+      <source xml:lang="en">The Aspire CLI is not installed or does not support this feature. Install or update the Aspire CLI to get started.&#10;[Update Aspire CLI](command:aspire-vscode.updateSelf)&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
     </trans-unit>
@@ -295,8 +304,14 @@
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
     </trans-unit>
+    <trans-unit id="command.updateSelf">
+      <source xml:lang="en">Update Aspire CLI</source>
+    </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
+    </trans-unit>
+    <trans-unit id="command.viewResourceLogs">
+      <source xml:lang="en">View Logs</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>

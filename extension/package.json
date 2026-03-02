@@ -198,6 +198,24 @@
         "title": "%command.openDashboard%",
         "category": "Aspire",
         "icon": "$(globe)"
+      },
+      {
+        "command": "aspire-vscode.stopAppHost",
+        "title": "%command.stopAppHost%",
+        "category": "Aspire",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "aspire-vscode.stopResource",
+        "title": "%command.stopResource%",
+        "category": "Aspire",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "aspire-vscode.viewResourceLogs",
+        "title": "%command.viewResourceLogs%",
+        "category": "Aspire",
+        "icon": "$(output)"
       }
     ],
     "jsonValidation": [
@@ -251,6 +269,18 @@
         {
           "command": "aspire-vscode.openDashboard",
           "when": "false"
+        },
+        {
+          "command": "aspire-vscode.stopAppHost",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.stopResource",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.viewResourceLogs",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -265,6 +295,21 @@
           "command": "aspire-vscode.openDashboard",
           "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
           "group": "inline"
+        },
+        {
+          "command": "aspire-vscode.stopAppHost",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
+          "group": "2_actions@1"
+        },
+        {
+          "command": "aspire-vscode.stopResource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "group": "2_actions@1"
+        },
+        {
+          "command": "aspire-vscode.viewResourceLogs",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "group": "2_actions@2"
         }
       ]
     },

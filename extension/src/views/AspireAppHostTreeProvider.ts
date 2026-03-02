@@ -11,6 +11,9 @@ import {
     resourcesGroupLabel,
     resourceStateLabel,
     resourceEndpointLabel,
+    stopAppHostLabel,
+    stopResourceLabel,
+    viewLogsLabel,
 } from '../loc/strings';
 
 interface ResourceUrlJson {
@@ -235,6 +238,37 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
+    }
+
+    stopAppHost(element: AppHostItem): void {
+        const appHostPath = element.appHost.appHostPath;
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop --project "${appHostPath}"`);
+    }
+
+    stopResource(element: ResourceItem): void {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop "${element.resource.name}" --project "${appHost.appHostPath}"`);
+    }
+
+    viewResourceLogs(element: ResourceItem): void {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --project "${appHost.appHostPath}" --follow`);
+    }
+
+    private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {
+        // The ResourceItem id is `resource:{pid}:{name}`, extract the pid
+        const parts = element.id?.split(':');
+        if (!parts || parts.length < 2) {
+            return undefined;
+        }
+        const pid = parseInt(parts[1], 10);
+        return this._appHosts.find(a => a.appHostPid === pid);
     }
 
     private _fetchAppHosts(): void {
