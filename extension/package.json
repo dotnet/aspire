@@ -358,6 +358,18 @@
         }
       ]
     },
+    "colors": [
+      {
+        "id": "aspire.brandPurple",
+        "description": "Aspire brand purple color used for tree view icons.",
+        "defaults": {
+          "dark": "#7455DD",
+          "light": "#512BD4",
+          "highContrast": "#9780E5",
+          "highContrastLight": "#512BD4"
+        }
+      }
+    ],
     "configuration": {
       "title": "Aspire",
       "properties": {

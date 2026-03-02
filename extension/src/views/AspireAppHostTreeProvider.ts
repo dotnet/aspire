@@ -53,7 +53,7 @@ class AppHostItem extends vscode.TreeItem {
         super(name, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `apphost:${appHost.appHostPid}`;
         this.description = pidDescription(appHost.appHostPid);
-        this.iconPath = new vscode.ThemeIcon('server-process');
+        this.iconPath = new vscode.ThemeIcon('server-process', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'appHost';
         this.tooltip = appHost.appHostPath;
     }
@@ -72,7 +72,7 @@ class ResourcesGroupItem extends vscode.TreeItem {
     constructor(public readonly resources: ResourceJson[], public readonly appHostPid: number) {
         super(resourcesGroupLabel, vscode.TreeItemCollapsibleState.Collapsed);
         this.id = `resources:${appHostPid}`;
-        this.iconPath = new vscode.ThemeIcon('layers');
+        this.iconPath = new vscode.ThemeIcon('layers', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'resourcesGroup';
         this.description = `(${resources.length})`;
     }
@@ -85,7 +85,7 @@ class ResourceItem extends vscode.TreeItem {
         const hasUrls = resource.urls && resource.urls.filter(u => !u.isInternal).length > 0;
         super(label, hasUrls ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
         this.id = `resource:${appHostPid}:${resource.name}`;
-        this.iconPath = new vscode.ThemeIcon(getResourceIcon(resource));
+        this.iconPath = getResourceIcon(resource);
         this.tooltip = `${resource.resourceType}: ${resource.name}`;
         this.contextValue = 'resource';
     }
@@ -100,19 +100,19 @@ class ResourceDetailItem extends vscode.TreeItem {
     }
 }
 
-function getResourceIcon(resource: ResourceJson): string {
+function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
     switch (resource.stateStyle?.toLowerCase()) {
         case 'success':
-            return 'pass';
+            return new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
         case 'warn':
-            return 'warning';
+            return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
         case 'error':
-            return 'error';
+            return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
         default:
             if (resource.state === null || resource.state === undefined) {
-                return 'circle-outline';
+                return new vscode.ThemeIcon('circle-outline');
             }
-            return 'circle-filled';
+            return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('aspire.brandPurple'));
     }
 }
 
