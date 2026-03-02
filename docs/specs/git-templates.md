@@ -791,6 +791,33 @@ Options:
 
 When `--template-repo` is used, the CLI fetches the specified repo, reads its `aspire-template-index.json` or `aspire-template.json`, and applies the template directly — bypassing normal discovery.
 
+##### CLI Variable Binding
+
+Git template variables can be provided on the command line as `--variableName value` pairs, allowing non-interactive template application. Variables not provided on the CLI are prompted interactively as usual.
+
+```text
+# Fully interactive (all variables prompted)
+aspire new my-template
+
+# Partially non-interactive (provided values skip prompts)
+aspire new my-template --useRedis true --dbProvider postgres
+
+# Fully non-interactive (all variables provided)
+aspire new my-template --name MyProject --useRedis true --dbProvider postgres --port 5432
+```
+
+**Naming**: Both camelCase (`--useRedis`) and kebab-case (`--use-redis`) are accepted and matched against manifest variable names.
+
+**Boolean variables**: A bare flag (`--useRedis`) is treated as `true`. Explicit values (`--useRedis false`) are also supported.
+
+**Choice variables**: The raw `value` from the choice definition is used on the CLI (e.g., `--dbProvider postgres`), not the localized `displayName`. Invalid values produce an error listing the valid choices:
+
+```text
+Error: Invalid value 'pg' for variable 'dbProvider'. Valid choices are: postgres, sqlserver, mysql
+```
+
+**Validation**: CLI-provided values go through the same validation rules (regex patterns, min/max bounds, choice membership) as interactively prompted values.
+
 ## 10. Security Model
 
 ### Threat Model

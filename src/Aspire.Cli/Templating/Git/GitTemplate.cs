@@ -51,7 +51,10 @@ internal sealed class GitTemplate : ITemplate
 
     public void ApplyOptions(Command command)
     {
-        // Git templates don't add CLI options — variables are prompted interactively.
+        // Git template variables are discovered at runtime from the manifest, not at command
+        // construction time. We allow unmatched tokens so users can pass --varName value pairs
+        // that will be matched against manifest variables during template application.
+        command.TreatUnmatchedTokensAsErrors = false;
     }
 
     public async Task<TemplateResult> ApplyTemplateAsync(
@@ -62,6 +65,9 @@ internal sealed class GitTemplate : ITemplate
         var projectName = inputs.Name ?? Path.GetFileName(Directory.GetCurrentDirectory());
         var outputDir = inputs.Output ?? Path.Combine(Directory.GetCurrentDirectory(), projectName);
         outputDir = Path.GetFullPath(outputDir);
+
+        // Parse CLI-provided variable values from unmatched tokens (e.g., --useRedis true --port 5432)
+        var cliValues = ParseUnmatchedTokens(parseResult);
 
         // Fetch the template content to a temp directory
         var tempDir = Path.Combine(Path.GetTempPath(), "aspire-git-templates", Guid.NewGuid().ToString("N"));
@@ -102,6 +108,19 @@ internal sealed class GitTemplate : ITemplate
                         continue;
                     }
 
+                    // Check if the variable was provided on the CLI
+                    if (TryGetCliValue(cliValues, varName, out var cliValue))
+                    {
+                        var validationError = ValidateCliValue(varName, cliValue, varDef);
+                        if (validationError is not null)
+                        {
+                            _interactionService.DisplayError(validationError);
+                            return new TemplateResult(1);
+                        }
+                        variables[varName] = cliValue;
+                        continue;
+                    }
+
                     var promptText = varDef.DisplayName?.Resolve() ?? varName;
                     var value = await PromptForVariableAsync(promptText, varDef, cancellationToken).ConfigureAwait(false);
                     variables[varName] = value;
@@ -129,6 +148,138 @@ internal sealed class GitTemplate : ITemplate
                 // Best-effort cleanup.
             }
         }
+    }
+
+    /// <summary>
+    /// Parses unmatched CLI tokens into a dictionary of key-value pairs.
+    /// Supports <c>--key value</c> and bare <c>--flag</c> (treated as boolean true).
+    /// </summary>
+    private static Dictionary<string, string> ParseUnmatchedTokens(ParseResult parseResult)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var tokens = parseResult.UnmatchedTokens;
+
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (!token.StartsWith("--", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var key = token[2..]; // Strip leading --
+            if (i + 1 < tokens.Count && !tokens[i + 1].StartsWith("--", StringComparison.Ordinal))
+            {
+                result[key] = tokens[i + 1];
+                i++; // Skip the value token
+            }
+            else
+            {
+                // Bare flag (e.g., --useRedis with no value) → treat as boolean true
+                result[key] = "true";
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to find a CLI-provided value for a manifest variable, supporting both
+    /// camelCase (e.g., <c>--useRedis</c>) and kebab-case (e.g., <c>--use-redis</c>) naming.
+    /// </summary>
+    private static bool TryGetCliValue(Dictionary<string, string> cliValues, string varName, out string value)
+    {
+        // Try exact match first (camelCase)
+        if (cliValues.TryGetValue(varName, out value!))
+        {
+            return true;
+        }
+
+        // Try kebab-case conversion: "useRedisCache" → "use-redis-cache"
+        var kebab = ToKebabCase(varName);
+        if (cliValues.TryGetValue(kebab, out value!))
+        {
+            return true;
+        }
+
+        value = string.Empty;
+        return false;
+    }
+
+    /// <summary>
+    /// Converts a camelCase string to kebab-case.
+    /// </summary>
+    private static string ToKebabCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        var result = new System.Text.StringBuilder();
+        for (var i = 0; i < input.Length; i++)
+        {
+            var c = input[i];
+            if (char.IsUpper(c) && i > 0)
+            {
+                result.Append('-');
+            }
+            result.Append(char.ToLowerInvariant(c));
+        }
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// Validates a CLI-provided value against the variable definition.
+    /// Returns an error message if invalid, or <c>null</c> if valid.
+    /// </summary>
+    private static string? ValidateCliValue(string varName, string value, GitTemplateVariable varDef)
+    {
+        switch (varDef.Type.ToLowerInvariant())
+        {
+            case "boolean":
+                if (!bool.TryParse(value, out _))
+                {
+                    return $"Invalid value '{value}' for variable '{varName}'. Expected 'true' or 'false'.";
+                }
+                break;
+
+            case "choice" when varDef.Choices is { Count: > 0 }:
+                var validValues = varDef.Choices.Select(c => c.Value).ToList();
+                if (!validValues.Contains(value, StringComparer.OrdinalIgnoreCase))
+                {
+                    return $"Invalid value '{value}' for variable '{varName}'. Valid choices are: {string.Join(", ", validValues)}";
+                }
+                break;
+
+            case "integer":
+                if (!int.TryParse(value, CultureInfo.InvariantCulture, out var parsed))
+                {
+                    return $"Invalid value '{value}' for variable '{varName}'. Expected an integer.";
+                }
+                if (varDef.Validation?.Min is { } min && parsed < min)
+                {
+                    return $"Value '{value}' for variable '{varName}' must be at least {min}.";
+                }
+                if (varDef.Validation?.Max is { } max && parsed > max)
+                {
+                    return $"Value '{value}' for variable '{varName}' must be at most {max}.";
+                }
+                break;
+
+            default: // "string" or unknown
+                if (varDef.Validation?.Pattern is { } pattern)
+                {
+                    var regex = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+                    if (!regex.IsMatch(value))
+                    {
+                        return varDef.Validation.Message ?? $"Value '{value}' for variable '{varName}' must match pattern: {pattern}";
+                    }
+                }
+                break;
+        }
+
+        return null;
     }
 
     private async Task<string> PromptForVariableAsync(string promptText, GitTemplateVariable varDef, CancellationToken cancellationToken)
