@@ -209,6 +209,16 @@ internal static class CliTestHelper
         services.AddTransient<SecretListCommand>();
         services.AddTransient<SecretDeleteCommand>();
         services.AddTransient<SecretStoreResolver>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateListCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateSearchCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateRefreshCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateNewManifestCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateNewIndexCommand>();
+        services.AddSingleton(new Aspire.Cli.Templating.Git.GitTemplateCache(Path.Combine(Path.GetTempPath(), "aspire-cli-tests", "git-templates")));
+        services.AddSingleton<Aspire.Cli.GitHub.IGitHubCliRunner, Aspire.Cli.GitHub.GitHubCliRunner>();
+        services.AddSingleton<Aspire.Cli.Templating.Git.IGitTemplateIndexService, Aspire.Cli.Templating.Git.GitTemplateIndexService>();
+        services.AddSingleton<Aspire.Cli.Templating.Git.IGitTemplateEngine, Aspire.Cli.Templating.Git.GitTemplateEngine>();
 #if DEBUG
         services.AddTransient<RenderCommand>();
 #endif
