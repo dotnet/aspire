@@ -88,6 +88,38 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
                 </Project>
                 """);
 
+            // Write a nuget.config in the workspace root so MyIntegration.csproj can resolve
+            // Aspire.Hosting from the configured channel's package source (hive or feed).
+            // Without this, NuGet walks up from MyIntegration/ and finds no config pointing
+            // to the hive, falling back to nuget.org which doesn't have prerelease versions.
+            var aspireHome = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire");
+            var hivesDir = Path.Combine(aspireHome, "hives");
+            if (Directory.Exists(hivesDir))
+            {
+                var hiveDirs = Directory.GetDirectories(hivesDir);
+                var sourceLines = new List<string> { """<add key="nuget.org" value="https://api.nuget.org/v3/index.json" />""" };
+                foreach (var hiveDir in hiveDirs)
+                {
+                    var packagesDir = Path.Combine(hiveDir, "packages");
+                    if (Directory.Exists(packagesDir))
+                    {
+                        var hiveName = Path.GetFileName(hiveDir);
+                        sourceLines.Insert(0, $"""<add key="hive-{hiveName}" value="{packagesDir}" />""");
+                    }
+                }
+                var nugetConfig = $"""
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <configuration>
+                      <packageSources>
+                        <clear />
+                        {string.Join("\n        ", sourceLines)}
+                      </packageSources>
+                    </configuration>
+                    """;
+                File.WriteAllText(Path.Combine(workDir, "nuget.config"), nugetConfig);
+            }
+
             File.WriteAllText(Path.Combine(integrationDir, "MyIntegrationExtensions.cs"), """
                 using Aspire.Hosting;
                 using Aspire.Hosting.ApplicationModel;
