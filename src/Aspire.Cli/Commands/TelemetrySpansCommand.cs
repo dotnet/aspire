@@ -150,7 +150,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         {
             if (follow)
             {
-            return await StreamSpansAsync(client, url, format, allOtlpResources, cancellationToken);
+                return await StreamSpansAsync(client, url, format, allOtlpResources, cancellationToken);
             }
             else
             {
