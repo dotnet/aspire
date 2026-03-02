@@ -135,9 +135,9 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
             {
                 var combo = matrix[i];
                 var index = i + 1;
-                var dirName = BuildDirectoryName(index, matrixVars, combo);
+                var dirName = $"{manifest.Name}{i}";
                 var outputDir = Path.Combine(outputBase, dirName);
-                var projectName = $"TestProject{index:D3}";
+                var projectName = $"{manifest.Name}{i}";
 
                 var variables = new Dictionary<string, string> { ["projectName"] = projectName };
                 for (var v = 0; v < matrixVars.Count; v++)
@@ -421,20 +421,6 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
         }
 
         return result;
-    }
-
-    private static string BuildDirectoryName(int index, List<string> varNames, string[] values)
-    {
-        var sb = new StringBuilder();
-        sb.Append(index.ToString("D3", CultureInfo.InvariantCulture));
-        for (var i = 0; i < varNames.Count; i++)
-        {
-            sb.Append('_');
-            sb.Append(varNames[i]);
-            sb.Append('-');
-            sb.Append(values[i]);
-        }
-        return sb.ToString();
     }
 
     private void RenderResultLine(int index, List<string> varNames, string[] values, string outputDir, string? error)
