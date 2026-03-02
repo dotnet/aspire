@@ -233,7 +233,15 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return null;
         }
 
-        return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+        var result = await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+
+        // The prompt is cleared after selection.
+        // Write out the selected template again for context before proceeding.
+        if (result != null)
+        {
+            InteractionService.DisplayPlainText($"{NewCommandStrings.SelectAProjectTemplate} {result.Description}");
+        }
+        return result;
     }
 
     private sealed class ResolveTemplateVersionResult
@@ -298,8 +306,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             return ExitCodeConstants.InvalidCommand;
         }
-
-        InteractionService.DisplayPlainText($"{NewCommandStrings.SelectAProjectTemplate} {template.Description}");
 
         var (languageResolutionSuccess, selectedLanguageId) = await ResolveSelectedLanguageAsync(template, parseResult, cancellationToken);
         if (!languageResolutionSuccess)
