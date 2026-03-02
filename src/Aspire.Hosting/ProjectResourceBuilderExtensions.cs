@@ -870,7 +870,14 @@ public static class ProjectResourceBuilderExtensions
     /// It sets up the necessary launch configuration based on the provided project path. This method is only necessary for inheritors of ProjectResource.
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TProjectResource> WithVSCodeDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
+    public static IResourceBuilder<TProjectResource> WithDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
+        where TProjectResource : ProjectResource
+    {
+        return builder.WithVSCodeDebugging(projectPath);
+    }
+
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<TProjectResource> WithVSCodeDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
         where TProjectResource : ProjectResource
     {
         return builder.WithDebugSupport(options =>

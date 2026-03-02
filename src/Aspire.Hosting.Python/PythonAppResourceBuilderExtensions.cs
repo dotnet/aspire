@@ -931,7 +931,7 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
+    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1067,10 +1067,17 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
-    /// This method is obsolete. Use <see cref="WithVSCodeDebugging{T}"/> instead.
+    /// <para>
+    /// This method adds debugging support for Python applications.
+    /// The debugging configuration is automatically set up based on the
+    /// entrypoint type (Script, Module, or Executable).
+    /// </para>
+    /// <para>
+    /// The debug configuration includes the Python interpreter path from the virtual environment,
+    /// the program or module to debug, and appropriate launch settings.
+    /// </para>
     /// </remarks>
-    [Obsolete("Use WithVSCodeDebugging instead.")]
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
         => builder.WithVSCodeDebugging();

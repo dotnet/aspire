@@ -43,15 +43,6 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
 #endif
     .WithReference(queue)
     .WithReference(blob)
-    .WithReference(funcApp)
-    .WithVSCodeCSharpDebuggerProperties(props =>
-    {
-        props.Logging = new VSCodeCSharpDebuggerProperties.LoggingOptions
-        {
-            ModuleLoad = false
-        };
-
-        props.RequireExactSource = false;
-    });
+    .WithReference(funcApp);
 
 builder.Build().Run();

@@ -968,6 +968,53 @@ public static class JavaScriptHostingExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
+    /// This method enables debugging for Node.js/TypeScript applications.
+    /// The debug configuration includes the Node.js runtime path, script path, and appropriate launch settings.
+    /// </para>
+    /// <para>
+    /// This method is called automatically by <see cref="AddNodeApp"/>. It only needs to be called
+    /// explicitly when creating custom Node.js resources or when you want to override the script path.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
+        where T : NodeAppResource
+    {
+        return builder.WithVSCodeDebugging(scriptPath);
+    }
+
+    /// <summary>
+    /// Configures debugging support for a JavaScript resource that uses a package manager script.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method enables debugging for JavaScript applications that run via package manager scripts
+    /// (e.g., <c>npm run dev</c>).
+    /// The debug configuration uses the package manager as the runtime executable.
+    /// </para>
+    /// <para>
+    /// This method is called automatically by <see cref="AddJavaScriptApp"/> and <see cref="AddViteApp"/>.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
+        where T : JavaScriptAppResource
+    {
+        return builder.WithVSCodeDebugging();
+    }
+
+    /// <summary>
+    /// Configures debugging support for a Node.js/TypeScript resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="scriptPath">The path to the script to debug.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
     /// This method enables debugging for Node.js/TypeScript applications when running in the VS Code extension.
     /// The debug configuration includes the Node.js runtime path, script path, and appropriate launch settings.
     /// </para>
@@ -977,7 +1024,7 @@ public static class JavaScriptHostingExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
+    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
         where T : NodeAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1072,7 +1119,7 @@ public static class JavaScriptHostingExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
+    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
