@@ -359,7 +359,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   dispose(): void {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
-    this.closeDashboard();
     vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
     this._trackedDebugAdapters = [];
