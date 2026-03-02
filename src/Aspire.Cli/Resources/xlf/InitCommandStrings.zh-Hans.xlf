@@ -47,6 +47,11 @@
         <target state="translated">找不到解决方案文件。正在创建单文件 AppHost...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="new">Resolving template version...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">检测到解决方案: {0}</target>

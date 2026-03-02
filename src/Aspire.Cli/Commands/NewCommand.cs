@@ -237,45 +237,50 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<string?> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
-
-        var configuredChannelName = parseResult.GetValue(_channelOption);
-        if (string.IsNullOrWhiteSpace(configuredChannelName))
-        {
-            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
-        }
-
-        var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
-            ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
-            : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
-
-        if (selectedChannel is null)
-        {
-            if (string.IsNullOrWhiteSpace(configuredChannelName))
+        return await InteractionService.ShowStatusAsync(
+            NewCommandStrings.ResolvingTemplateVersion,
+            async () =>
             {
-                InteractionService.DisplayError("No package channels are available.");
-            }
-            else
-            {
-                InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
-            }
+                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            return null;
-        }
+                var configuredChannelName = parseResult.GetValue(_channelOption);
+                if (string.IsNullOrWhiteSpace(configuredChannelName))
+                {
+                    configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+                }
 
-        var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
-        var package = packages
-            .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
-            .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
-            .FirstOrDefault();
+                var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
+                    ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
+                    : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
 
-        if (package is null)
-        {
-            InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
-            return null;
-        }
+                if (selectedChannel is null)
+                {
+                    if (string.IsNullOrWhiteSpace(configuredChannelName))
+                    {
+                        InteractionService.DisplayError("No package channels are available.");
+                    }
+                    else
+                    {
+                        InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+                    }
 
-        return package.Version;
+                    return null;
+                }
+
+                var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+                var package = packages
+                    .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
+                    .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
+                    .FirstOrDefault();
+
+                if (package is null)
+                {
+                    InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
+                    return null;
+                }
+
+                return package.Version;
+            });
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)

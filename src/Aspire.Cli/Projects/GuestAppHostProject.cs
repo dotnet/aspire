@@ -964,8 +964,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        _interactionService.DisplaySubtleMessage("Regenerating SDK code with updated packages...");
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
+        await _interactionService.ShowStatusAsync(
+            UpdateCommandStrings.RegeneratingSdkCode,
+            async () =>
+            {
+                await BuildAndGenerateSdkAsync(directory, cancellationToken);
+                return 0;
+            });
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);

@@ -138,5 +138,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("PromptToUsePrereleaseTemplates", resourceCulture);
             }
         }
+
+        public static string ResolvingTemplateVersion {
+            get {
+                return ResourceManager.GetString("ResolvingTemplateVersion", resourceCulture);
+            }
+        }
     }
 }
