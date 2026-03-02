@@ -60,7 +60,7 @@ internal sealed class SecretDeleteCommand : BaseCommand
         }
 
         result.Store.Save();
-        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretDeleteSuccess, key.EscapeMarkup()));
+        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SecretCommandStrings.SecretDeleteSuccess, key));
         return ExitCodeConstants.Success;
     }
 }

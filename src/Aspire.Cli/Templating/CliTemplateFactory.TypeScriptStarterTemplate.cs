@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -78,7 +79,7 @@ internal sealed partial class CliTemplateFactory
         }
 
         _interactionService.DisplaySuccess($"Created TypeScript starter project at {outputPath.EscapeMarkup()}");
-        _interactionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+        _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
 
         return new TemplateResult(ExitCodeConstants.Success, outputPath);
     }

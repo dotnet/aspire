@@ -149,13 +149,12 @@ internal sealed class StopCommand : BaseCommand
             passedAppHostProjectFile,
             SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, StopCommandStrings.SelectAppHostAction),
-            SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            _interactionService.DisplayMessage("information", result.ErrorMessage);
+            _interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
@@ -214,12 +213,12 @@ internal sealed class StopCommand : BaseCommand
         var displayPath = connection.IsInScope
             ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath)
             : appHostPath;
-        _interactionService.DisplayMessage("package", $"Found running AppHost: {displayPath}");
+        _interactionService.DisplayMessage(KnownEmojis.Package, $"Found running AppHost: {displayPath}");
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
         var appHostInfo = connection.AppHostInfo;
 
-        _interactionService.DisplayMessage("stop_sign", "Sending stop signal...");
+        _interactionService.DisplayMessage(KnownEmojis.StopSign, "Sending stop signal...");
 
         // Get the CLI process ID - this is the process we need to kill
         // Killing the CLI process will tear down everything including the AppHost

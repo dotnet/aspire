@@ -17,6 +17,7 @@ using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -300,7 +301,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
-                ":gear:  Preparing Aspire server...",
+                "Preparing Aspire server...",
                 async () =>
                 {
                     // Prepare the AppHost server (build for dev mode, restore for prebuilt)
@@ -311,7 +312,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     }
 
                     return (Success: true, Output: prepareOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: needsCodeGen);
-                });
+                }, emoji: KnownEmojis.Gear);
 
             // Save the channel to settings.json if available (config already has SdkVersion)
             if (buildResult.ChannelName is not null)
@@ -924,7 +925,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (updates.Count == 0 && newSdkVersion is null)
         {
-            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ProjectUpToDateMessage);
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
@@ -932,11 +933,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         _interactionService.DisplayEmptyLine();
         if (newSdkVersion is not null)
         {
-            _interactionService.DisplayMessage("package", $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion}[/] to [bold green]{newSdkVersion}[/]");
+            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion.EscapeMarkup()}[/] to [bold green]{newSdkVersion.EscapeMarkup()}[/]", allowMarkup: true);
         }
         foreach (var (packageId, currentVersion, newVersion) in updates)
         {
-            _interactionService.DisplayMessage("package", $"[bold yellow]{packageId}[/] [bold green]{currentVersion}[/] to [bold green]{newVersion}[/]");
+            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]{packageId.EscapeMarkup()}[/] [bold green]{currentVersion.EscapeMarkup()}[/] to [bold green]{newVersion.EscapeMarkup()}[/]", allowMarkup: true);
         }
         _interactionService.DisplayEmptyLine();
 

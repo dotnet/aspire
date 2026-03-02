@@ -304,7 +304,7 @@ internal sealed class AppHostLauncher(
             }
         }
 
-        interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
+        interactionService.DisplayMessage(KnownEmojis.MagnifyingGlassTiltedRight, string.Format(
             CultureInfo.CurrentCulture,
             RunCommandStrings.CheckLogsForDetails,
             childLogFile));

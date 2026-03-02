@@ -91,7 +91,6 @@ internal sealed class WaitCommand : BaseCommand
             passedAppHostProjectFile,
             SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, WaitCommandStrings.SelectAppHostAction),
-            SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 

@@ -441,15 +441,6 @@ internal sealed class DotNetCliRunner(
             }
         }
 
-        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
-        {
-            // Only set the environment variable if it's not already set by the user
-            if (!finalEnv.ContainsKey("DOTNET_ROLL_FORWARD"))
-            {
-                finalEnv["DOTNET_ROLL_FORWARD"] = "LatestMajor";
-            }
-        }
-
         // Set the backchannel socket path when backchannel is configured
         if (backchannelCompletionSource is not null)
         {

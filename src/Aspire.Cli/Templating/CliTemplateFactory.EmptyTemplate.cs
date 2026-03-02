@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Utils;
@@ -81,7 +82,7 @@ internal sealed partial class CliTemplateFactory
         }
 
         _interactionService.DisplaySuccess($"Created {language.DisplayName.EscapeMarkup()} project at {outputPath.EscapeMarkup()}");
-        _interactionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+        _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
 
         return new TemplateResult(ExitCodeConstants.Success, outputPath);
     }
@@ -112,7 +113,7 @@ internal sealed partial class CliTemplateFactory
 
         if (useLocalhostTld ?? false)
         {
-            _interactionService.DisplayMessage("check_mark", TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
         }
 
         return useLocalhostTld ?? false;

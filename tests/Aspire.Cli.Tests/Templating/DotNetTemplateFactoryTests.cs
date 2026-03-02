@@ -349,7 +349,7 @@ public class DotNetTemplateFactoryTests
         var features = new TestFeatures(showAllTemplates: true);
         var sdkInstaller = new TestDotNetSdkInstaller
         {
-            CheckAsyncCallback = _ => (false, null, "10.0.100", false)
+            CheckAsyncCallback = _ => (false, null, "10.0.100")
         };
         var factory = CreateTemplateFactory(features, sdkInstaller: sdkInstaller);
 
@@ -466,18 +466,18 @@ public class DotNetTemplateFactoryTests
         public Task<bool> ConfirmAsync(string prompt, bool defaultAnswer, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<TResult> ShowStatusAsync<TResult>(string message, Func<Task<TResult>> work, string? emojiName = null)
+        public Task<TResult> ShowStatusAsync<TResult>(string message, Func<Task<TResult>> work, KnownEmoji? emoji = null, bool allowMarkup = false)
             => throw new NotImplementedException();
 
         public Task ShowStatusAsync(string message, Func<Task> work)
             => throw new NotImplementedException();
 
-        public void ShowStatus(string message, Action work)
+        public void ShowStatus(string message, Action work, KnownEmoji? emoji = null, bool allowMarkup = false)
             => throw new NotImplementedException();
 
-        public void DisplaySuccess(string message) { }
+        public void DisplaySuccess(string message, bool allowMarkup = false) { }
         public void DisplayError(string message) { }
-        public void DisplayMessage(string emojiName, string message) { }
+        public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
         public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
         public void DisplayCancellationMessage() { }
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
@@ -485,7 +485,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
         public void DisplayMarkdown(string markdown) { }
         public void DisplayMarkupLine(string markup) { }
-        public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
+        public void DisplaySubtleMessage(string message, bool allowMarkup = false) { }
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }

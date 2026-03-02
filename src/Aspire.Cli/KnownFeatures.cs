@@ -28,7 +28,6 @@ internal static class KnownFeatures
     public static string ExperimentalPolyglotJava => "experimentalPolyglot:java";
     public static string ExperimentalPolyglotGo => "experimentalPolyglot:go";
     public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
-    public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
@@ -97,11 +96,6 @@ internal static class KnownFeatures
             ExperimentalPolyglotPython,
             "Enable or disable experimental Python language support for polyglot Aspire applications",
             DefaultValue: false),
-        
-        [DotNetSdkInstallationEnabled] = new(
-            DotNetSdkInstallationEnabled,
-            "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
-            DefaultValue: true),
         
         [RunningInstanceDetectionEnabled] = new(
             RunningInstanceDetectionEnabled,
