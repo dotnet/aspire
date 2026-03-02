@@ -7605,26 +7605,6 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
-    private async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<TestVaultResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withEnvironmentCallbackAsync',
-            rpcArgs
-        );
-        return new TestVaultResource(result, this._client);
-    }
-
-    /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
-    }
-
-    /** @internal */
     private async _withArgsInternal(args: string[]): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
@@ -7657,26 +7637,6 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     /** Sets command-line arguments via callback */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._withArgsCallbackInternal(callback));
-    }
-
-    /** @internal */
-    private async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<TestVaultResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
-            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withArgsCallbackAsync',
-            rpcArgs
-        );
-        return new TestVaultResource(result, this._client);
-    }
-
-    /** Sets command-line arguments via async callback */
-    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._withArgsCallbackAsyncInternal(callback));
     }
 
     /** @internal */
@@ -7851,26 +7811,6 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     /** Customizes displayed URLs via callback */
     withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._withUrlsCallbackInternal(callback));
-    }
-
-    /** @internal */
-    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<TestVaultResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
-            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withUrlsCallbackAsync',
-            rpcArgs
-        );
-        return new TestVaultResource(result, this._client);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
     }
 
     /** @internal */
@@ -8436,11 +8376,6 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
     }
 
-    /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
-    }
-
     /** Adds arguments */
     withArgs(args: string[]): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withArgs(args)));
@@ -8449,11 +8384,6 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     /** Sets command-line arguments via callback */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
-    }
-
-    /** Sets command-line arguments via async callback */
-    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
     /** Adds a reference to another resource */
@@ -8499,11 +8429,6 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     /** Customizes displayed URLs via callback */
     withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
-    }
-
-    /** Customizes displayed URLs via async callback */
-    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
     }
 
     /** Adds or modifies displayed URLs */

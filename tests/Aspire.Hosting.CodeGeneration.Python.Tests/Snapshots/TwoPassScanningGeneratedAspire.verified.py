@@ -476,6 +476,17 @@ class DistributedApplicationBuilder:
         )
         return cast(TestRedisResource, result)
 
+    def add_test_vault(self, name: str, **kwargs: Unpack["TestVaultResourceOptions"]) -> TestVaultResource:
+        """Adds a test vault resource"""
+        rpc_args: dict[str, Any] = {'builder': self._handle}
+        rpc_args['name'] = name
+        result = self._client.invoke_capability(
+            'Aspire.Hosting.CodeGeneration.Python.Tests/addTestVault',
+            rpc_args,
+            kwargs,
+        )
+        return cast(TestVaultResource, result)
+
 
 class DistributedApplicationEventing:
     """Type class for DistributedApplicationEventing."""
@@ -1272,12 +1283,6 @@ class ResourceWithArgs(Resource):
     def with_args_callback(self, callback: Callable[[CommandLineArgsCallbackContext], None]) -> Self:
         """Sets command-line arguments via callback"""
 
-    def add_test_vault(self, name: str) -> TestVaultResource:
-        """Adds a test vault resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/addTestVault", args)
-
 
 class ResourceWithEndpoints(Resource):
     """Abstract base class for ResourceWithEndpoints interface."""
@@ -1345,6 +1350,14 @@ class ResourceWithConnectionString(Resource, ManifestExpressionProvider, ValuePr
     @abstractmethod
     def with_connection_string_direct(self, connection_string: str) -> Self:
         """Sets connection string using direct interface target"""
+
+
+class TestVaultResource(Resource):
+    """Abstract base class for TestVaultResource interface."""
+
+    @abstractmethod
+    def with_vault_direct(self, option: str) -> Self:
+        """Configures vault using direct interface target"""
 
 
 # ============================================================================
@@ -3662,6 +3675,39 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         super().__init__(handle, client, **kwargs)
 
 
+class TestVaultResourceOptions(ContainerResourceOptions, total=False):
+    """TestVaultResource options."""
+
+    vault_direct: str
+
+class TestVaultResource(ContainerResource, TestVaultResource):
+    """TestVaultResource resource."""
+
+    def __repr__(self) -> str:
+        return "TestVaultResource(handle={self._handle.handle_id})"
+
+    def with_vault_direct(self, option: str) -> Self:
+        """Configures vault using direct interface target"""
+        rpc_args: dict[str, Any] = {'builder': self._handle}
+        rpc_args['option'] = option
+        result = self._client.invoke_capability(
+            'Aspire.Hosting.CodeGeneration.Python.Tests/withVaultDirect',
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
+    def __init__(self, handle: Handle, client: AspireClient, **kwargs: Unpack[TestVaultResourceOptions]) -> None:
+        if _vault_direct := kwargs.pop("vault_direct", None):
+            if _validate_type(_vault_direct, str):
+                rpc_args: dict[str, Any] = {"builder": handle}
+                rpc_args["option"] = _vault_direct
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withVaultDirect', rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'vault_direct'. Expected: str")
+        super().__init__(handle, client, **kwargs)
+
+
 # ============================================================================
 # Connection Helper
 # ============================================================================
@@ -3777,3 +3823,4 @@ _register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.Paramet
 _register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource", ProjectResource)
 _register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", TestDatabaseResource)
 _register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", TestRedisResource)
+_register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", TestVaultResource)
