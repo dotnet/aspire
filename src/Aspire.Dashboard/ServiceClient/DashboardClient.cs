@@ -424,7 +424,7 @@ internal sealed class DashboardClient : IDashboardClient
                 }
 
                 // Resolve resource colors for all resources so that color assignment is
-                // deterministic regardless of the order resources arrive.
+                // deterministic of order returned from the service, not order that the color for a resource is first used.
                 if (changes is not null)
                 {
                     var resolvedNames = _resourceByName.Values
