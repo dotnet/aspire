@@ -44,7 +44,7 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
             .Find("The package Aspire.Hosting.");
 
         var waitingForRestoreSuccess = new CellPatternSearcher()
-            .Find("Polyglot SDK code restored successfully");
+            .Find("SDK code restored successfully");
 
         sequenceBuilder.PrepareEnvironment(workspace, counter);
 
