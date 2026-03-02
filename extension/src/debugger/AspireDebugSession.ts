@@ -367,7 +367,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   /**
    * Closes the dashboard browser if closeDashboardOnDebugEnd is enabled.
-   * Supports Simple Browser (webview tab) and debug browser sessions.
+   * Handles closing debug browser sessions.
    */
   private closeDashboard(): void {
     const aspireConfig = vscode.workspace.getConfiguration('aspire');
