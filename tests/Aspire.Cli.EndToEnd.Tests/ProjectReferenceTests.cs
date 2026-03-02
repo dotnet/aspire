@@ -136,11 +136,29 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         });
 
         // Step 3: Start the AppHost (triggers project ref build + codegen)
+        // Detect either success or failure
+        var waitForStartFailure = new CellPatternSearcher()
+            .Find("AppHost failed to build");
+
         sequenceBuilder
-            .Type("aspire start --non-interactive")
+            .Type("aspire start --non-interactive 2>&1 | tee /tmp/aspire-start-output.txt")
             .Enter()
-            .WaitUntil(s => waitForStartSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitUntil(s =>
+            {
+                if (waitForStartFailure.Search(s).Count > 0)
+                {
+                    // Dump child logs before failing
+                    return true;
+                }
+                return waitForStartSuccess.Search(s).Count > 0;
+            }, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
+
+        // If start failed, dump the child log for debugging before the test fails
+        sequenceBuilder
+            .Type("CHILD_LOG=$(ls -t ~/.aspire/logs/cli_*detach*.log 2>/dev/null | head -1) && if [ -n \"$CHILD_LOG\" ]; then echo '=== CHILD LOG ==='; cat \"$CHILD_LOG\"; echo '=== END CHILD LOG ==='; fi")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10));
 
         // Step 4: Verify the custom integration was code-generated
         sequenceBuilder
