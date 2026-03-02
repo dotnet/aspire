@@ -456,9 +456,10 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     {
         // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
         // when displaying it as the default value in the prompt
-        return await interactionService.PromptForStringAsync(
+        return await interactionService.PromptForFilePathAsync(
             NewCommandStrings.EnterTheOutputPath,
             defaultValue: path.EscapeMarkup(),
+            directory: true,
             cancellationToken: cancellationToken
             );
     }
