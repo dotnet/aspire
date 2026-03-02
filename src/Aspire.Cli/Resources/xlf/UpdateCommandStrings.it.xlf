@@ -87,6 +87,11 @@
         <target state="translated">Esecuzione in corso: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtractedNewCli">
+        <source>Extracted new CLI</source>
+        <target state="new">Extracted new CLI</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExtractingNewCli">
         <source>Extracting new CLI...</source>
         <target state="new">Extracting new CLI...</target>
@@ -190,6 +195,11 @@
       <trans-unit id="QualityOptionDescriptionWithStaging">
         <source>Quality level to update to (stable, staging, daily)</source>
         <target state="translated">Livello di qualità da aggiornare a (stabile, staging, giornaliero)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RegeneratedSdkCode">
+        <source>Regenerated SDK code with updated packages</source>
+        <target state="new">Regenerated SDK code with updated packages</target>
         <note />
       </trans-unit>
       <trans-unit id="RegeneratingSdkCode">

@@ -358,6 +358,8 @@ internal sealed class UpdateCommand : BaseCommand
                 },
                 KnownEmojis.Package);
 
+            InteractionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.ExtractedNewCli);
+
             // Find the aspire executable in the extracted files
             var newExePath = Path.Combine(tempExtractDir, exeName);
             if (!File.Exists(newExePath))

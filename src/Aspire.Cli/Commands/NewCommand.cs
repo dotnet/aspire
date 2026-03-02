@@ -235,7 +235,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
     }
 
-    private async Task<string?> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private record ResolveTemplateVersionResult(string? Version, string? ErrorMessage);
+
+    private async Task<ResolveTemplateVersionResult> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         return await InteractionService.ShowStatusAsync(
             NewCommandStrings.ResolvingTemplateVersion,
@@ -255,16 +257,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                 if (selectedChannel is null)
                 {
-                    if (string.IsNullOrWhiteSpace(configuredChannelName))
-                    {
-                        InteractionService.DisplayError("No package channels are available.");
-                    }
-                    else
-                    {
-                        InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
-                    }
+                    var errorMessage = string.IsNullOrWhiteSpace(configuredChannelName)
+                        ? "No package channels are available."
+                        : $"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}";
 
-                    return null;
+                    return new ResolveTemplateVersionResult(null, errorMessage);
                 }
 
                 var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
@@ -275,11 +272,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                 if (package is null)
                 {
-                    InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
-                    return null;
+                    return new ResolveTemplateVersionResult(null, $"No template versions found in channel '{selectedChannel.Name}'.");
                 }
 
-                return package.Version;
+                return new ResolveTemplateVersionResult(package.Version, null);
             });
     }
 
@@ -293,6 +289,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
+        InteractionService.DisplayPlainText($"{NewCommandStrings.SelectAProjectTemplate} {template.Description}");
+
         var (languageResolutionSuccess, selectedLanguageId) = await ResolveSelectedLanguageAsync(template, parseResult, cancellationToken);
         if (!languageResolutionSuccess)
         {
@@ -303,11 +301,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
-            version = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
-            if (string.IsNullOrWhiteSpace(version))
+            var resolveResult = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
+            if (string.IsNullOrWhiteSpace(resolveResult.Version))
             {
+                InteractionService.DisplayError(resolveResult.ErrorMessage!);
                 return ExitCodeConstants.InvalidCommand;
             }
+
+            version = resolveResult.Version;
         }
 
         var inputs = new TemplateInputs

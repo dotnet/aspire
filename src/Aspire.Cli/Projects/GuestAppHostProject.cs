@@ -972,6 +972,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 return 0;
             });
 
+        _interactionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.RegeneratedSdkCode);
+
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
 

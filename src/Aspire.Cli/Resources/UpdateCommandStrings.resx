@@ -153,7 +153,13 @@
   <data name="ExtractingNewCli" xml:space="preserve">
     <value>Extracting new CLI...</value>
   </data>
+  <data name="ExtractedNewCli" xml:space="preserve">
+    <value>Extracted new CLI</value>
+  </data>
   <data name="RegeneratingSdkCode" xml:space="preserve">
     <value>Regenerating SDK code with updated packages...</value>
+  </data>
+  <data name="RegeneratedSdkCode" xml:space="preserve">
+    <value>Regenerated SDK code with updated packages</value>
   </data>
 </root>
