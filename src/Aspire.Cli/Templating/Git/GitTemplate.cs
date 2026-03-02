@@ -152,6 +152,13 @@ internal sealed class GitTemplate : ITemplate
             await _engine.ApplyAsync(tempDir, outputDir, variables, cancellationToken).ConfigureAwait(false);
 
             _interactionService.DisplaySuccess($"Created project at {outputDir}");
+
+            // Render post-application instructions
+            if (manifest?.PostInstructions is { Count: > 0 })
+            {
+                RenderPostInstructions(manifest.PostInstructions, variables);
+            }
+
             return new TemplateResult(0, outputDir);
         }
         finally
@@ -371,6 +378,127 @@ internal sealed class GitTemplate : ITemplate
                     required: varDef.Required == true,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Renders post-application instruction blocks, substituting variable placeholders
+    /// and evaluating conditions to determine which instructions to show.
+    /// </summary>
+    private void RenderPostInstructions(List<GitTemplatePostInstruction> instructions, Dictionary<string, string> variables)
+    {
+        // Partition into primary and secondary, filtering by condition
+        var primary = new List<GitTemplatePostInstruction>();
+        var secondary = new List<GitTemplatePostInstruction>();
+
+        foreach (var instruction in instructions)
+        {
+            if (!EvaluateCondition(instruction.Condition, variables))
+            {
+                continue;
+            }
+
+            if (string.Equals(instruction.Priority, "primary", StringComparison.OrdinalIgnoreCase))
+            {
+                primary.Add(instruction);
+            }
+            else
+            {
+                secondary.Add(instruction);
+            }
+        }
+
+        if (primary.Count == 0 && secondary.Count == 0)
+        {
+            return;
+        }
+
+        _interactionService.DisplayPlainText("");
+
+        foreach (var instruction in primary)
+        {
+            RenderInstructionBlock(instruction, variables, isPrimary: true);
+        }
+
+        foreach (var instruction in secondary)
+        {
+            RenderInstructionBlock(instruction, variables, isPrimary: false);
+        }
+    }
+
+    private void RenderInstructionBlock(GitTemplatePostInstruction instruction, Dictionary<string, string> variables, bool isPrimary)
+    {
+        var heading = SubstituteVariables(instruction.Heading.Resolve() ?? "", variables);
+
+        if (isPrimary)
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Rocket, $"[bold]{heading.EscapeMarkup()}[/]", allowMarkup: true);
+        }
+        else
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, $"[dim]{heading.EscapeMarkup()}[/]", allowMarkup: true);
+        }
+
+        foreach (var line in instruction.Lines)
+        {
+            var rendered = SubstituteVariables(line, variables);
+            _interactionService.DisplayPlainText($"  {rendered}");
+        }
+
+        _interactionService.DisplayPlainText("");
+    }
+
+    /// <summary>
+    /// Evaluates a simple condition expression against variable values.
+    /// Supports <c>"varName == value"</c>, <c>"varName != value"</c>, <c>"varName"</c> (truthy check).
+    /// Returns <c>true</c> when the condition is null (unconditional).
+    /// </summary>
+    private static bool EvaluateCondition(string? condition, Dictionary<string, string> variables)
+    {
+        if (string.IsNullOrWhiteSpace(condition))
+        {
+            return true;
+        }
+
+        // Handle "varName != value"
+        var neqIndex = condition.IndexOf("!=", StringComparison.Ordinal);
+        if (neqIndex >= 0)
+        {
+            var varName = condition[..neqIndex].Trim();
+            var expected = condition[(neqIndex + 2)..].Trim();
+            variables.TryGetValue(varName, out var actual);
+            return !string.Equals(actual ?? "", expected, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Handle "varName == value"
+        var eqIndex = condition.IndexOf("==", StringComparison.Ordinal);
+        if (eqIndex >= 0)
+        {
+            var varName = condition[..eqIndex].Trim();
+            var expected = condition[(eqIndex + 2)..].Trim();
+            variables.TryGetValue(varName, out var actual);
+            return string.Equals(actual ?? "", expected, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Bare variable name — truthy check (non-empty and not "false")
+        var bareVar = condition.Trim();
+        if (variables.TryGetValue(bareVar, out var val))
+        {
+            return !string.IsNullOrEmpty(val) && !string.Equals(val, "false", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Replaces <c>{{variableName}}</c> placeholders in a string with their values.
+    /// </summary>
+    private static string SubstituteVariables(string text, Dictionary<string, string> variables)
+    {
+        foreach (var (key, value) in variables)
+        {
+            text = text.Replace($"{{{{{key}}}}}", value, StringComparison.OrdinalIgnoreCase);
+        }
+        return text;
     }
 
     private async Task<bool> FetchTemplateAsync(string targetDir, CancellationToken cancellationToken)
