@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -235,7 +236,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
     }
 
-    private record ResolveTemplateVersionResult(string? Version, string? ErrorMessage);
+    private sealed class ResolveTemplateVersionResult
+    {
+        public string? Version { get; init; }
+
+        [MemberNotNullWhen(true, nameof(Version))]
+        [MemberNotNullWhen(false, nameof(ErrorMessage))]
+        public bool Success => Version is not null;
+
+        public string? ErrorMessage { get; init; }
+    }
 
     private async Task<ResolveTemplateVersionResult> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -261,7 +271,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         ? "No package channels are available."
                         : $"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}";
 
-                    return new ResolveTemplateVersionResult(null, errorMessage);
+                    return new ResolveTemplateVersionResult { ErrorMessage = errorMessage };
                 }
 
                 var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
@@ -272,10 +282,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                 if (package is null)
                 {
-                    return new ResolveTemplateVersionResult(null, $"No template versions found in channel '{selectedChannel.Name}'.");
+                    return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
                 }
 
-                return new ResolveTemplateVersionResult(package.Version, null);
+                return new ResolveTemplateVersionResult { Version = package.Version };
             });
     }
 
@@ -302,9 +312,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             string.IsNullOrWhiteSpace(version))
         {
             var resolveResult = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
-            if (string.IsNullOrWhiteSpace(resolveResult.Version))
+            if (!resolveResult.Success)
             {
-                InteractionService.DisplayError(resolveResult.ErrorMessage!);
+                InteractionService.DisplayError(resolveResult.ErrorMessage);
                 return ExitCodeConstants.InvalidCommand;
             }
 
