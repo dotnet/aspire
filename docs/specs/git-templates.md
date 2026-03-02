@@ -72,7 +72,7 @@ A repository doesn't need an index file if it contains a single template. If a r
 
 This is the most common case for community templates. A developer builds an Aspire app, adds `aspire-template.json` to the root, and their repo is immediately usable with `aspire new --template-repo`:
 
-```
+```text
 my-cool-aspire-app/
 ├── aspire-template.json        # Makes this repo a template
 ├── MyCoolApp.sln
@@ -301,7 +301,7 @@ The `conditionalFiles` section controls which files are included in the output:
 
 A template repository using this system looks like:
 
-```
+```text
 aspire-templates/
 ├── aspire-template-index.json          # Root index file
 ├── templates/
@@ -356,7 +356,7 @@ When a user runs `aspire new`, the CLI resolves available templates through a mu
 
 ### Phase 1: Index Collection
 
-```
+```text
                     ┌──────────────────────┐
                     │  Official Index      │
                     │  microsoft/          │
@@ -417,14 +417,14 @@ Once a template is selected:
 
 Template application is a deterministic, side-effect-free process:
 
-```
+```text
 Input:  Template directory + variable values
 Output: New project directory
 ```
 
 ### Algorithm
 
-```
+```text
 1. COPY template directory → output directory
    - Skip: aspire-template.json (manifest is not part of output)
    - Skip: .git/, .github/ (git metadata from template repo)
@@ -474,7 +474,7 @@ Files matched by a `.gitignore` in the template directory are excluded from the 
 
 ### Cache Layout
 
-```
+```text
 ~/.aspire/
 └── template-cache/
     ├── indexes/
@@ -495,7 +495,7 @@ Files matched by a `.gitignore` in the template directory are excluded from the 
 
 The entire git-based template system is gated behind a feature flag:
 
-```
+```text
 features.gitTemplatesEnabled = true|false (default: false)
 ```
 
@@ -607,7 +607,7 @@ When the user overrides `templates.defaultBranch` to `main`, they get templates 
 
 The `aspire template` command group provides template management and authoring tools. All subcommands are behind the `gitTemplatesEnabled` feature flag.
 
-```
+```text
 aspire template
 ├── list              List available templates from all sources
 ├── search <keyword>  Search templates by name, description, or tags
@@ -620,7 +620,7 @@ aspire template
 
 Lists all available templates from all configured sources, grouped by source:
 
-```
+```text
 $ aspire template list
 
 Official (dotnet/aspire @ release/9.2)
@@ -647,7 +647,7 @@ Options:
 
 Searches templates by keyword across names, descriptions, and tags:
 
-```
+```text
 $ aspire template search redis
 
 Results for "redis":
@@ -664,7 +664,7 @@ Options:
 
 Forces a refresh of all cached template indexes and invalidates cached template content:
 
-```
+```text
 $ aspire template refresh
 
 Refreshing template indexes...
@@ -680,7 +680,7 @@ Refreshing template indexes...
 
 Scaffolds a new `aspire-template.json` manifest file. This helps template authors get started:
 
-```
+```text
 $ aspire template new
 
 Creating aspire-template.json...
@@ -704,7 +704,7 @@ If `[path]` is provided, creates the manifest at that path instead of the curren
 
 Scaffolds a new `aspire-template-index.json` index file for multi-template repositories or organizational indexes:
 
-```
+```text
 $ aspire template new-index
 
 Creating aspire-template-index.json...
@@ -722,7 +722,7 @@ Add templates to the "templates" array to make them discoverable.
 
 When `gitTemplatesEnabled` is `true`, `aspire new` shows templates from both the existing `DotNetTemplateFactory` and the new `GitTemplateFactory`. Git-sourced templates appear alongside built-in templates:
 
-```
+```text
 aspire new [template-name] [options]
 
 Arguments:
@@ -819,7 +819,7 @@ Because templates are real Aspire applications, polyglot support is inherent:
 
 ### C# Template Example
 
-```
+```text
 templates/aspire-starter/
 ├── aspire-template.json
 ├── AspireStarter.sln
@@ -833,7 +833,7 @@ templates/aspire-starter/
 
 ### TypeScript Template Example
 
-```
+```text
 templates/aspire-ts-starter/
 ├── aspire-template.json
 ├── apphost.ts
@@ -847,7 +847,7 @@ templates/aspire-ts-starter/
 
 ### Python Template Example
 
-```
+```text
 templates/aspire-py-starter/
 ├── aspire-template.json
 ├── apphost.py
@@ -1024,7 +1024,7 @@ This section outlines the incremental implementation strategy. The approach is c
 6. **Tests** — basic command parsing tests for the new command tree
 
 **Key files:**
-```
+```text
 src/Aspire.Cli/
 ├── Commands/
 │   └── Template/
@@ -1054,7 +1054,7 @@ src/Aspire.Cli/
 4. **JSON schema files** — publish schemas at `https://aka.ms/aspire/template-schema/v1` and `https://aka.ms/aspire/template-index-schema/v1` (or embed for offline use).
 
 **Key files:**
-```
+```text
 src/Aspire.Cli/
 └── Templating/
     └── Git/
@@ -1083,7 +1083,7 @@ src/Aspire.Cli/
 7. **Implement `aspire template refresh`** — invalidate cache and re-fetch all indexes
 
 **Key files:**
-```
+```text
 src/Aspire.Cli/
 └── Templating/
     └── Git/
@@ -1112,7 +1112,7 @@ src/Aspire.Cli/
 4. **Implement `--template-repo` flag on `aspire new`**
 
 **Key files:**
-```
+```text
 src/Aspire.Cli/
 └── Templating/
     └── Git/
@@ -1136,7 +1136,7 @@ src/Aspire.Cli/
 4. **Interactive selection** — `aspire new` without arguments shows all templates grouped by source
 
 **Key files:**
-```
+```text
 src/Aspire.Cli/
 └── Templating/
     └── Git/
