@@ -3,7 +3,6 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -31,16 +30,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(AgentCommands_AllHelpOutputs_AreCorrect));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -136,16 +126,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(AgentInitCommand_MigratesDeprecatedConfig));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -255,16 +236,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(DoctorCommand_DetectsDeprecatedAgentConfig));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -304,6 +276,112 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
                 return hasComplete && hasDeprecated && hasFix;
             }, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Tests that aspire agent init gracefully handles malformed JSON in MCP config files.
+    /// When a .vscode/mcp.json file contains invalid JSON, the command should:
+    /// - Display an error message identifying the malformed file
+    /// - Display a "Skipping" message
+    /// - NOT overwrite the malformed file
+    /// - Exit with a non-zero exit code
+    /// </summary>
+    [Fact]
+    public async Task AgentInitCommand_WithMalformedMcpJson_ShowsErrorAndExitsNonZero()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Set up paths
+        var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
+        var mcpConfigPath = Path.Combine(vscodePath, "mcp.json");
+        var malformedContent = "{ invalid json content";
+
+        // Patterns for agent init prompts
+        var workspacePathPrompt = new CellPatternSearcher().Find("workspace:");
+
+        // Pattern for the malformed JSON error message
+        var malformedError = new CellPatternSearcher().Find("malformed JSON");
+
+        // Pattern for the skip message
+        var skippingMessage = new CellPatternSearcher().Find("Skipping");
+
+        // Pattern for the partial success warning message
+        var completedWithErrors = new CellPatternSearcher().Find("completed with errors");
+
+        // Pattern for the agent environment selection prompt
+        var agentSelectPrompt = new CellPatternSearcher().Find("agent environments");
+
+        // Pattern for the additional options prompt that appears after agent environment selection
+        var additionalOptionsPrompt = new CellPatternSearcher().Find("additional options");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Step 1: Create .vscode folder with malformed mcp.json
+        sequenceBuilder
+            .CreateVsCodeFolder(vscodePath)
+            .CreateMalformedMcpConfig(mcpConfigPath, malformedContent);
+
+        // Verify the malformed config was created
+        sequenceBuilder
+            .VerifyFileContains(mcpConfigPath, "invalid json");
+
+        // Step 2: Run aspire agent init
+        sequenceBuilder
+            .Type("aspire agent init")
+            .Enter()
+            .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Enter() // Accept default workspace path
+            .WaitUntil(s => agentSelectPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Type(" ") // Select first option (VS Code)
+            .Enter()
+            // Handle the additional options prompt - must select at least one item
+            // (Spectre.Console MultiSelectionPrompt requires at least one selection)
+            // Select the first skill file option which is harmless (doesn't touch mcp.json)
+            .WaitUntil(s => additionalOptionsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Type(" ") // Select first additional option (skill file)
+            .Enter()
+            // After all prompts, wait for the error about malformed JSON and non-zero exit
+            .WaitUntil(s =>
+            {
+                var hasError = malformedError.Search(s).Count > 0;
+                var hasSkip = skippingMessage.Search(s).Count > 0;
+                var hasCompletedWithErrors = completedWithErrors.Search(s).Count > 0;
+                return hasError && hasSkip && hasCompletedWithErrors;
+            }, TimeSpan.FromSeconds(30))
+            .WaitForErrorPrompt(counter);
+
+        // Step 3: Verify the malformed file was NOT overwritten
+        sequenceBuilder
+            .VerifyFileContains(mcpConfigPath, "invalid json");
 
         sequenceBuilder
             .Type("exit")

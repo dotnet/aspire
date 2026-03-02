@@ -8,41 +8,6 @@ namespace Aspire.Cli.Tests.Backchannel;
 public class ResourceSnapshotMapperTests
 {
     [Fact]
-    public void MapToResourceJson_WithNullCollectionProperties_DoesNotThrow()
-    {
-        // Arrange - simulate a snapshot deserialized from JSON where collection properties are null
-        var snapshot = new ResourceSnapshot
-        {
-            Name = "test-resource",
-            DisplayName = "test-resource",
-            ResourceType = "Project",
-            State = "Running",
-            Urls = null!,
-            Volumes = null!,
-            HealthReports = null!,
-            EnvironmentVariables = null!,
-            Properties = null!,
-            Relationships = null!,
-            Commands = null!
-        };
-
-        var allSnapshots = new List<ResourceSnapshot> { snapshot };
-
-        // Act & Assert - should not throw NullReferenceException
-        var result = ResourceSnapshotMapper.MapToResourceJson(snapshot, allSnapshots);
-
-        Assert.NotNull(result);
-        Assert.Equal("test-resource", result.Name);
-        Assert.Empty(result.Urls!);
-        Assert.Empty(result.Volumes!);
-        Assert.Empty(result.HealthReports!);
-        Assert.Empty(result.Environment!);
-        Assert.Empty(result.Properties!);
-        Assert.Empty(result.Relationships!);
-        Assert.Empty(result.Commands!);
-    }
-
-    [Fact]
     public void MapToResourceJson_WithPopulatedProperties_MapsCorrectly()
     {
         // Arrange
@@ -80,11 +45,11 @@ public class ResourceSnapshotMapperTests
 
         // Only enabled commands should be included
         Assert.Single(result.Commands!);
-        Assert.Equal("resource-stop", result.Commands![0].Name);
+        Assert.True(result.Commands!.ContainsKey("resource-stop"));
 
         // Only IsFromSpec environment variables should be included
         Assert.Single(result.Environment!);
-        Assert.Equal("ASPNETCORE_ENVIRONMENT", result.Environment![0].Name);
+        Assert.Equal("Development", result.Environment!["ASPNETCORE_ENVIRONMENT"]);
 
         // Dashboard URL should be generated
         Assert.NotNull(result.DashboardUrl);
@@ -92,39 +57,92 @@ public class ResourceSnapshotMapperTests
     }
 
     [Fact]
-    public void MapToResourceJsonList_WithNullCollectionProperties_DoesNotThrow()
+    public void ResolveResources_ByExactName_ReturnsMatch()
     {
-        // Arrange
         var snapshots = new List<ResourceSnapshot>
         {
-            new ResourceSnapshot
-            {
-                Name = "resource1",
-                DisplayName = "resource1",
-                ResourceType = "Project",
-                State = "Running",
-                Urls = null!,
-                Volumes = null!,
-                HealthReports = null!,
-                EnvironmentVariables = null!,
-                Properties = null!,
-                Relationships = null!,
-                Commands = null!
-            },
-            new ResourceSnapshot
-            {
-                Name = "resource2",
-                DisplayName = "resource2",
-                ResourceType = "Container",
-                State = "Starting"
-            }
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
         };
 
-        // Act & Assert - should not throw
-        var result = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl: "http://localhost:18080");
+        var result = ResourceSnapshotMapper.ResolveResources("cache-zuyppzgw", snapshots);
 
-        Assert.Equal(2, result.Count);
-        Assert.Equal("resource1", result[0].Name);
-        Assert.Equal("resource2", result[1].Name);
+        Assert.Single(result);
+        Assert.Equal("cache-zuyppzgw", result[0].Name);
     }
+
+    [Fact]
+    public void ResolveResources_ByDisplayName_WhenNoReplicas_ReturnsMatch()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache", snapshots);
+
+        Assert.Single(result);
+        Assert.Equal("cache-zuyppzgw", result[0].Name);
+    }
+
+    [Fact]
+    public void ResolveResources_ByDisplayName_WhenReplicas_ReturnsEmpty()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-abc12345", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "cache-def67890", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache", snapshots);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ResolveResources_ByExactName_WhenReplicas_ReturnsMatch()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-abc12345", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "cache-def67890", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache-abc12345", snapshots);
+
+        Assert.Single(result);
+        Assert.Equal("cache-abc12345", result[0].Name);
+    }
+
+    [Fact]
+    public void ResolveResources_NoMatch_ReturnsEmpty()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("nonexistent", snapshots);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ResolveResources_IsCaseInsensitive()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "Cache-Zuyppzgw", DisplayName = "Cache", ResourceType = "Container", State = "Running" }
+        };
+
+        var resultByName = ResourceSnapshotMapper.ResolveResources("cache-zuyppzgw", snapshots);
+        Assert.Single(resultByName);
+
+        var resultByDisplayName = ResourceSnapshotMapper.ResolveResources("CACHE", snapshots);
+        Assert.Single(resultByDisplayName);
+    }
+
 }

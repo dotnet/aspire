@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Create a new Aspire project.</source>
-        <target state="translated">Vytvořte nový projekt Aspire.</target>
+        <source>Create a new app from an Aspire starter template.</source>
+        <target state="new">Create a new app from an Aspire starter template.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -30,6 +30,11 @@
       <trans-unit id="InvalidProjectName">
         <source>Invalid project name.</source>
         <target state="translated">Neplatný název projektu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost.</source>
+        <target state="new">The programming language for the AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">

@@ -21,7 +21,7 @@ cd "$WORK_DIR"
 
 # Initialize Rust AppHost
 echo "Creating Rust apphost project..."
-aspire init -l rust --non-interactive -d
+aspire init --language rust --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."

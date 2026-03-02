@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
         <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <target state="translated">Ustaw minimalny poziom dziennika dla wyjścia konsoli (Trace, Debug, Information, Warning, Error, Critical).</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -60,6 +60,11 @@ Dowiedz się więcej o telemetrii wiersza polecenia usługi Aspire: https://aka.
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Wstrzymaj baner startowy i powiadomienie o telemetrii.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NonInteractiveArgumentDescription">
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

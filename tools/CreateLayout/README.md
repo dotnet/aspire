@@ -20,9 +20,7 @@ Before running CreateLayout, you must:
 
 1. Build the Aspire solution with the required components published
 2. Have the following publish outputs available in the artifacts directory:
-   - `Aspire.Cli.NuGetHelper` → `artifacts/bin/Aspire.Cli.NuGetHelper/{config}/{tfm}/publish/`
-   - `Aspire.Hosting.RemoteHost` → `artifacts/bin/Aspire.Hosting.RemoteHost/{config}/{tfm}/publish/`
-   - `Aspire.Dashboard` → `artifacts/bin/Aspire.Dashboard/{config}/{tfm}/publish/`
+   - `Aspire.Managed` → `artifacts/bin/Aspire.Managed/{config}/{tfm}/publish/`
 
 The build scripts (`./build.sh -bundle` / `./build.cmd -bundle`) handle this automatically.
 

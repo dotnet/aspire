@@ -30,15 +30,11 @@ This document specifies the **Aspire Bundle**, a self-contained distribution pac
 
 The Aspire Bundle is a platform-specific archive containing the Aspire CLI and all runtime components:
 
-- **Aspire CLI** (native AOT executable)
-- **.NET Runtime** (for running managed components)
-- **Pre-built AppHost Server** (for polyglot app hosts)
-- **Aspire Dashboard** (no longer distributed via NuGet)
+- **Aspire CLI** (native AOT executable, includes native certificate management)
+- **Aspire Managed** (unified self-contained binary: Dashboard + AppHost Server + NuGet Helper)
 - **Developer Control Plane (DCP)** (no longer distributed via NuGet)
-- **NuGet Helper Tool** (for package search and restore without SDK)
-- **Dev-Certs Tool** (for HTTPS certificate management without SDK)
 
-**Key change**: DCP and Dashboard are now bundled with the CLI installation, not downloaded as NuGet packages. This applies to **all** Aspire applications, including .NET ones. This:
+**Key change**: DCP and Dashboard are now bundled with the CLI installation, not downloaded as NuGet packages. Dashboard, AppHost Server, and NuGet Helper are consolidated into a single `aspire-managed` binary that dispatches via subcommands. Certificate management is handled natively in the CLI (no subprocess needed). This:
 
 - Eliminates large NuGet package downloads on first run
 - Ensures version consistency between CLI and runtime components
@@ -98,16 +94,19 @@ DCP and Dashboard distribution via NuGet packages causes:
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌──────────────┐     spawns      ┌───────────────────────────────────┐    │
-│  │   aspire     │ ───────────────▶│          .NET RUNTIME             │    │
-│  │ (Native AOT) │                 │                                   │    │
-│  │              │                 │  • Runs AppHost Server            │    │
-│  │  Commands:   │                 │  • Runs NuGet Helper Tool         │    │
-│  │  • run       │                 │  • Hosts Dashboard                │    │
-│  │  • add       │                 └───────────────────────────────────┘    │
-│  │  • new       │                              │                           │
-│  │  • publish   │                              ▼                           │
-│  └──────┬───────┘              ┌───────────────────────────────────┐       │
-│         │                      │        APPHOST SERVER             │       │
+│  │   aspire     │ ───────────────▶│       ASPIRE-MANAGED              │    │
+│  │ (Native AOT) │                 │  (self-contained single binary)   │    │
+│  │              │                 │                                   │    │
+│  │  Commands:   │                 │  Subcommands:                     │    │
+│  │  • run       │                 │  • dashboard  (Aspire Dashboard)  │    │
+│  │  • add       │                 │  • server     (AppHost Server)    │    │
+│  │  • new       │                 │  • nuget      (NuGet operations)  │    │
+│  │  • publish   │                 └───────────────────────────────────┘    │
+│  │              │                              │                           │
+│  │  Native:     │                              ▼                           │
+│  │  • cert mgmt │              ┌───────────────────────────────────┐       │
+│  └──────┬───────┘              │        APPHOST SERVER             │       │
+│         │                      │  (aspire-managed server)          │       │
 │         │  JSON-RPC            │                                   │       │
 │         │◀────────────────────▶│  • Aspire.Hosting.* assemblies    │       │
 │         │   (socket)           │  • RemoteHostServer endpoint      │       │
@@ -118,10 +117,10 @@ DCP and Dashboard distribution via NuGet packages causes:
 │         │              ▼                       ▼                   ▼       │
 │         │     ┌─────────────┐         ┌─────────────┐     ┌────────────┐  │
 │         │     │  DASHBOARD  │         │     DCP     │     │INTEGRATIONS│  │
-│         │     │             │         │             │     │            │  │
-│         │     │ dashboard/  │         │ dcp/        │     │~/.aspire/  │  │
-│         │     └─────────────┘         └─────────────┘     │ packages/  │  │
-│         │                                                  └────────────┘  │
+│         │     │ (aspire-    │         │             │     │            │  │
+│         │     │  managed    │         │ dcp/        │     │~/.aspire/  │  │
+│         │     │  dashboard) │         └─────────────┘     │ packages/  │  │
+│         │     └─────────────┘                              └────────────┘  │
 │         │                                                        ▲         │
 │         │     ┌─────────────────────────────────────────┐        │         │
 │         │     │         USER'S APPHOST                  │────────┘         │
@@ -139,11 +138,11 @@ When a user runs `aspire run` with a TypeScript app host:
 
 1. **CLI reads project configuration** from `.aspire/settings.json`
 2. **CLI discovers bundle layout** using priority-based resolution
-3. **CLI downloads missing integrations** using the NuGet Helper Tool
+3. **CLI downloads missing integrations** using aspire-managed's NuGet subcommand
 4. **CLI generates `appsettings.json`** for the AppHost Server with integration list
-5. **CLI starts AppHost Server** using the bundled .NET runtime
+5. **CLI starts AppHost Server** using aspire-managed's server subcommand
 6. **CLI starts guest app host** (TypeScript) which connects via JSON-RPC
-7. **AppHost Server orchestrates** containers, Dashboard, and DCP
+7. **AppHost Server orchestrates** containers, Dashboard (via aspire-managed dashboard), and DCP
 
 ---
 
@@ -155,70 +154,24 @@ When a user runs `aspire run` with a TypeScript app host:
 aspire-{version}-{platform}/
 │
 ├── aspire[.exe]                        # Native AOT CLI (~25 MB)
+│                                       # (includes native certificate management)
 │
-├── layout.json                         # Bundle metadata
-│
-├── runtime/                            # .NET 10 Runtime (~106 MB)
-│   ├── dotnet[.exe]                    # Muxer executable
-│   ├── LICENSE.txt
-│   ├── host/
-│   │   └── fxr/{version}/
-│   │       └── hostfxr.{dll|so|dylib}
-│   └── shared/
-│       ├── Microsoft.NETCore.App/{version}/
-│       │   └── *.dll
-│       └── Microsoft.AspNetCore.App/{version}/
-│           └── *.dll
-│
-├── aspire-server/                     # Pre-built AppHost Server (~19 MB)
-│   ├── aspire-server[.exe]             # Single-file executable
-│   └── appsettings.json                # Default config
-│
-├── dashboard/                          # Aspire Dashboard (~42 MB)
-│   ├── aspire-dashboard[.exe]          # Single-file executable
-│   ├── wwwroot/
-│   └── ...
+├── managed/                            # Unified managed binary (~65 MB)
+│   └── aspire-managed[.exe]            # Self-contained single-file executable
+│                                       # Subcommands: dashboard | server | nuget
 │
 ├── dcp/                                # Developer Control Plane (~127 MB)
 │   ├── dcp[.exe]                       # Native executable
 │   └── ...
 │
-└── tools/                              # Helper tools (~5 MB)
-    ├── aspire-nuget/                   # NuGet operations
-    │   ├── aspire-nuget[.exe]          # Single-file executable
-    │   └── ...
-    │
-    └── dev-certs/                      # HTTPS certificate tool
-        ├── dotnet-dev-certs.dll
-        ├── dotnet-dev-certs.deps.json
-        └── dotnet-dev-certs.runtimeconfig.json
+└── (no more runtime/, dashboard/, aspire-server/, tools/ directories)
 ```
+
+**Key change from previous layout**: The separate `.NET Runtime` (~106 MB), `dashboard/` (~42 MB), `aspire-server/` (~19 MB), `tools/aspire-nuget/` (~5 MB), and `tools/dev-certs/` directories have been consolidated into a single `managed/aspire-managed` self-contained binary. Certificate management has been moved natively into the CLI itself, eliminating the need for a separate dev-certs tool.
 
 **Total Bundle Size:**
-- **Unzipped:** ~323 MB
-- **Zipped:** ~113 MB
-
-### layout.json Schema
-
-```json
-{
-  "version": "13.2.0",
-  "platform": "linux-x64",
-  "runtimeVersion": "10.0.0",
-  "components": {
-    "cli": "aspire",
-    "runtime": "runtime",
-    "apphostServer": "aspire-server",
-    "dashboard": "dashboard",
-    "dcp": "dcp",
-    "nugetHelper": "tools/aspire-nuget",
-    "devCerts": "tools/dev-certs"
-  },
-  "builtInIntegrations": []
-}
-```
-
----
+- **Unzipped:** ~220 MB (down from ~323 MB — eliminated separate runtime)
+- **Zipped:** ~80 MB
 
 ## Self-Extracting Binary
 
@@ -261,7 +214,7 @@ The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory
 **Extraction flow:**
 1. Check for embedded `bundle.tar.gz` resource — if absent, return `NoPayload`
 2. Check version marker (`.aspire-bundle-version`) — if version matches, return `AlreadyUpToDate`
-3. Clean well-known layout directories (runtime, dashboard, dcp, aspire-server, tools) — preserves `bin/`
+3. Clean well-known layout directories (managed, dcp) — preserves `bin/`
 4. Extract payload using .NET `TarReader` with path-traversal and symlink validation
 5. Set Unix file permissions from tar entry metadata (execute bit, etc.)
 6. Write version marker with assembly informational version
@@ -272,7 +225,7 @@ The service uses a file lock (`.aspire-bundle-lock`) in the extraction directory
 #### Explicit: `aspire setup`
 
 ```bash
-aspire setup [--install-path <path>] [--force]
+aspire setup [--install-path <path>]
 ```
 
 Best for install scripts — reduces to:
@@ -298,7 +251,7 @@ The file `.aspire-bundle-version` in the layout root contains the assembly infor
 
 - **Skip extraction** when version matches (normal startup is free)
 - **Re-extract** when CLI binary is updated (version changes)
-- **Force re-extract** with `aspire setup --force` (ignores version)
+- **Force re-extract** with `aspire setup --force`
 
 ### Platform Notes
 
@@ -342,13 +295,11 @@ The parent directory check supports the installed layout where the CLI binary li
 |----------|-------------|---------|
 | `ASPIRE_LAYOUT_PATH` | Root of the bundle | `/opt/aspire` |
 | `ASPIRE_DCP_PATH` | DCP binaries location | `/opt/aspire/dcp` |
-| `ASPIRE_DASHBOARD_PATH` | Dashboard executable path | `/opt/aspire/dashboard/aspire-dashboard` |
-| `ASPIRE_RUNTIME_PATH` | Bundled .NET runtime directory (guest apphosts only) | `/opt/aspire/runtime` |
+| `ASPIRE_DASHBOARD_PATH` | Path used by Aspire.Hosting to locate the dashboard binary (now points to `aspire-managed`) | `/opt/aspire/managed/aspire-managed` |
+| `ASPIRE_MANAGED_PATH` | CLI-only path for the `aspire-managed` binary | `/opt/aspire/managed/aspire-managed` |
 | `ASPIRE_INTEGRATION_LIBS_PATH` | Path to integration DLLs for aspire-server assembly resolution | `/home/user/.aspire/libs` |
 | `ASPIRE_USE_GLOBAL_DOTNET` | Force SDK mode | `true` |
 | `ASPIRE_REPO_ROOT` | Dev mode (Aspire repo path, DEBUG builds only) | `/home/user/aspire` |
-
-**Note:** `ASPIRE_RUNTIME_PATH` is only set for guest (polyglot) apphosts. .NET apphosts use the globally installed `dotnet`.
 
 **Note:** `ASPIRE_INTEGRATION_LIBS_PATH` is set by the CLI when running guest apphosts that require additional hosting integration packages (e.g., `Aspire.Hosting.Redis`). The aspire-server uses this path to resolve integration assemblies at runtime.
 
@@ -375,7 +326,7 @@ Bundle CLI ────► runs ────► .NET AppHost (new Aspire.Hosting
 Bundle CLI ────► runs ────► .NET AppHost (old Aspire.Hosting)
      │                           │
      │ sets ASPIRE_DCP_PATH      │ ignores (doesn't check env vars)
-     │ sets ASPIRE_DASHBOARD_PATH│ 
+     │ sets ASPIRE_DASHBOARD_PATH│
      │                           │
      │                           │ Uses NuGet package paths ✓
 ```
@@ -422,7 +373,7 @@ dotnet run ────► .NET AppHost (new Aspire.Hosting)
 
 | Component | When it discovers | What it does |
 |-----------|------------------|--------------|
-| **CLI** | Before launching AppHost | Sets `ASPIRE_DCP_PATH`, `ASPIRE_DASHBOARD_PATH`, and `ASPIRE_RUNTIME_PATH` (guest only) env vars |
+| **CLI** | Before launching AppHost | Sets `ASPIRE_DCP_PATH`, `ASPIRE_DASHBOARD_PATH` env vars |
 | **Aspire.Hosting** | At AppHost startup | Reads env vars OR does its own disk discovery OR uses NuGet |
 
 This dual-discovery approach ensures:
@@ -434,13 +385,13 @@ This dual-discovery approach ensures:
 
 ## NuGet Operations
 
-The bundle includes a managed NuGet Helper Tool that provides package search and restore functionality without requiring the .NET SDK.
+The bundle includes NuGet operations via the `aspire-managed nuget` subcommand, which provides package search and restore functionality without requiring the .NET SDK.
 
 ### NuGet Helper Commands
 
 ```bash
 # Search for packages
-{runtime}/dotnet {tools}/aspire-nuget/aspire-nuget.dll search \
+{managed}/aspire-managed nuget search \
   --query "Aspire.Hosting" \
   --prerelease \
   --take 50 \
@@ -448,14 +399,14 @@ The bundle includes a managed NuGet Helper Tool that provides package search and
   --format json
 
 # Restore packages
-{runtime}/dotnet {tools}/aspire-nuget/aspire-nuget.dll restore \
+{managed}/aspire-managed nuget restore \
   --package "Aspire.Hosting.Redis" \
   --version "13.2.0" \
   --framework net10.0 \
   --output ~/.aspire/packages
 
 # Create flat layout from restored packages (DLLs + XML doc files)
-{runtime}/dotnet {tools}/aspire-nuget/aspire-nuget.dll layout \
+{managed}/aspire-managed nuget layout \
   --assets ~/.aspire/packages/obj/project.assets.json \
   --output ~/.aspire/packages/libs \
   --framework net10.0
@@ -505,43 +456,38 @@ The bundle includes a managed NuGet Helper Tool that provides package search and
 
 ## Certificate Management
 
-The bundle includes the `dotnet-dev-certs` tool for HTTPS certificate management. This enables polyglot apphosts to configure HTTPS certificates without requiring a globally-installed .NET SDK.
+The CLI includes native HTTPS certificate management via ASP.NET Core's `CertificateManager` library, ported directly into the native AOT binary. This eliminates the need for a separate dev-certs tool or subprocess for certificate operations.
 
-### Dev-Certs Tool Usage
+### How It Works
 
-```bash
-# Check certificate trust status (machine-readable output)
-{runtime}/dotnet {tools}/dev-certs/dotnet-dev-certs.dll https --check --trust
+The `CertificateManager` from `aspnetcore/src/Shared/CertificateGeneration/` is vendored into `src/Aspire.Cli/Certificates/CertificateGeneration/`. The original `EventSource`-based logging (AOT-incompatible) has been replaced with `ILogger`, making the code fully native AOT friendly.
 
-# Trust the development certificate (requires elevation on some platforms)
-{runtime}/dotnet {tools}/dev-certs/dotnet-dev-certs.dll https --trust
-```
+Platform-specific implementations handle certificate store operations:
+- **Windows**: `WindowsCertificateManager` — Windows certificate store + ACLs
+- **macOS**: `MacOSCertificateManager` — Keychain management via `security` CLI
+- **Linux**: `UnixCertificateManager` — OpenSSL + NSS databases + .NET trust store
 
 ### Certificate Tool Abstraction
 
-The CLI uses an `ICertificateToolRunner` abstraction to support both bundle and SDK modes:
+The CLI uses an `ICertificateToolRunner` abstraction with a single implementation:
 
-| Mode | Implementation | Usage |
-|------|----------------|-------|
-| Bundle | `BundleCertificateToolRunner` | Uses bundled runtime + dev-certs.dll |
-| SDK | `SdkCertificateToolRunner` | Uses `dotnet dev-certs` from global SDK |
+| Implementation | Description |
+|----------------|-------------|
+| `NativeCertificateToolRunner` | Calls `CertificateManager` directly (no subprocess) |
 
-The appropriate implementation is selected via DI based on whether a bundle layout is detected:
+The `CertificateManager` is registered as a singleton via DI, with `ILogger` injected through the constructor:
 
 ```csharp
-services.AddSingleton<ICertificateToolRunner>(sp =>
-{
-    var layout = sp.GetService<LayoutConfiguration>();
-    var devCertsPath = layout?.GetDevCertsDllPath();
-    
-    if (devCertsPath is not null && File.Exists(devCertsPath))
-    {
-        return new BundleCertificateToolRunner(layout!);
-    }
-    
-    return new SdkCertificateToolRunner(sp.GetRequiredService<IDotNetCliRunner>());
-});
+// Register CertificateManager (platform-specific) and certificate tool runner
+builder.Services.AddSingleton(sp => CertificateManager.Create(sp.GetRequiredService<ILogger<NativeCertificateToolRunner>>()));
+builder.Services.AddSingleton<ICertificateToolRunner, NativeCertificateToolRunner>();
 ```
+
+### Key Operations
+
+- **Check trust status**: `CertificateManager.ListCertificates()` + `GetTrustLevel()` — returns structured certificate info
+- **Trust certificate**: `CertificateManager.EnsureAspNetCoreHttpsDevelopmentCertificate()` — creates and trusts dev cert
+- **Platform detection**: `CertificateManager.Create()` selects the right platform implementation at startup
 
 ---
 
@@ -569,8 +515,8 @@ When a project references integrations (e.g., `Aspire.Hosting.Redis`):
 ### Pre-built Mode Execution
 
 ```bash
-# CLI spawns the pre-built AppHost Server
-{aspire-server}/aspire-server \
+# CLI spawns the AppHost Server via aspire-managed
+{managed}/aspire-managed server \
   --project {user-project-path} \
   --socket {socket-path}
 ```
@@ -689,23 +635,12 @@ The bundle installs components as siblings under `~/.aspire/`, with the CLI bina
 │                           #   - Or SDK-based CLI (CLI-only install)
 │
 ├── .aspire-bundle-version  # Version marker (hex FNV-1a hash, written after extraction)
-├── layout.json             # Bundle metadata (present only for bundle install)
 │
-├── runtime/                # Bundled .NET runtime
-│   └── dotnet
-│
-├── dashboard/              # Pre-built Dashboard
-│   └── Aspire.Dashboard
+├── managed/                # Unified managed binary (self-contained)
+│   └── aspire-managed      # Subcommands: dashboard | server | nuget
 │
 ├── dcp/                    # Developer Control Plane
 │   └── dcp
-│
-├── aspire-server/          # Pre-built AppHost Server (polyglot)
-│   └── aspire-server
-│
-├── tools/
-│   └── aspire-nuget/       # NuGet operations without SDK
-│       └── aspire-nuget
 │
 ├── hives/                  # NuGet package hives (preserved across installs)
 │   └── pr-{number}/
@@ -718,7 +653,8 @@ The bundle installs components as siblings under `~/.aspire/`, with the CLI bina
 - The CLI lives at `~/.aspire/bin/aspire` regardless of install method
 - With self-extracting binaries, the CLI in `bin/` contains the embedded payload; `aspire setup` extracts siblings
 - `.aspire-bundle-version` tracks the extracted version — extraction is skipped when hash matches
-- Bundle components (`runtime/`, `dashboard/`, `dcp/`, etc.) are siblings at the `~/.aspire/` root
+- `aspire-managed` is a single self-contained binary replacing separate runtime, dashboard, aspire-server, and tools directories
+- Certificate management is native to the CLI (no external tool needed)
 - NuGet hives and settings are preserved across installations and re-extractions
 - `LayoutDiscovery` finds the bundle by checking the CLI's parent directory for components
 
@@ -757,16 +693,7 @@ irm https://aka.ms/install-aspire.ps1 | iex -Args '--install-dir', 'C:\aspire'
 
 For testing PR builds before they are merged:
 
-**Bundle from PR (self-contained):**
-```bash
-# Linux/macOS
-./eng/scripts/get-aspire-cli-bundle-pr.sh 1234
-
-# Windows
-.\eng\scripts\get-aspire-cli-bundle-pr.ps1 -PRNumber 1234
-```
-
-**Existing CLI from PR (requires SDK):**
+**CLI from PR (bundle-backed):**
 ```bash
 # Linux/macOS
 ./eng/scripts/get-aspire-cli-pr.sh 1234
@@ -775,7 +702,7 @@ For testing PR builds before they are merged:
 .\eng\scripts\get-aspire-cli-pr.ps1 -PRNumber 1234
 ```
 
-Both bundle and CLI-only PR scripts also download NuGet package artifacts (`built-nugets` and `built-nugets-for-{rid}`) and install them as a NuGet hive at `~/.aspire/hives/pr-{N}/packages/`. This enables `aspire new` and `aspire add` to resolve PR-built package versions when the channel is set to `pr-{N}`.
+The PR script also downloads NuGet package artifacts (`built-nugets` and `built-nugets-for-{rid}`) and installs them as a NuGet hive at `~/.aspire/hives/pr-{N}/packages/`. This enables `aspire new` and `aspire add` to resolve PR-built package versions when the channel is set to `pr-{N}`.
 
 ---
 
@@ -804,16 +731,12 @@ Downloaded integration packages are cached in:
 | Component | On Disk | Zipped |
 |-----------|---------|--------|
 | DCP (platform-specific) | ~286 MB | ~100 MB |
-| .NET 10 Runtime (incl. ASP.NET Core) | ~200 MB | ~70 MB |
-| Dashboard (framework-dependent) | ~43 MB | ~15 MB |
-| CLI (native AOT) | ~22 MB | ~10 MB |
-| AppHost Server (core only) | ~21 MB | ~8 MB |
-| NuGet Helper (aspire-nuget) | ~5 MB | ~2 MB |
-| Dev-certs Tool | ~0.1 MB | ~0.05 MB |
-| **Total** | **~577 MB** | **~204 MB** |
+| Aspire Managed (self-contained: Dashboard + Server + NuGet + .NET Runtime) | ~65 MB | ~25 MB |
+| CLI (native AOT, includes certificate management) | ~22 MB | ~10 MB |
+| **Total** | **~373 MB** | **~135 MB** |
 
-*AppHost Server includes core hosting only - all integrations are downloaded on-demand.*
-*Dashboard is framework-dependent (not self-contained), sharing the bundled .NET runtime.*
+*Aspire Managed is a single self-contained binary that includes the .NET runtime, eliminating the need for a separate runtime directory.*
+*Certificate management is handled natively in the CLI — no separate tool needed.*
 *Sizes vary by platform. Linux tends to be smaller than Windows.*
 
 ### Distribution Formats
@@ -965,7 +888,7 @@ Changes to internal CLI classes maintain backward compatibility through:
 
 3. **Graceful degradation**
    - If bundle components are missing, fall back to SDK
-   - If NuGetHelper is unavailable, fall back to `dotnet` commands
+   - If NuGet operations are unavailable, fall back to `dotnet` commands
    - Error messages guide users to resolution
 
 ### Test Compatibility
@@ -992,8 +915,7 @@ Tests continue to work because:
 | `ASPIRE_REPO_ROOT` | Development mode | Uses SDK with project references |
 | `ASPIRE_LAYOUT_PATH` | Bundle location | Overrides auto-detection |
 | `ASPIRE_DCP_PATH` | DCP override | Works in both modes |
-| `ASPIRE_DASHBOARD_PATH` | Dashboard override | Works in both modes |
-| `ASPIRE_RUNTIME_PATH` | .NET runtime override | For guest apphosts only |
+| `ASPIRE_MANAGED_PATH` | Aspire-managed override (CLI only) | Works in both modes |
 
 ### Migration Path
 
@@ -1271,7 +1193,7 @@ This section tracks the implementation progress of the bundle feature.
 - [x] **Layout discovery service** - `src/Aspire.Cli/Layout/LayoutDiscovery.cs`
 - [x] **Layout process runner** - `src/Aspire.Cli/Layout/LayoutProcessRunner.cs`
 - [x] **Bundle NuGet service** - `src/Aspire.Cli/NuGet/BundleNuGetService.cs`
-- [x] **NuGet Helper tool** - `src/Aspire.Cli.NuGetHelper/`
+- [x] **NuGet operations** - embedded in `src/Aspire.Managed/NuGet/`
   - [x] Search command (NuGet v3 HTTP API)
   - [x] Restore command (NuGet RestoreRunner)
   - [x] Layout command (flat DLL + XML doc layout from project.assets.json)
@@ -1295,15 +1217,16 @@ This section tracks the implementation progress of the bundle feature.
   - Framework-dependent deployment (uses bundled runtime)
 - [x] **Certificate management** - `src/Aspire.Cli/Certificates/`
   - `ICertificateToolRunner` abstraction
-  - `BundleCertificateToolRunner` - uses bundled runtime + dev-certs.dll
-  - `SdkCertificateToolRunner` - uses global `dotnet dev-certs`
+  - `NativeCertificateToolRunner` - calls `CertificateManager` directly (no subprocess)
+  - `CertificateGeneration/` - vendored from aspnetcore, EventSource replaced with ILogger
+- [x] **Aspire Managed unified binary** - `src/Aspire.Managed/`
+  - Self-contained single binary: `aspire-managed dashboard|server|nuget`
+  - Replaces separate runtime, dashboard, aspire-server, and tools directories
 - [x] **Bundle build tooling** - `tools/CreateLayout/`
-  - Downloads .NET SDK and extracts runtime + dev-certs
-  - Copies DCP, Dashboard, aspire-server, NuGetHelper
-  - Generates layout.json metadata
-  - Enables RollForward=Major for all managed tools
+  - Builds aspire-managed as self-contained single-file binary
+  - Copies DCP
   - `--embed-in-cli` option creates self-extracting binary
-- [x] **Installation scripts** - `eng/scripts/get-aspire-cli-bundle-pr.sh`, `eng/scripts/get-aspire-cli-bundle-pr.ps1`
+- [x] **Installation scripts** - `eng/scripts/get-aspire-cli-pr.sh`, `eng/scripts/get-aspire-cli-pr.ps1`
   - Downloads bundle archive from PR build artifacts
   - Extracts to `~/.aspire/` with CLI in `bin/` subdirectory
   - Downloads and installs NuGet hive packages for PR channel
@@ -1314,7 +1237,7 @@ This section tracks the implementation progress of the bundle feature.
   - Platform-aware extraction (system `tar` on Unix, .NET `TarReader` on Windows)
   - Version tracking via `.aspire-bundle-version` marker file
 - [x] **Setup command** - `src/Aspire.Cli/Commands/SetupCommand.cs`
-  - `aspire setup [--install-path] [--force]`
+  - `aspire setup [--install-path]`
   - Delegates to `IBundleService.ExtractAsync()`
 - [x] **Self-update simplified** - `src/Aspire.Cli/Commands/UpdateCommand.cs`
   - `aspire update --self` downloads new CLI, swaps binary, extracts via `IBundleService`
@@ -1339,17 +1262,18 @@ This section tracks the implementation progress of the bundle feature.
 | `src/Aspire.Cli/Layout/LayoutDiscovery.cs` | Priority-based layout discovery (env > config > relative) |
 | `src/Aspire.Cli/Layout/LayoutProcessRunner.cs` | Run managed DLLs via layout's .NET runtime |
 | `src/Aspire.Cli/NuGet/BundleNuGetService.cs` | NuGet operations wrapper for bundle mode |
-| `src/Aspire.Cli.NuGetHelper/` | Managed tool for search/restore/layout |
+| `src/Aspire.Managed/NuGet/` | NuGet search/restore/layout commands (embedded in aspire-managed) |
 | `src/Aspire.Cli/Projects/PrebuiltAppHostServer.cs` | Bundle-mode server runner |
 | `src/Aspire.Cli/Projects/GuestAppHostProject.cs` | Main polyglot handler with bundle/SDK mode switching |
 | `src/Aspire.Hosting/Dcp/DcpOptions.cs` | DCP/Dashboard path resolution with env var support |
 | `src/Aspire.Cli/Certificates/ICertificateToolRunner.cs` | Certificate tool abstraction |
-| `src/Aspire.Cli/Certificates/BundleCertificateToolRunner.cs` | Bundled dev-certs runner |
-| `src/Aspire.Cli/Certificates/SdkCertificateToolRunner.cs` | SDK-based dev-certs runner |
+| `src/Aspire.Cli/Certificates/NativeCertificateToolRunner.cs` | Native certificate management (no subprocess) |
+| `src/Aspire.Cli/Certificates/CertificateGeneration/` | Vendored CertificateManager from aspnetcore (ILogger-based) |
+| `src/Aspire.Managed/Program.cs` | Unified managed binary entry point (dashboard/server/nuget) |
 | `src/Shared/BundleTrailer.cs` | (Deleted) Previously held trailer read/write logic |
 | `src/Aspire.Cli/Bundles/IBundleService.cs` | Bundle extraction interface + result enum |
 | `src/Aspire.Cli/Bundles/BundleService.cs` | Centralized extraction with .NET TarReader |
-| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command |
+| `src/Aspire.Cli/Commands/SetupCommand.cs` | `aspire setup` command for bundle extraction |
 | `src/Aspire.Cli/Utils/ArchiveHelper.cs` | Shared .zip/.tar.gz extraction utility |
 | `tools/CreateLayout/Program.cs` | Bundle build tool (layout assembly + self-extracting binary) |
 | `eng/Bundle.proj` | MSBuild orchestration for bundle creation |
@@ -1361,59 +1285,32 @@ This section tracks the implementation progress of the bundle feature.
 
 The bundle is built using the `tools/CreateLayout` tool, which assembles all components into the final bundle layout.
 
-### SDK Download Approach
+### Aspire Managed Build
 
-The bundle's .NET runtime is extracted from the official .NET SDK, which provides several advantages:
-
-1. **Single download**: The SDK contains the runtime, ASP.NET Core framework, and dev-certs tool
-2. **Version consistency**: All components come from the same SDK release
-3. **Official source**: Direct from Microsoft's build infrastructure
+The `aspire-managed` binary is published as a self-contained single-file executable, which includes the .NET runtime. This eliminates the need to separately download and bundle the .NET SDK/runtime.
 
 ```text
-SDK download (~200 MB)
-├── dotnet.exe                              → runtime/dotnet.exe
-├── host/                                   → runtime/host/
-├── shared/Microsoft.NETCore.App/10.0.x/    → runtime/shared/Microsoft.NETCore.App/
-├── shared/Microsoft.AspNetCore.App/10.0.x/ → runtime/shared/Microsoft.AspNetCore.App/
-├── sdk/10.0.x/DotnetTools/dotnet-dev-certs → tools/dev-certs/
-└── (discard: sdk/, templates/, packs/, etc.)
+aspire-managed (self-contained, ~65 MB)
+├── .NET 10 Runtime (embedded)
+├── ASP.NET Core Framework (embedded)
+├── Aspire.Dashboard (embedded)
+├── Aspire.Hosting.RemoteHost / aspire-server (embedded)
+├── NuGet Commands (embedded)
+└── All managed dependencies
 ```
 
-The SDK version is discovered dynamically from `https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json`.
-
-### RollForward Configuration
-
-All managed tools in the bundle are configured with `rollForward: Major` in their runtimeconfig.json files. This allows:
-
-- Tools built for .NET 8.0 or 9.0 to run on the bundled .NET 10+ runtime
-- Maximum compatibility with older Aspire.Hosting packages
-- Simpler bundle maintenance (single runtime version)
-
-The CreateLayout tool automatically patches all `*.runtimeconfig.json` files:
-
-```json
-{
-  "runtimeOptions": {
-    "rollForward": "Major",
-    "framework": {
-      "name": "Microsoft.AspNetCore.App",
-      "version": "8.0.0"
-    }
-  }
-}
-```
+**Advantages over the previous SDK-download approach:**
+1. **Simpler build**: No SDK download or extraction step
+2. **Smaller total size**: Single binary with tree-shaking vs full runtime directory
+3. **Single file**: One binary instead of hundreds of files across multiple directories
+4. **Version consistency**: All components compiled together
 
 ### Build Steps
 
-1. **Download .NET SDK** for the target platform
-2. **Extract runtime components** (muxer, host, shared frameworks)
-3. **Extract dev-certs tool** from `sdk/*/DotnetTools/dotnet-dev-certs/`
-4. **Build and copy managed tools** (aspire-server, aspire-dashboard, NuGetHelper)
-5. **Download and copy DCP** binaries
-6. **Patch runtimeconfig.json files** to enable RollForward=Major
-7. **Generate layout.json** with component metadata
-8. **Create archive** (tar.gz for Unix, ZIP for Windows) with `COPYFILE_DISABLE=1` to suppress macOS xattr headers
-9. **Create self-extracting binary** — appends tar.gz payload + 32-byte trailer to native AOT CLI
+1. **Build aspire-managed** as a self-contained single-file binary (includes .NET runtime, Dashboard, AppHost Server, NuGet operations)
+2. **Download and copy DCP** binaries
+3. **Create archive** (tar.gz for Unix, ZIP for Windows) with `COPYFILE_DISABLE=1` to suppress macOS xattr headers
+4. **Create self-extracting binary** — appends tar.gz payload + 32-byte trailer to native AOT CLI
 
 ### Self-Extracting Binary Build
 

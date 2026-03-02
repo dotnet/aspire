@@ -3,7 +3,7 @@
   "$id": "https://json.schemastore.org/aspire-settings.json",
   "type": "object",
   "title": "Aspire Local Settings",
-  "description": "Configuration file for .NET Aspire application host (.aspire/settings.json)",
+  "description": "Aspire CLI local configuration file (.aspire/settings.json)",
   "properties": {
     "appHostPath": {
       "description": "The path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing .aspire/settings.json.",
@@ -32,22 +32,6 @@
           ],
           "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
           "default": false
-        },
-        "dotnetSdkInstallationEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
-          "default": true
         },
         "execCommandEnabled": {
           "anyOf": [
@@ -78,7 +62,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Go language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:java": {
@@ -94,7 +78,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Java language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:python": {
@@ -110,7 +94,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Python language support for polyglot Aspire applications",
           "default": false
         },
         "experimentalPolyglot:rust": {
@@ -126,7 +110,7 @@
               ]
             }
           ],
-          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications",
           "default": false
         },
         "minimumSdkCheckEnabled": {
@@ -177,22 +161,7 @@
           "description": "Enable or disable disk caching for package search results to improve performance",
           "default": true
         },
-        "polyglotSupportEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
-          "default": false
-        },
+
         "runningInstanceDetectionEnabled": {
           "anyOf": [
             {
@@ -291,27 +260,6 @@
     "sdkVersion": {
       "description": "The Aspire SDK version used for this polyglot AppHost project. Determines the version of Aspire.Hosting packages to use.",
       "type": "string"
-    },
-    "overrideStagingFeed": {
-      "description": "[Internal] Override the NuGet feed URL used by the staging channel. When set, this URL is used instead of the default SHA-based build-specific feed.",
-      "type": "string"
-    },
-    "overrideStagingQuality": {
-      "description": "[Internal] Override the package quality filter for the staging channel. Set to \"Prerelease\" when staging builds are not yet marked as stable to use the shared daily feed instead of the SHA-based feed. Valid values: \"Stable\", \"Prerelease\", \"Both\".",
-      "type": "string",
-      "enum": [
-        "Stable",
-        "Prerelease",
-        "Both"
-      ]
-    },
-    "stagingPinToCliVersion": {
-      "description": "[Internal] When set to \"true\" and using the staging channel with Prerelease quality on the shared feed, all template and integration packages are pinned to the exact version of the installed CLI. This bypasses NuGet search entirely, ensuring version consistency.",
-      "type": "string",
-      "enum": [
-        "true",
-        "false"
-      ]
     }
   },
   "additionalProperties": false

@@ -4,6 +4,7 @@
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Backchannel;
@@ -196,5 +197,218 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
 
     private sealed class CustomResource(string name) : Resource(name)
     {
+    }
+
+    private sealed class FixedTimeProvider : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2000, 12, 29, 20, 59, 59, TimeSpan.Zero);
+    }
+
+    private const string TestTimestamp = "2000-12-29T20:59:59.0000000Z";
+
+    [Fact]
+    public async Task GetResourceLogsAsync_ReturnsLogs_ForSingleResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+
+        builder.AddResource(new CustomResource("myresource"));
+        builder.AddResource(new CustomResource(KnownResourceNames.AspireDashboard));
+
+        using var app = builder.Build();
+
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        resourceLoggerService.TimeProvider = new FixedTimeProvider();
+
+        await app.StartAsync();
+
+        var logger = resourceLoggerService.GetLogger("myresource");
+        logger.LogInformation("Hello from myresource");
+        resourceLoggerService.Complete("myresource");
+
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services);
+
+        var logs = new List<ResourceLogLine>();
+        await foreach (var logLine in target.GetResourceLogsAsync("myresource", follow: false))
+        {
+            logs.Add(logLine);
+        }
+
+        var log = Assert.Single(logs);
+        Assert.Equal("myresource", log.ResourceName);
+        Assert.Equal($"{TestTimestamp} Hello from myresource", log.Content);
+        Assert.Equal(0, log.LineNumber);
+        Assert.False(log.IsError);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task GetResourceLogsAsync_ReturnsEmpty_WhenResourceNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+        builder.AddResource(new CustomResource("myresource"));
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services);
+
+        var logs = new List<ResourceLogLine>();
+        await foreach (var logLine in target.GetResourceLogsAsync("nonexistent", follow: false))
+        {
+            logs.Add(logLine);
+        }
+
+        Assert.Empty(logs);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task GetResourceLogsAsync_ReturnsLogsFromAllResources_WhenNoResourceNameSpecified()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+
+        builder.AddResource(new CustomResource("resource1"));
+        builder.AddResource(new CustomResource("resource2"));
+        builder.AddResource(new CustomResource(KnownResourceNames.AspireDashboard));
+
+        using var app = builder.Build();
+
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        resourceLoggerService.TimeProvider = new FixedTimeProvider();
+
+        await app.StartAsync();
+
+        var logger1 = resourceLoggerService.GetLogger("resource1");
+        logger1.LogInformation("Log from resource1");
+        resourceLoggerService.Complete("resource1");
+
+        var logger2 = resourceLoggerService.GetLogger("resource2");
+        logger2.LogInformation("Log from resource2");
+        resourceLoggerService.Complete("resource2");
+
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services);
+
+        var logs = new List<ResourceLogLine>();
+        await foreach (var logLine in target.GetResourceLogsAsync(resourceName: null, follow: false))
+        {
+            logs.Add(logLine);
+        }
+
+        Assert.Equal(2, logs.Count);
+
+        var log1 = Assert.Single(logs, l => l.ResourceName == "resource1");
+        Assert.Equal($"{TestTimestamp} Log from resource1", log1.Content);
+
+        var log2 = Assert.Single(logs, l => l.ResourceName == "resource2");
+        Assert.Equal($"{TestTimestamp} Log from resource2", log2.Content);
+
+        Assert.DoesNotContain(logs, l => l.ResourceName == KnownResourceNames.AspireDashboard);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task GetResourceLogsAsync_ReturnsLogsFromReplicas()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+
+        var resourceWithReplicas = builder.AddResource(new CustomResource("myresource"));
+        resourceWithReplicas.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myresource-abc123", "abc123", 0),
+            new DcpInstance("myresource-def456", "def456", 1)
+        ]));
+
+        using var app = builder.Build();
+
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        resourceLoggerService.TimeProvider = new FixedTimeProvider();
+
+        await app.StartAsync();
+
+        var logger1 = resourceLoggerService.GetLogger("myresource-abc123");
+        logger1.LogInformation("Log from replica 1");
+        resourceLoggerService.Complete("myresource-abc123");
+
+        var logger2 = resourceLoggerService.GetLogger("myresource-def456");
+        logger2.LogInformation("Log from replica 2");
+        resourceLoggerService.Complete("myresource-def456");
+
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services);
+
+        var logs = new List<ResourceLogLine>();
+        await foreach (var logLine in target.GetResourceLogsAsync("myresource", follow: false))
+        {
+            logs.Add(logLine);
+        }
+
+        Assert.Equal(2, logs.Count);
+
+        var replica1 = Assert.Single(logs, l => l.ResourceName == "myresource-abc123");
+        Assert.Equal($"{TestTimestamp} Log from replica 1", replica1.Content);
+
+        var replica2 = Assert.Single(logs, l => l.ResourceName == "myresource-def456");
+        Assert.Equal($"{TestTimestamp} Log from replica 2", replica2.Content);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task GetResourceLogsAsync_FollowMode_StreamsLogs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+        builder.AddResource(new CustomResource("myresource"));
+
+        using var app = builder.Build();
+
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        resourceLoggerService.TimeProvider = new FixedTimeProvider();
+
+        await app.StartAsync();
+
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services);
+
+        using var cts = new CancellationTokenSource();
+        var logs = new List<ResourceLogLine>();
+
+        var collectTask = Task.Run(async () =>
+        {
+            await foreach (var logLine in target.GetResourceLogsAsync("myresource", follow: true, cts.Token))
+            {
+                logs.Add(logLine);
+                if (logs.Count >= 2)
+                {
+                    break;
+                }
+            }
+        });
+
+        // Write logs after starting the watch
+        var logger = resourceLoggerService.GetLogger("myresource");
+        logger.LogInformation("First log");
+        logger.LogInformation("Second log");
+
+        await collectTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(2, logs.Count);
+
+        Assert.Equal("myresource", logs[0].ResourceName);
+        Assert.Equal($"{TestTimestamp} First log", logs[0].Content);
+
+        Assert.Equal("myresource", logs[1].ResourceName);
+        Assert.Equal($"{TestTimestamp} Second log", logs[1].Content);
+
+        await app.StopAsync();
     }
 }

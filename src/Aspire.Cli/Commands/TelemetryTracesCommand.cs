@@ -30,7 +30,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
-    private static readonly Option<FileInfo?> s_projectOption = TelemetryCommandHelpers.CreateProjectOption();
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = TelemetryCommandHelpers.CreateAppHostOption();
     private static readonly Option<OutputFormat> s_formatOption = TelemetryCommandHelpers.CreateFormatOption();
     private static readonly Option<int?> s_limitOption = TelemetryCommandHelpers.CreateLimitOption();
     private static readonly Option<string?> s_traceIdOption = TelemetryCommandHelpers.CreateTraceIdOption("--trace-id", "-t");
@@ -53,7 +53,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_formatOption);
         Options.Add(s_limitOption);
         Options.Add(s_traceIdOption);
@@ -65,7 +65,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var format = parseResult.GetValue(s_formatOption);
         var limit = parseResult.GetValue(s_limitOption);
         var traceId = parseResult.GetValue(s_traceIdOption);
@@ -79,7 +79,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
 
         var (success, baseUrl, apiToken, _, exitCode) = await TelemetryCommandHelpers.GetDashboardApiAsync(
-            _connectionResolver, _interactionService, passedAppHostProjectFile, format, cancellationToken);
+            _connectionResolver, _interactionService, passedAppHostProjectFile, cancellationToken);
 
         if (!success)
         {
@@ -131,7 +131,8 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayRawText(json);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
             }
             else
             {
@@ -199,11 +200,12 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayRawText(json);
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
             }
             else
             {
-                DisplayTracesTable(json);
+                DisplayTracesTable(json, _interactionService);
             }
 
             return ExitCodeConstants.Success;
@@ -216,7 +218,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
     }
 
-    private static void DisplayTracesTable(string json)
+    private static void DisplayTracesTable(string json, IInteractionService interactionService)
     {
         var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceSpans = response?.Data?.ResourceSpans;
@@ -228,11 +230,11 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
 
         var table = new Table();
-        table.AddColumn("Trace ID");
-        table.AddColumn("Resource");
-        table.AddColumn("Duration");
-        table.AddColumn("Spans");
-        table.AddColumn("Status");
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderTraceId);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderResource);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderDuration);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderSpans);
+        table.AddBoldColumn(TelemetryCommandStrings.HeaderStatus);
 
         // Group by traceId to show trace summary
         var traceInfos = new Dictionary<string, (string Resource, TimeSpan Duration, int SpanCount, bool HasError)>();
@@ -275,8 +277,8 @@ internal sealed class TelemetryTracesCommand : BaseCommand
             table.AddRow(traceIdKey, info.Resource, durationStr, info.SpanCount.ToString(CultureInfo.InvariantCulture), statusText);
         }
 
-        AnsiConsole.Write(table);
-        AnsiConsole.MarkupLine($"[grey]Showing {traceInfos.Count} of {response?.TotalCount ?? traceInfos.Count} traces[/]");
+        interactionService.DisplayRenderable(table);
+        interactionService.DisplayMarkupLine($"[grey]Showing {traceInfos.Count} of {response?.TotalCount ?? traceInfos.Count} traces[/]");
     }
 
     private static void DisplayTraceDetails(string json, string traceId)

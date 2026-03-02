@@ -89,10 +89,10 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return Task.CompletedTask;
     }
 
-    public Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)
+    public Task DisplayMessageAsync(string emojiName, string message, CancellationToken cancellationToken)
     {
         DisplayMessageAsyncCalled?.SetResult();
-        return DisplayMessageAsyncCallback?.Invoke(emoji, message) ?? Task.CompletedTask;
+        return DisplayMessageAsyncCallback?.Invoke(emojiName, message) ?? Task.CompletedTask;
     }
 
     public Task DisplaySuccessAsync(string message, CancellationToken cancellationToken)

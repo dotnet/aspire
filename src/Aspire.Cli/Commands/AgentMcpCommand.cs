@@ -147,8 +147,12 @@ internal sealed class AgentMcpCommand : BaseCommand
             // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
             if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
             {
-                resourceToolMap = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
-                await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
+                // Don't send tools/list_changed here — the client already called tools/list
+                // and will receive the up-to-date result. Sending a notification during the
+                // list handler would cause the client to call tools/list again, creating an
+                // infinite loop when tool availability is unstable (e.g., container MCP tools
+                // oscillating between available/unavailable).
+                (resourceToolMap, _) = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
             }
 
             tools.AddRange(resourceToolMap.Select(x => new Tool
@@ -177,7 +181,9 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         if (KnownTools.TryGetValue(toolName, out var tool))
         {
-            var args = request.Params?.Arguments;
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
             var context = new CallToolContext
             {
                 Notifier = new McpServerNotifier(_server!),
@@ -193,8 +199,12 @@ internal sealed class AgentMcpCommand : BaseCommand
         // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
         if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
         {
-            resourceToolMap = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
-            await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
+            bool changed;
+            (resourceToolMap, changed) = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
+            if (changed)
+            {
+                await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
+            }
             toolsRefreshed = true;
         }
 
@@ -209,7 +219,9 @@ internal sealed class AgentMcpCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            var args = request.Params?.Arguments;
+            var args = request.Params?.Arguments is { } a
+                ? new Dictionary<string, JsonElement>(a)
+                : null;
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {

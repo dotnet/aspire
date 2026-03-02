@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
         <source>Project creation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">Project creation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">專案建立失敗，結束代碼為 {0}。請參閱 {1} 中的記錄</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
         <source>The template installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">範本安裝失敗，結束代碼為 {0}。請參閱 {1} 中的記錄</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="Unknown">

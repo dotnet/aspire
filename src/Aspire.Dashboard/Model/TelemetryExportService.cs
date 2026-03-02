@@ -13,6 +13,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared;
 using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
@@ -766,37 +767,34 @@ public sealed class TelemetryExportService
                 }).ToArray()
                 : null,
             Environment = resource.Environment.Length > 0
-                ? resource.Environment.Where(e => e.FromSpec).Select(e => new ResourceEnvironmentVariableJson
-                {
-                    Name = e.Name,
-                    Value = e.Value
-                }).ToArray()
+                ? resource.Environment.Where(e => e.FromSpec).OrderBy(e => e.Name).ToDistinctDictionary(e => e.Name, e => e.Value)
                 : null,
             HealthReports = resource.HealthReports.Length > 0
-                ? resource.HealthReports.Select(h => new ResourceHealthReportJson
-                {
-                    Name = h.Name,
-                    Status = h.HealthStatus?.ToString(),
-                    Description = h.Description,
-                    ExceptionMessage = h.ExceptionText
-                }).ToArray()
+                ? resource.HealthReports.OrderBy(h => h.Name).ToDistinctDictionary(
+                    h => h.Name,
+                    h => new ResourceHealthReportJson
+                    {
+                        Status = h.HealthStatus?.ToString(),
+                        Description = h.Description,
+                        ExceptionMessage = h.ExceptionText
+                    })
                 : null,
             Properties = resource.Properties.Count > 0
-                ? resource.Properties.Select(p => new ResourcePropertyJson
-                {
-                    Name = p.Key,
-                    Value = p.Value.Value.TryConvertToString(out var value) ? value : null
-                }).ToArray()
+                ? resource.Properties.OrderBy(p => p.Key).ToDistinctDictionary(
+                    p => p.Key,
+                    p => p.Value.Value.TryConvertToString(out var value) ? value : null)
                 : null,
             Relationships = relationshipsJson,
             Commands = resource.Commands.Length > 0
                 ? resource.Commands
                     .Where(c => c.State == CommandViewModelState.Enabled)
-                    .Select(c => new ResourceCommandJson
-                    {
-                        Name = c.Name,
-                        Description = c.GetDisplayDescription()
-                    }).ToArray()
+                    .OrderBy(c => c.Name)
+                    .ToDistinctDictionary(
+                        c => c.Name,
+                        c => new ResourceCommandJson
+                        {
+                            Description = c.GetDisplayDescription()
+                        })
                 : null,
             Source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
         };

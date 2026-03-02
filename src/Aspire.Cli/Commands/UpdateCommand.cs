@@ -20,6 +20,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class UpdateCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
     private readonly IAppHostProjectFactory _projectFactory;
@@ -29,10 +31,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
 
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = UpdateCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", UpdateCommandStrings.ProjectArgumentDescription);
     private static readonly Option<bool> s_selfOption = new("--self")
     {
         Description = "Update the Aspire CLI itself to the latest version"
@@ -63,7 +62,7 @@ internal sealed class UpdateCommand : BaseCommand
         _features = features;
         _configurationService = configurationService;
 
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_selfOption);
 
         // Customize description based on whether staging channel is enabled
@@ -114,7 +113,7 @@ internal sealed class UpdateCommand : BaseCommand
             // When running as a dotnet tool, print the update command instead of executing
             if (IsRunningAsDotNetTool())
             {
-                InteractionService.DisplayMessage("information", UpdateCommandStrings.DotNetToolSelfUpdateMessage);
+                InteractionService.DisplayMessage(KnownEmojis.Information, UpdateCommandStrings.DotNetToolSelfUpdateMessage);
                 InteractionService.DisplayPlainText("  dotnet tool update -g Aspire.Cli");
                 return 0;
             }
@@ -139,7 +138,7 @@ internal sealed class UpdateCommand : BaseCommand
         // Otherwise, handle project update
         try
         {
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
             if (projectFile is null)
             {
@@ -269,7 +268,10 @@ internal sealed class UpdateCommand : BaseCommand
         // for future 'aspire new' and 'aspire init' commands.
         if (string.IsNullOrEmpty(channel))
         {
-            var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
+            var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+            var channels = isStagingEnabled
+                ? new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily }
+                : new[] { PackageChannelNames.Stable, PackageChannelNames.Daily };
             channel = await InteractionService.PromptForSelectionAsync(
                 "Select the channel to update to:",
                 channels,
@@ -287,8 +289,8 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.InvalidCommand;
             }
 
-            InteractionService.DisplayMessage("package", $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage("up_arrow", $"Updating to channel: {channel}");
+            InteractionService.DisplayMessage(KnownEmojis.Package, $"Current CLI location: {currentExePath}");
+            InteractionService.DisplayMessage(KnownEmojis.UpButton, $"Updating to channel: {channel}");
 
             // Download the latest CLI
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(channel, cancellationToken);
@@ -348,7 +350,7 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             // Extract archive
-            InteractionService.DisplayMessage("package", "Extracting new CLI...");
+            InteractionService.DisplayMessage(KnownEmojis.Package, "Extracting new CLI...");
             await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
 
             // Find the aspire executable in the extracted files
@@ -363,7 +365,7 @@ internal sealed class UpdateCommand : BaseCommand
             var backupPath = $"{targetExePath}.old.{unixTimestamp}";
             if (File.Exists(targetExePath))
             {
-                InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
+                InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, "Backing up current CLI...");
                 _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
                 // Clean up old backup files
@@ -376,7 +378,7 @@ internal sealed class UpdateCommand : BaseCommand
             try
             {
                 // Copy new executable to install location
-                InteractionService.DisplayMessage("wrench", $"Installing new CLI to {installDir}...");
+                InteractionService.DisplayMessage(KnownEmojis.Wrench, $"Installing new CLI to {installDir}...");
                 File.Copy(newExePath, targetExePath, overwrite: true);
 
                 // On Unix systems, ensure the executable bit is set
@@ -403,7 +405,7 @@ internal sealed class UpdateCommand : BaseCommand
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
                 {
-                    InteractionService.DisplayMessage("information", $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
+                    InteractionService.DisplayMessage(KnownEmojis.Information, $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
                 }
             }
             catch

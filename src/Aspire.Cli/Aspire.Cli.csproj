@@ -10,8 +10,13 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- MCPEXP001: The MCP SDK 0.8.0 added experimental types (ToolExecution, ToolTaskSupport) to its default
+         serialization graph. We don't reference these types directly, but the System.Text.Json source generator
+         emits code that touches them when we combine our serializer context with McpJsonUtilities.DefaultOptions
+         in BackchannelJsonSerializerContext.cs. Suppress until MCP graduates these types. -->
+    <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
     <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <OptimizationPreference>Size</OptimizationPreference>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
@@ -60,7 +65,10 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Layout\BundleDiscovery.cs" />
+    <Compile Include="$(SharedDir)EnumerableExtensions.cs" Link="Utils\EnumerableExtensions.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+    <Compile Include="$(SharedDir)KnownOtelConfigNames.cs" Link="Utils\KnownOtelConfigNames.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
@@ -82,6 +90,8 @@
     <Compile Include="$(SharedDir)DashboardUrls.cs" Link="Utils\DashboardUrls.cs" />
     <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="Utils\UserSecretsPathHelper.cs" />
     <Compile Include="$(SharedDir)UserSecrets\IsolatedUserSecretsHelper.cs" Link="Utils\IsolatedUserSecretsHelper.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\SecretsStore.cs" Link="Secrets\SecretsStore.cs" />
+    <Compile Include="$(SharedDir)Json\JsonFlattener.cs" Link="Utils\JsonFlattener.cs" />
     <Compile Include="$(SharedDir)Otlp\OtlpHelpers.cs" Link="Otlp\OtlpHelpers.cs" />
     <Compile Include="$(SharedDir)Otlp\IOtlpResource.cs" Link="Otlp\IOtlpResource.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpCommonJson.cs" Link="Otlp\OtlpCommonJson.cs" />
@@ -167,8 +177,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\dotnet-install.sh" />
-    <EmbeddedResource Include="Resources\dotnet-install.ps1" />
+    <Compile Remove="Templating\Templates\empty-apphost\**\*.cs" />
+    <EmbeddedResource Include="Templating\Templates\empty-apphost\**\*" LogicalName="empty-apphost.%(RecursiveDir)%(Filename)%(Extension)">
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Templating\Templates\ts-starter\**\*" LogicalName="ts-starter.%(RecursiveDir)%(Filename)%(Extension)">
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-16.png" Link="Mcp\Resources\aspire-16.png" />
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-256.png" Link="Mcp\Resources\aspire-256.png" />
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-32.png" Link="Mcp\Resources\aspire-32.png" />

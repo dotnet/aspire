@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
         <source>The project could not be analyzed due to a build error. See logs at {0}</source>
-        <target state="new">The project could not be analyzed due to a build error. See logs at {0}</target>
+        <target state="translated">Не удалось проанализировать проект из-за ошибки сборки. См. журналы по адресу {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">

@@ -3,7 +3,6 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -23,15 +22,7 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateEmptyAppHostProject));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -72,12 +63,14 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Empty AppHost" which is the 4th option
+            // Navigate down to "Empty AppHost" which is the 5th option
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .WaitUntil(s => waitingForEmptyAppHostTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter() // select "Empty AppHost"
+            .Enter() // select C#
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("AspireEmptyApp")
             .Enter()

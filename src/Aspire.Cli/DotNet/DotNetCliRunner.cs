@@ -38,6 +38,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> InitUserSecretsAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -437,15 +438,6 @@ internal sealed class DotNetCliRunner(
             if (!finalEnv.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"))
             {
                 finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
-            }
-        }
-
-        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
-        {
-            // Only set the environment variable if it's not already set by the user
-            if (!finalEnv.ContainsKey("DOTNET_ROLL_FORWARD"))
-            {
-                finalEnv["DOTNET_ROLL_FORWARD"] = "LatestMajor";
             }
         }
 
@@ -1176,5 +1168,10 @@ internal sealed class DotNetCliRunner(
         }
 
         return result;
+    }
+
+    public Task<int> InitUserSecretsAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(["user-secrets", "init", "--project", projectFile.FullName], env: null, projectFile: null, projectFile.Directory!, backchannelCompletionSource: null, options, cancellationToken);
     }
 }

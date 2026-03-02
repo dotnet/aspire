@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
-        <target state="translated">기존 솔루션에서 Aspire 지원을 초기화하거나 단일 파일 AppHost를 만듭니다.</target>
+        <source>Initialize Aspire in an existing codebase.</source>
+        <target state="translated">기존 코드베이스에서 Aspire를 초기화합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">

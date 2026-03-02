@@ -297,6 +297,31 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void FactoryMethod_ReturnsChildResourceType_NotParentType()
+    {
+        // Regression test: Factory methods on a builder (e.g., AddDatabase on SqlServerServerResource)
+        // must return the child resource type, not the parent/receiver type.
+        // Previously, the codegen always used the builder's own type for the return type,
+        // causing addDatabase() to return SqlServerServerResourcePromise instead of
+        // SqlServerDatabaseResourcePromise.
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        // addTestChildDatabase is a factory method on TestRedisResource that returns TestDatabaseResource.
+        // The generated internal method must return TestDatabaseResource, not TestRedisResource.
+        Assert.Contains("_addTestChildDatabaseInternal", aspireTs);
+        Assert.Contains("Promise<TestDatabaseResource>", aspireTs);
+
+        // The public fluent method must return TestDatabaseResourcePromise, not TestRedisResourcePromise.
+        Assert.Matches(@"addTestChildDatabase\([^)]*\):\s*TestDatabaseResourcePromise", aspireTs);
+
+        // Verify the thenable class also uses the child type's promise class.
+        // In TestRedisResourcePromise, addTestChildDatabase should return TestDatabaseResourcePromise.
+        Assert.Contains("new TestDatabaseResourcePromise(this._promise.then(obj => obj.addTestChildDatabase(", aspireTs);
+    }
+
+    [Fact]
     public async Task Scanner_WithPersistence_HasCorrectExpandedTargets()
     {
         // Verify the entire capability object for withPersistence
@@ -1224,5 +1249,36 @@ public class AtsTypeScriptCodeGeneratorTests
         // Should NOT contain the old pattern for items
         Assert.DoesNotContain("items = {", code);
         Assert.DoesNotContain("items = {\n        get: async", code);
+    }
+
+    [Fact]
+    public void Generate_ConcreteAndInterfaceWithSameClassName_NoDuplicateClasses()
+    {
+        // TestVaultResource (concrete) and ITestVaultResource (interface) both derive
+        // to the same TypeScript class name "TestVaultResource". The codegen must emit
+        // exactly one class definition, preferring the concrete type.
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var code = files["aspire.ts"];
+
+        // Count occurrences of the class definition
+        var classCount = CountOccurrences(code, "export class TestVaultResource ");
+        Assert.Equal(1, classCount);
+
+        // Also verify the Promise wrapper is not duplicated
+        var promiseCount = CountOccurrences(code, "export class TestVaultResourcePromise ");
+        Assert.Equal(1, promiseCount);
+    }
+
+    private static int CountOccurrences(string text, string pattern)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) != -1)
+        {
+            count++;
+            index += pattern.Length;
+        }
+        return count;
     }
 }

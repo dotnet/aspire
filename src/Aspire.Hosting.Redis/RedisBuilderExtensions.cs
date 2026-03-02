@@ -175,41 +175,21 @@ public static class RedisBuilderExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            redisBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!redis.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.UseForHttps)
+                // If a TLS certificate is configured, ensure the Redis resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                redisBuilder
+                    .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                    .WithArgs(argsCtx =>
                     {
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
+                        argsCtx.Args.Add("--tls-port");
+                        argsCtx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
+                        argsCtx.Args.Add("--port");
+                        argsCtx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
+                    });
 
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
-                    // configure the environment variables to use it.
-                    redisBuilder
-                        .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
-                        .WithArgs(ctx =>
-                        {
-                            ctx.Args.Add("--tls-port");
-                            ctx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
-                            ctx.Args.Add("--port");
-                            ctx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
-                        });
-
-                    redis.TlsEnabled = true;
-                }
-
-                return Task.CompletedTask;
+                redis.TlsEnabled = true;
             });
         }
 
@@ -390,30 +370,10 @@ public static class RedisBuilderExtensions
                 })
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            resourceBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.UseForHttps)
-                    {
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the endpoint uses https scheme
-                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
-                }
-
-                return Task.CompletedTask;
+                // If a TLS certificate is configured, ensure the endpoint uses https scheme
+                resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
             });
 
             configureContainer?.Invoke(resourceBuilder);

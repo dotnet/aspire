@@ -32,18 +32,14 @@ internal static class BundleDiscovery
 
     /// <summary>
     /// Environment variable for overriding the Dashboard path.
+    /// Still used by DcpOptions/DashboardEventHandlers — value now points to aspire-managed exe.
     /// </summary>
     public const string DashboardPathEnvVar = "ASPIRE_DASHBOARD_PATH";
 
     /// <summary>
-    /// Environment variable for overriding the .NET runtime path.
+    /// Environment variable for overriding the aspire-managed path.
     /// </summary>
-    public const string RuntimePathEnvVar = "ASPIRE_RUNTIME_PATH";
-
-    /// <summary>
-    /// Environment variable for overriding the AppHost Server path.
-    /// </summary>
-    public const string AppHostServerPathEnvVar = "ASPIRE_APPHOST_SERVER_PATH";
+    public const string ManagedPathEnvVar = "ASPIRE_MANAGED_PATH";
 
     /// <summary>
     /// Environment variable to force SDK mode (skip bundle detection).
@@ -65,53 +61,18 @@ internal static class BundleDiscovery
     public const string DcpDirectoryName = "dcp";
 
     /// <summary>
-    /// Directory name for Dashboard in the bundle layout.
+    /// Directory name for the managed binary in the bundle layout.
     /// </summary>
-    public const string DashboardDirectoryName = "dashboard";
-
-    /// <summary>
-    /// Directory name for .NET runtime in the bundle layout.
-    /// </summary>
-    public const string RuntimeDirectoryName = "runtime";
-
-    /// <summary>
-    /// Directory name for AppHost Server in the bundle layout.
-    /// </summary>
-    public const string AppHostServerDirectoryName = "aspire-server";
-
-    /// <summary>
-    /// Directory name for NuGet Helper tool in the bundle layout.
-    /// </summary>
-    public const string NuGetHelperDirectoryName = "tools/aspire-nuget";
-
-    /// <summary>
-    /// Directory name for dev-certs tool in the bundle layout.
-    /// </summary>
-    public const string DevCertsDirectoryName = "tools/dev-certs";
+    public const string ManagedDirectoryName = "managed";
 
     // ═══════════════════════════════════════════════════════════════════════
     // EXECUTABLE NAMES (without path, just the file name)
     // ═══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Executable name for the AppHost Server.
+    /// Executable name for the unified managed binary.
     /// </summary>
-    public const string AppHostServerExecutableName = "aspire-server";
-
-    /// <summary>
-    /// Executable name for the Dashboard.
-    /// </summary>
-    public const string DashboardExecutableName = "Aspire.Dashboard";
-
-    /// <summary>
-    /// Executable name for the NuGet Helper tool.
-    /// </summary>
-    public const string NuGetHelperExecutableName = "aspire-nuget";
-
-    /// <summary>
-    /// Executable name for the dev-certs tool.
-    /// </summary>
-    public const string DevCertsExecutableName = "dotnet-dev-certs";
+    public const string ManagedExecutableName = "aspire-managed";
 
     // ═══════════════════════════════════════════════════════════════════════
     // DISCOVERY METHODS
@@ -156,28 +117,28 @@ internal static class BundleDiscovery
     }
 
     /// <summary>
-    /// Attempts to discover Dashboard from a base directory.
+    /// Attempts to discover the aspire-managed binary from a base directory.
     /// </summary>
     /// <param name="baseDirectory">The base directory to search from.</param>
-    /// <param name="dashboardPath">The full path to the Dashboard directory if found.</param>
-    /// <returns>True if Dashboard was found, false otherwise.</returns>
-    public static bool TryDiscoverDashboardFromDirectory(
+    /// <param name="managedPath">The full path to the aspire-managed executable if found.</param>
+    /// <returns>True if aspire-managed was found, false otherwise.</returns>
+    public static bool TryDiscoverManagedFromDirectory(
         string baseDirectory,
-        out string? dashboardPath)
+        out string? managedPath)
     {
-        dashboardPath = null;
+        managedPath = null;
 
         if (string.IsNullOrEmpty(baseDirectory) || !Directory.Exists(baseDirectory))
         {
             return false;
         }
 
-        var dashboardDir = Path.Combine(baseDirectory, DashboardDirectoryName);
-        var dashboardExe = Path.Combine(dashboardDir, GetExecutableFileName(DashboardExecutableName));
+        var managedDir = Path.Combine(baseDirectory, ManagedDirectoryName);
+        var managedExe = Path.Combine(managedDir, GetExecutableFileName(ManagedExecutableName));
 
-        if (File.Exists(dashboardExe))
+        if (File.Exists(managedExe))
         {
-            dashboardPath = dashboardDir;
+            managedPath = managedExe;
             return true;
         }
 
@@ -207,12 +168,12 @@ internal static class BundleDiscovery
     }
 
     /// <summary>
-    /// Attempts to discover Dashboard relative to the entry assembly.
+    /// Attempts to discover aspire-managed relative to the entry assembly.
     /// This is used by Aspire.Hosting when no environment variables are set.
     /// </summary>
-    public static bool TryDiscoverDashboardFromEntryAssembly(out string? dashboardPath)
+    public static bool TryDiscoverManagedFromEntryAssembly(out string? managedPath)
     {
-        dashboardPath = null;
+        managedPath = null;
 
         var baseDir = GetEntryAssemblyDirectory();
         if (baseDir is null)
@@ -220,52 +181,7 @@ internal static class BundleDiscovery
             return false;
         }
 
-        return TryDiscoverDashboardFromDirectory(baseDir, out dashboardPath);
-    }
-
-    /// <summary>
-    /// Attempts to discover .NET runtime from a base directory.
-    /// Checks for the expected bundle layout structure with dotnet executable.
-    /// </summary>
-    /// <param name="baseDirectory">The base directory to search from.</param>
-    /// <param name="runtimePath">The full path to the runtime directory if found.</param>
-    /// <returns>True if runtime was found, false otherwise.</returns>
-    public static bool TryDiscoverRuntimeFromDirectory(string baseDirectory, out string? runtimePath)
-    {
-        runtimePath = null;
-
-        if (string.IsNullOrEmpty(baseDirectory) || !Directory.Exists(baseDirectory))
-        {
-            return false;
-        }
-
-        var runtimeDir = Path.Combine(baseDirectory, RuntimeDirectoryName);
-        var dotnetPath = Path.Combine(runtimeDir, GetDotNetExecutableName());
-
-        if (File.Exists(dotnetPath))
-        {
-            runtimePath = runtimeDir;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Attempts to discover .NET runtime relative to the entry assembly.
-    /// This is used by Aspire.Hosting when no environment variables are set.
-    /// </summary>
-    public static bool TryDiscoverRuntimeFromEntryAssembly(out string? runtimePath)
-    {
-        runtimePath = null;
-
-        var baseDir = GetEntryAssemblyDirectory();
-        if (baseDir is null)
-        {
-            return false;
-        }
-
-        return TryDiscoverRuntimeFromDirectory(baseDir, out runtimePath);
+        return TryDiscoverManagedFromDirectory(baseDir, out managedPath);
     }
 
     /// <summary>
@@ -291,11 +207,11 @@ internal static class BundleDiscovery
     }
 
     /// <summary>
-    /// Attempts to discover Dashboard relative to the current process.
+    /// Attempts to discover aspire-managed relative to the current process.
     /// </summary>
-    public static bool TryDiscoverDashboardFromProcessPath(out string? dashboardPath)
+    public static bool TryDiscoverManagedFromProcessPath(out string? managedPath)
     {
-        dashboardPath = null;
+        managedPath = null;
 
         var baseDir = GetProcessDirectory();
         if (baseDir is null)
@@ -303,23 +219,7 @@ internal static class BundleDiscovery
             return false;
         }
 
-        return TryDiscoverDashboardFromDirectory(baseDir, out dashboardPath);
-    }
-
-    /// <summary>
-    /// Attempts to discover .NET runtime relative to the current process.
-    /// </summary>
-    public static bool TryDiscoverRuntimeFromProcessPath(out string? runtimePath)
-    {
-        runtimePath = null;
-
-        var baseDir = GetProcessDirectory();
-        if (baseDir is null)
-        {
-            return false;
-        }
-
-        return TryDiscoverRuntimeFromDirectory(baseDir, out runtimePath);
+        return TryDiscoverManagedFromDirectory(baseDir, out managedPath);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -344,17 +244,9 @@ internal static class BundleDiscovery
     }
 
     /// <summary>
-    /// Gets the platform-specific dotnet executable name.
-    /// </summary>
-    public static string GetDotNetExecutableName()
-    {
-        return OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
-    }
-
-    /// <summary>
     /// Gets the platform-specific executable name with extension.
     /// </summary>
-    /// <param name="baseName">The base executable name without extension (e.g., "aspire-server").</param>
+    /// <param name="baseName">The base executable name without extension (e.g., "aspire-managed").</param>
     /// <returns>The executable name with platform-appropriate extension.</returns>
     public static string GetExecutableFileName(string baseName)
     {
@@ -372,58 +264,12 @@ internal static class BundleDiscovery
     }
 
     /// <summary>
-    /// Gets the full path to the dotnet executable from the bundled runtime, or "dotnet" if not available.
-    /// Resolution order: environment variable → disk discovery → PATH fallback.
+    /// Determines if the given file path points to an aspire-managed binary.
     /// </summary>
-    /// <returns>Full path to bundled dotnet executable, or "dotnet" to use PATH resolution.</returns>
-    public static string GetDotNetExecutablePath()
+    public static bool IsAspireManagedBinary(string path)
     {
-        // 1. Check environment variable (set by CLI for guest apphosts)
-        var runtimePath = Environment.GetEnvironmentVariable(RuntimePathEnvVar);
-        if (!string.IsNullOrEmpty(runtimePath))
-        {
-            var dotnetPath = Path.Combine(runtimePath, GetDotNetExecutableName());
-            if (File.Exists(dotnetPath))
-            {
-                return dotnetPath;
-            }
-        }
-
-        // 2. Try disk discovery (for future installed bundle scenario)
-        if (TryDiscoverRuntimeFromEntryAssembly(out var discoveredRuntimePath) && discoveredRuntimePath is not null)
-        {
-            var dotnetPath = Path.Combine(discoveredRuntimePath, GetDotNetExecutableName());
-            if (File.Exists(dotnetPath))
-            {
-                return dotnetPath;
-            }
-        }
-
-        // 3. Fall back to PATH-based resolution
-        return "dotnet";
-    }
-
-    /// <summary>
-    /// Gets the DOTNET_ROOT path for the bundled runtime.
-    /// This is the directory containing the dotnet executable and shared frameworks.
-    /// </summary>
-    /// <returns>The DOTNET_ROOT path if available, otherwise null.</returns>
-    public static string? GetDotNetRoot()
-    {
-        // 1. Check environment variable (set by CLI for guest apphosts)
-        var runtimePath = Environment.GetEnvironmentVariable(RuntimePathEnvVar);
-        if (!string.IsNullOrEmpty(runtimePath) && Directory.Exists(runtimePath))
-        {
-            return runtimePath;
-        }
-
-        // 2. Try disk discovery (for future installed bundle scenario)
-        if (TryDiscoverRuntimeFromEntryAssembly(out var discoveredRuntimePath) && discoveredRuntimePath is not null)
-        {
-            return discoveredRuntimePath;
-        }
-
-        return null;
+        var fileName = Path.GetFileNameWithoutExtension(path);
+        return string.Equals(fileName, ManagedExecutableName, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -40,6 +40,26 @@ public static class TestExtensions
     }
 
     /// <summary>
+    /// Adds a child database to a Redis server resource (factory method pattern).
+    /// </summary>
+    /// <remarks>
+    /// This method tests the factory method codegen pattern where a method on builder type A
+    /// returns builder type B (e.g., SqlServerServerResource.AddDatabase returning SqlServerDatabaseResource).
+    /// </remarks>
+    [AspireExport("addTestChildDatabase", Description = "Adds a child database to a test Redis resource")]
+    public static IResourceBuilder<TestDatabaseResource> AddTestChildDatabase(
+        this IResourceBuilder<TestRedisResource> builder,
+        string name,
+        string? databaseName = null)
+    {
+        var resource = new TestDatabaseResource(name)
+        {
+            DatabaseName = databaseName
+        };
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
     /// Configures the Redis resource with persistence.
     /// </summary>
     [AspireExport("withPersistence", Description = "Configures the Redis resource with persistence")]
@@ -613,6 +633,32 @@ public static class TestExtensions
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult(true);
+    }
+
+    // ===== Duplicate Class Name Tests =====
+
+    /// <summary>
+    /// Targets the concrete TestVaultResource so it gets a builder class named "TestVaultResource".
+    /// </summary>
+    [AspireExport("addTestVault", Description = "Adds a test vault resource")]
+    public static IResourceBuilder<TestVaultResource> AddTestVault(
+        this IDistributedApplicationBuilder builder,
+        string name)
+    {
+        return builder.AddResource(new TestVaultResource(name));
+    }
+
+    /// <summary>
+    /// Directly targets the ITestVaultResource interface.
+    /// DeriveClassName strips the 'I' prefix producing "TestVaultResource" — the same name
+    /// as the concrete builder. The codegen must deduplicate to avoid emitting two classes.
+    /// </summary>
+    [AspireExport("withVaultDirect", Description = "Configures vault using direct interface target")]
+    public static IResourceBuilder<ITestVaultResource> WithVaultDirect(
+        IResourceBuilder<ITestVaultResource> builder,
+        string option)
+    {
+        return builder;
     }
 }
 

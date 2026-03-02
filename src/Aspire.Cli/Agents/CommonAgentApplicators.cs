@@ -148,7 +148,7 @@ internal static class CommonAgentApplicators
         """
         ---
         name: aspire
-        description: "**WORKFLOW SKILL** - Orchestrates Aspire applications using the Aspire CLI and MCP tools for running, debugging, and managing distributed apps. USE FOR: aspire run, aspire stop, start aspire app, check aspire resources, list aspire integrations, debug aspire issues, view aspire logs, add aspire resource, aspire dashboard, update aspire apphost. DO NOT USE FOR: non-Aspire .NET apps (use dotnet CLI), container-only deployments (use docker/podman), Azure deployment after local testing (use azure-deploy skill). INVOKES: Aspire MCP tools (list_resources, list_integrations, list_structured_logs, get_doc, search_docs), bash for CLI commands. FOR SINGLE OPERATIONS: Use Aspire MCP tools directly for quick resource status or doc lookups."
+        description: "**WORKFLOW SKILL** - Orchestrates Aspire applications using the Aspire CLI and MCP tools for running, debugging, and managing distributed apps. USE FOR: aspire run, aspire stop, start aspire app, aspire describe, list aspire integrations, debug aspire issues, view aspire logs, add aspire resource, aspire dashboard, update aspire apphost. DO NOT USE FOR: non-Aspire .NET apps (use dotnet CLI), container-only deployments (use docker/podman), Azure deployment after local testing (use azure-deploy skill). INVOKES: Aspire MCP tools (list_resources, list_integrations, list_structured_logs, get_doc, search_docs), bash for CLI commands. FOR SINGLE OPERATIONS: Use Aspire MCP tools directly for quick resource status or doc lookups."
         ---
 
         # Aspire Skill
@@ -167,12 +167,25 @@ internal static class CommonAgentApplicators
         Agent environments may terminate foreground processes when a command finishes. Use detached mode:
 
         ```bash
-        aspire run --detach --isolated
+        aspire run --detach
         ```
 
         This starts the AppHost in the background and returns immediately. The CLI will:
         - Automatically stop any existing running instance before starting a new one
         - Display a summary with the Dashboard URL and resource endpoints
+
+        ### Running with isolation
+
+        The `--isolated` flag starts the AppHost with randomized port numbers and its own copy of user secrets.
+
+        ```bash
+        aspire run --detach --isolated
+        ```
+
+        Isolation should be used when:
+        - When AppHosts are started by background agents
+        - When agents are using source code from a work tree
+        - There are port conflicts when starting the AppHost without isolation
 
         ### Stopping the application
 

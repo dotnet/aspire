@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>AppHost failed to build.</source>
-        <target state="new">AppHost failed to build.</target>
+        <target state="translated">AppHost를 빌드하지 못했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
+        <source>Run an Aspire AppHost interactively for development.</source>
+        <target state="new">Run an Aspire AppHost interactively for development.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="translated">JSON으로 결과를 출력합니다(--detach와 함께 사용 시에만 유효).</target>
+        <source>Output format for detached AppHost results.</source>
+        <target state="new">Output format for detached AppHost results.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
@@ -139,12 +139,12 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
-        <target state="new">Do not build or restore the project before running.</target>
+        <target state="translated">실행하기 전에 프로젝트를 빌드하거나 복원하지 마세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">감시 모드를 켠 상태에서는 --no-build 옵션을 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">프로젝트를 실행할 수 없습니다. {0}에서 로그 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

@@ -247,7 +247,7 @@ public class AzureNetworkSecurityGroupExtensionsTests
                 Direction = SecurityRuleDirection.Inbound,
                 Access = SecurityRuleAccess.Allow,
                 Protocol = SecurityRuleProtocol.Tcp,
-                SourceAddressPrefix = "VirtualNetwork",
+                SourceAddressPrefix = AzureServiceTags.VirtualNetwork,
                 SourcePortRange = "*",
                 DestinationAddressPrefix = "*",
                 DestinationPortRange = "443"
@@ -271,7 +271,7 @@ public class AzureNetworkSecurityGroupExtensionsTests
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
         var nsg = builder.AddNetworkSecurityGroup("web-nsg");
         var subnet = vnet.AddSubnet("web-subnet", "10.0.1.0/24")
-            .AllowInbound(port: "443", from: "AzureLoadBalancer");
+            .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer);
 
         var exception = Assert.Throws<InvalidOperationException>(() => subnet.WithNetworkSecurityGroup(nsg));
 

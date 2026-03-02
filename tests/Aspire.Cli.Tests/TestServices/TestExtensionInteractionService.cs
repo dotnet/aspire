@@ -6,11 +6,13 @@ using Aspire.Cli.Interaction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestExtensionInteractionService(IServiceProvider serviceProvider) : IExtensionInteractionService
 {
+    public ConsoleOutput Console { get; set; }
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
@@ -22,12 +24,12 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         return action();
     }
 
-    public void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         action();
     }
@@ -67,11 +69,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emoji, string message)
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplaySuccess(string message, bool allowMarkup = false)
     {
     }
 
@@ -113,7 +115,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(true);
     }
 
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
@@ -126,7 +128,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
-    public void DisplayRawText(string text)
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null)
     {
     }
 
@@ -149,6 +151,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
+    }
+
+    public void DisplayRenderable(IRenderable renderable)
+    {
     }
 
     public Action<string>? OpenEditorCallback { get; set; }
@@ -179,8 +185,8 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.CompletedTask;
     }
 
-    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false)
     {
-        ConsoleDisplaySubtleMessageCallback?.Invoke(message, escapeMarkup);
+        ConsoleDisplaySubtleMessageCallback?.Invoke(message, allowMarkup);
     }
 }

@@ -93,8 +93,6 @@ Set-StrictMode -Version Latest
 
 # Constants
 $EventSourceName = 'Microsoft-Aspire-Hosting'
-$DcpModelCreationStartEventId = 17
-$DcpModelCreationStopEventId = 18
 
 # Get repository root (script is in tools/perf)
 $ScriptDir = $PSScriptRoot
@@ -244,37 +242,37 @@ function Invoke-PerformanceIteration {
                 $launchSettings = $jsonContent | ConvertFrom-Json
 
                 # Try to find a suitable profile (prefer 'http' for simplicity, then first available)
-                $profile = $null
+                $launchProfile = $null
                 if ($launchSettings.profiles.http) {
-                    $profile = $launchSettings.profiles.http
+                    $launchProfile = $launchSettings.profiles.http
                     Write-Verbose "Using 'http' launch profile"
                 }
                 elseif ($launchSettings.profiles.https) {
-                    $profile = $launchSettings.profiles.https
+                    $launchProfile = $launchSettings.profiles.https
                     Write-Verbose "Using 'https' launch profile"
                 }
                 else {
                     # Use first profile that has environmentVariables
                     foreach ($prop in $launchSettings.profiles.PSObject.Properties) {
                         if ($prop.Value.environmentVariables) {
-                            $profile = $prop.Value
+                            $launchProfile = $prop.Value
                             Write-Verbose "Using '$($prop.Name)' launch profile"
                             break
                         }
                     }
                 }
 
-                if ($profile -and $profile.environmentVariables) {
-                    foreach ($prop in $profile.environmentVariables.PSObject.Properties) {
+                if ($launchProfile -and $launchProfile.environmentVariables) {
+                    foreach ($prop in $launchProfile.environmentVariables.PSObject.Properties) {
                         $envVars[$prop.Name] = $prop.Value
                         Write-Verbose "  Environment: $($prop.Name)=$($prop.Value)"
                     }
                 }
 
                 # Use applicationUrl to set ASPNETCORE_URLS if not already set
-                if ($profile -and $profile.applicationUrl -and -not $envVars.ContainsKey('ASPNETCORE_URLS')) {
-                    $envVars['ASPNETCORE_URLS'] = $profile.applicationUrl
-                    Write-Verbose "  Environment: ASPNETCORE_URLS=$($profile.applicationUrl) (from applicationUrl)"
+                if ($launchProfile -and $launchProfile.applicationUrl -and -not $envVars.ContainsKey('ASPNETCORE_URLS')) {
+                    $envVars['ASPNETCORE_URLS'] = $launchProfile.applicationUrl
+                    Write-Verbose "  Environment: ASPNETCORE_URLS=$($launchProfile.applicationUrl) (from applicationUrl)"
                 }
             }
             catch {
@@ -670,8 +668,6 @@ function Main {
     else {
         Write-Warning "No traces were collected."
     }
-
-    return $results
 }
 
 # Run the script

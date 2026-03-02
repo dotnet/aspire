@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Tests.Utils;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -50,7 +49,6 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
         }
 
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateToAks));
         var startTime = DateTime.UtcNow;
 
         // Generate unique names for Azure resources
@@ -74,13 +72,7 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
 
         try
         {
-            var builder = Hex1bTerminal.CreateBuilder()
-                .WithHeadless()
-                .WithDimensions(160, 48)
-                .WithAsciinemaRecording(recordingPath)
-                .WithPtyProcess("/bin/bash", ["--norc"]);
-
-            using var terminal = builder.Build();
+            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
             var counter = new SequenceCounter();
@@ -165,11 +157,12 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(20));
 
             // Step 6: Ensure AKS can pull from ACR (update attachment to ensure role propagation)
+            // ReconcilingAddons can take several minutes after role assignment updates
             output.WriteLine("Step 6: Verifying AKS-ACR integration...");
             sequenceBuilder
                 .Type($"az aks update --resource-group {resourceGroupName} --name {clusterName} --attach-acr {acrName}")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 7: Configure kubectl credentials
             output.WriteLine("Step 7: Configuring kubectl credentials...");
@@ -283,8 +276,14 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 16: ACR login was already done in Step 4b (before AKS creation).
-            // Docker credentials persist in ~/.docker/config.json.
+            // Step 16: Re-login to ACR after AKS creation to refresh Docker credentials.
+            // The initial login (Step 4b) may have expired during the 10-15 min AKS provisioning
+            // because OIDC federated tokens have a short lifetime (~5 min).
+            output.WriteLine("Step 16: Refreshing ACR login...");
+            sequenceBuilder
+                .Type($"az acr login --name {acrName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 17: Build and push container images to ACR
             // The starter template creates webfrontend and apiservice projects
@@ -348,11 +347,12 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
             // Step 22: Wait for pods to be ready
+            // Pods may need time to pull images from ACR and start the application
             output.WriteLine("Step 22: Waiting for pods to be ready...");
             sequenceBuilder
-                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=120s")
+                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=300s")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(6));
 
             // Step 23: Verify pods are running
             output.WriteLine("Step 23: Verifying pods are running...");

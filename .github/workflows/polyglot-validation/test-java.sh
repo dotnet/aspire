@@ -21,7 +21,7 @@ cd "$WORK_DIR"
 
 # Initialize Java AppHost
 echo "Creating Java apphost project..."
-aspire init -l java --non-interactive -d
+aspire init --language java --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."

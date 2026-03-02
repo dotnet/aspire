@@ -1173,24 +1173,6 @@ public class ParameterProcessorTests
         }
     }
 
-    private sealed class MockUserSecretsManager : IUserSecretsManager
-    {
-        public bool IsAvailable => true;
-        public string FilePath => "/mock/path/secrets.json";
-
-        public bool TrySetSecret(string name, string value) => true;
-
-        public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
-        {
-            // Mock implementation - do nothing
-        }
-
-        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
     private static ParameterResource CreateParameterResource(string name, string value, bool secret = false)
     {
         var configuration = new ConfigurationBuilder()

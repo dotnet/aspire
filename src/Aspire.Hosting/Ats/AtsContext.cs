@@ -126,7 +126,7 @@ public sealed class AtsContext
                 return AtsTypeCategory.List;
             }
 
-            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>))
+            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>) || genericDef == typeof(IEnumerable<>))
             {
                 return AtsTypeCategory.Array;
             }

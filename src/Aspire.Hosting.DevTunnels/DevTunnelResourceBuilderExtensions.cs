@@ -414,7 +414,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
     /// Each endpoint defined on the target resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{sourceResourceName}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <remarks>
     /// Referencing a dev tunnel will delay the start of the resource until the referenced dev tunnel's endpoint is allocated.
@@ -446,6 +446,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
+                var schemeIndexTracker = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
                 foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
                 {
                     var serviceName = targetResource.Resource.Name;
@@ -455,7 +457,24 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
                     {
-                        context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+                        // Use the endpoint's scheme (not name) in the service discovery key so that
+                        // .NET service discovery can correctly match the scheme segment to the URI scheme.
+                        var scheme = port.TargetEndpoint.Scheme;
+                        if (!schemeIndexTracker.TryGetValue(scheme, out var index))
+                        {
+                            index = 0;
+                        }
+
+                        // Find the next unused index for this scheme in case of collisions with other callbacks.
+                        var key = $"services__{serviceName}__{scheme}__{index}";
+                        while (context.EnvironmentVariables.ContainsKey(key))
+                        {
+                            index++;
+                            key = $"services__{serviceName}__{scheme}__{index}";
+                        }
+
+                        context.EnvironmentVariables[key] = port.TunnelEndpoint;
+                        schemeIndexTracker[scheme] = index + 1;
                     }
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))

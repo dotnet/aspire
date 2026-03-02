@@ -11,6 +11,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.InternalTesting;
@@ -850,6 +851,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
 
+    public ConsoleOutput Console { get; set; }
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
@@ -935,27 +937,29 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     }
 
     // Default implementations for other interface methods
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
-    public void ShowStatus(string statusText, Action action) => action();
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
-    public void DisplayMessage(string emoji, string message) { }
-    public void DisplaySuccess(string message) { }
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
+    public void DisplaySuccess(string message, bool allowMarkup = false) { }
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
     public void DisplayMarkdown(string markdown) { }
     public void DisplayMarkupLine(string markup) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
+    public void DisplayRenderable(IRenderable renderable) { }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";
-        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+        System.Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
     }
 }
 

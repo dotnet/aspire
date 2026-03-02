@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
@@ -10,9 +11,9 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -68,7 +69,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"update --project AppHost.csproj");
+        var result = command.Parse($"update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -270,7 +271,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update --project AppHost.csproj");
+        var result = command.Parse("update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -341,7 +342,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update --project AppHost.csproj");
+        var result = command.Parse("update --apphost AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -907,6 +908,94 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_SelfUpdate_WhenStagingFeatureFlagDisabled_DoesNotShowStagingChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        IEnumerable? capturedChoices = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    capturedChoices = choices;
+                    return PackageChannelNames.Stable;
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotNull(capturedChoices);
+        var channelList = capturedChoices.Cast<string>().ToList();
+        Assert.DoesNotContain(PackageChannelNames.Staging, channelList);
+        Assert.Contains(PackageChannelNames.Stable, channelList);
+        Assert.Contains(PackageChannelNames.Daily, channelList);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WhenStagingFeatureFlagEnabled_ShowsStagingChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        IEnumerable? capturedChoices = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.EnabledFeatures = [KnownFeatures.StagingChannelEnabled];
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    capturedChoices = choices;
+                    return PackageChannelNames.Stable;
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotNull(capturedChoices);
+        var channelList = capturedChoices.Cast<string>().ToList();
+        Assert.Contains(PackageChannelNames.Staging, channelList);
+        Assert.Contains(PackageChannelNames.Stable, channelList);
+        Assert.Contains(PackageChannelNames.Daily, channelList);
+    }
+
+    [Fact]
     public async Task UpdateCommand_SelfOption_IsAvailableAndParseable()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -941,6 +1030,12 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
 {
     private readonly IInteractionService _innerService;
 
+    public ConsoleOutput Console
+    {
+        get => _innerService.Console;
+        set => _innerService.Console = value;
+    }
+
     public Action? OnCancellationMessageDisplayed { get; set; }
 
     public CancellationTrackingInteractionService(IInteractionService innerService)
@@ -948,8 +1043,8 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         _innerService = innerService;
     }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => _innerService.ShowStatusAsync(statusText, action);
-    public void ShowStatus(string statusText, Action action) => _innerService.ShowStatus(statusText, action);
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false) => _innerService.ShowStatusAsync(statusText, action, emoji, allowMarkup);
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false) => _innerService.ShowStatus(statusText, action, emoji, allowMarkup);
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) 
         => _innerService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) 
@@ -961,13 +1056,13 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) 
         => _innerService.DisplayIncompatibleVersionError(ex, appHostHostingVersion);
     public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);
-    public void DisplayMessage(string emoji, string message) => _innerService.DisplayMessage(emoji, message);
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) => _innerService.DisplayMessage(emoji, message, allowMarkup);
     public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
-    public void DisplayRawText(string text) => _innerService.DisplayRawText(text);
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) => _innerService.DisplayRawText(text, consoleOverride);
     public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
     public void DisplayMarkupLine(string markup) => _innerService.DisplayMarkupLine(markup);
-    public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) => _innerService.DisplaySubtleMessage(message, escapeMarkup);
+    public void DisplaySuccess(string message, bool allowMarkup = false) => _innerService.DisplaySuccess(message, allowMarkup);
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false) => _innerService.DisplaySubtleMessage(message, allowMarkup);
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) => _innerService.DisplayLines(lines);
     public void DisplayCancellationMessage() 
     {
@@ -979,27 +1074,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
         => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
-}
-
-// Test implementation of ICliUpdateNotifier
-internal sealed class TestCliUpdateNotifier : ICliUpdateNotifier
-{
-    public Func<bool>? IsUpdateAvailableCallback { get; set; }
-
-    public Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
-    public void NotifyIfUpdateAvailable()
-    {
-        // No-op for tests
-    }
-
-    public bool IsUpdateAvailable()
-    {
-        return IsUpdateAvailableCallback?.Invoke() ?? false;
-    }
+    public void DisplayRenderable(IRenderable renderable) => _innerService.DisplayRenderable(renderable);
 }
 
 // Test implementation of IProjectUpdater

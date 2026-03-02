@@ -34,7 +34,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         if (!updateSteps.Any())
         {
             logger.LogInformation("No updates required for project: {ProjectFile}", projectFile.FullName);
-            interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ProjectUpToDateMessage);
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
@@ -52,12 +52,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             var projectName = new FileInfo(projectGroup.Key).Name;
             if (updateStepsByProject.Count > 1)
             {
-                interactionService.DisplayMessage("file_folder", $"[bold cyan]{projectName}[/]:");
+                interactionService.DisplayMessage(KnownEmojis.FileFolder, $"[bold cyan]{projectName.EscapeMarkup()}[/]:", allowMarkup: true);
             }
 
             foreach (var packageStep in projectGroup)
             {
-                interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
+                interactionService.DisplayMessage(KnownEmojis.Package, packageStep.GetFormattedDisplayText(), allowMarkup: true);
             }
 
             interactionService.DisplayEmptyLine();
@@ -66,7 +66,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // Display warning if fallback parsing was used
         if (fallbackUsed)
         {
-            interactionService.DisplayMessage("warning", $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]", allowMarkup: true);
             interactionService.DisplayEmptyLine();
         }
 
@@ -447,6 +447,13 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         projectDocument.Save(projectFile.FullName);
 
+        // The new SDK format adds an implicit PackageReference for Aspire.Hosting.AppHost with
+        // IsImplicitlyDefined="true". NuGet's Central Package Management (CPM) rejects any
+        // PackageVersion entry that targets an implicitly-defined package (NU1009). If the user
+        // was previously managing this package through CPM, we must also remove the now-orphaned
+        // PackageVersion entry from Directory.Packages.props to prevent the NU1009 error.
+        RemovePackageVersionFromDirectoryPackagesProps(projectFile, "Aspire.Hosting.AppHost");
+
         await Task.CompletedTask;
     }
 
@@ -507,6 +514,54 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             }
         }
         return true;
+    }
+
+    private static void RemovePackageVersionFromDirectoryPackagesProps(FileInfo projectFile, string packageId)
+    {
+        var cpmInfo = DetectCentralPackageManagement(projectFile);
+        if (!cpmInfo.UsesCentralPackageManagement || cpmInfo.DirectoryPackagesPropsFile is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var propsDocument = new XmlDocument();
+            propsDocument.PreserveWhitespace = true;
+            propsDocument.Load(cpmInfo.DirectoryPackagesPropsFile.FullName);
+
+            var packageVersionNode = propsDocument.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+            if (packageVersionNode?.ParentNode is null)
+            {
+                return;
+            }
+
+            var parentNode = packageVersionNode.ParentNode;
+
+            RemoveNodeWithWhitespace(packageVersionNode);
+
+            if (parentNode.Name == "ItemGroup" && IsEmptyOrWhitespace(parentNode))
+            {
+                RemoveNodeWithWhitespace(parentNode);
+            }
+
+            propsDocument.Save(cpmInfo.DirectoryPackagesPropsFile.FullName);
+        }
+        catch (Exception ex)
+        {
+            // The csproj has already been updated at this point, so we can't roll back.
+            // Inform the user what manual step is needed to complete the migration.
+            throw new ProjectUpdaterException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "The project file was updated successfully, but the PackageVersion entry for '{0}' could not be " +
+                    "removed from '{1}': {2}. Please manually remove the <PackageVersion Include=\"{0}\" ... /> " +
+                    "entry from this file to avoid NU1009 build errors.",
+                    packageId,
+                    cpmInfo.DirectoryPackagesPropsFile.FullName,
+                    ex.Message),
+                ex);
+        }
     }
 
     private static async Task UpdateSdkVersionInSingleFileAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
@@ -1092,7 +1147,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
+        return $"[bold yellow]{PackageId.EscapeMarkup()}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 

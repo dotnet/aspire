@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -44,6 +45,8 @@ internal sealed partial class PsCommandJsonContext : JsonSerializerContext
 
 internal sealed class PsCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<PsCommand> _logger;
@@ -77,32 +80,24 @@ internal sealed class PsCommand : BaseCommand
 
         // Scan for running AppHosts (same as ListAppHostsTool)
         // Skip status display for JSON output to avoid contaminating stdout
-        List<IAppHostAuxiliaryBackchannel> connections;
-        if (format == OutputFormat.Json)
-        {
-            await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _backchannelMonitor.Connections.ToList();
-        }
-        else
-        {
-            connections = await _interactionService.ShowStatusAsync(
-                PsCommandStrings.ScanningForRunningAppHosts,
-                async () =>
-                {
-                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return _backchannelMonitor.Connections.ToList();
-                });
-        }
+        var connections = await _interactionService.ShowStatusAsync(
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            async () =>
+            {
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return _backchannelMonitor.Connections.ToList();
+            });
 
         if (connections.Count == 0)
         {
             if (format == OutputFormat.Json)
             {
-                _interactionService.DisplayPlainText("[]");
+                // Structured output always goes to stdout.
+                _interactionService.DisplayRawText("[]", ConsoleOutput.Standard);
             }
             else
             {
-                _interactionService.DisplayMessage("information", PsCommandStrings.NoRunningAppHostsFound);
+                _interactionService.DisplayMessage(KnownEmojis.Information, SharedCommandStrings.AppHostNotRunning);
             }
             return ExitCodeConstants.Success;
         }
@@ -118,7 +113,8 @@ internal sealed class PsCommand : BaseCommand
         if (format == OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.RelaxedEscaping.ListAppHostDisplayInfo);
-            _interactionService.DisplayRawText(json);
+            // Structured output always goes to stdout.
+            _interactionService.DisplayRawText(json, ConsoleOutput.Standard);
         }
         else
         {
@@ -169,61 +165,51 @@ internal sealed class PsCommand : BaseCommand
             return;
         }
 
-        const string NullCliPidDisplay = "-";
+        var table = new Table();
+        table.AddBoldColumn(PsCommandStrings.HeaderPath);
+        table.AddBoldColumn(PsCommandStrings.HeaderPid);
+        table.AddBoldColumn(PsCommandStrings.HeaderCliPid);
+        table.AddBoldColumn(PsCommandStrings.HeaderDashboard);
 
-        // Shorten paths appropriately
-        string ShortenPath(string path)
+        foreach (var appHost in appHosts)
         {
-            var fileName = Path.GetFileName(path);
-            
-            if (string.IsNullOrEmpty(fileName))
-            {
-                return path;
-            }
+            var shortPath = ShortenPath(appHost.AppHostPath);
+            var cliPid = appHost.CliPid?.ToString(CultureInfo.InvariantCulture) ?? "-";
+            var dashboard = string.IsNullOrEmpty(appHost.DashboardUrl) ? "-" : appHost.DashboardUrl;
 
-            // For .csproj files, just show the filename (folder often has same name)
-            if (fileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-            {
-                return fileName;
-            }
-
-            // For single-file AppHosts (.cs), show parent/filename
-            var directory = Path.GetDirectoryName(path);
-            var parentFolder = !string.IsNullOrEmpty(directory) 
-                ? Path.GetFileName(directory) 
-                : null;
-
-            return !string.IsNullOrEmpty(parentFolder)
-                ? $"{parentFolder}/{fileName}"
-                : fileName;
+            table.AddRow(
+                Markup.Escape(shortPath),
+                appHost.AppHostPid.ToString(CultureInfo.InvariantCulture),
+                cliPid,
+                Markup.Escape(dashboard));
         }
 
-        // Format dashboard URL - just return the URL as-is since modern terminals auto-detect links
-        string FormatDashboardLink(string? url)
+        _interactionService.DisplayRenderable(table);
+    }
+
+    private static string ShortenPath(string path)
+    {
+        var fileName = Path.GetFileName(path);
+
+        if (string.IsNullOrEmpty(fileName))
         {
-            return string.IsNullOrEmpty(url) ? "-" : url;
+            return path;
         }
 
-        var shortPaths = appHosts.Select(a => ShortenPath(a.AppHostPath)).ToList();
-
-        // Calculate column widths based on data
-        var pathWidth = Math.Max(PsCommandStrings.HeaderPath.Length, shortPaths.Max(p => p.Length));
-        var pidWidth = Math.Max(PsCommandStrings.HeaderPid.Length, appHosts.Max(a => a.AppHostPid.ToString(CultureInfo.InvariantCulture).Length));
-        var cliPidWidth = Math.Max(PsCommandStrings.HeaderCliPid.Length, appHosts.Max(a => a.CliPid?.ToString(CultureInfo.InvariantCulture).Length ?? NullCliPidDisplay.Length));
-
-        // Header
-        var header = $"{PsCommandStrings.HeaderPath.PadRight(pathWidth)}  {PsCommandStrings.HeaderPid.PadRight(pidWidth)}  {PsCommandStrings.HeaderCliPid.PadRight(cliPidWidth)}  {PsCommandStrings.HeaderDashboard}";
-        _interactionService.DisplayPlainText(header);
-
-        // Rows
-        for (var i = 0; i < appHosts.Count; i++)
+        // For .csproj files, just show the filename (folder often has same name)
+        if (fileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
         {
-            var appHost = appHosts[i];
-            var shortPath = shortPaths[i];
-            var cliPidDisplay = appHost.CliPid?.ToString(CultureInfo.InvariantCulture) ?? NullCliPidDisplay;
-            var dashboardDisplay = FormatDashboardLink(appHost.DashboardUrl);
-            var row = $"{shortPath.PadRight(pathWidth)}  {appHost.AppHostPid.ToString(CultureInfo.InvariantCulture).PadRight(pidWidth)}  {cliPidDisplay.PadRight(cliPidWidth)}  {dashboardDisplay}";
-            _interactionService.DisplayPlainText(row);
+            return fileName;
         }
+
+        // For single-file AppHosts (.cs), show parent/filename
+        var directory = Path.GetDirectoryName(path);
+        var parentFolder = !string.IsNullOrEmpty(directory)
+            ? Path.GetFileName(directory)
+            : null;
+
+        return !string.IsNullOrEmpty(parentFolder)
+            ? $"{parentFolder}/{fileName}"
+            : fileName;
     }
 }

@@ -90,8 +90,8 @@ Add security rules to control traffic flow on subnets using shorthand methods:
 ```csharp
 var vnet = builder.AddAzureVirtualNetwork("vnet");
 var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
-    .AllowInbound(port: "443", from: "AzureLoadBalancer", protocol: SecurityRuleProtocol.Tcp)
-    .DenyInbound(from: "Internet");
+    .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer, protocol: SecurityRuleProtocol.Tcp)
+    .DenyInbound(from: AzureServiceTags.Internet);
 ```
 
 An NSG is automatically created when shorthand methods are used. Priority auto-increments (100, 200, 300...) and rule names are auto-generated.
