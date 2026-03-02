@@ -265,14 +265,21 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _logger.LogDebug("Building integration project with {PackageCount} packages and {ProjectCount} project references",
             packageRefs.Count, projectRefs.Count);
 
+        var buildOutput = new OutputCollector();
         var exitCode = await _dotNetCliRunner.BuildAsync(
             new FileInfo(projectFilePath),
             noRestore: false,
-            new DotNetCliRunnerInvocationOptions(),
+            new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = buildOutput.AppendOutput,
+                StandardErrorCallback = buildOutput.AppendError
+            },
             cancellationToken);
 
         if (exitCode != 0)
         {
+            var outputLines = string.Join(Environment.NewLine, buildOutput.GetLines().Select(l => l.Line));
+            _logger.LogError("Integration project build failed. Output:\n{BuildOutput}", outputLines);
             throw new InvalidOperationException($"Failed to build integration project. Exit code: {exitCode}");
         }
 
