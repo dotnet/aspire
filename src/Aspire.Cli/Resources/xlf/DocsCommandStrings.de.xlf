@@ -34,27 +34,27 @@
       </trans-unit>
       <trans-unit id="HeaderScore">
         <source>Score</source>
-        <target state="new">Score</target>
+        <target state="translated">Bewertung</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderSection">
         <source>Section</source>
-        <target state="new">Section</target>
+        <target state="translated">Abschnitt</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderSlug">
         <source>Slug</source>
-        <target state="new">Slug</target>
+        <target state="translated">Platzhalter</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderSummary">
         <source>Summary</source>
-        <target state="new">Summary</target>
+        <target state="translated">Zusammenfassung</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderTitle">
         <source>Title</source>
-        <target state="new">Title</target>
+        <target state="translated">Titel</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
