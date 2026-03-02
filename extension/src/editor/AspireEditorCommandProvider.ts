@@ -70,7 +70,12 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
         const lines = fileText.split(/\r?\n/);
 
-        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
+        if (lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'))) {
+            return true;
+        }
+
+        const firstNonEmptyLine = lines.find(line => line.trim().length > 0)?.trim();
+        return firstNonEmptyLine === 'var builder = DistributedApplication.CreateBuilder(args);';
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -113,15 +118,20 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         }
     }
 
-    public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
-        let appHostToRun: string;
+    /**
+     * Returns the resolved AppHost path from the active editor or workspace settings, or null if none is available.
+     */
+    public async getAppHostPath(): Promise<string | null> {
         if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
-            appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
+            return vscode.window.activeTextEditor.document.uri.fsPath;
         }
-        else if (this._workspaceAppHostPath) {
-            appHostToRun = this._workspaceAppHostPath;
-        }
-        else {
+
+        return this._workspaceAppHostPath;
+    }
+
+    public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
+        const appHostToRun = await this.getAppHostPath();
+        if (!appHostToRun) {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
