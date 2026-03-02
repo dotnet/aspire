@@ -199,34 +199,16 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         }
         Directory.CreateDirectory(outputDir);
 
-        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir);
-        var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
-        await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
-
-        // Write a Directory.Packages.props to opt out of Central Package Management
-        // This prevents any parent Directory.Packages.props from interfering with our inline versions
-        var directoryPackagesProps = """
-            <Project>
-              <PropertyGroup>
-                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-              </PropertyGroup>
-            </Project>
-            """;
-        await File.WriteAllTextAsync(
-            Path.Combine(restoreDir, "Directory.Packages.props"), directoryPackagesProps, cancellationToken);
-
-        // Also write an empty Directory.Build.props/targets to prevent parent imports
-        await File.WriteAllTextAsync(
-            Path.Combine(restoreDir, "Directory.Build.props"), "<Project />", cancellationToken);
-        await File.WriteAllTextAsync(
-            Path.Combine(restoreDir, "Directory.Build.targets"), "<Project />", cancellationToken);
+        // Write nuget.config first so we can reference its path in the project file
+        string? nugetConfigPath = null;
 
         // Copy nuget.config from the user's apphost directory if present
         var appHostDirectory = Path.GetDirectoryName(_appPath)!;
         var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
         if (File.Exists(userNugetConfig))
         {
-            File.Copy(userNugetConfig, Path.Combine(restoreDir, "nuget.config"), overwrite: true);
+            nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
+            File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
         }
 
         // Ensure the synthetic project can find NuGet packages from the configured channel
@@ -239,7 +221,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
                 if (sources is not null)
                 {
-                    var nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
+                    nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
                     var sourceElements = string.Join("\n    ",
                         sources.Select((s, i) => $"""<add key="channel-source-{i}" value="{System.Security.SecurityElement.Escape(s)}" />"""));
 
@@ -261,6 +243,27 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 _logger.LogWarning(ex, "Failed to configure NuGet sources for integration project build");
             }
         }
+
+        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir, nugetConfigPath);
+        var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
+        await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
+
+        // Write a Directory.Packages.props to opt out of Central Package Management
+        var directoryPackagesProps = """
+            <Project>
+              <PropertyGroup>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+              </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Packages.props"), directoryPackagesProps, cancellationToken);
+
+        // Also write an empty Directory.Build.props/targets to prevent parent imports
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.props"), "<Project />", cancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(restoreDir, "Directory.Build.targets"), "<Project />", cancellationToken);
 
         _logger.LogDebug("Building integration project with {PackageCount} packages and {ProjectCount} project references",
             packageRefs.Count, projectRefs.Count);
@@ -293,19 +296,28 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     internal static string GenerateIntegrationProjectFile(
         List<IntegrationReference> packageRefs,
         List<IntegrationReference> projectRefs,
-        string outputDir)
+        string outputDir,
+        string? nugetConfigPath = null)
     {
+        var propertyGroup = new XElement("PropertyGroup",
+            new XElement("TargetFramework", "net10.0"),
+            new XElement("EnableDefaultItems", "false"),
+            new XElement("CopyLocalLockFileAssemblies", "true"),
+            new XElement("ProduceReferenceAssembly", "false"),
+            new XElement("EnableNETAnalyzers", "false"),
+            new XElement("GenerateDocumentationFile", "false"),
+            new XElement("OutDir", outputDir));
+
+        // Force all projects in the build graph to use our nuget.config
+        if (nugetConfigPath is not null)
+        {
+            propertyGroup.Add(new XElement("RestoreConfigFile", nugetConfigPath));
+        }
+
         var doc = new XDocument(
             new XElement("Project",
                 new XAttribute("Sdk", "Microsoft.NET.Sdk"),
-                new XElement("PropertyGroup",
-                    new XElement("TargetFramework", "net10.0"),
-                    new XElement("EnableDefaultItems", "false"),
-                    new XElement("CopyLocalLockFileAssemblies", "true"),
-                    new XElement("ProduceReferenceAssembly", "false"),
-                    new XElement("EnableNETAnalyzers", "false"),
-                    new XElement("GenerateDocumentationFile", "false"),
-                    new XElement("OutDir", outputDir))));
+                propertyGroup));
 
         if (packageRefs.Count > 0)
         {
