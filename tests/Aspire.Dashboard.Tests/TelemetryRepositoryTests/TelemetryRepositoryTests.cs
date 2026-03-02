@@ -652,27 +652,35 @@ public class TelemetryRepositoryTests
             }
         });
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        const int expectedSpans = 3;
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        using var doneCts = new CancellationTokenSource();
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, doneCts.Token);
         var receivedSpans = new List<OtlpSpan>();
 
         // Act
         try
         {
-            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, linkedCts.Token))
             {
                 receivedSpans.Add(span);
+                if (receivedSpans.Count == expectedSpans)
+                {
+                    doneCts.Cancel();
+                }
             }
         }
         catch (OperationCanceledException)
         {
-            // Expected
+            // Expected when all spans received
         }
 
         // Assert - spans should be ordered by start time regardless of insertion order
-        Assert.Equal(3, receivedSpans.Count);
-        Assert.Contains("span-early", receivedSpans[0].Name);
-        Assert.Contains("span-mid", receivedSpans[1].Name);
-        Assert.Contains("span-late", receivedSpans[2].Name);
+        Assert.Equal(expectedSpans, receivedSpans.Count);
+        Assert.Equal("Test span. Id: span-early", receivedSpans[0].Name);
+        Assert.Equal("Test span. Id: span-mid", receivedSpans[1].Name);
+        Assert.Equal("Test span. Id: span-late", receivedSpans[2].Name);
     }
 
     [Fact]
