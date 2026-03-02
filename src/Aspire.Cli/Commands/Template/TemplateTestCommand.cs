@@ -149,6 +149,7 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
                 try
                 {
                     await _engine.ApplyAsync(templateDir, outputDir, variables, cancellationToken).ConfigureAwait(false);
+                    RandomizePorts(outputDir, i);
                 }
                 catch (Exception ex)
                 {
@@ -421,6 +422,53 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Rewrites port numbers in launchSettings.json and apphost.run.json files
+    /// so that each test variant uses unique ports.
+    /// </summary>
+    private static void RandomizePorts(string outputDir, int variantIndex)
+    {
+        var portFiles = new List<string>();
+        foreach (var pattern in new[] { "**/launchSettings.json", "**/apphost.run.json" })
+        {
+            portFiles.AddRange(Directory.GetFiles(outputDir, Path.GetFileName(pattern), SearchOption.AllDirectories));
+        }
+
+        if (portFiles.Count == 0)
+        {
+            return;
+        }
+
+        // Use a deterministic seed so results are reproducible per variant
+        var rng = new Random(variantIndex * 31337);
+        var portCache = new Dictionary<string, string>();
+
+        foreach (var file in portFiles)
+        {
+            var content = File.ReadAllText(file);
+            var updated = System.Text.RegularExpressions.Regex.Replace(
+                content,
+                @"(?<=://[^:/""]+:)\d{4,5}(?=[/""/]?)",
+                match =>
+                {
+                    // Map each original port to a consistent replacement within this variant
+                    if (!portCache.TryGetValue(match.Value, out var replacement))
+                    {
+                        replacement = rng.Next(10000, 60000).ToString(CultureInfo.InvariantCulture);
+                        portCache[match.Value] = replacement;
+                    }
+                    return replacement;
+                },
+                System.Text.RegularExpressions.RegexOptions.None,
+                TimeSpan.FromSeconds(5));
+
+            if (content != updated)
+            {
+                File.WriteAllText(file, updated);
+            }
+        }
     }
 
     private void RenderResultLine(int index, List<string> varNames, string[] values, string outputDir, string? error)
