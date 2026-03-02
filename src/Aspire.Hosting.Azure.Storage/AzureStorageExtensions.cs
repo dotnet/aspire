@@ -251,11 +251,12 @@ public static class AzureStorageExtensions
 
         // The default arguments list is coming from https://github.com/Azure/Azurite/blob/c3f93445fbd8fd54d380eb265a5665166c460d2b/Dockerfile#L47C6-L47C106
         // They need to be repeated in order to be able to add --skipApiVersionCheck
+        // --disableProductStyleUrl is required to ensure the emulator uses path-style URLs, and not “product-style” URLs which have the account name in the host name of the URL.
 
         var surrogate = new AzureStorageEmulatorResource(builder.Resource);
         var surrogateBuilder = builder.ApplicationBuilder
             .CreateResourceBuilder(surrogate)
-            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", SkipApiVersionCheckArgument);
+            .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0", "--disableProductStyleUrl", SkipApiVersionCheckArgument);
 
         configureContainer?.Invoke(surrogateBuilder);
 
