@@ -14,6 +14,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
     public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectToSolutionAsyncCallback { get; set; }
     public Func<FileInfo, bool, DotNetCliRunnerInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
+    public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? RestoreAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool IsAspireHost, string? AspireHostingVersion)>? GetAppHostInformationAsyncCallback { get; set; }
     public Func<DirectoryInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string[] ConfigPaths)>? GetNuGetConfigPathsAsyncCallback { get; set; }
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
@@ -42,6 +43,13 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     {
         return BuildAsyncCallback != null
             ? Task.FromResult(BuildAsyncCallback(projectFilePath, noRestore, options, cancellationToken))
+            : throw new NotImplementedException();
+    }
+
+    public Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return RestoreAsyncCallback != null
+            ? Task.FromResult(RestoreAsyncCallback(projectFilePath, options, cancellationToken))
             : throw new NotImplementedException();
     }
 

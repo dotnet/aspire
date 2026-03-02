@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -14,8 +15,8 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Commands;
 
 /// <summary>
-/// Restores dependencies and generates SDK code for a guest (non-.NET) AppHost project.
-/// Always regenerates without checking the hash, unlike <c>aspire run</c> which
+/// Restores dependencies for .NET AppHost projects and generates SDK code for guest (non-.NET) AppHost projects.
+/// For guest AppHosts, always regenerates without checking the hash, unlike <c>aspire run</c> which
 /// skips code generation when the package hash is unchanged.
 /// </summary>
 internal sealed class RestoreCommand : BaseCommand
@@ -24,6 +25,8 @@ internal sealed class RestoreCommand : BaseCommand
 
     private readonly IProjectLocator _projectLocator;
     private readonly IAppHostProjectFactory _projectFactory;
+    private readonly IDotNetCliRunner _runner;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IInteractionService _interactionService;
     private readonly ILogger<RestoreCommand> _logger;
 
@@ -32,6 +35,8 @@ internal sealed class RestoreCommand : BaseCommand
     public RestoreCommand(
         IProjectLocator projectLocator,
         IAppHostProjectFactory projectFactory,
+        IDotNetCliRunner runner,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
@@ -42,6 +47,8 @@ internal sealed class RestoreCommand : BaseCommand
     {
         _projectLocator = projectLocator;
         _projectFactory = projectFactory;
+        _runner = runner;
+        _sdkInstaller = sdkInstaller;
         _interactionService = interactionService;
         _logger = logger;
 
@@ -77,10 +84,35 @@ internal sealed class RestoreCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
+            if (project.LanguageId == KnownLanguageId.CSharp)
+            {
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
+                {
+                    return ExitCodeConstants.SdkNotInstalled;
+                }
+
+                var appHostDirectory = effectiveAppHostFile.Directory!;
+                _logger.LogDebug("Restoring packages for {AppHost} in {Directory}", effectiveAppHostFile.FullName, appHostDirectory.FullName);
+
+                var restoreExitCode = await _interactionService.ShowStatusAsync(
+                    RestoreCommandStrings.RestoringSdkCode,
+                    async () => await _runner.RestoreAsync(effectiveAppHostFile, new DotNetCliRunnerInvocationOptions(), cancellationToken),
+                    emoji: KnownEmojis.Gear);
+
+                if (restoreExitCode == 0)
+                {
+                    _interactionService.DisplaySuccess(
+                        string.Format(CultureInfo.CurrentCulture, RestoreCommandStrings.RestoreSucceeded, effectiveAppHostFile.Name));
+                    return ExitCodeConstants.Success;
+                }
+
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
             if (project is not GuestAppHostProject guestProject)
             {
-                InteractionService.DisplayError(RestoreCommandStrings.NotSupportedForDotNet);
-                return ExitCodeConstants.InvalidCommand;
+                InteractionService.DisplayError(RestoreCommandStrings.UnrecognizedAppHostType);
+                return ExitCodeConstants.FailedToFindProject;
             }
 
             var directory = effectiveAppHostFile.Directory!;

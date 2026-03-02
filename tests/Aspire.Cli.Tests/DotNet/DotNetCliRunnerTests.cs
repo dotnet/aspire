@@ -95,6 +95,34 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RestoreAsyncRunsDotnetRestoreCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = DotNetCliRunnerTestHelper.Create(
+            provider,
+            executionContext,
+            (args, _, _, _) =>
+            {
+                Assert.Equal("restore", args[0]);
+                Assert.Equal(projectFile.FullName, args[1]);
+            },
+            0);
+
+        var exitCode = await runner.RestoreAsync(projectFile, options, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
     public async Task BuildAsyncUsesConfigurationValueForDotnetCliUseMsBuildServer()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

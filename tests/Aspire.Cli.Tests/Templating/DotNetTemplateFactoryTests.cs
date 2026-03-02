@@ -500,6 +500,9 @@ public class DotNetTemplateFactoryTests
         public Task<int> NewProjectAsync(string templateName, string projectName, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
+        public Task<int> RestoreAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<int> BuildAsync(FileInfo projectFile, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 

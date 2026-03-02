@@ -31,6 +31,7 @@ internal interface IDotNetCliRunner
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -685,6 +686,22 @@ internal sealed class DotNetCliRunner(
             env: null,
             projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.StartDiagnosticActivity();
+
+        string[] cliArgs = ["restore", projectFilePath.FullName];
+
+        return await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: projectFilePath,
+            workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
