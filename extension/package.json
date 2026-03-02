@@ -34,6 +34,30 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aspire-panel",
+          "title": "%viewsContainers.aspirePanel.title%",
+          "icon": "resources/aspire-activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "aspire-panel": [
+        {
+          "id": "aspire-vscode.runningAppHosts",
+          "name": "%views.runningAppHosts.name%"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "aspire-vscode.runningAppHosts",
+        "contents": "%views.runningAppHosts.welcome%",
+        "when": "aspire.noRunningAppHosts"
+      }
+    ],
     "debuggers": [
       {
         "type": "aspire",
@@ -152,6 +176,18 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      },
+      {
+        "command": "aspire-vscode.refreshRunningAppHosts",
+        "title": "%command.refreshRunningAppHosts%",
+        "category": "Aspire",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aspire-vscode.openDashboard",
+        "title": "%command.openDashboard%",
+        "category": "Aspire",
+        "icon": "$(globe)"
       }
     ],
     "jsonValidation": [
@@ -197,6 +233,28 @@
         {
           "command": "aspire-vscode.debugAppHost",
           "when": "false"
+        },
+        {
+          "command": "aspire-vscode.refreshRunningAppHosts",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.openDashboard",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "aspire-vscode.refreshRunningAppHosts",
+          "when": "view == aspire-vscode.runningAppHosts",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "aspire-vscode.openDashboard",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
+          "group": "inline"
         }
       ]
     },

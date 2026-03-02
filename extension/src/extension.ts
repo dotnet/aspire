@@ -25,6 +25,7 @@ import { settingsCommand } from './commands/settings';
 import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/openSettings';
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
+import { AspireAppHostTreeProvider } from './views/AspireAppHostTreeProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -63,6 +64,28 @@ export async function activate(context: vscode.ExtensionContext) {
   const openGlobalSettingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openGlobalSettings', () => tryExecuteCommand('aspire-vscode.openGlobalSettings', terminalProvider, openGlobalSettingsCommand));
   const runAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.runAppHost', () => editorCommandProvider.tryExecuteRunAppHost(true));
   const debugAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.debugAppHost', () => editorCommandProvider.tryExecuteRunAppHost(false));
+
+  // Aspire panel - running app hosts tree view
+  const appHostTreeProvider = new AspireAppHostTreeProvider(terminalProvider);
+  const appHostTreeView = vscode.window.createTreeView('aspire-vscode.runningAppHosts', {
+    treeDataProvider: appHostTreeProvider,
+  });
+  const refreshRunningAppHostsRegistration = vscode.commands.registerCommand('aspire-vscode.refreshRunningAppHosts', () => appHostTreeProvider.refresh());
+  const openDashboardRegistration = vscode.commands.registerCommand('aspire-vscode.openDashboard', (element) => appHostTreeProvider.openDashboard(element));
+
+  // Set initial context for welcome view
+  vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', true);
+
+  // Start polling when the tree view becomes visible, stop when hidden
+  appHostTreeView.onDidChangeVisibility(e => {
+    if (e.visible) {
+      appHostTreeProvider.startPolling();
+    } else {
+      appHostTreeProvider.stopPolling();
+    }
+  });
+
+  context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, { dispose: () => appHostTreeProvider.dispose() });
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);

@@ -97,5 +97,10 @@
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
   "aspire-vscode.strings.dismissLabel": "Dismiss",
   "aspire-vscode.strings.selectDirectoryTitle": "Select directory",
-  "aspire-vscode.strings.selectFileTitle": "Select file"
+  "aspire-vscode.strings.selectFileTitle": "Select file",
+  "viewsContainers.aspirePanel.title": "Aspire",
+  "views.runningAppHosts.name": "Running Apphosts",
+  "views.runningAppHosts.welcome": "No running Aspire apphosts found.\n[Run an AppHost](command:aspire-vscode.runAppHost)",
+  "command.refreshRunningAppHosts": "Refresh running apphosts",
+  "command.openDashboard": "Open Dashboard"
 }
