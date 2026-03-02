@@ -55,7 +55,12 @@
       {
         "view": "aspire-vscode.runningAppHosts",
         "contents": "%views.runningAppHosts.welcome%",
-        "when": "aspire.noRunningAppHosts"
+        "when": "aspire.noRunningAppHosts && !aspire.fetchAppHostsError"
+      },
+      {
+        "view": "aspire-vscode.runningAppHosts",
+        "contents": "%views.runningAppHosts.errorWelcome%",
+        "when": "aspire.fetchAppHostsError"
       }
     ],
     "debuggers": [
@@ -130,6 +135,11 @@
         "command": "aspire-vscode.update",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.update%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.updateSelf",
+        "title": "%command.updateSelf%",
         "category": "Aspire"
       },
       {

@@ -118,6 +118,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     private _disposed = false;
     private _supportsResources = true;
     private _fetchInProgress = false;
+    private _errorMessage: string | undefined;
 
     constructor(private readonly _terminalProvider: AspireTerminalProvider) {}
 
@@ -155,7 +156,6 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
 
     getChildren(element?: TreeElement): TreeElement[] {
         if (!element) {
-            // Root level: show app hosts
             return this._appHosts.map(appHost => new AppHostItem(appHost));
         }
 
@@ -166,7 +166,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
             if (appHost.dashboardUrl) {
                 items.push(new AppHostDetailItem(
                     dashboardLabel,
-                    'globe',
+                    'link-external',
                     appHost.dashboardUrl,
                     {
                         command: 'vscode.open',
@@ -249,6 +249,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
         this._runPsCommand(args, (code, stdout, stderr) => {
             if (code === 0) {
+                this._setError(undefined);
                 this._handlePsOutput(stdout);
                 this._fetchInProgress = false;
             } else if (this._supportsResources) {
@@ -257,17 +258,30 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 extensionLogOutputChannel.info('aspire ps --resources failed, falling back to aspire ps without --resources');
                 this._runPsCommand(['ps', '--format', 'json'], (retryCode, retryStdout, retryStderr) => {
                     if (retryCode === 0) {
+                        this._setError(undefined);
                         this._handlePsOutput(retryStdout);
                     } else {
-                        extensionLogOutputChannel.warn(errorFetchingAppHosts(retryStderr || `exit code ${retryCode}`));
+                        this._setError(errorFetchingAppHosts(retryStderr || `exit code ${retryCode}`));
                     }
                     this._fetchInProgress = false;
                 });
             } else {
-                extensionLogOutputChannel.warn(errorFetchingAppHosts(stderr || `exit code ${code}`));
+                this._setError(errorFetchingAppHosts(stderr || `exit code ${code}`));
                 this._fetchInProgress = false;
             }
         });
+    }
+
+    private _setError(message: string | undefined): void {
+        const hasError = message !== undefined;
+        if (this._errorMessage !== message) {
+            this._errorMessage = message;
+            if (message) {
+                extensionLogOutputChannel.warn(message);
+            }
+            vscode.commands.executeCommand('setContext', 'aspire.fetchAppHostsError', hasError);
+            this._onDidChangeTreeData.fire();
+        }
     }
 
     private _handlePsOutput(stdout: string): void {
@@ -290,16 +304,25 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
 
         let stdout = '';
         let stderr = '';
+        let callbackInvoked = false;
 
         spawnCliProcess(this._terminalProvider, cliPath, args, {
             noExtensionVariables: true,
             stdoutCallback: (data) => { stdout += data; },
             stderrCallback: (data) => { stderr += data; },
             exitCallback: (code) => {
-                callback(code ?? 1, stdout, stderr);
+                if (!callbackInvoked) {
+                    callbackInvoked = true;
+                    callback(code ?? 1, stdout, stderr);
+                }
             },
             errorCallback: (error) => {
                 extensionLogOutputChannel.warn(errorFetchingAppHosts(error.message));
+                // Spawn errors (e.g. CLI not installed) may not fire 'close', so invoke callback to unblock polling
+                if (!callbackInvoked) {
+                    callbackInvoked = true;
+                    callback(1, stdout, stderr || error.message);
+                }
             }
         });
     }

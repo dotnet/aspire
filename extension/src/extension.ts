@@ -20,7 +20,7 @@ import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
-import { updateCommand } from './commands/update';
+import { updateCommand, updateSelfCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/openSettings';
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
@@ -57,6 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const cliDeployCommandRegistration = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', terminalProvider, deployCommand));
   const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', terminalProvider, publishCommand));
   const cliUpdateCommandRegistration = vscode.commands.registerCommand('aspire-vscode.update', () => tryExecuteCommand('aspire-vscode.update', terminalProvider, updateCommand));
+  const cliUpdateSelfCommandRegistration = vscode.commands.registerCommand('aspire-vscode.updateSelf', () => tryExecuteCommand('aspire-vscode.updateSelf', terminalProvider, updateSelfCommand));
   const openTerminalCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openTerminal', () => tryExecuteCommand('aspire-vscode.openTerminal', terminalProvider, openTerminalCommand));
   const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', terminalProvider, configureLaunchJsonCommand));
   const settingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.settings', () => tryExecuteCommand('aspire-vscode.settings', terminalProvider, settingsCommand));
@@ -77,6 +78,10 @@ export async function activate(context: vscode.ExtensionContext) {
   vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', true);
 
   // Start polling when the tree view becomes visible, stop when hidden
+  if (appHostTreeView.visible) {
+    appHostTreeProvider.startPolling();
+  }
+
   appHostTreeView.onDidChangeVisibility(e => {
     if (e.visible) {
       appHostTreeProvider.startPolling();
@@ -88,7 +93,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, { dispose: () => appHostTreeProvider.dispose() });
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
-  context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
+  context.subscriptions.push(cliUpdateCommandRegistration, cliUpdateSelfCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider();
   context.subscriptions.push(
