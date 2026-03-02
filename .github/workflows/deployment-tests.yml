@@ -507,13 +507,17 @@ jobs:
           
           [View workflow run](${RUN_URL})"
           
-          # Add passed tests section if any
+          # Add passed tests section if any (collapsible since it's usually long)
           if [ "$PASSED_COUNT" -gt 0 ]; then
             PASSED_LIST=$(echo "$PASSED_TESTS" | jq -r '.[]' | while read test; do echo "- ✅ ${test}"; done)
             COMMENT_BODY="${COMMENT_BODY}
           
-          ### Passed Tests
-          ${PASSED_LIST}"
+          <details>
+          <summary>Passed Tests (${PASSED_COUNT})</summary>
+          
+          ${PASSED_LIST}
+          
+          </details>"
           fi
           
           # Add failed tests section if any
@@ -543,7 +547,8 @@ jobs:
             
             RECORDING_TABLE="
           
-          ### 🎬 Terminal Recordings
+          <details>
+          <summary>🎬 Terminal Recordings</summary>
           
           | Test | Recording |
           |------|-----------|"
@@ -571,6 +576,10 @@ jobs:
                 fi
               fi
             done
+            
+            RECORDING_TABLE="${RECORDING_TABLE}
+          
+          </details>"
             
             if [ $UPLOAD_COUNT -gt 0 ]; then
               COMMENT_BODY="${COMMENT_BODY}${RECORDING_TABLE}"
