@@ -9,17 +9,17 @@
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="new">CLI PID</target>
+        <target state="translated">Identyfikator PID interfejsu wiersza polecenia</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="new">Dashboard</target>
+        <target state="translated">Pulpit nawigacyjny</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="new">Path</target>
+        <target state="translated">Ścieżka</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">

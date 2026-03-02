@@ -9,17 +9,17 @@
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="new">CLI PID</target>
+        <target state="translated">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="new">Dashboard</target>
+        <target state="translated">Painel</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="new">Path</target>
+        <target state="translated">Caminho</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
