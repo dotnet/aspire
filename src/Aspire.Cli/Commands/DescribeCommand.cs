@@ -133,31 +133,34 @@ internal sealed class DescribeCommand : BaseCommand
             return ExitCodeConstants.Success;
         }
 
-        if (follow)
-        {
-            return await ExecuteWatchAsync(result.Connection!, resourceName, format, cancellationToken);
-        }
-        else
-        {
-            return await ExecuteSnapshotAsync(result.Connection!, resourceName, format, cancellationToken);
-        }
-    }
+        var connection = result.Connection!;
 
-    private async Task<int> ExecuteSnapshotAsync(IAppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
-    {
-        // Get dashboard URL and resource snapshots in parallel
+        // Get dashboard URL and resource snapshots in parallel before
+        // dispatching to the snapshot or watch path.
         var dashboardUrlsTask = connection.GetDashboardUrlsAsync(cancellationToken);
         var snapshotsTask = connection.GetResourceSnapshotsAsync(cancellationToken);
 
         await Task.WhenAll(dashboardUrlsTask, snapshotsTask).ConfigureAwait(false);
 
-        var dashboardUrls = await dashboardUrlsTask.ConfigureAwait(false);
+        var dashboardBaseUrl = (await dashboardUrlsTask.ConfigureAwait(false))?.BaseUrlWithLoginToken;
         var snapshots = await snapshotsTask.ConfigureAwait(false);
 
         // Pre-resolve colors for all resource names so that assignment is
         // deterministic regardless of which resources are displayed.
         _resourceColorMap.ResolveAll(snapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, snapshots)));
 
+        if (follow)
+        {
+            return await ExecuteWatchAsync(connection, snapshots, dashboardBaseUrl, resourceName, format, cancellationToken);
+        }
+        else
+        {
+            return ExecuteSnapshot(snapshots, dashboardBaseUrl, resourceName, format);
+        }
+    }
+
+    private int ExecuteSnapshot(IReadOnlyList<ResourceSnapshot> snapshots, string? dashboardBaseUrl, string? resourceName, OutputFormat format)
+    {
         // Filter by resource name if specified
         if (resourceName is not null)
         {
@@ -171,8 +174,6 @@ internal sealed class DescribeCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        // Use the dashboard base URL if available
-        var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
         var resourceList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl);
 
         if (format == OutputFormat.Json)
@@ -190,25 +191,16 @@ internal sealed class DescribeCommand : BaseCommand
         return ExitCodeConstants.Success;
     }
 
-    private async Task<int> ExecuteWatchAsync(IAppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> ExecuteWatchAsync(IAppHostAuxiliaryBackchannel connection, IReadOnlyList<ResourceSnapshot> initialSnapshots, string? dashboardBaseUrl, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
     {
-        // Get dashboard URL first for generating resource links
-        var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
-        var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
-
         // Maintain a dictionary of the current state per resource for relationship resolution
         // and display name deduplication. Keyed by snapshot.Name so each resource has exactly
         // one entry representing its latest state.
-        var initialSnapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
         var allResources = new Dictionary<string, ResourceSnapshot>(StringComparers.ResourceName);
         foreach (var snapshot in initialSnapshots)
         {
             allResources[snapshot.Name] = snapshot;
         }
-
-        // Pre-resolve colors for all resource names so that assignment is
-        // deterministic regardless of which resources are displayed.
-        _resourceColorMap.ResolveAll(initialSnapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, initialSnapshots)));
 
         // Cache the last displayed content per resource to avoid duplicate output.
         // Values are either a string (JSON mode) or a ResourceDisplayState (non-JSON mode).
