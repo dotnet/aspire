@@ -25,6 +25,13 @@ internal sealed class GitTemplateVariable
     public GitTemplateVariableValidation? Validation { get; set; }
 
     public List<GitTemplateVariableChoice>? Choices { get; set; }
+
+    /// <summary>
+    /// Gets or sets explicit test values for matrix testing via <c>aspire template test</c>.
+    /// Each value can be a string, boolean, or integer matching the variable type.
+    /// </summary>
+    [JsonConverter(typeof(JsonObjectListConverter))]
+    public List<object>? TestValues { get; set; }
 }
 
 /// <summary>
@@ -95,5 +102,53 @@ internal sealed class JsonObjectConverter : JsonConverter<object?>
                 writer.WriteStringValue(value.ToString());
                 break;
         }
+    }
+}
+
+/// <summary>
+/// Handles deserializing a list of polymorphic values (strings, booleans, or integers).
+/// </summary>
+internal sealed class JsonObjectListConverter : JsonConverter<List<object>?>
+{
+    private static readonly JsonObjectConverter s_elementConverter = new();
+
+    public override List<object>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType is JsonTokenType.Null)
+        {
+            return null;
+        }
+
+        if (reader.TokenType is not JsonTokenType.StartArray)
+        {
+            throw new JsonException("Expected array for testValues.");
+        }
+
+        var list = new List<object>();
+        while (reader.Read() && reader.TokenType is not JsonTokenType.EndArray)
+        {
+            var value = s_elementConverter.Read(ref reader, typeof(object), options);
+            if (value is not null)
+            {
+                list.Add(value);
+            }
+        }
+        return list;
+    }
+
+    public override void Write(Utf8JsonWriter writer, List<object>? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        writer.WriteStartArray();
+        foreach (var item in value)
+        {
+            s_elementConverter.Write(writer, item, options);
+        }
+        writer.WriteEndArray();
     }
 }

@@ -20,6 +20,7 @@ internal sealed class TemplateCommand : BaseCommand
         TemplateRefreshCommand refreshCommand,
         TemplateNewManifestCommand newManifestCommand,
         TemplateNewIndexCommand newIndexCommand,
+        TemplateTestCommand testCommand,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
@@ -32,6 +33,7 @@ internal sealed class TemplateCommand : BaseCommand
         Subcommands.Add(refreshCommand);
         Subcommands.Add(newManifestCommand);
         Subcommands.Add(newIndexCommand);
+        Subcommands.Add(testCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;

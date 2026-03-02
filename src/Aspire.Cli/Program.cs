@@ -409,6 +409,7 @@ public class Program
         builder.Services.AddTransient<Commands.Template.TemplateRefreshCommand>();
         builder.Services.AddTransient<Commands.Template.TemplateNewManifestCommand>();
         builder.Services.AddTransient<Commands.Template.TemplateNewIndexCommand>();
+        builder.Services.AddTransient<Commands.Template.TemplateTestCommand>();
 
         // Git template index services
         builder.Services.AddSingleton(sp =>

@@ -215,6 +215,7 @@ internal static class CliTestHelper
         services.AddTransient<Aspire.Cli.Commands.Template.TemplateRefreshCommand>();
         services.AddTransient<Aspire.Cli.Commands.Template.TemplateNewManifestCommand>();
         services.AddTransient<Aspire.Cli.Commands.Template.TemplateNewIndexCommand>();
+        services.AddTransient<Aspire.Cli.Commands.Template.TemplateTestCommand>();
         services.AddSingleton(new Aspire.Cli.Templating.Git.GitTemplateCache(Path.Combine(Path.GetTempPath(), "aspire-cli-tests", "git-templates")));
         services.AddSingleton<Aspire.Cli.GitHub.IGitHubCliRunner, Aspire.Cli.GitHub.GitHubCliRunner>();
         services.AddSingleton<Aspire.Cli.Templating.Git.IGitTemplateIndexService, Aspire.Cli.Templating.Git.GitTemplateIndexService>();
