@@ -27,7 +27,6 @@
 
         This logic ensures runsheets are generated appropriately based on the project's characteristics and the testing scenario.
 
-        FIXME: Aspire.Playground.Tests are currently not running in "out of repo" mode.
         FIXME: Aspire.Templates.Tests are currently left alone.
 
         -->

@@ -48,7 +48,7 @@ internal static class DistributedApplicationTestFactory
         return builder;
     }
 
-    internal sealed class ContainerRegistryHook(DistributedApplicationEventing eventing) : IHostedService
+    internal sealed class ContainerRegistryHook(IDistributedApplicationEventing eventing) : IHostedService
     {
         public const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
         public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)

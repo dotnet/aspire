@@ -88,6 +88,10 @@
     <!-- nuget.config to resolve built packages from artifacts -->
     <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)nuget.config" CopyToOutputDirectory="PreserveNewest" />
 
+    <!-- EditorConfig files for proper code analysis configuration when building outside the repo -->
+    <None Include="$(RepoRoot).editorconfig" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir).editorconfig" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\.editorconfig" CopyToOutputDirectory="PreserveNewest" />
+
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="DefaultTargetFramework" />
