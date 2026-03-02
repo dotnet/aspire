@@ -13,33 +13,33 @@ namespace Aspire.Cli.Utils;
 internal sealed class ResourceColorMap
 {
     /// <summary>
-    /// Dark theme hex colors corresponding 1:1 with <see cref="ColorGenerator.s_variableNames"/>.
-    /// The order must match exactly so that the same palette index maps to the same visual color
-    /// in both the CLI and the dashboard.
+    /// Dark theme hex colors keyed by accent variable name from <see cref="ColorGenerator.s_variableNames"/>.
+    /// The keys must match the variable names exactly so that the same palette index maps to the same
+    /// visual color in both the CLI and the dashboard.
     /// </summary>
-    internal static readonly string[] s_hexColors =
-    [
-        "#2CB7BD", // --accent-teal
-        "#F3D58E", // --accent-marigold
-        "#BF8B64", // --accent-brass
-        "#FFC18F", // --accent-peach
-        "#F89170", // --accent-coral
-        "#88A1F0", // --accent-royal-blue
-        "#E19AD4", // --accent-orchid
-        "#1A7ECF", // --accent-brand-blue
-        "#74D6C6", // --accent-seafoam
-        "#B9B2A4", // --accent-mink
-        "#17A0A6", // --accent-cyan
-        "#E3BA7A", // --accent-gold
-        "#8E6038", // --accent-bronze
-        "#FFA44A", // --accent-orange
-        "#EA6A3E", // --accent-rust
-        "#2A4C8A", // --accent-navy
-        "#D150C3", // --accent-berry
-        "#16728F", // --accent-ocean
-        "#51C0A5", // --accent-jade
-        "#847B63", // --accent-olive
-    ];
+    internal static readonly Dictionary<string, string> s_hexColors = new()
+    {
+        ["--accent-teal"] = "#2CB7BD",
+        ["--accent-marigold"] = "#F3D58E",
+        ["--accent-brass"] = "#BF8B64",
+        ["--accent-peach"] = "#FFC18F",
+        ["--accent-coral"] = "#F89170",
+        ["--accent-royal-blue"] = "#88A1F0",
+        ["--accent-orchid"] = "#E19AD4",
+        ["--accent-brand-blue"] = "#1A7ECF",
+        ["--accent-seafoam"] = "#74D6C6",
+        ["--accent-mink"] = "#B9B2A4",
+        ["--accent-cyan"] = "#17A0A6",
+        ["--accent-gold"] = "#E3BA7A",
+        ["--accent-bronze"] = "#8E6038",
+        ["--accent-orange"] = "#FFA44A",
+        ["--accent-rust"] = "#EA6A3E",
+        ["--accent-navy"] = "#2A4C8A",
+        ["--accent-berry"] = "#D150C3",
+        ["--accent-ocean"] = "#16728F",
+        ["--accent-jade"] = "#51C0A5",
+        ["--accent-olive"] = "#847B63",
+    };
 
     private readonly ColorGenerator _palette = new();
 
@@ -50,7 +50,8 @@ internal sealed class ResourceColorMap
     public string GetColor(string resourceName)
     {
         var index = _palette.GetColorIndex(resourceName);
-        return s_hexColors[index];
+        var variableName = ColorGenerator.s_variableNames[index];
+        return s_hexColors[variableName];
     }
 
     /// <summary>

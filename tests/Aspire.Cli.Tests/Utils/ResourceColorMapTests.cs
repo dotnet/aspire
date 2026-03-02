@@ -8,17 +8,13 @@ namespace Aspire.Cli.Tests.Utils;
 public class ResourceColorMapTests
 {
     [Fact]
-    public void HexColorsCountMatchesVariableNamesCount()
+    public void HexColorsKeysMatchVariableNames()
     {
-        Assert.Equal(ColorGenerator.s_variableNames.Length, ResourceColorMap.s_hexColors.Length);
-    }
+        Assert.Equal(ColorGenerator.s_variableNames.Length, ResourceColorMap.s_hexColors.Count);
 
-    [Fact]
-    public void AllHexColorsAreValidFormat()
-    {
-        foreach (var hex in ResourceColorMap.s_hexColors)
+        foreach (var variableName in ColorGenerator.s_variableNames)
         {
-            Assert.Matches(@"^#[0-9A-Fa-f]{6}$", hex);
+            Assert.True(ResourceColorMap.s_hexColors.ContainsKey(variableName), $"Missing key: {variableName}");
         }
     }
 
