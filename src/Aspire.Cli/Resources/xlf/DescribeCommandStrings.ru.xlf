@@ -14,27 +14,27 @@
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Конечные точки</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderHealth">
         <source>Health</source>
-        <target state="new">Health</target>
+        <target state="translated">Работоспособность</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderName">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">Имя</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderState">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Состояние</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderType">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Тип</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">

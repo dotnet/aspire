@@ -84,12 +84,12 @@
       </trans-unit>
       <trans-unit id="HeaderKey">
         <source>Key</source>
-        <target state="new">Key</target>
+        <target state="translated">Anahtar</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Değer</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
