@@ -48,6 +48,17 @@ export const failedToConfigureLaunchJson = (error: any) => vscode.l10n.t('Failed
 export const defaultConfigurationName = vscode.l10n.t('Aspire: Launch default apphost');
 export const debugSessionAlreadyExists = (id: string) => vscode.l10n.t('A debug session is already active for id {0}.', id);
 export const processExceptionOccurred = (error: string, command: string) => vscode.l10n.t('Encountered an exception ({0}) while running the following command: {1}.', error, command);
+
+// Aspire panel strings
+export const pidDescription = (pid: number) => vscode.l10n.t('PID: {0}', pid);
+export const dashboardLabel = vscode.l10n.t('Dashboard');
+export const cliPidLabel = (pid: number) => vscode.l10n.t('CLI PID: {0}', pid);
+export const appHostPidLabel = (pid: number) => vscode.l10n.t('Apphost PID: {0}', pid);
+export const errorFetchingAppHosts = (error: string) => vscode.l10n.t('Error fetching running apphosts: {0}', error);
+export const resourcesGroupLabel = vscode.l10n.t('Resources');
+export const resourceStateLabel = (name: string, state: string) => vscode.l10n.t('{0} — {1}', name, state);
+export const noCommandsAvailable = vscode.l10n.t('No commands available for this resource.');
+export const selectCommandPlaceholder = vscode.l10n.t('Select a command to execute');
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const failedToGetConfigInfo = (exitCode: number) => vscode.l10n.t('Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update', exitCode);
 export const failedToParseConfigInfo = (error: any) => vscode.l10n.t('Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);

@@ -6,3 +6,7 @@ export async function updateCommand(terminalProvider: AspireTerminalProvider, ed
     const appHostArgs = await getAppHostArgs(editorCommandProvider);
     await terminalProvider.sendAspireCommandToAspireTerminal('update', true, appHostArgs);
 }
+
+export async function updateSelfCommand(terminalProvider: AspireTerminalProvider) {
+    await terminalProvider.sendAspireCommandToAspireTerminal('update --self');
+}
