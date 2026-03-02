@@ -110,13 +110,12 @@ internal static class TelemetryCommandHelpers
             projectFile,
             SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, TelemetryCommandStrings.SelectAppHostAction),
-            SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            interactionService.DisplayMessage("information", result.ErrorMessage);
+            interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return (false, null, null, null, ExitCodeConstants.Success);
         }
 

@@ -2,17 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -25,18 +21,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
     internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
-    private readonly IDotNetCliRunner _runner;
-    private readonly INuGetPackageCache _nuGetPackageCache;
-    private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IEnumerable<ITemplate> _templates;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
-    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly ITemplate[] _templates;
     private readonly IFeatures _features;
-    private readonly ICliUpdateNotifier _updateNotifier;
-    private readonly CliExecutionContext _executionContext;
-    private readonly ILanguageDiscovery _languageDiscovery;
-    private readonly IScaffoldingService _scaffoldingService;
+    private readonly IPackagingService _packagingService;
+    private readonly IConfigurationService _configurationService;
 
     private static readonly Option<string> s_nameOption = new("--name", "-n")
     {
@@ -60,7 +49,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     };
 
     private readonly Option<string?> _channelOption;
-    private readonly Option<string?>? _languageOption;
+    private readonly Option<AppHostLanguage?> _languageOption;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -73,33 +62,21 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     public bool PrefetchesCliPackageMetadata => true;
 
     public NewCommand(
-        IDotNetCliRunner runner,
-        INuGetPackageCache nuGetPackageCache,
         INewCommandPrompter prompter,
         IInteractionService interactionService,
-        ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
-        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
-        ILanguageDiscovery languageDiscovery,
-        IScaffoldingService scaffoldingService)
+        IPackagingService packagingService,
+        IConfigurationService configurationService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _runner = runner;
-        _nuGetPackageCache = nuGetPackageCache;
-        _certificateService = certificateService;
         _prompter = prompter;
-        _sdkInstaller = sdkInstaller;
-        _hostEnvironment = hostEnvironment;
         _features = features;
-        _updateNotifier = updateNotifier;
-        _executionContext = executionContext;
-        _languageDiscovery = languageDiscovery;
-        _scaffoldingService = scaffoldingService;
+        _packagingService = packagingService;
+        _configurationService = configurationService;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
@@ -117,81 +94,225 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_channelOption);
 
-        // Only add --language option when polyglot support is enabled
-        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        _languageOption = new Option<AppHostLanguage?>("--language")
         {
-            _languageOption = new Option<string?>("--language")
-            {
-                Description = "The programming language for the AppHost (csharp, typescript)"
-            };
-            Options.Add(_languageOption);
-        }
+            Description = NewCommandStrings.LanguageOptionDescription,
+            Recursive = true
+        };
+        Options.Add(_languageOption);
 
-        _templates = templateProvider.GetTemplates();
+        _templates = templateProvider.GetTemplatesAsync(CancellationToken.None).GetAwaiter().GetResult().ToArray();
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService, Telemetry);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, features, updateNotifier, executionContext, InteractionService, Telemetry);
             Subcommands.Add(templateCommand);
         }
     }
 
-    private async Task<ITemplate> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private string? ParseExplicitLanguageId(ParseResult parseResult)
     {
-        // NOTE: I am using Single(...) here because if we get to this point and we are not running the 'aspire new' without a template
-        //       specified then we should have errored out with the help text. If we get there then someting is really wrong and we should
-        //       throw an exception.
-        if (parseResult.CommandResult.Command != this && _templates.Single(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase)) is ITemplate template)
+        return parseResult.GetValue(_languageOption) switch
         {
-            // If the command is not this NewCommand instance then we assume
-            // that we are using a generated TemplateCommand. If this is the case
-            // we return the template based on the command name - otherwise we prompt for it.
-            return template;
+            AppHostLanguage.CSharp => KnownLanguageId.CSharp,
+            AppHostLanguage.TypeScript => KnownLanguageId.TypeScript,
+            null => null,
+            _ => null
+        };
+    }
+
+    private static string NormalizeLanguageId(string languageId)
+    {
+        return languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)
+            ? KnownLanguageId.TypeScript
+            : languageId;
+    }
+
+    private static string GetLanguageDisplayName(string languageId)
+    {
+        return NormalizeLanguageId(languageId) switch
+        {
+            KnownLanguageId.CSharp => KnownLanguageId.CSharpDisplayName,
+            KnownLanguageId.TypeScript => "TypeScript (Node.js)",
+            _ => languageId
+        };
+    }
+
+    private async Task<string> PromptForAppHostLanguageAsync(IReadOnlyList<string> selectableLanguages, CancellationToken cancellationToken)
+    {
+        var choices = selectableLanguages
+            .Select(NormalizeLanguageId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(static languageId => (LanguageId: languageId, DisplayName: GetLanguageDisplayName(languageId)))
+            .ToArray();
+
+        var selected = await InteractionService.PromptForSelectionAsync(
+            "Which language would you like to use?",
+            choices,
+            choice => choice.DisplayName.EscapeMarkup(),
+            cancellationToken);
+
+        return selected.LanguageId;
+    }
+
+    private async Task<(bool Success, string? LanguageId)> ResolveSelectedLanguageAsync(ITemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var explicitLanguageId = ParseExplicitLanguageId(parseResult);
+
+        if (template.SelectableAppHostLanguages.Count == 0)
+        {
+            if (!string.IsNullOrWhiteSpace(explicitLanguageId) && !template.SupportsLanguage(explicitLanguageId))
+            {
+                InteractionService.DisplayError($"Template '{template.Name}' does not support language '{explicitLanguageId}'.");
+                return (false, null);
+            }
+
+            return (true, explicitLanguageId);
         }
 
-        return await _prompter.PromptForTemplateAsync(_templates.ToArray(), cancellationToken);
+        if (!string.IsNullOrWhiteSpace(explicitLanguageId))
+        {
+            var normalizedExplicitLanguageId = NormalizeLanguageId(explicitLanguageId);
+            if (!template.SelectableAppHostLanguages.Any(l => l.Equals(normalizedExplicitLanguageId, StringComparison.OrdinalIgnoreCase)))
+            {
+                InteractionService.DisplayError($"Template '{template.Name}' does not support language '{explicitLanguageId}'.");
+                return (false, null);
+            }
+
+            await _configurationService.SetConfigurationAsync("language", normalizedExplicitLanguageId, isGlobal: false, cancellationToken);
+            return (true, normalizedExplicitLanguageId);
+        }
+
+        var configuredLanguageId = await _configurationService.GetConfigurationAsync("language", cancellationToken);
+        if (!string.IsNullOrWhiteSpace(configuredLanguageId))
+        {
+            var normalizedConfiguredLanguageId = NormalizeLanguageId(configuredLanguageId);
+            if (template.SelectableAppHostLanguages.Any(l => l.Equals(normalizedConfiguredLanguageId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return (true, normalizedConfiguredLanguageId);
+            }
+        }
+
+        var selectedLanguageId = await PromptForAppHostLanguageAsync(template.SelectableAppHostLanguages, cancellationToken);
+        await _configurationService.SetConfigurationAsync("language", selectedLanguageId, isGlobal: false, cancellationToken);
+        return (true, selectedLanguageId);
+    }
+
+    private ITemplate[] GetTemplatesForPrompt(ParseResult parseResult)
+    {
+        var explicitLanguageId = ParseExplicitLanguageId(parseResult);
+        var templatesForPrompt = _templates.ToList();
+
+        if (!string.IsNullOrWhiteSpace(explicitLanguageId))
+        {
+            templatesForPrompt = templatesForPrompt
+                .Where(t => t.SupportsLanguage(explicitLanguageId))
+                .ToList();
+        }
+
+        return templatesForPrompt.ToArray();
+    }
+
+    private async Task<ITemplate?> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        // If a subcommand was matched (e.g., aspire new aspire-starter), find the template by command name
+        if (parseResult.CommandResult.Command != this)
+        {
+            var subcommandTemplate = _templates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
+            if (subcommandTemplate is not null)
+            {
+                return subcommandTemplate;
+            }
+        }
+
+        var templatesForPrompt = GetTemplatesForPrompt(parseResult);
+        if (templatesForPrompt.Length == 0)
+        {
+            InteractionService.DisplayError("No templates are available for the current environment.");
+            return null;
+        }
+
+        return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+    }
+
+    private async Task<string?> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+        var configuredChannelName = parseResult.GetValue(_channelOption);
+        if (string.IsNullOrWhiteSpace(configuredChannelName))
+        {
+            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+
+        var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
+            ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
+            : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+
+        if (selectedChannel is null)
+        {
+            if (string.IsNullOrWhiteSpace(configuredChannelName))
+            {
+                InteractionService.DisplayError("No package channels are available.");
+            }
+            else
+            {
+                InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+            }
+
+            return null;
+        }
+
+        var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+        var package = packages
+            .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
+            .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
+            .FirstOrDefault();
+
+        if (package is null)
+        {
+            InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
+            return null;
+        }
+
+        return package.Version;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        // Only check for language option when polyglot support is enabled
-        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+        if (template is null)
         {
-            // Check if language is explicitly specified
-            Debug.Assert(_languageOption is not null);
-            var explicitLanguage = parseResult.GetValue(_languageOption);
+            return ExitCodeConstants.InvalidCommand;
+        }
 
-            // If a non-C# language is specified, create polyglot apphost
-            if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
-                !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+        var (languageResolutionSuccess, selectedLanguageId) = await ResolveSelectedLanguageAsync(template, parseResult, cancellationToken);
+        if (!languageResolutionSuccess)
+        {
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var version = parseResult.GetValue(s_versionOption);
+        if (ShouldResolveCliTemplateVersion(template) &&
+            string.IsNullOrWhiteSpace(version))
+        {
+            version = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
+            if (string.IsNullOrWhiteSpace(version))
             {
-                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
-                if (language is null)
-                {
-                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
-                    return ExitCodeConstants.InvalidCommand;
-                }
-                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+                return ExitCodeConstants.InvalidCommand;
             }
         }
 
-        // For C# or unspecified language, use the existing template system
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
-        }
-
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var inputs = new TemplateInputs
         {
             Name = parseResult.GetValue(s_nameOption),
             Output = parseResult.GetValue(s_outputOption),
             Source = parseResult.GetValue(s_sourceOption),
-            Version = parseResult.GetValue(s_versionOption),
-            Channel = parseResult.GetValue(_channelOption)
+            Version = version,
+            Channel = parseResult.GetValue(_channelOption),
+            Language = selectedLanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
@@ -202,59 +323,37 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return templateResult.ExitCode;
     }
 
-    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
+    private static bool ShouldResolveCliTemplateVersion(ITemplate template)
     {
-        // Get project name
-        var projectName = parseResult.GetValue(s_nameOption);
-        if (string.IsNullOrWhiteSpace(projectName))
-        {
-            projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
-        }
+        return template.Runtime is TemplateRuntime.Cli;
+    }
 
-        // Get output directory
-        var outputPath = parseResult.GetValue(s_outputOption);
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
-        }
-        else if (!Path.IsPathRooted(outputPath))
-        {
-            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
-        }
-
-        // Create the output directory
-        if (!Directory.Exists(outputPath))
-        {
-            Directory.CreateDirectory(outputPath);
-        }
-
-        var directory = new DirectoryInfo(outputPath);
-
-        // Scaffold the apphost files
-        var context = new ScaffoldContext(language, directory, projectName);
-        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
-
-        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
-        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
-
-        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
-        {
-            extensionInteractionService.OpenEditor(outputPath);
-        }
-
-        return ExitCodeConstants.Success;
+    private enum AppHostLanguage
+    {
+        CSharp,
+        TypeScript
     }
 }
 
 internal interface INewCommandPrompter
 {
-    Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken);
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
 }
 
-internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
+internal interface ITemplateVersionPrompter
+{
+    /// <summary>
+    /// Prompts the user to select a templates package version.
+    /// </summary>
+    /// <param name="candidatePackages">The available templates package candidates grouped across channels.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The selected templates package and channel.</returns>
+    Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken);
+}
+
+internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter, ITemplateVersionPrompter
 {
     public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {

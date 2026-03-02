@@ -17,6 +17,7 @@ using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
+using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
@@ -96,6 +97,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.CertificateToolRunnerFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
+        services.AddSingleton<ITemplateVersionPrompter>(sp => (ITemplateVersionPrompter)sp.GetRequiredService<INewCommandPrompter>());
         services.AddSingleton(options.AddCommandPrompterFactory);
         services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliExecutionFactoryFactory);
@@ -103,6 +105,7 @@ internal static class CliTestHelper
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
@@ -200,6 +203,15 @@ internal static class CliTestHelper
         services.AddTransient<DocsListCommand>();
         services.AddTransient<DocsSearchCommand>();
         services.AddTransient<DocsGetCommand>();
+        services.AddTransient<SecretCommand>();
+        services.AddTransient<SecretSetCommand>();
+        services.AddTransient<SecretGetCommand>();
+        services.AddTransient<SecretListCommand>();
+        services.AddTransient<SecretDeleteCommand>();
+        services.AddTransient<SecretStoreResolver>();
+#if DEBUG
+        services.AddTransient<RenderCommand>();
+#endif
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -241,28 +253,35 @@ internal sealed class CliServiceCollectionTestOptions
 
     public TestOutputTextWriter? OutputTextWriter { get; set; }
     public StringWriter? ErrorTextWriter { get; set; }
+    public bool DisableAnsi { get; set; }
 
     public Func<IServiceProvider, ConsoleEnvironment> ConsoleEnvironmentFactory => (IServiceProvider serviceProvider) =>
     {
         var outputTextWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
         var errorTextWriter = ErrorTextWriter ?? new StringWriter();
 
-        var outConsole = CreateAnsiConsole(outputTextWriter);
-        var errorConsole = CreateAnsiConsole(errorTextWriter);
+        var outConsole = CreateAnsiConsole(outputTextWriter, !DisableAnsi);
+        var errorConsole = CreateAnsiConsole(errorTextWriter, !DisableAnsi);
 
         return new ConsoleEnvironment(outConsole, errorConsole);
     };
 
-    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter)
+    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter, bool ansi = true)
     {
         var settings = new AnsiConsoleSettings()
         {
-            Ansi = AnsiSupport.Yes,
+            Ansi = ansi ? AnsiSupport.Yes : AnsiSupport.No,
             Interactive = InteractionSupport.Yes,
-            ColorSystem = ColorSystemSupport.Standard,
+            ColorSystem = ansi ? ColorSystemSupport.Standard : ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(textWriter)
         };
-        return AnsiConsole.Create(settings);
+        var console = AnsiConsole.Create(settings);
+        if (!ansi)
+        {
+            // Use a large width to prevent Spectre.Console from word-wrapping output lines.
+            console.Profile.Width = int.MaxValue;
+        }
+        return console;
     }
 
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -448,8 +467,16 @@ internal sealed class CliServiceCollectionTestOptions
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService, hostEnvironment);
-        return new TemplateProvider([factory]);
+        var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
+        var templateVersionPrompter = serviceProvider.GetRequiredService<ITemplateVersionPrompter>();
+        var languageDiscovery = serviceProvider.GetRequiredService<ILanguageDiscovery>();
+        var scaffoldingService = serviceProvider.GetRequiredService<IScaffoldingService>();
+        var cliTemplateLogger = serviceProvider.GetRequiredService<ILogger<CliTemplateFactory>>();
+        var templateNuGetConfigService = new TemplateNuGetConfigService(interactionService, executionContext, packagingService, configurationService);
+        var dotNetFactory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, templateVersionPrompter, executionContext, sdkInstaller, features, configurationService, telemetry, hostEnvironment, templateNuGetConfigService);
+        var cliFactory = new CliTemplateFactory(languageDiscovery, scaffoldingService, prompter, executionContext, interactionService, hostEnvironment, templateNuGetConfigService, cliTemplateLogger);
+        return new TemplateProvider([dotNetFactory, cliFactory]);
     };
 
     public Func<IServiceProvider, IPackagingService> PackagingServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -490,7 +517,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var projects = serviceProvider.GetServices<IAppHostProject>();
-        var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
+        var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp)
+            ?? serviceProvider.GetService<DotNetAppHostProject>();
         return new TestLanguageService { DefaultProject = defaultProject };
     };
 
@@ -576,6 +604,7 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
 internal sealed class TestOutputTextWriter : TextWriter
 {
     private readonly ITestOutputHelper _outputHelper;
+    private readonly StringBuilder _buffer = new();
     public List<string> Logs { get; } = new List<string>();
 
     public TestOutputTextWriter(ITestOutputHelper outputHelper) : this(outputHelper, null)
@@ -591,20 +620,52 @@ internal sealed class TestOutputTextWriter : TextWriter
 
     public override void WriteLine(string? message)
     {
-        _outputHelper.WriteLine(message!);
-        if (message is not null)
-        {
-            Logs.Add(message);
-        }
+        _buffer.Append(message);
+        FlushLine();
     }
 
     public override void Write(string? message)
     {
-        _outputHelper.Write(message!);
-        if (message is not null)
+        if (message is null)
         {
-            Logs.Add(message);
+            return;
         }
+
+        // Spectre.Console writes content and newlines via Write() calls.
+        // Split on newline boundaries so each logical line ends up as one Logs entry.
+        var remaining = message.AsSpan();
+        while (remaining.Length > 0)
+        {
+            var nlIndex = remaining.IndexOf('\n');
+            if (nlIndex < 0)
+            {
+                _buffer.Append(remaining);
+                break;
+            }
+
+            // Append everything before the newline (excluding any \r before \n)
+            var lineEnd = nlIndex > 0 && remaining[nlIndex - 1] == '\r' ? nlIndex - 1 : nlIndex;
+            _buffer.Append(remaining[..lineEnd]);
+            FlushLine();
+            remaining = remaining[(nlIndex + 1)..];
+        }
+    }
+
+    public override void Flush()
+    {
+        if (_buffer.Length > 0)
+        {
+            FlushLine();
+        }
+        base.Flush();
+    }
+
+    private void FlushLine()
+    {
+        var line = _buffer.ToString();
+        _buffer.Clear();
+        _outputHelper.WriteLine(line);
+        Logs.Add(line);
     }
 
 }

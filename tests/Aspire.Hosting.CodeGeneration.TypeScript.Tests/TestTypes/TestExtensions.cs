@@ -634,6 +634,32 @@ public static class TestExtensions
     {
         return Task.FromResult(true);
     }
+
+    // ===== Duplicate Class Name Tests =====
+
+    /// <summary>
+    /// Targets the concrete TestVaultResource so it gets a builder class named "TestVaultResource".
+    /// </summary>
+    [AspireExport("addTestVault", Description = "Adds a test vault resource")]
+    public static IResourceBuilder<TestVaultResource> AddTestVault(
+        this IDistributedApplicationBuilder builder,
+        string name)
+    {
+        return builder.AddResource(new TestVaultResource(name));
+    }
+
+    /// <summary>
+    /// Directly targets the ITestVaultResource interface.
+    /// DeriveClassName strips the 'I' prefix producing "TestVaultResource" — the same name
+    /// as the concrete builder. The codegen must deduplicate to avoid emitting two classes.
+    /// </summary>
+    [AspireExport("withVaultDirect", Description = "Configures vault using direct interface target")]
+    public static IResourceBuilder<ITestVaultResource> WithVaultDirect(
+        IResourceBuilder<ITestVaultResource> builder,
+        string option)
+    {
+        return builder;
+    }
 }
 
 /// <summary>

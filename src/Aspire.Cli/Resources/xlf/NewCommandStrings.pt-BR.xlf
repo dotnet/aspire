@@ -32,6 +32,11 @@
         <target state="translated">Nome de projeto inválido.</target>
         <note />
       </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost.</source>
+        <target state="new">The programming language for the AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
         <target state="translated">O nome do projeto a ser criado.</target>

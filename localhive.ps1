@@ -329,11 +329,57 @@ if (-not $SkipCli) {
     Write-Log "Installing Aspire CLI$(if ($NativeAot) { ' (native AOT)' }) to $cliBinDir"
     New-Item -ItemType Directory -Path $cliBinDir -Force | Out-Null
 
-    # Copy all files from the publish directory (CLI and its dependencies)
-    Get-ChildItem -LiteralPath $cliPublishDir -File | Copy-Item -Destination $cliBinDir -Force
+    # Backup existing CLI executable if it's locked (same pattern as aspire update --self)
+    $targetExePath = Join-Path $cliBinDir $cliExeName
+    $backupPath = $null
+    if (Test-Path -LiteralPath $targetExePath) {
+      $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+      $backupPath = "$targetExePath.old.$timestamp"
+      try {
+        Move-Item -LiteralPath $targetExePath -Destination $backupPath -Force -ErrorAction Stop
+        Write-Log "Backed up existing CLI to $backupPath"
+      }
+      catch {
+        Write-Warn "Could not backup existing CLI (may be in use). Attempting direct overwrite."
+        $backupPath = $null
+      }
+    }
+
+    try {
+      # Copy all files from the publish directory (CLI and its dependencies)
+      # Use -ErrorAction SilentlyContinue for individual files that may be locked by running processes
+      $copyErrors = @()
+      Get-ChildItem -LiteralPath $cliPublishDir -File | ForEach-Object {
+        try {
+          Copy-Item $_.FullName -Destination $cliBinDir -Force -ErrorAction Stop
+        }
+        catch {
+          $copyErrors += $_.Exception.Message
+        }
+      }
+      if ($copyErrors.Count -gt 0) {
+        Write-Warn "$($copyErrors.Count) file(s) could not be overwritten (likely locked by a running process). The CLI executable was updated successfully."
+      }
+
+      # Clean up old backup files
+      Get-ChildItem -LiteralPath $cliBinDir -Filter "$cliExeName.old.*" -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue }
+    }
+    catch {
+      # Restore backup if copy failed
+      if ($backupPath -and (Test-Path -LiteralPath $backupPath)) {
+        Write-Warn "Copy failed, restoring backup"
+        Move-Item -LiteralPath $backupPath -Destination $targetExePath -Force
+      }
+      throw
+    }
 
     $installedCliPath = Join-Path $cliBinDir $cliExeName
     Write-Log "Aspire CLI installed to: $installedCliPath"
+
+    # Set the channel to the local hive so templates and packages resolve from it
+    & $installedCliPath config set channel $Name -g 2>$null
+    Write-Log "Set global channel to '$Name'"
 
     # Check if the bin directory is in PATH
     $pathSeparator = [System.IO.Path]::PathSeparator

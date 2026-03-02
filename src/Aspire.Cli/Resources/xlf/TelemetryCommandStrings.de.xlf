@@ -32,6 +32,31 @@
         <target state="translated">Filtern Sie nach Fehlerstatus (true, um nur Fehler anzuzeigen; false, um Fehler auszuschließen).</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderDuration">
+        <source>Duration</source>
+        <target state="new">Duration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderResource">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSpans">
+        <source>Spans</source>
+        <target state="new">Spans</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderStatus">
+        <source>Status</source>
+        <target state="new">Status</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderTraceId">
+        <source>Trace Id</source>
+        <target state="new">Trace Id</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LimitMustBePositive">
         <source>The --limit value must be a positive number.</source>
         <target state="translated">Der Wert für --limit muss eine positive Zahl sein.</target>

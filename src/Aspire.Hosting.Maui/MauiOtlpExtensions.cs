@@ -145,6 +145,6 @@ public static class MauiOtlpExtensions
         platformBuilder.WithReferenceRelationship(tunnelConfig.DevTunnel);
 
         // Set OTEL_EXPORTER_OTLP_ENDPOINT directly to the tunnel endpoint URL
-        platformBuilder.WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", tunnelEndpoint);
+        platformBuilder.WithEnvironment(KnownOtelConfigNames.ExporterOtlpEndpoint, tunnelEndpoint);
     }
 }

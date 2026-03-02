@@ -113,7 +113,7 @@ internal sealed class UpdateCommand : BaseCommand
             // When running as a dotnet tool, print the update command instead of executing
             if (IsRunningAsDotNetTool())
             {
-                InteractionService.DisplayMessage("information", UpdateCommandStrings.DotNetToolSelfUpdateMessage);
+                InteractionService.DisplayMessage(KnownEmojis.Information, UpdateCommandStrings.DotNetToolSelfUpdateMessage);
                 InteractionService.DisplayPlainText("  dotnet tool update -g Aspire.Cli");
                 return 0;
             }
@@ -289,8 +289,8 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.InvalidCommand;
             }
 
-            InteractionService.DisplayMessage("package", $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage("up_arrow", $"Updating to channel: {channel}");
+            InteractionService.DisplayMessage(KnownEmojis.Package, $"Current CLI location: {currentExePath}");
+            InteractionService.DisplayMessage(KnownEmojis.UpButton, $"Updating to channel: {channel}");
 
             // Download the latest CLI
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(channel, cancellationToken);
@@ -350,7 +350,7 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             // Extract archive
-            InteractionService.DisplayMessage("package", "Extracting new CLI...");
+            InteractionService.DisplayMessage(KnownEmojis.Package, "Extracting new CLI...");
             await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
 
             // Find the aspire executable in the extracted files
@@ -365,7 +365,7 @@ internal sealed class UpdateCommand : BaseCommand
             var backupPath = $"{targetExePath}.old.{unixTimestamp}";
             if (File.Exists(targetExePath))
             {
-                InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
+                InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, "Backing up current CLI...");
                 _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
                 // Clean up old backup files
@@ -378,7 +378,7 @@ internal sealed class UpdateCommand : BaseCommand
             try
             {
                 // Copy new executable to install location
-                InteractionService.DisplayMessage("wrench", $"Installing new CLI to {installDir}...");
+                InteractionService.DisplayMessage(KnownEmojis.Wrench, $"Installing new CLI to {installDir}...");
                 File.Copy(newExePath, targetExePath, overwrite: true);
 
                 // On Unix systems, ensure the executable bit is set
@@ -405,7 +405,7 @@ internal sealed class UpdateCommand : BaseCommand
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
                 {
-                    InteractionService.DisplayMessage("information", $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
+                    InteractionService.DisplayMessage(KnownEmojis.Information, $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
                 }
             }
             catch

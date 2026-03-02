@@ -210,9 +210,12 @@ jobs:
             done
             sleep 1
 
-            # Run test
+            # Run test (capture output for zero-test detection)
+            ITER_OUTPUT="${{ github.workspace }}/iter-output-$i.log"
+            set +e  # Disable errexit so pipefail doesn't abort before PIPESTATUS capture
             ${{ env.DOTNET_SCRIPT }} test "${{ env.TEST_PROJECT_PATH }}" \
               /p:ContinuousIntegrationBuild=true \
+              /p:_NonQuarantinedTestRunAdditionalArgs="" \
               -tl:false \
               --no-restore \
               --no-build \
@@ -220,7 +223,18 @@ jobs:
               --timeout 10m \
               --results-directory "${{ github.workspace }}/testresults" \
               ${{ env.TEST_FILTER }} \
-              && RESULT=0 || RESULT=$?
+              2>&1 | tee "$ITER_OUTPUT"
+            RESULT=${PIPESTATUS[0]}
+            set -e
+
+            # Detect zero-test runs (--ignore-exit-code 8 in Testing.props masks exit code 8)
+            if [ "$RESULT" -eq 0 ]; then
+              if ! grep -qE "Total:\s*[1-9]" "$ITER_OUTPUT" 2>/dev/null; then
+                echo "::error::Iteration $i: Zero tests executed. Verify TEST_FILTER and quarantine settings."
+                RESULT=8
+              fi
+            fi
+            rm -f "$ITER_OUTPUT"
 
             if [ "$RESULT" -eq 0 ]; then
               echo "✅ Iteration $i: PASS"
@@ -264,17 +278,30 @@ jobs:
             Get-Process | Where-Object { $_.ProcessName -match '^dcp' } | Stop-Process -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 1
 
-            # Run test
+            # Run test (capture output for zero-test detection)
+            $iterOutput = Join-Path "${{ github.workspace }}" "iter-output-$i.log"
             & ${{ env.DOTNET_SCRIPT }} test "${{ env.TEST_PROJECT_PATH }}" `
               /p:ContinuousIntegrationBuild=true `
+              /p:_NonQuarantinedTestRunAdditionalArgs="" `
               -tl:false `
               --no-restore `
               --no-build `
               -- `
               --timeout 10m `
               --results-directory "${{ github.workspace }}/testresults" `
-              ${{ env.TEST_FILTER }}
+              ${{ env.TEST_FILTER }} *> $iterOutput
             $result = $LASTEXITCODE
+            Get-Content $iterOutput
+
+            # Detect zero-test runs (--ignore-exit-code 8 in Testing.props masks exit code 8)
+            if ($result -eq 0) {
+              $content = Get-Content $iterOutput -Raw -ErrorAction SilentlyContinue
+              if (-not ($content -match 'Total:\s*[1-9]')) {
+                Write-Host "::error::Iteration ${i}: Zero tests executed. Verify TEST_FILTER and quarantine settings."
+                $result = 8
+              }
+            }
+            Remove-Item $iterOutput -ErrorAction SilentlyContinue
 
             if ($result -eq 0) {
               Write-Host "✅ Iteration ${i}: PASS"

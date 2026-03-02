@@ -1272,6 +1272,12 @@ class ResourceWithArgs(Resource):
     def with_args_callback(self, callback: Callable[[CommandLineArgsCallbackContext], None]) -> Self:
         """Sets command-line arguments via callback"""
 
+    def add_test_vault(self, name: str) -> TestVaultResource:
+        """Adds a test vault resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/addTestVault", args)
+
 
 class ResourceWithEndpoints(Resource):
     """Abstract base class for ResourceWithEndpoints interface."""

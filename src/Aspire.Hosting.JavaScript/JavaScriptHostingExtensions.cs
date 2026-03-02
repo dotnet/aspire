@@ -631,33 +631,11 @@ public static class JavaScriptHostingExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, _) =>
+            // Vite only supports a single endpoint, so we have to modify the existing endpoint to use HTTPS instead of
+            // adding a new one.
+            resourceBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.UseForHttps)
-                    {
-                        // If no certificate is configured, and the developer certificate service supports container trust,
-                        // configure the resource to use the developer certificate for its key pair.
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // Vite only supports a single endpoint, so we have to modify the existing endpoint to use HTTPS instead of
-                    // adding a new one.
-                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
-                }
-
-                return Task.CompletedTask;
+                resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
             });
         }
 

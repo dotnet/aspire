@@ -182,7 +182,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     {
         var keyParts = key.Split('.');
 
-        // Remove any conflicting flattened keys (e.g., "features:polyglotSupportEnabled" when setting "features.polyglotSupportEnabled")
+        // Remove any conflicting flattened keys (e.g., "features:showAllTemplates" when setting "features.showAllTemplates")
         // This prevents duplicate key errors when loading the configuration
         RemoveConflictingFlattenedKeys(settings, keyParts);
 
@@ -209,7 +209,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
 
     /// <summary>
     /// Removes any flattened keys (colon-separated) that would conflict with a nested structure.
-    /// For example, when setting "features.polyglotSupportEnabled", remove "features:polyglotSupportEnabled".
+    /// For example, when setting "features.showAllTemplates", remove "features:showAllTemplates".
     /// </summary>
     private static void RemoveConflictingFlattenedKeys(JsonObject settings, string[] keyParts)
     {

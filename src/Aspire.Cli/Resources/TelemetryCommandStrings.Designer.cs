@@ -218,5 +218,35 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
             }
         }
+
+        internal static string HeaderTraceId {
+            get {
+                return ResourceManager.GetString("HeaderTraceId", resourceCulture);
+            }
+        }
+
+        internal static string HeaderResource {
+            get {
+                return ResourceManager.GetString("HeaderResource", resourceCulture);
+            }
+        }
+
+        internal static string HeaderDuration {
+            get {
+                return ResourceManager.GetString("HeaderDuration", resourceCulture);
+            }
+        }
+
+        internal static string HeaderSpans {
+            get {
+                return ResourceManager.GetString("HeaderSpans", resourceCulture);
+            }
+        }
+
+        internal static string HeaderStatus {
+            get {
+                return ResourceManager.GetString("HeaderStatus", resourceCulture);
+            }
+        }
     }
 }

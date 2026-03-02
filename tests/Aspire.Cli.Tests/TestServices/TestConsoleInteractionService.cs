@@ -5,6 +5,7 @@ using System.Collections;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -24,13 +25,13 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     /// </summary>
     public Func<string, IEnumerable, Func<object, string>, CancellationToken, object>? PromptForSelectionCallback { get; set; }
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         ShowStatusCallback?.Invoke(statusText);
         return action();
     }
 
-    public void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         action();
     }
@@ -80,11 +81,11 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emojiName, string message)
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplaySuccess(string message, bool allowMarkup = false)
     {
     }
 
@@ -101,7 +102,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
     }
 
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
@@ -137,5 +138,9 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
+    }
+
+    public void DisplayRenderable(IRenderable renderable)
+    {
     }
 }

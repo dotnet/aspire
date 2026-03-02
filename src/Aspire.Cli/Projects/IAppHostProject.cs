@@ -222,6 +222,14 @@ internal interface IAppHostProject
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The result indicating what happened with the running instance check.</returns>
     Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the UserSecretsId for the specified AppHost file.
+    /// </summary>
+    /// <param name="appHostFile">The AppHost file.</param>
+    /// <param name="autoInit">If true, initializes user secrets if not configured.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken);
 }
 
 /// <summary>

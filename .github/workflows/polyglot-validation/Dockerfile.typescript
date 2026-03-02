@@ -31,11 +31,10 @@ COPY setup-local-cli.sh /scripts/setup-local-cli.sh
 COPY test-typescript.sh /scripts/test-typescript.sh
 RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-typescript.sh
 
-# Entrypoint: Set up Aspire CLI, enable polyglot, run validation
+# Entrypoint: Set up Aspire CLI and run validation
 # Bundle extraction happens lazily on first command that needs the layout
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
     /scripts/setup-local-cli.sh && \
-    aspire config set features:polyglotSupportEnabled true --global && \
     /scripts/test-typescript.sh \
 "]

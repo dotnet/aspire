@@ -124,16 +124,16 @@
     <value>Output format (Table or Json).</value>
   </data>
   <data name="HeaderPath" xml:space="preserve">
-    <value>PATH</value>
+    <value>Path</value>
   </data>
   <data name="HeaderPid" xml:space="preserve">
     <value>PID</value>
   </data>
   <data name="HeaderCliPid" xml:space="preserve">
-    <value>CLI_PID</value>
+    <value>CLI PID</value>
   </data>
   <data name="HeaderDashboard" xml:space="preserve">
-    <value>DASHBOARD</value>
+    <value>Dashboard</value>
   </data>
   <data name="UnknownPath" xml:space="preserve">
     <value>Unknown</value>

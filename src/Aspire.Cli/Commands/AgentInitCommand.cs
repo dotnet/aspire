@@ -161,7 +161,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
 
         if (hasErrors)
         {
-            _interactionService.DisplayMessage("warning", AgentCommandStrings.ConfigurationCompletedWithErrors);
+            _interactionService.DisplayMessage(KnownEmojis.Warning, AgentCommandStrings.ConfigurationCompletedWithErrors);
         }
         else
         {

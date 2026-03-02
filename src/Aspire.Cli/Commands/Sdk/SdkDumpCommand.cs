@@ -105,8 +105,9 @@ internal sealed class SdkDumpCommand : BaseCommand
         }
 
         return await InteractionService.ShowStatusAsync(
-            ":magnifying_glass_tilted_right: Scanning capabilities...",
-            async () => await DumpCapabilitiesAsync(integrationProject, outputFile, format, cancellationToken));
+            "Scanning capabilities...",
+            async () => await DumpCapabilitiesAsync(integrationProject, outputFile, format, cancellationToken),
+            emoji: KnownEmojis.MagnifyingGlassTiltedRight);
     }
 
     private async Task<int> DumpCapabilitiesAsync(
@@ -153,7 +154,7 @@ internal sealed class SdkDumpCommand : BaseCommand
                 InteractionService.DisplayError("Failed to build capability scanner.");
                 foreach (var (_, line) in buildOutput.GetLines())
                 {
-                    InteractionService.DisplayMessage("wrench", line.EscapeMarkup());
+                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }

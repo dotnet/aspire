@@ -16,7 +16,7 @@ public static class OtlpConfigurationExtensions
     /// <summary>
     /// The name of the environment variable for configuring the OTLP exporter ingestion URL. This is used by OpenTelemetry SDKs to determine where to send telemetry data.
     /// </summary>
-    public static readonly string OtlpEndpointEnvironmentVariableName = "OTEL_EXPORTER_OTLP_ENDPOINT";
+    public static readonly string OtlpEndpointEnvironmentVariableName = KnownOtelConfigNames.ExporterOtlpEndpoint;
 
     /// <summary>
     /// Configures OpenTelemetry in projects using environment variables.
@@ -75,15 +75,15 @@ public static class OtlpConfigurationExtensions
 
             var (url, protocol) = OtlpEndpointResolver.ResolveOtlpEndpoint(configuration, otlpExporterAnnotation.RequiredProtocol);
             context.EnvironmentVariables[OtlpEndpointEnvironmentVariableName] = new HostUrl(url);
-            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
+            context.EnvironmentVariables[KnownOtelConfigNames.ExporterOtlpProtocol] = protocol;
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
+            context.EnvironmentVariables[KnownOtelConfigNames.ResourceAttributes] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
+            context.EnvironmentVariables[KnownOtelConfigNames.ServiceName] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
-                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
+                context.EnvironmentVariables[KnownOtelConfigNames.ExporterOtlpHeaders] = $"x-otlp-api-key={otlpApiKey}";
             }
 
             // Configure OTLP to quickly provide all data with a small delay in development.
@@ -92,21 +92,21 @@ public static class OtlpConfigurationExtensions
                 // Set a small batch schedule delay in development.
                 // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
                 var value = "1000"; // milliseconds
-                context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = value;
-                context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = value;
-                context.EnvironmentVariables["OTEL_METRIC_EXPORT_INTERVAL"] = value;
+                context.EnvironmentVariables[KnownOtelConfigNames.BlrpScheduleDelay] = value;
+                context.EnvironmentVariables[KnownOtelConfigNames.BspScheduleDelay] = value;
+                context.EnvironmentVariables[KnownOtelConfigNames.MetricExportInterval] = value;
 
                 // Configure trace sampler to send all traces to the dashboard.
-                context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
+                context.EnvironmentVariables[KnownOtelConfigNames.TracesSampler] = "always_on";
                 // Configure metrics to include exemplars.
-                context.EnvironmentVariables["OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
+                context.EnvironmentVariables[KnownOtelConfigNames.MetricsExemplarFilter] = "trace_based";
 
                 // Output sensitive message content for GenAI.
                 // A convention for libraries that output GenAI telemetry is to use `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` env var.
                 // See:
                 // - https://opentelemetry.io/blog/2024/otel-generative-ai/
                 // - https://github.com/search?q=org%3Aopen-telemetry+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT&type=code
-                context.EnvironmentVariables["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] = "true";
+                context.EnvironmentVariables[KnownOtelConfigNames.InstrumentationGenAiCaptureMessageContent] = "true";
             }
         }));
     }

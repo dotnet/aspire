@@ -16,6 +16,7 @@ using Aspire.Cli.Bundles;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Secrets;
 using Microsoft.AspNetCore.Certificates.Generation;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
@@ -245,6 +246,7 @@ public class Program
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<ITemplateVersionPrompter>(sp => (ITemplateVersionPrompter)sp.GetRequiredService<INewCommandPrompter>());
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
@@ -323,8 +325,10 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Template factories.
+        builder.Services.AddSingleton<TemplateNuGetConfigService>();
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
@@ -389,10 +393,19 @@ public class Program
         builder.Services.AddTransient<DocsListCommand>();
         builder.Services.AddTransient<DocsSearchCommand>();
         builder.Services.AddTransient<DocsGetCommand>();
+        builder.Services.AddTransient<SecretCommand>();
+        builder.Services.AddTransient<SecretSetCommand>();
+        builder.Services.AddTransient<SecretGetCommand>();
+        builder.Services.AddTransient<SecretListCommand>();
+        builder.Services.AddTransient<SecretDeleteCommand>();
+        builder.Services.AddTransient<SecretStoreResolver>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<SetupCommand>();
+#if DEBUG
+        builder.Services.AddTransient<RenderCommand>();
+#endif
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
@@ -474,8 +487,10 @@ public class Program
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
-        if (showBanner || (isFirstRun && !noLogo))
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo or non-interactive output)
+        if (showBanner || (isFirstRun && !noLogo && hostEnvironment.SupportsInteractiveOutput))
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);

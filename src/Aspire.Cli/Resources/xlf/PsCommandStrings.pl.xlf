@@ -8,23 +8,23 @@
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="needs-review-translation">CLI_PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
-        <target state="translated">PULPIT NAWIGACYJNY</target>
+        <source>Dashboard</source>
+        <target state="needs-review-translation">PULPIT NAWIGACYJNY</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">ŚCIEŻKA</target>
+        <source>Path</source>
+        <target state="needs-review-translation">ŚCIEŻKA</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="translated">Identyfikator PID</target>
+        <target state="needs-review-translation">Identyfikator PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">

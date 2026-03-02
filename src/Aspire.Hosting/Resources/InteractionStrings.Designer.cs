@@ -252,7 +252,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run `aspire secret set` in the AppHost directory to configure secrets..
+        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information..
         /// </summary>
         internal static string ParametersInputsRememberDescriptionNotConfigured {
             get {

@@ -145,4 +145,7 @@
   <data name="ChannelOptionDescriptionWithStaging" xml:space="preserve">
     <value>Channel to use for templates (stable, staging, daily)</value>
   </data>
+  <data name="LanguageOptionDescription" xml:space="preserve">
+    <value>The programming language for the AppHost.</value>
+  </data>
 </root>

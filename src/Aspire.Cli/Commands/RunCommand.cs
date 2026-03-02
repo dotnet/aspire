@@ -211,7 +211,7 @@ internal sealed class RunCommand : BaseCommand
                 // If in isolated mode and a running instance was stopped, warn the user
                 if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
                 {
-                    InteractionService.DisplayMessage("warning", RunCommandStrings.IsolatedModeRunningInstanceWarning);
+                    InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
                 }
             }
 
@@ -368,7 +368,7 @@ internal sealed class RunCommand : BaseCommand
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
+            InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
@@ -377,7 +377,7 @@ internal sealed class RunCommand : BaseCommand
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
+            InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
