@@ -1,11 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
 using System.Threading.Channels;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -99,7 +98,6 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12710")]
     public async Task CliOrphanDetectorContinuesRunningWhenProcessAliveWithCorrectStartTime()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
@@ -176,7 +174,6 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12710")]
     public async Task CliOrphanDetectorAfterTheProcessWasRunningForAWhileThenStops()
     {
         var configuration = new ConfigurationBuilder()
