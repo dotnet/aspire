@@ -87,7 +87,7 @@ internal static class TelemetryTestHelper
         };
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
-        using var handler = new MockHttpMessageHandler(request =>
+        var handler = new MockHttpMessageHandler(request =>
         {
             var url = request.RequestUri!.ToString();
             if (url.Contains("/api/telemetry/resources"))
@@ -119,6 +119,9 @@ internal static class TelemetryTestHelper
             options.DisableAnsi = true;
         });
 
+        // Register the handler as a singleton so it is disposed with the ServiceProvider,
+        // rather than at the end of this method (which would cause ObjectDisposedException).
+        services.AddSingleton(handler);
         services.Replace(ServiceDescriptor.Singleton<IHttpClientFactory>(new MockHttpClientFactory(handler)));
 
         return services.BuildServiceProvider();
