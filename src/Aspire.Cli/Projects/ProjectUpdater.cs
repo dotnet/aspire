@@ -120,11 +120,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         interactionService.DisplayEmptyLine();
 
-        foreach (var updateStep in updateSteps)
-        {
-            interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
-            await updateStep.Callback();
-        }
+        await interactionService.ShowStatusAsync(
+            UpdateCommandStrings.ApplyingUpdates,
+            async () =>
+            {
+                foreach (var updateStep in updateSteps)
+                {
+                    interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
+                    await updateStep.Callback();
+                }
+
+                return 0;
+            });
 
         interactionService.DisplayEmptyLine();
 

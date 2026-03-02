@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -232,50 +233,68 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return null;
         }
 
-        return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+        var result = await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+
+        // The prompt is cleared after selection.
+        // Write out the selected template again for context before proceeding.
+        if (result != null)
+        {
+            InteractionService.DisplayPlainText($"{NewCommandStrings.SelectAProjectTemplate} {result.Description}");
+        }
+        return result;
     }
 
-    private async Task<string?> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private sealed class ResolveTemplateVersionResult
     {
-        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+        public string? Version { get; init; }
 
-        var configuredChannelName = parseResult.GetValue(_channelOption);
-        if (string.IsNullOrWhiteSpace(configuredChannelName))
-        {
-            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
-        }
+        [MemberNotNullWhen(true, nameof(Version))]
+        [MemberNotNullWhen(false, nameof(ErrorMessage))]
+        public bool Success => Version is not null;
 
-        var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
-            ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
-            : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+        public string? ErrorMessage { get; init; }
+    }
 
-        if (selectedChannel is null)
-        {
-            if (string.IsNullOrWhiteSpace(configuredChannelName))
+    private async Task<ResolveTemplateVersionResult> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return await InteractionService.ShowStatusAsync(
+            NewCommandStrings.ResolvingTemplateVersion,
+            async () =>
             {
-                InteractionService.DisplayError("No package channels are available.");
-            }
-            else
-            {
-                InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
-            }
+                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            return null;
-        }
+                var configuredChannelName = parseResult.GetValue(_channelOption);
+                if (string.IsNullOrWhiteSpace(configuredChannelName))
+                {
+                    configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+                }
 
-        var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
-        var package = packages
-            .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
-            .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
-            .FirstOrDefault();
+                var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
+                    ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
+                    : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
 
-        if (package is null)
-        {
-            InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
-            return null;
-        }
+                if (selectedChannel is null)
+                {
+                    var errorMessage = string.IsNullOrWhiteSpace(configuredChannelName)
+                        ? "No package channels are available."
+                        : $"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}";
 
-        return package.Version;
+                    return new ResolveTemplateVersionResult { ErrorMessage = errorMessage };
+                }
+
+                var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+                var package = packages
+                    .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
+                    .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
+                    .FirstOrDefault();
+
+                if (package is null)
+                {
+                    return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
+                }
+
+                return new ResolveTemplateVersionResult { Version = package.Version };
+            });
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -298,11 +317,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
-            version = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
-            if (string.IsNullOrWhiteSpace(version))
+            var resolveResult = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
+            if (!resolveResult.Success)
             {
+                InteractionService.DisplayError(resolveResult.ErrorMessage);
                 return ExitCodeConstants.InvalidCommand;
             }
+
+            version = resolveResult.Version;
         }
 
         var inputs = new TemplateInputs

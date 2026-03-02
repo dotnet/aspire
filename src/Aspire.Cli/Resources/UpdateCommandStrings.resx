@@ -144,4 +144,22 @@
   <data name="NoWritePermissionToInstallDirectory" xml:space="preserve">
     <value>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</value>
   </data>
+  <data name="CheckingForUpdates" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="ApplyingUpdates" xml:space="preserve">
+    <value>Applying updates...</value>
+  </data>
+  <data name="ExtractingNewCli" xml:space="preserve">
+    <value>Extracting new CLI...</value>
+  </data>
+  <data name="ExtractedNewCli" xml:space="preserve">
+    <value>Extracted new CLI</value>
+  </data>
+  <data name="RegeneratingSdkCode" xml:space="preserve">
+    <value>Regenerating SDK code with updated packages...</value>
+  </data>
+  <data name="RegeneratedSdkCode" xml:space="preserve">
+    <value>Regenerated SDK code with updated packages.</value>
+  </data>
 </root>

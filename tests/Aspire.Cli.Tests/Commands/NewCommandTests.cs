@@ -1108,6 +1108,70 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandWithEmptyTemplateNormalizesDefaultOutputPath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        string? capturedTargetDirectory = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+
+                // Accept the default "./TestApp" path from the prompt
+                prompter.PromptForOutputPathCallback = (path) => path;
+
+                return prompter;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                };
+
+                return runner;
+            };
+        });
+
+        services.AddSingleton<IScaffoldingService>(new TestScaffoldingService
+        {
+            ScaffoldAsyncCallback = (context, cancellationToken) =>
+            {
+                capturedTargetDirectory = context.TargetDirectory.FullName;
+                return Task.CompletedTask;
+            }
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        // Do not pass --output so the default "./TestApp" path is used via the prompter
+        var result = command.Parse("new --language typescript aspire-empty --name TestApp --localhost-tld false");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(capturedTargetDirectory);
+
+        // The output path should be properly normalized without "./" segments
+        Assert.DoesNotContain("./", capturedTargetDirectory);
+        Assert.DoesNotContain(".\\", capturedTargetDirectory);
+
+        var expectedPath = Path.Combine(workspace.WorkspaceRoot.FullName, "TestApp");
+        Assert.Equal(expectedPath, capturedTargetDirectory);
+    }
+
+    [Fact]
     public async Task NewCommandWithEmptyTemplateAndTypeScriptPromptsForLocalhostTldAndUsesSelection()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

@@ -678,7 +678,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await InteractionService.ShowStatusAsync(
+            InitCommandStrings.ResolvingTemplateVersion,
+            async () => await _packagingService.GetChannelsAsync(cancellationToken));
 
         // Check if --channel option was provided (highest priority)
         var channelName = parseResult.GetValue(_channelOption);
