@@ -46,6 +46,12 @@ internal sealed class AtsMarshaller
         public string? ParameterName { get; init; }
     }
 
+    // NOTE: ReferenceHandler.IgnoreCycles prevents JsonException when serializing DTOs
+    // with circular references (e.g. parent/child back-references). Cycles are broken by
+    // writing null for back-edges. This means the TypeScript side will receive null for
+    // cycle-broken properties. During DTO writeback, those null values will overwrite the
+    // original non-null references on the C# side — this is intentional, since TypeScript
+    // cannot represent object cycles and the writeback reflects what TypeScript observed.
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -544,16 +550,29 @@ internal sealed class AtsMarshaller
     /// Used for applying mutations made in callbacks back to the original objects.
     /// Only writable properties and public fields whose types can be deserialized
     /// from the JSON are updated. Properties with complex types that lack a
-    /// parameterless constructor (e.g. <c>EndpointReference</c>) are skipped.
+    /// parameterless constructor (e.g. <c>EndpointReference</c>) are silently skipped.
     /// </summary>
     /// <param name="source">The JSON object containing the updated values.</param>
     /// <param name="target">The existing DTO instance to update.</param>
     /// <param name="targetType">The CLR type of the target object.</param>
-    public static void ApplyDtoProperties(JsonObject source, object target, Type targetType)
+    /// <remarks>
+    /// <para>
+    /// Nested DTO properties are deserialized as new instances, not patched in-place.
+    /// External references to the original nested object will not see the mutations.
+    /// </para>
+    /// <para>
+    /// When <c>ReferenceHandler.IgnoreCycles</c> is active, cycle-broken properties
+    /// arrive as <c>null</c> and will overwrite the original non-null reference.
+    /// </para>
+    /// </remarks>
+    // Instance method for consistency with IsDtoType and future extensibility.
+#pragma warning disable CA1822 // Member does not access instance data
+    public void ApplyDtoProperties(JsonObject source, object target, Type targetType)
+#pragma warning restore CA1822
     {
         foreach (var prop in targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            if (!prop.CanRead || !prop.CanWrite)
+            if (!prop.CanWrite)
             {
                 continue;
             }
@@ -571,11 +590,16 @@ internal sealed class AtsMarshaller
             }
             catch (NotSupportedException)
             {
-                // Skip properties whose types can't be deserialized (e.g. EndpointReference)
+                // Silently skip properties whose types can't be deserialized by
+                // System.Text.Json (e.g. EndpointReference with no parameterless
+                // constructor). This is expected for DTO types that carry complex
+                // navigation properties alongside simple writable data.
             }
             catch (JsonException)
             {
-                // Skip properties with incompatible JSON values
+                // Silently skip properties where the JSON value is incompatible
+                // with the CLR property type (e.g. string sent for an int field).
+                // This is a best-effort writeback — partial updates are acceptable.
             }
         }
 
@@ -599,11 +623,11 @@ internal sealed class AtsMarshaller
             }
             catch (NotSupportedException)
             {
-                // Skip fields whose types can't be deserialized
+                // Skip fields whose types can't be deserialized (same rationale as properties above).
             }
             catch (JsonException)
             {
-                // Skip fields with incompatible JSON values
+                // Skip fields with incompatible JSON values (best-effort writeback).
             }
         }
     }

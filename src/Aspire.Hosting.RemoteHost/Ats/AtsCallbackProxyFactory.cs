@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Nodes;
@@ -295,11 +296,11 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         }
     }
 
-    private static bool HasDtoParameters(ParameterInfo[] parameters)
+    private bool HasDtoParameters(ParameterInfo[] parameters)
     {
         return parameters.Any(p =>
             p.ParameterType != typeof(CancellationToken) &&
-            p.ParameterType.GetCustomAttribute<AspireDtoAttribute>() is not null);
+            _marshaller.IsDtoType(p.ParameterType));
     }
 
     private Expression BuildSyncVoidCallWithDtoWriteback(string callbackId, Expression? argsExpr, Expression? ctExpr, ParameterExpression[] paramExprs, ParameterInfo[] parameters)
@@ -360,6 +361,8 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
     private void ApplyDtoWriteback(JsonNode? result, object?[] originalArgs, Type[] argTypes)
     {
+        Debug.Assert(originalArgs.Length == argTypes.Length, "originalArgs and argTypes must have the same length");
+
         if (result is not JsonObject returnedArgs)
         {
             return;
@@ -377,10 +380,20 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
                 continue;
             }
 
+            // Value types (structs) are boxed into the originalArgs array, so mutations
+            // via ApplyDtoProperties would modify the boxed copy, not the caller's variable.
+            // Skip writeback for value types to avoid silent no-op behavior.
+            if (argTypes[i].IsValueType)
+            {
+                continue;
+            }
+
+            // Positional key matches the convention used in BuildMarshalArgs and the
+            // TypeScript extraction loop in transport.ts registerCallback.
             var key = $"p{i}";
             if (returnedArgs[key] is JsonObject modifiedDto)
             {
-                AtsMarshaller.ApplyDtoProperties(modifiedDto, originalArgs[i]!, argTypes[i]);
+                _marshaller.ApplyDtoProperties(modifiedDto, originalArgs[i]!, argTypes[i]);
             }
         }
     }

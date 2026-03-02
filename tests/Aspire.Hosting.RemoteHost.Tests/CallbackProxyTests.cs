@@ -269,22 +269,29 @@ public class CallbackProxyTests
     }
 
     [Fact]
-    public async Task InvokedSyncVoidProxy_DtoWritebackIgnoresNonDtoArgs()
+    public void InvokedSyncVoidProxy_DtoWritebackIgnoresNonDtoArgs()
     {
-        // When the invoker returns args object but arg is not a DTO, it should not crash
+        // Use a delegate with both a non-DTO param (string) and a DTO param to exercise
+        // the writeback path. The non-DTO arg at p0 should be safely skipped, while
+        // the DTO arg at p1 should be written back.
+        var dto = new TestCallbackDto { Name = "original", Count = 0 };
         var invoker = new TestCallbackInvoker
         {
             ResultToReturn = new JsonObject
             {
-                ["p0"] = JsonValue.Create("some-string")
+                ["p0"] = JsonValue.Create("some-string"),
+                ["p1"] = new JsonObject { ["name"] = "mixed-modified", ["count"] = 77 }
             }
         };
         using var factory = CreateFactory(invoker, registerDtoTypes: true);
 
-        var proxy = (TestCallbackWithString)factory.CreateProxy("test-callback", typeof(TestCallbackWithString))!;
+        var proxy = (TestSyncVoidCallbackWithMixedArgs)factory.CreateProxy("test-callback", typeof(TestSyncVoidCallbackWithMixedArgs))!;
 
-        // Should not throw - non-DTO args are skipped during writeback
-        await proxy("hello");
+        // Should not throw - non-DTO arg at p0 is skipped, DTO arg at p1 is written back
+        proxy("hello", dto);
+
+        Assert.Equal("mixed-modified", dto.Name);
+        Assert.Equal(77, dto.Count);
     }
 
     [Fact]
@@ -303,6 +310,32 @@ public class CallbackProxyTests
         // Original values should be unchanged
         Assert.Equal("original", dto.Name);
         Assert.Equal(0, dto.Count);
+    }
+
+    [Fact]
+    public void InvokedSyncVoidProxy_AppliesWritebackToMultipleDtos()
+    {
+        var dto1 = new TestCallbackDto { Name = "first", Count = 1 };
+        var dto2 = new TestCallbackDto { Name = "second", Count = 2 };
+
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = new JsonObject
+            {
+                ["p0"] = new JsonObject { ["name"] = "first-updated", ["count"] = 10 },
+                ["p1"] = new JsonObject { ["name"] = "second-updated", ["count"] = 20 }
+            }
+        };
+        using var factory = CreateFactory(invoker, registerDtoTypes: true);
+
+        var proxy = (TestSyncVoidCallbackWithMultipleDtos)factory.CreateProxy("test-callback", typeof(TestSyncVoidCallbackWithMultipleDtos))!;
+
+        proxy(dto1, dto2);
+
+        Assert.Equal("first-updated", dto1.Name);
+        Assert.Equal(10, dto1.Count);
+        Assert.Equal("second-updated", dto2.Name);
+        Assert.Equal(20, dto2.Count);
     }
 
     private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null, bool registerDtoTypes = false)
@@ -338,6 +371,10 @@ public class CallbackProxyTests
     public delegate void TestSyncVoidCallbackWithDto(TestCallbackDto dto);
 
     public delegate Task TestAsyncVoidCallbackWithDto(TestCallbackDto dto);
+
+    public delegate void TestSyncVoidCallbackWithMixedArgs(string label, TestCallbackDto dto);
+
+    public delegate void TestSyncVoidCallbackWithMultipleDtos(TestCallbackDto dto1, TestCallbackDto dto2);
 
     [AspireDto]
     public sealed class TestCallbackDto

@@ -705,10 +705,11 @@ public class AtsMarshallerTests
     [Fact]
     public void ApplyDtoProperties_UpdatesWritableProperties()
     {
+        var marshaller = CreateMarshaller();
         var dto = new TestDto { Name = "original", Count = 0 };
         var source = new JsonObject { ["name"] = "updated", ["count"] = 42 };
 
-        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
+        marshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
 
         Assert.Equal("updated", dto.Name);
         Assert.Equal(42, dto.Count);
@@ -717,10 +718,11 @@ public class AtsMarshallerTests
     [Fact]
     public void ApplyDtoProperties_OnlyUpdatesProvidedProperties()
     {
+        var marshaller = CreateMarshaller();
         var dto = new TestDto { Name = "original", Count = 10 };
         var source = new JsonObject { ["name"] = "updated" };
 
-        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
+        marshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
 
         Assert.Equal("updated", dto.Name);
         Assert.Equal(10, dto.Count); // Count unchanged since not in JSON
@@ -729,6 +731,7 @@ public class AtsMarshallerTests
     [Fact]
     public void ApplyDtoProperties_SkipsNonDeserializableProperties()
     {
+        var marshaller = CreateMarshaller();
         var dto = new DtoWithComplexProperty { Name = "original", Complex = new NonDeserializableType("keep-me") };
         var source = new JsonObject
         {
@@ -736,7 +739,7 @@ public class AtsMarshallerTests
             ["complex"] = new JsonObject { ["value"] = "should-be-ignored" }
         };
 
-        AtsMarshaller.ApplyDtoProperties(source, dto, typeof(DtoWithComplexProperty));
+        marshaller.ApplyDtoProperties(source, dto, typeof(DtoWithComplexProperty));
 
         Assert.Equal("updated", dto.Name);
         Assert.Equal("keep-me", dto.Complex.Value); // Complex property unchanged
