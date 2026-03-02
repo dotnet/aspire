@@ -133,6 +133,9 @@
     <trans-unit id="aspire-vscode.strings.error">
       <source xml:lang="en">Error: {0}</source>
     </trans-unit>
+    <trans-unit id="command.executeResourceCommand">
+      <source xml:lang="en">Execute resource command</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
       <source xml:lang="en">Extension context is not initialized.</source>
     </trans-unit>
@@ -218,7 +221,7 @@
       <source xml:lang="en">No output from msbuild.</source>
     </trans-unit>
     <trans-unit id="views.runningAppHosts.welcome">
-      <source xml:lang="en">No running Aspire apphosts found.&#10;[Run an AppHost](command:aspire-vscode.runAppHost)</source>
+      <source xml:lang="en">No running Aspire apphosts found.&#10;[Run an apphost](command:aspire-vscode.runAppHost)</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noWatchTask">
       <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
@@ -271,6 +274,9 @@
     <trans-unit id="aspire-vscode.strings.requiredCapability">
       <source xml:lang="en">Required capability: {0}.</source>
     </trans-unit>
+    <trans-unit id="command.restartResource">
+      <source xml:lang="en">Restart</source>
+    </trans-unit>
     <trans-unit id="command.runAppHost">
       <source xml:lang="en">Run Aspire apphost</source>
     </trans-unit>
@@ -278,7 +284,7 @@
       <source xml:lang="en">Run {0}</source>
     </trans-unit>
     <trans-unit id="views.runningAppHosts.name">
-      <source xml:lang="en">Running Apphosts</source>
+      <source xml:lang="en">Running apphosts</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
       <source xml:lang="en">See CLI installation instructions</source>
@@ -286,11 +292,14 @@
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
     </trans-unit>
-    <trans-unit id="command.stopAppHost">
-      <source xml:lang="en">Stop AppHost</source>
+    <trans-unit id="command.startResource">
+      <source xml:lang="en">Start</source>
     </trans-unit>
     <trans-unit id="command.stopResource">
-      <source xml:lang="en">Stop Resource</source>
+      <source xml:lang="en">Stop</source>
+    </trans-unit>
+    <trans-unit id="command.stopAppHost">
+      <source xml:lang="en">Stop</source>
     </trans-unit>
     <trans-unit id="views.runningAppHosts.errorWelcome">
       <source xml:lang="en">The Aspire CLI is not installed or does not support this feature. Install or update the Aspire CLI to get started.&#10;[Update Aspire CLI](command:aspire-vscode.updateSelf)&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
@@ -311,7 +320,7 @@
       <source xml:lang="en">Update integrations</source>
     </trans-unit>
     <trans-unit id="command.viewResourceLogs">
-      <source xml:lang="en">View Logs</source>
+      <source xml:lang="en">View logs</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>

@@ -11,9 +11,8 @@ import {
     resourcesGroupLabel,
     resourceStateLabel,
     resourceEndpointLabel,
-    stopAppHostLabel,
-    stopResourceLabel,
-    viewLogsLabel,
+    noCommandsAvailable,
+    selectCommandPlaceholder,
 } from '../loc/strings';
 
 interface ResourceUrlJson {
@@ -21,6 +20,10 @@ interface ResourceUrlJson {
     displayName: string | null;
     url: string;
     isInternal: boolean;
+}
+
+interface ResourceCommandJson {
+    description: string | null;
 }
 
 interface ResourceJson {
@@ -31,6 +34,7 @@ interface ResourceJson {
     stateStyle: string | null;
     healthStatus: string | null;
     urls: ResourceUrlJson[] | null;
+    commands: Record<string, ResourceCommandJson> | null;
 }
 
 interface AppHostDisplayInfo {
@@ -242,7 +246,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
 
     stopAppHost(element: AppHostItem): void {
         const appHostPath = element.appHost.appHostPath;
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop --project "${appHostPath}"`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop --apphost "${appHostPath}"`);
     }
 
     stopResource(element: ResourceItem): void {
@@ -250,7 +254,23 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         if (!appHost) {
             return;
         }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop "${element.resource.name}" --project "${appHost.appHostPath}"`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
+    }
+
+    startResource(element: ResourceItem): void {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`start "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
+    }
+
+    restartResource(element: ResourceItem): void {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`restart "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
     }
 
     viewResourceLogs(element: ResourceItem): void {
@@ -258,7 +278,33 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         if (!appHost) {
             return;
         }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --project "${appHost.appHostPath}" --follow`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --apphost "${appHost.appHostPath}" --follow`);
+    }
+
+    async executeResourceCommand(element: ResourceItem): Promise<void> {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+
+        const commands = element.resource.commands;
+        if (!commands || Object.keys(commands).length === 0) {
+            vscode.window.showInformationMessage(noCommandsAvailable);
+            return;
+        }
+
+        const items = Object.entries(commands).map(([name, cmd]) => ({
+            label: name,
+            description: cmd.description ?? undefined,
+        }));
+
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: selectCommandPlaceholder,
+        });
+
+        if (selected) {
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`command "${element.resource.name}" "${selected.label}" --apphost "${appHost.appHostPath}"`);
+        }
     }
 
     private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {

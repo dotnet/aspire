@@ -39,7 +39,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const rpcServer = await AspireRpcServer.create(
     (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => {
-      return new RpcClient(terminalProvider, connection, debugSessionId, () => aspireExtensionContext.getAspireDebugSession(debugSessionId));
+      const client: RpcClient = new RpcClient(terminalProvider, connection, debugSessionId, () => aspireExtensionContext.getAspireDebugSession(client.debugSessionId));
+      return client;
     }
   );
 
@@ -75,7 +76,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const openDashboardRegistration = vscode.commands.registerCommand('aspire-vscode.openDashboard', (element) => appHostTreeProvider.openDashboard(element));
   const stopAppHostRegistration = vscode.commands.registerCommand('aspire-vscode.stopAppHost', (element) => appHostTreeProvider.stopAppHost(element));
   const stopResourceRegistration = vscode.commands.registerCommand('aspire-vscode.stopResource', (element) => appHostTreeProvider.stopResource(element));
+  const startResourceRegistration = vscode.commands.registerCommand('aspire-vscode.startResource', (element) => appHostTreeProvider.startResource(element));
+  const restartResourceRegistration = vscode.commands.registerCommand('aspire-vscode.restartResource', (element) => appHostTreeProvider.restartResource(element));
   const viewResourceLogsRegistration = vscode.commands.registerCommand('aspire-vscode.viewResourceLogs', (element) => appHostTreeProvider.viewResourceLogs(element));
+  const executeResourceCommandRegistration = vscode.commands.registerCommand('aspire-vscode.executeResourceCommand', (element) => appHostTreeProvider.executeResourceCommand(element));
 
   // Set initial context for welcome view
   vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', true);
@@ -93,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, stopAppHostRegistration, stopResourceRegistration, viewResourceLogsRegistration, { dispose: () => appHostTreeProvider.dispose() });
+  context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, stopAppHostRegistration, stopResourceRegistration, startResourceRegistration, restartResourceRegistration, viewResourceLogsRegistration, executeResourceCommandRegistration, { dispose: () => appHostTreeProvider.dispose() });
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, cliUpdateSelfCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
