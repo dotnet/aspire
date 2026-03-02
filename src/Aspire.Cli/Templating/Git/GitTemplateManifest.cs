@@ -17,9 +17,13 @@ internal sealed class GitTemplateManifest
 
     public required string Name { get; set; }
 
-    public string? Description { get; set; }
+    public LocalizableString? DisplayName { get; set; }
+
+    public LocalizableString? Description { get; set; }
 
     public string? Language { get; set; }
+
+    public List<string>? Scope { get; set; }
 
     public Dictionary<string, GitTemplateVariable>? Variables { get; set; }
 

@@ -48,7 +48,7 @@ internal sealed partial class TemplateNewManifestCommand : BaseTemplateSubComman
 
             if (!overwrite)
             {
-                InteractionService.DisplayMessage("information", "Cancelled.");
+                InteractionService.DisplayMessage(KnownEmojis.Information, "Cancelled.");
                 return ExitCodeConstants.Success;
             }
         }

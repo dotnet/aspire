@@ -13,6 +13,10 @@ internal sealed class GitTemplateVariable
 {
     public required string Type { get; set; }
 
+    public LocalizableString? DisplayName { get; set; }
+
+    public LocalizableString? Description { get; set; }
+
     public bool? Required { get; set; }
 
     [JsonConverter(typeof(JsonObjectConverter))]
@@ -43,6 +47,10 @@ internal sealed class GitTemplateVariableValidation
 internal sealed class GitTemplateVariableChoice
 {
     public required string Value { get; set; }
+
+    public LocalizableString? DisplayName { get; set; }
+
+    public LocalizableString? Description { get; set; }
 }
 
 /// <summary>

@@ -186,6 +186,7 @@ The template manifest lives inside a template directory and describes how to app
   "displayName": "Aspire Starter Application",
   "description": "A full-featured Aspire starter with a web frontend and API backend.",
   "language": "csharp",
+  "scope": ["new"],
   "variables": {
     "projectName": {
       "displayName": "Project Name",
@@ -257,9 +258,10 @@ The template manifest lives inside a template directory and describes how to app
 | `$schema` | string | No | JSON schema URL for validation and editor support |
 | `version` | integer | Yes | Schema version. Must be `1` for this spec. |
 | `name` | string | Yes | Machine-readable template identifier (must match index entry) |
-| `displayName` | string | Yes | Human-readable template name |
-| `description` | string | Yes | Short description |
+| `displayName` | string \| object | Yes | Human-readable template name (see [Localization](#localization)) |
+| `description` | string \| object | Yes | Short description (see [Localization](#localization)) |
 | `language` | string | No | Primary language |
+| `scope` | array | No | Where the template appears: `["new"]`, `["init"]`, or `["new", "init"]`. Default: `["new"]` |
 | `variables` | object | Yes | Map of variable name → variable definition |
 | `substitutions` | object | Yes | Substitution rules |
 | `substitutions.filenames` | object | No | Map of filename patterns → replacement expressions |
@@ -296,6 +298,57 @@ The `conditionalFiles` section controls which files are included in the output:
 
 - **Boolean variables:** File is included only when the variable is `true`.
 - **Choice variables:** File/directory is included only when the variable has a truthy (non-empty) value. For more granular control, use the naming convention `{{variableName}}-xunit/` where the directory name encodes the choice.
+
+### Template Scope
+
+The `scope` field controls where the template appears in the CLI:
+
+| Scope Value | Description |
+|-------------|-------------|
+| `"new"` | Template appears in `aspire new` (creates a new project) |
+| `"init"` | Template appears in `aspire init` (initializes an existing solution) |
+
+The field is an array, so a template can appear in both contexts:
+
+```json
+"scope": ["new", "init"]
+```
+
+If omitted, scope defaults to `["new"]` for backward compatibility.
+
+### Localization
+
+String fields that are displayed to the user (`displayName`, `description`) support optional localization. Each such field accepts either a plain string or an object with culture-specific translations:
+
+**Plain string (no localization):**
+
+```json
+"displayName": "Project Name"
+```
+
+**Localized string (culture keys):**
+
+```json
+"displayName": {
+  "en": "Project Name",
+  "de": "Projektname",
+  "ja": "プロジェクト名"
+}
+```
+
+The CLI resolves the best match using the current UI culture:
+
+1. Try exact match (e.g., `en-US`)
+2. Try parent culture (e.g., `en`)
+3. Fall back to the first entry in the object
+
+Localizable fields:
+
+- `aspire-template.json`: `displayName`, `description`
+- Variables: `displayName`, `description`
+- Choices: `displayName`, `description`
+
+Localization is optional — templates that use plain strings work unchanged. This design keeps templates self-contained in a single `aspire-template.json` file, avoiding the need for sidecar localization files (unlike the .NET template engine's `localize/templatestrings.{culture}.json` approach).
 
 ## 5. Template Directory Structure
 

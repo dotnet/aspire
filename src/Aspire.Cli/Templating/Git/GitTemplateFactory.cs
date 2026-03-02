@@ -31,14 +31,28 @@ internal sealed class GitTemplateFactory : ITemplateFactory
         _templateLogger = templateLogger;
     }
 
-    public IEnumerable<ITemplate> GetTemplates()
+    public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        // Synchronously get cached templates (no network calls on the hot path).
-        // Templates are populated after 'aspire template refresh' or on first list/search.
+        return Task.FromResult(GetTemplatesForScope("new"));
+    }
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(GetTemplatesForScope("init"));
+    }
+
+    private IEnumerable<ITemplate> GetTemplatesForScope(string scope)
+    {
         var templates = _indexService.GetTemplatesAsync().GetAwaiter().GetResult();
 
         foreach (var resolved in templates)
         {
+            var entryScope = resolved.Entry.Scope ?? ["new"];
+            if (!entryScope.Contains(scope, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             yield return new GitTemplate(
                 resolved,
                 _engine,
@@ -46,11 +60,5 @@ internal sealed class GitTemplateFactory : ITemplateFactory
                 _httpClientFactory,
                 _templateLogger);
         }
-    }
-
-    public IEnumerable<ITemplate> GetInitTemplates()
-    {
-        // Git templates are not used for 'aspire init' — only for 'aspire new'.
-        return [];
     }
 }

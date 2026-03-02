@@ -50,6 +50,8 @@ internal sealed class GitTemplateIndexEntry
     public string? Language { get; set; }
 
     public List<string>? Tags { get; set; }
+
+    public List<string>? Scope { get; set; }
 }
 
 /// <summary>

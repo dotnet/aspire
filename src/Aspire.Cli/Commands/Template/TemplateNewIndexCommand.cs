@@ -46,7 +46,7 @@ internal sealed class TemplateNewIndexCommand : BaseTemplateSubCommand
 
             if (!overwrite)
             {
-                InteractionService.DisplayMessage("information", "Cancelled.");
+                InteractionService.DisplayMessage(KnownEmojis.Information, "Cancelled.");
                 return ExitCodeConstants.Success;
             }
         }
@@ -70,7 +70,7 @@ internal sealed class TemplateNewIndexCommand : BaseTemplateSubCommand
         await File.WriteAllTextAsync(outputPath, json, cancellationToken).ConfigureAwait(false);
 
         InteractionService.DisplaySuccess($"Created {outputPath}");
-        InteractionService.DisplayMessage("information", "Edit the file to add your templates, then run 'aspire template new' in each template directory.");
+        InteractionService.DisplayMessage(KnownEmojis.Information, "Edit the file to add your templates, then run 'aspire template new' in each template directory.");
         return ExitCodeConstants.Success;
     }
 }

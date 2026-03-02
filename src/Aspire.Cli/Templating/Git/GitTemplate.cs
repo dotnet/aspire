@@ -3,9 +3,12 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Aspire.Cli.Interaction;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Templating.Git;
 
@@ -38,9 +41,15 @@ internal sealed class GitTemplate : ITemplate
 
     public string Description => _resolved.Entry.Description ?? $"Git template from {_resolved.Source.Name}";
 
+    public TemplateRuntime Runtime => TemplateRuntime.Cli;
+
     public Func<string, string> PathDeriver => name => name;
 
-    public void ApplyOptions(Commands.TemplateCommand command)
+    public bool SupportsLanguage(string languageId) => true;
+
+    public IReadOnlyList<string> SelectableAppHostLanguages => [];
+
+    public void ApplyOptions(Command command)
     {
         // Git templates don't add CLI options — variables are prompted interactively.
     }
@@ -93,12 +102,8 @@ internal sealed class GitTemplate : ITemplate
                         continue;
                     }
 
-                    var defaultValue = varDef.DefaultValue?.ToString();
-                    var value = await _interactionService.PromptForStringAsync(
-                        varName,
-                        defaultValue: defaultValue,
-                        cancellationToken: cancellationToken).ConfigureAwait(false);
-
+                    var promptText = varDef.DisplayName?.Resolve() ?? varName;
+                    var value = await PromptForVariableAsync(promptText, varDef, cancellationToken).ConfigureAwait(false);
                     variables[varName] = value;
                 }
             }
@@ -123,6 +128,76 @@ internal sealed class GitTemplate : ITemplate
             {
                 // Best-effort cleanup.
             }
+        }
+    }
+
+    private async Task<string> PromptForVariableAsync(string promptText, GitTemplateVariable varDef, CancellationToken cancellationToken)
+    {
+        switch (varDef.Type.ToLowerInvariant())
+        {
+            case "boolean":
+                var boolDefault = varDef.DefaultValue is true;
+                var boolResult = await _interactionService.ConfirmAsync(promptText, boolDefault, cancellationToken).ConfigureAwait(false);
+                return boolResult.ToString().ToLowerInvariant();
+
+            case "choice" when varDef.Choices is { Count: > 0 }:
+                var selected = await _interactionService.PromptForSelectionAsync(
+                    promptText,
+                    varDef.Choices,
+                    choice => choice.DisplayName?.Resolve() ?? choice.Value,
+                    cancellationToken).ConfigureAwait(false);
+                return selected.Value;
+
+            case "integer":
+                var intDefault = varDef.DefaultValue?.ToString();
+                var intMin = varDef.Validation?.Min;
+                var intMax = varDef.Validation?.Max;
+                return await _interactionService.PromptForStringAsync(
+                    promptText,
+                    defaultValue: intDefault,
+                    validator: input =>
+                    {
+                        if (!int.TryParse(input, CultureInfo.InvariantCulture, out var parsed))
+                        {
+                            return ValidationResult.Error("Value must be an integer.");
+                        }
+                        if (intMin.HasValue && parsed < intMin.Value)
+                        {
+                            return ValidationResult.Error($"Value must be at least {intMin.Value}.");
+                        }
+                        if (intMax.HasValue && parsed > intMax.Value)
+                        {
+                            return ValidationResult.Error($"Value must be at most {intMax.Value}.");
+                        }
+                        return ValidationResult.Success();
+                    },
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            default: // "string" or unknown types
+                var strDefault = varDef.DefaultValue?.ToString();
+                var pattern = varDef.Validation?.Pattern;
+                var validationMessage = varDef.Validation?.Message;
+                Func<string, ValidationResult>? validator = null;
+
+                if (pattern is not null)
+                {
+                    var regex = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+                    validator = input =>
+                    {
+                        if (!regex.IsMatch(input))
+                        {
+                            return ValidationResult.Error(validationMessage ?? $"Value must match pattern: {pattern}");
+                        }
+                        return ValidationResult.Success();
+                    };
+                }
+
+                return await _interactionService.PromptForStringAsync(
+                    promptText,
+                    defaultValue: strDefault,
+                    validator: validator,
+                    required: varDef.Required == true,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 

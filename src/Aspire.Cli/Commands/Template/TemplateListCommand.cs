@@ -42,7 +42,7 @@ internal sealed class TemplateListCommand(
 
         if (templates.Count == 0)
         {
-            InteractionService.DisplayMessage("information", "No templates found. Try 'aspire template refresh' to update the index cache.");
+            InteractionService.DisplayMessage(KnownEmojis.Information, "No templates found. Try 'aspire template refresh' to update the index cache.");
             return ExitCodeConstants.Success;
         }
 

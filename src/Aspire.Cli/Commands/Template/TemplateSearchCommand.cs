@@ -58,7 +58,7 @@ internal sealed class TemplateSearchCommand : BaseTemplateSubCommand
 
         if (matches.Count == 0)
         {
-            InteractionService.DisplayMessage("information", $"No templates matching '{keyword}'.");
+            InteractionService.DisplayMessage(KnownEmojis.Information, $"No templates matching '{keyword}'.");
             return ExitCodeConstants.Success;
         }
 
