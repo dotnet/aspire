@@ -594,6 +594,88 @@ public class TelemetryRepositoryTests
     }
 
     [Fact]
+    public async Task WatchSpansAsync_ReturnsExistingSpans_OrderedByStartTime()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Add spans with non-chronological start times across different traces
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            // Span with latest start time added first
+                            CreateSpan(traceId: "trace1", spanId: "span-late", startTime: s_testTime.AddMinutes(10), endTime: s_testTime.AddMinutes(11))
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            // Span with earliest start time added second
+                            CreateSpan(traceId: "trace2", spanId: "span-early", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(2))
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            // Span with middle start time added last
+                            CreateSpan(traceId: "trace3", spanId: "span-mid", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(6))
+                        }
+                    }
+                }
+            }
+        });
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var receivedSpans = new List<OtlpSpan>();
+
+        // Act
+        try
+        {
+            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+            {
+                receivedSpans.Add(span);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+
+        // Assert - spans should be ordered by start time regardless of insertion order
+        Assert.Equal(3, receivedSpans.Count);
+        Assert.Contains("span-early", receivedSpans[0].Name);
+        Assert.Contains("span-mid", receivedSpans[1].Name);
+        Assert.Contains("span-late", receivedSpans[2].Name);
+    }
+
+    [Fact]
     public async Task WatchSpansAsync_FiltersById_WhenResourceKeyProvided()
     {
         // Arrange

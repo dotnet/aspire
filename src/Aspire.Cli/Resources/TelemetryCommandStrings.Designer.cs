@@ -219,15 +219,15 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string HeaderTraceId {
+        internal static string HeaderTimestamp {
             get {
-                return ResourceManager.GetString("HeaderTraceId", resourceCulture);
+                return ResourceManager.GetString("HeaderTimestamp", resourceCulture);
             }
         }
 
-        internal static string HeaderResource {
+        internal static string HeaderName {
             get {
-                return ResourceManager.GetString("HeaderResource", resourceCulture);
+                return ResourceManager.GetString("HeaderName", resourceCulture);
             }
         }
 

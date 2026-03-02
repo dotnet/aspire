@@ -290,6 +290,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddSingleton<IBannerService, BannerService>();
+        builder.Services.AddSingleton<ResourceColorMap>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
