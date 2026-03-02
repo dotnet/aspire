@@ -136,14 +136,6 @@
   <data name="Dashboard" xml:space="preserve">
     <value>Dashboard</value>
   </data>
-  <data name="DirectLink" xml:space="preserve">
-    <value>Direct</value>
-    <comment>Represents a type of link</comment>
-  </data>
-  <data name="CodespacesLink" xml:space="preserve">
-    <value>Codespaces</value>
-    <comment>Represents a type of link</comment>
-  </data>
   <data name="StoppingAspire" xml:space="preserve">
     <value>Stopping Aspire.</value>
   </data>

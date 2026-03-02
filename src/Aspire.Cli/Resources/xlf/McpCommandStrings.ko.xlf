@@ -27,16 +27,6 @@
         <target state="translated">에이전트 환경 구성이 완료되었습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Playwright MCP 서버를 미리 구성할까요?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">에이전트 환경별 지침 파일을 만드시겠어요?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
         <target state="translated">검색된 에이전트 환경에 대한 MCP 서버 구성을 초기화합니다. (더 이상 사용되지 않음, 'agent init' 사용)</target>

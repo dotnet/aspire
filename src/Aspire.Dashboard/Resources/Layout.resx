@@ -186,4 +186,10 @@
   <data name="MessageUnsecuredEndpointApiBody" xml:space="preserve">
     <value>Untrusted apps can access telemetry data via the API.</value>
   </data>
+  <data name="MainLayoutMcpServerButton" xml:space="preserve">
+    <value>MCP Server</value>
+  </data>
+  <data name="MainLayoutMcpServerDialogTitle" xml:space="preserve">
+    <value>Aspire MCP server</value>
+  </data>
 </root>

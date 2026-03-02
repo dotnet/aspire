@@ -27,11 +27,6 @@
         <target state="translated">日志尚不可用</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">未选择资源</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">不将日志换行</target>

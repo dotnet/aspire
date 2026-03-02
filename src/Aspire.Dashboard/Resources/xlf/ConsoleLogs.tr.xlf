@@ -27,11 +27,6 @@
         <target state="translated">Günlükler henüz kullanılamıyor</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">Hiçbir kaynak seçilmedi</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">Günlük satırlarını sarmalama</target>

@@ -52,11 +52,6 @@
         <target state="translated">訊息篩選</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsMinimumLogFilter">
-        <source>Minimum log level filter</source>
-        <target state="translated">最低記錄層級篩選</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">找不到結構化記錄</target>

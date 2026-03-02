@@ -37,6 +37,11 @@
         <target state="translated">值</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExemplarsDialogViewButton">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FieldRequired">
         <source>A value is required.</source>
         <target state="translated">必須有值。</target>
@@ -136,6 +141,11 @@
         <source>Input tokens: {0}</source>
         <target state="translated">輸入權杖: {0}</target>
         <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAILlmBadge">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
@@ -492,11 +502,6 @@
         <target state="translated">手動更新 &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">Aspire MCP 可以搭配支援可串流 HTTP MCP 伺服器的任何 AI 工具使用。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">以下是設定 Aspire MCP 的重要詳細資料。若要了解如何新增 MCP 伺服器，請參閱 AI 用戶端的文件。</target>
@@ -641,11 +646,6 @@
         <source>Version: {0}</source>
         <target state="translated">版本: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">全部匯出</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

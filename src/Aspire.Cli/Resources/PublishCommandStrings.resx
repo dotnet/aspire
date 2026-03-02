@@ -138,9 +138,6 @@
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>PUBLISHING FAILED</value>
   </data>
-  <data name="InputPromptLoading" xml:space="preserve">
-    <value>Loading...</value>
-  </data>
   <data name="NoBuildArgumentDescription" xml:space="preserve">
     <value>Do not build or restore the project before running.</value>
   </data>

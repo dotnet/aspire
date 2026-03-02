@@ -72,11 +72,6 @@
         <target state="translated">Ver registros de consola</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsViewConsoleLogs">
-        <source>View console logs</source>
-        <target state="translated">Ver registros de consola</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
         <target state="translated">Expandir recursos secundarios</target>

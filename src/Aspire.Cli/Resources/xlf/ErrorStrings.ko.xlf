@@ -92,11 +92,6 @@
         <target state="translated">stdout에서 템플릿 버전을 구문 분석하지 못했습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">캐시를 통해 모든 Aspire 패키지를 검색하지 못했습니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">캐시를 통해 템플릿 패키지를 검색하지 못했습니다.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">프로젝트에 Aspire AppHost가 포함되어 있지 않습니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">단일 파일 AppHost 기능을 사용할 수 없습니다. .cs AppHost 파일을 사용하려면 설정을 사용하여 기능을 활성화해야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

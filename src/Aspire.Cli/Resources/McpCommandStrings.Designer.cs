@@ -106,24 +106,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Pre-configure Playwright MCP server?.
-        /// </summary>
-        internal static string InitCommand_ConfigurePlaywrightPrompt {
-            get {
-                return ResourceManager.GetString("InitCommand_ConfigurePlaywrightPrompt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Create agent environment specific instruction files?.
-        /// </summary>
-        internal static string InitCommand_CreateAgentInstructionsPrompt {
-            get {
-                return ResourceManager.GetString("InitCommand_CreateAgentInstructionsPrompt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments. (deprecated, use &apos;agent init&apos;).
         /// </summary>
         internal static string InitCommand_Description {

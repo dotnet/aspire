@@ -12,6 +12,11 @@
         <target state="translated">ログが書き込まれると同時にリアルタイムでストリームします。</target>
         <note />
       </trans-unit>
+      <trans-unit id="GettingLogs">
+        <source>Getting logs...</source>
+        <target state="new">Getting logs...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">ログを JSON 形式 (NDJSON) で出力します。</target>
@@ -32,11 +37,6 @@
         <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">--follow を使わない場合はリソース名の指定が必須です。--follow を使う場合、すべてのリソースのログがストリーミングされます。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stream logs from</source>
         <target state="new">stream logs from</target>
@@ -52,19 +52,9 @@
         <target state="translated">表示するログの行数を、ログの末尾から数えた行数で指定します (既定値: すべて)。</target>
         <note />
       </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">--tail オプションにはリソース名の指定が必須です。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
         <target state="new">Show timestamps for each log line.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="GettingLogs">
-        <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
         <note />
       </trans-unit>
     </body>

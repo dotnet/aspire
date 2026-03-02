@@ -69,9 +69,27 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string ResourceRequiredWithoutFollow {
+        public static string AppHostNotRunning {
             get {
-                return ResourceManager.GetString("ResourceRequiredWithoutFollow", resourceCulture);
+                return ResourceManager.GetString("AppHostNotRunning", resourceCulture);
+            }
+        }
+
+        public static string ScanningForRunningAppHosts {
+            get {
+                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
+            }
+        }
+
+        public static string SelectAppHost {
+            get {
+                return ResourceManager.GetString("SelectAppHost", resourceCulture);
+            }
+        }
+
+        public static string NoInScopeAppHostsShowingAll {
+            get {
+                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
             }
         }
 

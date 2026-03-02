@@ -9,21 +9,21 @@
 
 namespace Aspire.Dashboard.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class ConsoleLogs {
-        
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal ConsoleLogs() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Aspire.Dashboard.Resources {
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Globalization.CultureInfo Culture {
             get {
@@ -44,121 +44,115 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         public static string ConsoleLogsHeader {
             get {
                 return ResourceManager.GetString("ConsoleLogsHeader", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsSelectResourceToolbar {
             get {
                 return ResourceManager.GetString("ConsoleLogsSelectResourceToolbar", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsPageTitle {
             get {
                 return ResourceManager.GetString("ConsoleLogsPageTitle", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsLogsNotYetAvailable {
             get {
                 return ResourceManager.GetString("ConsoleLogsLogsNotYetAvailable", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsWatchingLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsWatchingLogs", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsFinishedWatchingLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsFinishedWatchingLogs", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsLoadingResources {
             get {
                 return ResourceManager.GetString("ConsoleLogsLoadingResources", resourceCulture);
             }
         }
-        
-        public static string ConsoleLogsNoResourceSelected {
-            get {
-                return ResourceManager.GetString("ConsoleLogsNoResourceSelected", resourceCulture);
-            }
-        }
-        
+
         public static string ConsoleLogsUnknownState {
             get {
                 return ResourceManager.GetString("ConsoleLogsUnknownState", resourceCulture);
             }
         }
-        
+
         public static string LogStatusLabel {
             get {
                 return ResourceManager.GetString("LogStatusLabel", resourceCulture);
             }
         }
-        
+
         public static string DownloadLogs {
             get {
                 return ResourceManager.GetString("DownloadLogs", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsSettings {
             get {
                 return ResourceManager.GetString("ConsoleLogsSettings", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsTimestampShow {
             get {
                 return ResourceManager.GetString("ConsoleLogsTimestampShow", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsTimestampHide {
             get {
                 return ResourceManager.GetString("ConsoleLogsTimestampHide", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsTimestampShowUtc {
             get {
                 return ResourceManager.GetString("ConsoleLogsTimestampShowUtc", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsPauseActive {
             get {
                 return ResourceManager.GetString("ConsoleLogsPauseActive", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsPauseDetails {
             get {
                 return ResourceManager.GetString("ConsoleLogsPauseDetails", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsErrorWatchingLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsErrorWatchingLogs", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsWrapLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsWrapLogs", resourceCulture);
             }
         }
-        
+
         public static string ConsoleLogsNoWrapLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsNoWrapLogs", resourceCulture);

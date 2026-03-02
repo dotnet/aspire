@@ -37,6 +37,11 @@
         <target state="translated">値</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExemplarsDialogViewButton">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FieldRequired">
         <source>A value is required.</source>
         <target state="translated">値が必要です。</target>
@@ -136,6 +141,11 @@
         <source>Input tokens: {0}</source>
         <target state="translated">入力トークン: {0}</target>
         <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAILlmBadge">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
@@ -492,11 +502,6 @@
         <target state="translated">&lt;code&gt;mcp.json&lt;/code&gt; を手動で更新する</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">Aspire MCP は、ストリーミング可能な HTTP MCP サーバーをサポートする任意の AI ツールで使用できます。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">Aspire MCP の構成に関する重要な詳細は以下のとおりです。MCP サーバーの追加方法については、AI クライアントのドキュメントを参照してください。</target>
@@ -641,11 +646,6 @@
         <source>Version: {0}</source>
         <target state="translated">バージョン: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">すべてエクスポート</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

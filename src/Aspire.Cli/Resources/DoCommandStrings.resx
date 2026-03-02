@@ -132,9 +132,6 @@
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>OPERATION FAILED</value>
   </data>
-  <data name="GeneratingArtifacts" xml:space="preserve">
-    <value>Executing pipeline...</value>
-  </data>
   <data name="StepArgumentDescription" xml:space="preserve">
     <value>The name of the step to execute.</value>
   </data>

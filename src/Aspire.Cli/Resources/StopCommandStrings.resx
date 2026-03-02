@@ -129,8 +129,8 @@
   <data name="AppHostStoppedSuccessfully" xml:space="preserve">
     <value>AppHost stopped successfully.</value>
   </data>
-  <data name="MultipleAppHostsRunning" xml:space="preserve">
-    <value>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</value>
+  <data name="NoRunningAppHostsFound" xml:space="preserve">
+    <value>No running AppHosts found in scope.</value>
   </data>
   <data name="FailedToStopAppHost" xml:space="preserve">
     <value>Failed to stop the AppHost.</value>

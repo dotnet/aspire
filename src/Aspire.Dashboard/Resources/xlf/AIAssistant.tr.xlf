@@ -62,11 +62,6 @@
         <target state="translated">Copilot aboneliğine sahip bir GitHub hesabıyla Visual Studio'da oturum açın. &lt;a href="{0}" target="_blank"&gt;GitHub hesaplarını Visual Studio anahtar zincirinize ekleme&lt;/a&gt; bölümündeki adımları izleyin.</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">Üzgünüz, sınır aşıldığı için isteğiniz gerçekleştirilemedi. Lütfen daha sonra yeniden deneyin.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">İstek gönderilemiyor</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">İleti gönder</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">İletişim kutusunu küçült</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

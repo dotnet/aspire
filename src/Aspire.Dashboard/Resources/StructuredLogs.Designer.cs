@@ -150,15 +150,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Minimum log level filter.
-        /// </summary>
-        public static string StructuredLogsMinimumLogFilter {
-            get {
-                return ResourceManager.GetString("StructuredLogsMinimumLogFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to No structured logs found.
         /// </summary>
         public static string StructuredLogsNoLogsFound {

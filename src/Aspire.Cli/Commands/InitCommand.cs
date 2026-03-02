@@ -113,7 +113,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<string?>("--language")
         {
-            Description = "The programming language for the AppHost (csharp, typescript)"
+            Description = InitCommandStrings.LanguageOptionDescription
         };
         Options.Add(_languageOption);
     }
@@ -133,12 +133,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
             if (languageInfo is null)
             {
-                InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, selectedProject.LanguageId));
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
+            InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatingLanguageAppHost, languageInfo.DisplayName));
             InteractionService.DisplayEmptyLine();
             return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
         }
@@ -176,7 +176,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var solutionFile = initContext.SelectedSolutionFile!;
 
         initContext.GetSolutionProjectsOutputCollector = new OutputCollector();
-        var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Reading solution...", async () =>
+        var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync(InitCommandStrings.ReadingSolution, async () =>
         {
             var options = new DotNetCliRunnerInvocationOptions
             {
@@ -193,13 +193,13 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (getSolutionExitCode != 0)
         {
             InteractionService.DisplayLines(initContext.GetSolutionProjectsOutputCollector.GetLines());
-            InteractionService.DisplayError("Failed to get projects from solution.");
+            InteractionService.DisplayError(InitCommandStrings.FailedToGetProjectsFromSolution);
             return getSolutionExitCode;
         }
 
         initContext.SolutionProjects = solutionProjects;
 
-        _ = await InteractionService.ShowStatusAsync("Evaluating existing projects...", async () =>
+        _ = await InteractionService.ShowStatusAsync(InitCommandStrings.EvaluatingExistingProjects, async () =>
         {
             await EvaluateSolutionProjectsAsync(initContext, cancellationToken);
 
@@ -241,7 +241,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage(KnownEmojis.Information, "The following projects will be added to the AppHost:");
+                InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.ProjectsToBeAddedToAppHost);
                 InteractionService.DisplayEmptyLine();
 
                 foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
@@ -340,7 +340,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (templateInstallResult.ExitCode != 0)
             {
                 InteractionService.DisplayLines(initContext.InstallTemplateOutputCollector.GetLines());
-                InteractionService.DisplayError("Failed to install Aspire templates.");
+                InteractionService.DisplayError(InitCommandStrings.FailedToInstallAspireTemplates);
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
 
@@ -378,7 +378,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
             if (appHostProjects.Length == 0 || serviceDefaultsProjects.Length == 0)
             {
-                InteractionService.DisplayError("Failed to find created AppHost or ServiceDefaults projects in template output.");
+                InteractionService.DisplayError(InitCommandStrings.FailedToFindCreatedProjects);
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
@@ -545,7 +545,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
             if (File.Exists(appHostPath))
             {
-                InteractionService.DisplayMessage(KnownEmojis.CheckMark, $"{appHostFileName} already exists in this directory.");
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.AppHostFileAlreadyExists, appHostFileName));
                 return ExitCodeConstants.Success;
             }
         }
@@ -555,7 +555,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
-        InteractionService.DisplayMessage(KnownEmojis.Information, $"Run 'aspire run' to start your AppHost.");
+        InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.RunAspireRunToStartAppHost);
         return ExitCodeConstants.Success;
     }
 
@@ -566,7 +566,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var singleFileTemplate = initTemplates.FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
         if (singleFileTemplate is null)
         {
-            InteractionService.DisplayError("Single-file AppHost template not found.");
+            InteractionService.DisplayError(InitCommandStrings.SingleFileAppHostTemplateNotFound);
             return ExitCodeConstants.FailedToCreateNewProject;
         }
         var template = singleFileTemplate;
@@ -709,7 +709,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             channels = allChannels;
         }
 
-        var packagesFromChannels = await InteractionService.ShowStatusAsync("Searching for available template versions...", async () =>
+        var packagesFromChannels = await InteractionService.ShowStatusAsync(InitCommandStrings.SearchingForAvailableTemplateVersions, async () =>
         {
             var results = new List<(NuGetPackage Package, PackageChannel Channel)>();
             var packagesFromChannelsLock = new object();

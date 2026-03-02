@@ -142,11 +142,6 @@
         <target state="translated">パッケージ参照に ID がありません。</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">パッケージ参照にバージョンがありません。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
         <target state="translated">更新を実行しますか?</target>
@@ -195,11 +190,6 @@
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">チャネルを選択:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
-        <source>Unexpected code path.</source>
-        <target state="translated">予期しないコード パスです。</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">

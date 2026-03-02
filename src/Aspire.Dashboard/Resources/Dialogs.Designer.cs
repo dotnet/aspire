@@ -79,6 +79,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to View.
+        /// </summary>
+        public static string ExemplarsDialogViewButton {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogViewButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Timestamp.
         /// </summary>
         public static string ExemplarsDialogTimestampColumnHeader {
@@ -291,6 +300,15 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAIInputOutputTabText {
             get {
                 return ResourceManager.GetString("GenAIInputOutputTabText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to LLM.
+        /// </summary>
+        public static string GenAILlmBadge {
+            get {
+                return ResourceManager.GetString("GenAILlmBadge", resourceCulture);
             }
         }
         
@@ -961,15 +979,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers..
-        /// </summary>
-        public static string McpServerDialogOtherDescription {
-            get {
-                return ResourceManager.GetString("McpServerDialogOtherDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Important details for configuring Aspire MCP are below. Please refer to your AI client&apos;s documentation for how to add an MCP server..
         /// </summary>
         public static string McpServerDialogOtherInstructions {
@@ -1227,15 +1236,6 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogVersion {
             get {
                 return ResourceManager.GetString("SettingsDialogVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Export all.
-        /// </summary>
-        public static string SettingsExportAllButtonText {
-            get {
-                return ResourceManager.GetString("SettingsExportAllButtonText", resourceCulture);
             }
         }
         

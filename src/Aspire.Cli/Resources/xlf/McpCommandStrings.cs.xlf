@@ -27,16 +27,6 @@
         <target state="translated">Konfigurace prostředí agentů se dokončila.</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Chcete předem nakonfigurovat server Playwright MCP?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">Chcete vytvořit soubory instrukcí specifické pro prostředí agenta?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
         <target state="translated">Inicializujte konfiguraci serveru MCP pro detekovaná prostředí agentů. (zastaralé, použijte „agent init“)</target>

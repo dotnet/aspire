@@ -62,11 +62,6 @@
         <target state="translated">Přihlaste se k sadě Visual Studio pomocí účtu GitHub, který má předplatné Copilotu. Postupujte podle pokynů v tématu věnovaném &lt;a href="{0}" target="_blank"&gt;přidání účtů GitHubu do klíčenky sady Visual Studio&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">Je nám líto, ale vaši žádost nebylo možné zpracovat z důvodu omezení objemu zpracování žádostí. Zkuste to prosím znovu později.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">Nepovedlo se poslat požadavek.</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">Poslat zprávu</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">Dialogové okno Zmenšit</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

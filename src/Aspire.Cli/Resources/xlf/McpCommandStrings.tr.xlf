@@ -27,16 +27,6 @@
         <target state="translated">Aracı ortamı yapılandırması tamamlandı.</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Pre-configure Playwright MCP server?</source>
-        <target state="translated">Playwright MCP sunucusunda ön yapılandırma yapılsın mı?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">Aracı ortamına özgü talimat dosyaları oluşturulsun mu?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
         <target state="translated">Algılanan aracı ortamları için MCP sunucu yapılandırmasını başlatın. (kullanım dışı, 'agent init' kullanın)</target>

@@ -92,11 +92,6 @@
         <target state="translated">stdout'tan şablon sürümü ayrıştırılamadı.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
-        <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="translated">Tüm Aspire paketleri önbellek aracılığıyla alınamadı.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Şablon paketleri önbellek aracılığıyla alınamadı.</target>
@@ -160,11 +155,6 @@
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">Proje bir Aspire AppHost içermiyor.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
-        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="translated">Tek dosya Uygulama Ana İşlemi özelliği etkinleştirilmemiştir. .cs AppHost dosyalarını kullanmak için, yapılandırmaları kullanarak özelliği etkinleştirin.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

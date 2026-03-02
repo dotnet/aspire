@@ -12,6 +12,11 @@
         <target state="translated">Günlükleri yazıldıkça gerçek zamanlı olarak akışla aktar.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GettingLogs">
+        <source>Getting logs...</source>
+        <target state="new">Getting logs...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">Günlükleri JSON biçiminde (NDJSON) çıkar.</target>
@@ -32,11 +37,6 @@
         <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceRequiredWithoutFollow">
-        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="translated">--follow kullanılmadığında kaynak adı gereklidir. Tüm kaynaklardan günlük akışı yapmak için --follow kullanın.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stream logs from</source>
         <target state="new">stream logs from</target>
@@ -52,19 +52,9 @@
         <target state="translated">Günlüklerin sonundan gösterilecek satır sayısı (varsayılan: tümü).</target>
         <note />
       </trans-unit>
-      <trans-unit id="TailRequiresResource">
-        <source>The --tail option requires a resource name to be specified.</source>
-        <target state="translated">--tail seçeneği için bir kaynak adı belirtilmelidir.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
         <target state="new">Show timestamps for each log line.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="GettingLogs">
-        <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
         <note />
       </trans-unit>
     </body>

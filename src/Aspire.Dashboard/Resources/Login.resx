@@ -162,4 +162,7 @@
   <data name="WhereIsMyTokenLinkText" xml:space="preserve">
     <value>Where do I find the token?</value>
   </data>
+  <data name="SignOutButtonText" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
 </root>

@@ -169,15 +169,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sorry, your request was rate limited. Please try again later..
-        /// </summary>
-        public static string ChatRequestErrorRateLimited {
-            get {
-                return ResourceManager.GetString("ChatRequestErrorRateLimited", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Unable to send request.
         /// </summary>
         public static string ChatRequestErrorReachedLimit {
@@ -336,15 +327,6 @@ namespace Aspire.Dashboard.Resources {
         public static string SidebarSendMessage {
             get {
                 return ResourceManager.GetString("SidebarSendMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Shrink dialog.
-        /// </summary>
-        public static string SidebarShrinkDialog {
-            get {
-                return ResourceManager.GetString("SidebarShrinkDialog", resourceCulture);
             }
         }
         

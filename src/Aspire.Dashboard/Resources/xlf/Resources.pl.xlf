@@ -72,11 +72,6 @@
         <target state="translated">Wyświetl dzienniki konsoli</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsViewConsoleLogs">
-        <source>View console logs</source>
-        <target state="translated">Wyświetl dzienniki konsoli</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
         <target state="translated">Rozwiń zasoby podrzędne</target>

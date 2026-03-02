@@ -69,9 +69,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string MultipleAppHostsRunning {
+        public static string NoRunningAppHostsFound {
             get {
-                return ResourceManager.GetString("MultipleAppHostsRunning", resourceCulture);
+                return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
             }
         }
 
