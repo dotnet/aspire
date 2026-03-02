@@ -10,5 +10,5 @@ export async function getAppHostArgs(editorCommandProvider: AspireEditorCommandP
         return undefined;
     }
 
-    return ['--apphost', `"${appHostPath}"`];
+    return ['--apphost', appHostPath];
 }

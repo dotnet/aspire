@@ -70,7 +70,12 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
         const lines = fileText.split(/\r?\n/);
 
-        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk') || line.includes('DistributedApplication.CreateBuilder'));
+        if (lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'))) {
+            return true;
+        }
+
+        const firstNonEmptyLine = lines.find(line => line.trim().length > 0)?.trim();
+        return firstNonEmptyLine === 'var builder = DistributedApplication.CreateBuilder(args);';
     }
 
     private onChangeAppHostPath(newPath: string | null) {
