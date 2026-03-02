@@ -198,8 +198,8 @@
         <note />
       </trans-unit>
       <trans-unit id="RegeneratedSdkCode">
-        <source>Regenerated SDK code with updated packages</source>
-        <target state="new">Regenerated SDK code with updated packages</target>
+        <source>Regenerated SDK code with updated packages.</source>
+        <target state="new">Regenerated SDK code with updated packages.</target>
         <note />
       </trans-unit>
       <trans-unit id="RegeneratingSdkCode">
