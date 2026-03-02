@@ -62,8 +62,29 @@ internal sealed class GitTemplate : ITemplate
         ParseResult parseResult,
         CancellationToken cancellationToken)
     {
-        var projectName = inputs.Name ?? Path.GetFileName(Directory.GetCurrentDirectory());
-        var outputDir = inputs.Output ?? Path.Combine(Directory.GetCurrentDirectory(), projectName);
+        // Prompt for project name if not provided via --name
+        var projectName = inputs.Name;
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            var defaultName = Path.GetFileName(Directory.GetCurrentDirectory());
+            projectName = await _interactionService.PromptForStringAsync(
+                "Project name",
+                defaultValue: defaultName,
+                required: true,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        // Prompt for output directory if not provided via --output
+        var outputDir = inputs.Output;
+        if (string.IsNullOrWhiteSpace(outputDir))
+        {
+            var defaultOutput = Path.Combine(Directory.GetCurrentDirectory(), projectName);
+            outputDir = await _interactionService.PromptForStringAsync(
+                "Output directory",
+                defaultValue: defaultOutput,
+                required: true,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
         outputDir = Path.GetFullPath(outputDir);
 
         // Parse CLI-provided variable values from unmatched tokens (e.g., --useRedis true --port 5432)
