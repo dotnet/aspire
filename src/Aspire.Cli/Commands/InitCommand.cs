@@ -113,12 +113,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<string?>("--language")
         {
-            _languageOption = new Option<string?>("--language", "-l")
-            {
-                Description = InitCommandStrings.LanguageOptionDescription
-            };
-            Options.Add(_languageOption);
-        }
+            Description = InitCommandStrings.LanguageOptionDescription
+        };
+        Options.Add(_languageOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -136,22 +133,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
             if (languageInfo is null)
             {
-                // Get the language info for scaffolding
-                var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
-                if (languageInfo is null)
-                {
-                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, selectedProject.LanguageId));
-                    return ExitCodeConstants.FailedToCreateNewProject;
-                }
-
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatingLanguageAppHost, languageInfo.DisplayName));
-                InteractionService.DisplayEmptyLine();
-                return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, selectedProject.LanguageId));
+                return ExitCodeConstants.FailedToCreateNewProject;
             }
 
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
+            InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatingLanguageAppHost, languageInfo.DisplayName));
             InteractionService.DisplayEmptyLine();
             return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
         }
@@ -254,7 +241,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage("information", InitCommandStrings.ProjectsToBeAddedToAppHost);
+                InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.ProjectsToBeAddedToAppHost);
                 InteractionService.DisplayEmptyLine();
 
                 foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
@@ -558,7 +545,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
             if (File.Exists(appHostPath))
             {
-                InteractionService.DisplayMessage("check_mark", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.AppHostFileAlreadyExists, appHostFileName));
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.AppHostFileAlreadyExists, appHostFileName));
                 return ExitCodeConstants.Success;
             }
         }
@@ -568,7 +555,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
-        InteractionService.DisplayMessage("information", InitCommandStrings.RunAspireRunToStartAppHost);
+        InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.RunAspireRunToStartAppHost);
         return ExitCodeConstants.Success;
     }
 

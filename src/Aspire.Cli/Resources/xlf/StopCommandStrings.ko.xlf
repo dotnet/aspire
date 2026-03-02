@@ -22,9 +22,9 @@
         <target state="translated">AppHost를 중지하지 못했습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">현재 디렉터리에서 실행 중인 AppHost가 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
+      <trans-unit id="MultipleAppHostsNonInteractive">
+        <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
+        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">

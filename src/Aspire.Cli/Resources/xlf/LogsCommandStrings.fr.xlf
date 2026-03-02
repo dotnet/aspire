@@ -12,6 +12,11 @@
         <target state="translated">Diffuser les journaux en temps réel au fur et à mesure de leur écriture.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GettingLogs">
+        <source>Getting logs...</source>
+        <target state="new">Getting logs...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">Générer les journaux au format JSON (NDJSON).</target>
@@ -27,14 +32,14 @@
         <target state="translated">Le nom de la ressource pour laquelle obtenir les journaux. Si aucun nom n’est spécifié, les journaux d’activité de toutes les ressources sont affichées.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Recherche des AppHosts en cours d’exécution...</target>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Sélectionner un AppHost :</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stream logs from</source>
+        <target state="new">stream logs from</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -45,6 +50,11 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Nombre de lignes à afficher à partir de la fin des journaux (par défaut : toutes).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>

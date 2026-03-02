@@ -12,6 +12,11 @@
         <target state="translated">Streamujte protokoly v reálném čase při jejich zápisu.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GettingLogs">
+        <source>Getting logs...</source>
+        <target state="new">Getting logs...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">Výstupní protokoly ve formátu JSON (NDJSON).</target>
@@ -27,14 +32,14 @@
         <target state="translated">Název prostředku, pro který se mají načíst protokoly. Pokud se nezadá, zobrazí se protokoly ze všech prostředků.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Vyhledávání spuštěných hostitelů aplikací...</target>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' was not found.</source>
+        <target state="new">Resource '{0}' was not found.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">Vyberte hostitele aplikací:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stream logs from</source>
+        <target state="new">stream logs from</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -45,6 +50,11 @@
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
         <target state="translated">Počet řádků, které se mají zobrazit od konce protokolů (výchozí: vše).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampsOptionDescription">
+        <source>Show timestamps for each log line.</source>
+        <target state="new">Show timestamps for each log line.</target>
         <note />
       </trans-unit>
     </body>
