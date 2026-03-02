@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Format wyjściowy dla odłączonych wyników hosta AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedOptionDescription">
@@ -17,9 +17,14 @@
         <target state="translated">Uruchom w trybie izolowanym z losowymi portami i izolowanymi wpisami tajnymi użytkownika, co pozwala na jednoczesne działanie wielu wystąpień.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">Nie znaleziono uruchomionych hostów aplikacji w bieżącym katalogu. Wyświetlanie wszystkich uruchomionych hostów aplikacji:</target>
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -34,7 +39,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
-        <target state="new">Select an AppHost to {0}:</target>
+        <target state="translated">Wybierz hosta aplikacji, aby {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="new">Using AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>

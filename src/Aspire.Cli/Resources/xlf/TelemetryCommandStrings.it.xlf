@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="HeaderStatus">
         <source>Status</source>
-        <target state="new">Status</target>
+        <target state="translated">Stato</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderTraceId">

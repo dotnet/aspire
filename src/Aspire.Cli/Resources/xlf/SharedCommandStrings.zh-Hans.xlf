@@ -17,9 +17,14 @@
         <target state="translated">使用随机端口和独立的用户机密以独立模式运行，支持多个实例同时运行。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">当前目录中未找到正在运行的 AppHost。显示所有正在运行的 AppHost:</target>
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -34,7 +39,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
-        <target state="new">Select an AppHost to {0}:</target>
+        <target state="translated">选择要{0}的 AppHost:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="new">Using AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>

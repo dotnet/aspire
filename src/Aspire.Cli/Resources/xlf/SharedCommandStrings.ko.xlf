@@ -17,9 +17,14 @@
         <target state="translated">임의의 포트와 격리된 사용자 암호를 사용해 격리 모드로 실행하면 여러 인스턴스를 동시에 실행할 수 있습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">현재 디렉터리에서 실행 중인 AppHost가 없습니다. 실행 중인 모든 AppHost를 표시하는 중입니다.</target>
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -34,7 +39,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
-        <target state="new">Select an AppHost to {0}:</target>
+        <target state="translated">{0}에 대한 AppHost 선택:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="new">Using AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>

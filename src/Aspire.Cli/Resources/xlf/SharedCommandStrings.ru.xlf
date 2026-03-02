@@ -17,9 +17,14 @@
         <target state="translated">Запускайте в изолированном режиме со случайными портами и изолированными пользовательскими секретами, что позволяет одновременно работать нескольким экземплярам.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">В текущем каталоге не найдены запущенные хосты приложений. Отображаются все запущенные хосты приложений:</target>
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -34,7 +39,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
-        <target state="new">Select an AppHost to {0}:</target>
+        <target state="translated">Выберите хост приложений для {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="new">Using AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>

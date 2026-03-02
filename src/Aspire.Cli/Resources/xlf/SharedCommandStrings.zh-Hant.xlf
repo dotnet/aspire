@@ -17,9 +17,14 @@
         <target state="translated">在隔離模式中搭配隨機化連接埠和隔離的使用者袐密執行，允許同時執行多個執行個體。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="translated">目前目錄中找不到正在執行的 AppHost。顯示所有正在執行的 AppHost:</target>
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -35,6 +40,11 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
         <target state="translated">選取 AppHost 以 {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="new">Using AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>
