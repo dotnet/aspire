@@ -1,43 +1,65 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Spectre.Console;
-
 namespace Aspire.Cli.Utils;
 
 /// <summary>
 /// Assigns a consistent color to each resource name for colorized console output.
+/// Colors are derived from the Aspire Dashboard's dark theme accent palette to provide
+/// a consistent visual experience across the CLI and dashboard.
+/// Colors are returned as hex strings (e.g. <c>#2CB7BD</c>) suitable for use in
+/// Spectre.Console markup.
 /// </summary>
 internal sealed class ResourceColorMap
 {
-    private static readonly Color[] s_resourceColors =
+    /// <summary>
+    /// Dark theme hex colors corresponding 1:1 with <see cref="ColorGenerator.s_variableNames"/>.
+    /// The order must match exactly so that the same palette index maps to the same visual color
+    /// in both the CLI and the dashboard.
+    /// </summary>
+    internal static readonly string[] s_hexColors =
     [
-        Color.Cyan1,
-        Color.Green,
-        Color.Yellow,
-        Color.Blue,
-        Color.Magenta1,
-        Color.Orange1,
-        Color.DeepPink1,
-        Color.SpringGreen1,
-        Color.Aqua,
-        Color.Violet
+        "#2CB7BD", // --accent-teal
+        "#F3D58E", // --accent-marigold
+        "#BF8B64", // --accent-brass
+        "#FFC18F", // --accent-peach
+        "#F89170", // --accent-coral
+        "#88A1F0", // --accent-royal-blue
+        "#E19AD4", // --accent-orchid
+        "#1A7ECF", // --accent-brand-blue
+        "#74D6C6", // --accent-seafoam
+        "#B9B2A4", // --accent-mink
+        "#17A0A6", // --accent-cyan
+        "#E3BA7A", // --accent-gold
+        "#8E6038", // --accent-bronze
+        "#FFA44A", // --accent-orange
+        "#EA6A3E", // --accent-rust
+        "#2A4C8A", // --accent-navy
+        "#D150C3", // --accent-berry
+        "#16728F", // --accent-ocean
+        "#51C0A5", // --accent-jade
+        "#847B63", // --accent-olive
     ];
 
-    private readonly Dictionary<string, Color> _colorMap = new(StringComparers.ResourceName);
-    private int _nextColorIndex;
+    private readonly ColorGenerator _palette = new();
 
     /// <summary>
-    /// Gets the color assigned to the specified resource name, assigning a new one if first seen.
+    /// Gets the hex color string assigned to the specified resource name, assigning a new one if first seen.
+    /// The returned value is a Spectre.Console markup-compatible hex color (e.g. <c>#2CB7BD</c>).
     /// </summary>
-    public Color GetColor(string resourceName)
+    public string GetColor(string resourceName)
     {
-        if (!_colorMap.TryGetValue(resourceName, out var color))
-        {
-            color = s_resourceColors[_nextColorIndex % s_resourceColors.Length];
-            _colorMap[resourceName] = color;
-            _nextColorIndex++;
-        }
-        return color;
+        var index = _palette.GetColorIndex(resourceName);
+        return s_hexColors[index];
+    }
+
+    /// <summary>
+    /// Pre-resolves colors for all provided resource names in sorted order so that
+    /// color assignment is deterministic regardless of encounter order.
+    /// </summary>
+    public void ResolveAll(IEnumerable<string> resourceNames)
+    {
+        _palette.ResolveAll(resourceNames);
     }
 }
+

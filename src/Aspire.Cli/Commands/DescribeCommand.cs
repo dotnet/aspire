@@ -154,6 +154,10 @@ internal sealed class DescribeCommand : BaseCommand
         var dashboardUrls = await dashboardUrlsTask.ConfigureAwait(false);
         var snapshots = await snapshotsTask.ConfigureAwait(false);
 
+        // Pre-resolve colors for all resource names so that assignment is
+        // deterministic regardless of which resources are displayed.
+        _resourceColorMap.ResolveAll(snapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, snapshots)));
+
         // Filter by resource name if specified
         if (resourceName is not null)
         {
@@ -201,6 +205,10 @@ internal sealed class DescribeCommand : BaseCommand
         {
             allResources[snapshot.Name] = snapshot;
         }
+
+        // Pre-resolve colors for all resource names so that assignment is
+        // deterministic regardless of which resources are displayed.
+        _resourceColorMap.ResolveAll(initialSnapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, initialSnapshots)));
 
         // Cache the last displayed content per resource to avoid duplicate output.
         // Values are either a string (JSON mode) or a ResourceDisplayState (non-JSON mode).

@@ -422,6 +422,15 @@ internal sealed class DashboardClient : IDashboardClient
                 {
                     throw new FormatException($"Unexpected {nameof(WatchResourcesUpdate)} kind: {response.KindCase}");
                 }
+
+                // Resolve resource colors for all resources so that color assignment is
+                // deterministic regardless of the order resources arrive.
+                if (changes is not null)
+                {
+                    var resolvedNames = _resourceByName.Values
+                        .Select(r => ResourceViewModel.GetResourceName(r, _resourceByName));
+                    ColorGenerator.Instance.ResolveAll(resolvedNames);
+                }
             }
 
             if (changes is not null)
