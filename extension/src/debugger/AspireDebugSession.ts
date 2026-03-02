@@ -390,8 +390,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       this._dashboardDebugSession = null;
       return;
     }
-    // Debug browser sessions (debugChrome, debugEdge, debugFirefox) are child sessions
-    // and will automatically close when the parent Aspire session is stopped.
+    // At this point there is no tracked dashboard debug session to stop.
+    // Any debug browser child sessions (debugChrome, debugEdge, debugFirefox) will
+    // automatically close when the parent Aspire session is stopped, so no further
+    // cleanup is required here.
   }
 
   private sendResponse(request: any, body: any = {}) {
