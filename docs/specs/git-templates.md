@@ -2,7 +2,7 @@
 
 **Status:** Draft
 **Authors:** Aspire CLI Team
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 
 ## 1. Overview
 
@@ -169,6 +169,7 @@ The template index file lives at the root of a repository and describes the temp
 | `templates[].repo` | string | No | Git URL of an external repository containing the template. If omitted, the template is in the same repo as the index. |
 | `templates[].language` | string | No | Primary language of the template (`csharp`, `typescript`, `python`, `go`, `java`, `rust`). If omitted, the template is language-agnostic. |
 | `templates[].tags` | array | No | Tags for filtering and categorization |
+| `templates[].scope` | array | No | Where the template appears: `["new"]`, `["init"]`, or `["new", "init"]`. Default: `["new"]` |
 | `templates[].minAspireVersion` | string | No | Minimum Aspire version required |
 | `includes` | array | No | Other template indexes to include (federation) |
 | `includes[].url` | string | Yes | Git URL of the repository containing the included index |
@@ -247,6 +248,25 @@ The template manifest lives inside a template directory and describes how to app
   "postMessages": [
     "Your Aspire application '{{projectName}}' has been created!",
     "Run `cd {{projectName}} && dotnet run --project {{projectName}}.AppHost` to start the application."
+  ],
+  "postInstructions": [
+    {
+      "heading": "Get started",
+      "priority": "primary",
+      "lines": [
+        "cd {{projectName}}",
+        "dotnet run --project {{projectName}}.AppHost"
+      ]
+    },
+    {
+      "heading": "Redis setup",
+      "priority": "secondary",
+      "condition": "useRedisCache == true",
+      "lines": [
+        "Redis starts automatically via Aspire.",
+        "To connect manually: docker run -d -p 6379:6379 redis"
+      ]
+    }
   ]
 }
 ```
@@ -268,6 +288,7 @@ The template manifest lives inside a template directory and describes how to app
 | `substitutions.content` | object | No | Map of content patterns → replacement expressions |
 | `conditionalFiles` | object | No | Files/directories conditionally included based on variable values |
 | `postMessages` | array | No | Messages displayed to the user after template application |
+| `postInstructions` | array | No | Structured instruction blocks shown after template application (see [Post-Instructions](#post-instructions)) |
 
 ### Variable Types
 
@@ -277,6 +298,19 @@ The template manifest lives inside a template directory and describes how to app
 | `boolean` | True/false | — |
 | `choice` | Selection from predefined options | `choices` array |
 | `integer` | Numeric integer | `validation.min`, `validation.max` |
+
+### Variable Field Reference
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Variable type: `string`, `boolean`, `choice`, `integer` |
+| `displayName` | string \| object | No | Localizable prompt label |
+| `description` | string \| object | No | Localizable help text |
+| `required` | boolean | No | Whether a value must be provided |
+| `defaultValue` | varies | No | Default value matching the variable type |
+| `validation` | object | No | Validation rules (see Variable Types table) |
+| `choices` | array | No | Available options for `choice` type variables |
+| `testValues` | array | No | Explicit test values for `aspire template test` matrix generation. Values should be strings, booleans, or integers matching the variable type. If omitted, test values are inferred from the variable type. |
 
 ### Substitution Expressions
 
@@ -349,6 +383,31 @@ Localizable fields:
 - Choices: `displayName`, `description`
 
 Localization is optional — templates that use plain strings work unchanged. This design keeps templates self-contained in a single `aspire-template.json` file, avoiding the need for sidecar localization files (unlike the .NET template engine's `localize/templatestrings.{culture}.json` approach).
+
+### Post-Instructions
+
+The `postInstructions` field provides structured guidance shown to the developer after a template is applied. Unlike `postMessages` (plain strings), post-instructions support headings, priority levels, variable substitution, and conditional display.
+
+#### Instruction Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `heading` | string \| object | Yes | Localizable heading displayed as a section title |
+| `priority` | string | No | `"primary"` (highlighted with 🚀) or `"secondary"` (dimmed with ℹ️). Default: `"secondary"` |
+| `lines` | array | Yes | Instruction lines. Support `{{variableName}}` substitution. |
+| `condition` | string | No | Conditional expression controlling whether this block is shown |
+
+#### Condition Syntax
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `variable == value` | Equality (case-insensitive) | `"dbProvider == postgres"` |
+| `variable != value` | Inequality (case-insensitive) | `"dbProvider != none"` |
+| `variable` | Truthy check (non-empty and not `"false"`) | `"useRedisCache"` |
+
+#### Rendering
+
+Primary instructions are rendered first with bold formatting and a 🚀 prefix. Secondary instructions follow with dimmed formatting and an ℹ️ prefix. Variable placeholders (`{{name}}`) in lines are replaced with their values.
 
 ## 5. Template Directory Structure
 
@@ -666,7 +725,8 @@ aspire template
 ├── search <keyword>  Search templates by name, description, or tags
 ├── refresh           Force refresh the template cache
 ├── new [path]        Scaffold a new aspire-template.json manifest
-└── new-index [path]  Scaffold a new aspire-template-index.json index file
+├── new-index [path]  Scaffold a new aspire-template-index.json index file
+└── test [path]       Test a template by generating all variable combinations
 ```
 
 #### `aspire template list`
@@ -767,6 +827,50 @@ Creating aspire-template-index.json...
 
 Created aspire-template-index.json.
 Add templates to the "templates" array to make them discoverable.
+```
+
+#### `aspire template test [path]`
+
+Tests a template by generating the full cartesian product of all variable combinations and applying each one to a separate output directory. This is designed for template authors to verify that all variable permutations produce valid output.
+
+```text
+$ aspire template test --output ./test-output
+
+🔬 Testing template 'aspire-starter' (24 combinations)
+
+✅ #1  useRedisCache=true  dbProvider=none  httpPort=1024
+      → ./test-output/aspire-starter0
+✅ #2  useRedisCache=true  dbProvider=postgres  httpPort=1024
+      → ./test-output/aspire-starter1
+...
+✅ #24  useRedisCache=false  dbProvider=sqlite  httpPort=65535
+      → ./test-output/aspire-starter23
+
+All 24 combinations passed
+Output: ./test-output
+```
+
+**Template resolution:** When no path is provided and no local template files exist in the current directory, the command fetches the template index and presents an interactive selection prompt.
+
+**Matrix generation:** For each variable (excluding `projectName`):
+
+- `testValues` specified → use those values
+- `boolean` → `[true, false]`
+- `choice` → all choice values
+- `integer` → min, max, and default values
+- `string` → default value or `"TestValue"`
+
+**Port randomization:** Each generated variant gets unique randomized ports in `launchSettings.json` and `apphost.run.json` files, ensuring variants don't conflict if run simultaneously.
+
+**Output directories:** Named `{templateName}{index}` (e.g., `aspire-starter0`, `aspire-starter1`, ...).
+
+```text
+Options:
+  [path]               Path to template directory (default: interactive selection)
+  --output, -o <dir>   Base output directory (default: current directory)
+  --name <name>        Template name to select (for indexes with multiple templates)
+  --dry-run            List combinations without applying
+  --json               Output results as JSON
 ```
 
 ### Modified Commands
