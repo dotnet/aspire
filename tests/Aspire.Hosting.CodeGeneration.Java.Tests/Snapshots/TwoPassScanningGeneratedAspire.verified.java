@@ -472,14 +472,6 @@ class TestDeeplyNestedDto {
 // Handle Wrappers
 // ============================================================================
 
-/** Wrapper for System.Private.CoreLib/System.Threading.CancellationToken. */
-class CancellationToken extends HandleWrapperBase {
-    CancellationToken(Handle handle, AspireClient client) {
-        super(handle, client);
-    }
-
-}
-
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext. */
 class CommandLineArgsCallbackContext extends HandleWrapperBase {
     CommandLineArgsCallbackContext(Handle handle, AspireClient client) {
@@ -4902,7 +4894,6 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService", (h, c) -> new ResourceLoggerService(h, c));
         AspireClient.registerHandleWrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration", (h, c) -> new IConfiguration(h, c));
         AspireClient.registerHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", (h, c) -> new IHostEnvironment(h, c));
-        AspireClient.registerHandleWrapper("System.Private.CoreLib/System.Threading.CancellationToken", (h, c) -> new CancellationToken(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", (h, c) -> new DistributedApplicationEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", (h, c) -> new DistributedApplicationExecutionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", (h, c) -> new DistributedApplicationExecutionContextOptions(h, c));

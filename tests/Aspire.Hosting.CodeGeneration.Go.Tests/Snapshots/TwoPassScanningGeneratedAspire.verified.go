@@ -281,18 +281,6 @@ func (d *TestDeeplyNestedDto) ToMap() map[string]any {
 // Handle Wrappers
 // ============================================================================
 
-// CancellationToken wraps a handle for System.Private.CoreLib/System.Threading.CancellationToken.
-type CancellationToken struct {
-	HandleWrapperBase
-}
-
-// NewCancellationToken creates a new CancellationToken.
-func NewCancellationToken(handle *Handle, client *AspireClient) *CancellationToken {
-	return &CancellationToken{
-		HandleWrapperBase: NewHandleWrapperBase(handle, client),
-	}
-}
-
 // CommandLineArgsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.
 type CommandLineArgsCallbackContext struct {
 	HandleWrapperBase
@@ -6549,9 +6537,6 @@ func init() {
 	})
 	RegisterHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", func(h *Handle, c *AspireClient) any {
 		return NewIHostEnvironment(h, c)
-	})
-	RegisterHandleWrapper("System.Private.CoreLib/System.Threading.CancellationToken", func(h *Handle, c *AspireClient) any {
-		return NewCancellationToken(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationEventSubscription(h, c)

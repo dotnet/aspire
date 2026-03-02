@@ -534,8 +534,9 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
         var handleTypeIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var handleType in context.HandleTypes)
         {
-            // Skip ReferenceExpression - it's defined in base.go
-            if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId)
+            // Skip ReferenceExpression and CancellationToken - they're defined in base.go/transport.go
+            if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId
+                || IsCancellationTokenTypeId(handleType.AtsTypeId))
             {
                 continue;
             }
@@ -705,7 +706,11 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
     };
 
     private static bool IsCancellationToken(AtsParameterInfo parameter) =>
-        parameter.Type?.TypeId == AtsConstants.CancellationToken;
+        IsCancellationTokenTypeId(parameter.Type?.TypeId);
+
+    private static bool IsCancellationTokenTypeId(string? typeId) =>
+        string.Equals(typeId, AtsConstants.CancellationToken, StringComparison.Ordinal)
+        || (typeId?.EndsWith("/System.Threading.CancellationToken", StringComparison.Ordinal) ?? false);
 
     private static void AddHandleTypeIfNeeded(HashSet<string> handleTypeIds, AtsTypeRef? typeRef)
     {
@@ -714,8 +719,9 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             return;
         }
 
-        // Skip ReferenceExpression - it's defined in base.go
-        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        // Skip ReferenceExpression and CancellationToken - they're defined in base.go/transport.go
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId
+            || IsCancellationTokenTypeId(typeRef.TypeId))
         {
             return;
         }
