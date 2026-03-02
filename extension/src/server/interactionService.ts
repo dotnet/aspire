@@ -313,7 +313,7 @@ export class InteractionService implements IInteractionService {
             const urlToOpen = codespacesUrl || baseUrl;
             const debugSession = this._getAspireDebugSession();
             if (debugSession) {
-                const browserType = aspireConfig.get<DashboardBrowserType>('dashboardBrowser', 'debugChrome');
+                const browserType = aspireConfig.get<DashboardBrowserType>('dashboardBrowser', 'openExternalBrowser');
                 await debugSession.openDashboard(urlToOpen, browserType);
             }
             return;
