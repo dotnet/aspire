@@ -35,6 +35,7 @@ internal readonly record struct LanguageId(string Value)
 /// <param name="PackageName">The NuGet package name for language support (e.g., "Aspire.Hosting.CodeGeneration.TypeScript").</param>
 /// <param name="DetectionPatterns">File patterns used to detect this language (e.g., ["apphost.ts"]).</param>
 /// <param name="CodeGenerator">The code generator name to use for this language (e.g., "TypeScript"). Must match ICodeGenerator.Language.</param>
+/// <param name="GeneratedFolderName">The folder name where generated code is placed (e.g., ".modules").</param>
 /// <param name="AppHostFileName">The default filename for the AppHost entry point (e.g., "apphost.ts").</param>
 /// <param name="IsExperimental">Whether this language is experimental and requires an additional per-language feature flag to be enabled.</param>
 internal sealed record LanguageInfo(
@@ -43,6 +44,7 @@ internal sealed record LanguageInfo(
     string PackageName,
     string[] DetectionPatterns,
     string CodeGenerator,
+    string? GeneratedFolderName = null,
     string? AppHostFileName = null,
     bool IsExperimental = false);
 

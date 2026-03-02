@@ -23,6 +23,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "", // C# doesn't need a code generation package
             DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
             CodeGenerator: "", // C# doesn't use code generation
+            GeneratedFolderName: null,
             AppHostFileName: null), // C# uses .csproj
         new LanguageInfo(
             LanguageId: new LanguageId("typescript/nodejs"),
@@ -30,6 +31,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
             DetectionPatterns: ["apphost.ts"],
             CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
+            GeneratedFolderName: ".modules",
             AppHostFileName: "apphost.ts"),
         new LanguageInfo(
             LanguageId: new LanguageId(KnownLanguageId.Python),
@@ -37,6 +39,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.Python",
             DetectionPatterns: ["apphost.py"],
             CodeGenerator: "Python",
+            GeneratedFolderName: "aspire_app",
             AppHostFileName: "apphost.py",
             IsExperimental: true),
         new LanguageInfo(
@@ -45,6 +48,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.Go",
             DetectionPatterns: ["apphost.go"],
             CodeGenerator: "Go",
+            GeneratedFolderName: ".modules",
             AppHostFileName: "apphost.go",
             IsExperimental: true),
         new LanguageInfo(
@@ -53,6 +57,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.Java",
             DetectionPatterns: ["AppHost.java"],
             CodeGenerator: "Java",
+            GeneratedFolderName: ".modules",
             AppHostFileName: "AppHost.java",
             IsExperimental: true),
         new LanguageInfo(
@@ -61,6 +66,7 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             PackageName: "Aspire.Hosting.CodeGeneration.Rust",
             DetectionPatterns: ["apphost.rs"],
             CodeGenerator: "Rust",
+            GeneratedFolderName: ".modules",
             AppHostFileName: "apphost.rs",
             IsExperimental: true),
     ];

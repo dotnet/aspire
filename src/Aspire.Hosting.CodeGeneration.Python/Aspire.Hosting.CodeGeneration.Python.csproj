@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\transport.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources.transport.py" />
-    <EmbeddedResource Include="Resources\base.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources.base.py" />
+    <EmbeddedResource Include="Resources\_transport.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._transport.py" />
+    <EmbeddedResource Include="Resources\_base.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._base.py" />
   </ItemGroup>
 
   <ItemGroup>

@@ -545,16 +545,6 @@ class ContainerResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -571,16 +561,6 @@ class ContainerResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -710,16 +690,6 @@ class ContainerResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
@@ -1280,16 +1250,6 @@ class ExecutableResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -1306,16 +1266,6 @@ class ExecutableResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -1445,16 +1395,6 @@ class ExecutableResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
@@ -1986,16 +1926,6 @@ class ParameterResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
     }
 
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
-    }
-
     /** Adds or modifies displayed URLs */
     public IResource withUrl(String url, String displayText) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -2233,16 +2163,6 @@ class ProjectResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -2259,16 +2179,6 @@ class ProjectResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -2398,16 +2308,6 @@ class ProjectResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
@@ -2894,16 +2794,6 @@ class TestDatabaseResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -2920,16 +2810,6 @@ class TestDatabaseResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -3059,16 +2939,6 @@ class TestDatabaseResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
@@ -3510,16 +3380,6 @@ class TestRedisResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -3536,16 +3396,6 @@ class TestRedisResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -3675,16 +3525,6 @@ class TestRedisResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
@@ -4224,16 +4064,6 @@ class TestVaultResource extends ResourceBuilderBase {
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallback", reqArgs);
     }
 
-    /** Sets environment variables via async callback */
-    public IResourceWithEnvironment withEnvironmentCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs);
-    }
-
     /** Adds arguments */
     public IResourceWithArgs withArgs(String[] args) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -4250,16 +4080,6 @@ class TestVaultResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallback", reqArgs);
-    }
-
-    /** Sets command-line arguments via async callback */
-    public IResourceWithArgs withArgsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResourceWithArgs) getClient().invokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs);
     }
 
     /** Adds a reference to another resource */
@@ -4389,16 +4209,6 @@ class TestVaultResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs);
-    }
-
-    /** Customizes displayed URLs via async callback */
-    public IResource withUrlsCallbackAsync(Function<Object[], Object> callback) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        if (callback != null) {
-            reqArgs.put("callback", getClient().registerCallback(callback));
-        }
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs);
     }
 
     /** Adds or modifies displayed URLs */
