@@ -10,7 +10,6 @@ import {
     errorFetchingAppHosts,
     resourcesGroupLabel,
     resourceStateLabel,
-    resourceEndpointLabel,
     noCommandsAvailable,
     selectCommandPlaceholder,
 } from '../loc/strings';
@@ -45,7 +44,7 @@ interface AppHostDisplayInfo {
     resources: ResourceJson[] | null | undefined;
 }
 
-type TreeElement = AppHostItem | AppHostDetailItem | ResourcesGroupItem | ResourceItem | ResourceDetailItem;
+type TreeElement = AppHostItem | DetailItem | ResourcesGroupItem | ResourceItem;
 
 class AppHostItem extends vscode.TreeItem {
     constructor(public readonly appHost: AppHostDisplayInfo) {
@@ -59,7 +58,7 @@ class AppHostItem extends vscode.TreeItem {
     }
 }
 
-class AppHostDetailItem extends vscode.TreeItem {
+class DetailItem extends vscode.TreeItem {
     constructor(label: string, icon: string, tooltip?: string, command?: vscode.Command) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.iconPath = new vscode.ThemeIcon(icon);
@@ -79,7 +78,7 @@ class ResourcesGroupItem extends vscode.TreeItem {
 }
 
 class ResourceItem extends vscode.TreeItem {
-    constructor(public readonly resource: ResourceJson, appHostPid: number) {
+    constructor(public readonly resource: ResourceJson, public readonly appHostPid: number) {
         const state = resource.state ?? '';
         const label = state ? resourceStateLabel(resource.displayName ?? resource.name, state) : (resource.displayName ?? resource.name);
         const hasUrls = resource.urls && resource.urls.filter(u => !u.isInternal).length > 0;
@@ -87,29 +86,54 @@ class ResourceItem extends vscode.TreeItem {
         this.id = `resource:${appHostPid}:${resource.name}`;
         this.iconPath = getResourceIcon(resource);
         this.tooltip = `${resource.resourceType}: ${resource.name}`;
-        this.contextValue = 'resource';
+        this.contextValue = getResourceContextValue(resource);
     }
 }
 
-class ResourceDetailItem extends vscode.TreeItem {
-    constructor(label: string, icon: string, tooltip?: string, command?: vscode.Command) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.iconPath = new vscode.ThemeIcon(icon);
-        this.tooltip = tooltip;
-        this.command = command;
+function getResourceContextValue(resource: ResourceJson): string {
+    const commands = resource.commands ? Object.keys(resource.commands) : [];
+    const parts = ['resource'];
+    if (commands.includes('resource-start')) {
+        parts.push('canStart');
     }
+    if (commands.includes('resource-stop')) {
+        parts.push('canStop');
+    }
+    if (commands.includes('resource-restart')) {
+        parts.push('canRestart');
+    }
+    return parts.join(':');
 }
 
 function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
-    switch (resource.stateStyle?.toLowerCase()) {
-        case 'success':
+    const state = resource.state;
+    switch (state) {
+        case 'Running':
+        case 'Active':
+            if (resource.stateStyle === 'warning') {
+                return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+            }
+            if (resource.stateStyle === 'error') {
+                return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
+            }
             return new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
-        case 'warn':
-            return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
-        case 'error':
+        case 'Finished':
+        case 'Exited':
+            if (resource.stateStyle === 'error') {
+                return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
+            }
+            return new vscode.ThemeIcon('circle-outline');
+        case 'FailedToStart':
+        case 'RuntimeUnhealthy':
             return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
+        case 'Starting':
+        case 'Stopping':
+        case 'Building':
+        case 'Waiting':
+        case 'NotStarted':
+            return new vscode.ThemeIcon('loading~spin');
         default:
-            if (resource.state === null || resource.state === undefined) {
+            if (state === null || state === undefined) {
                 return new vscode.ThemeIcon('circle-outline');
             }
             return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('aspire.brandPurple'));
@@ -133,7 +157,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         this._fetchAppHosts();
     }
 
-    startPolling(intervalMs: number = 5000): void {
+    startPolling(intervalMs: number = 3000): void {
         this.stopPolling();
         // Fetch immediately, then poll
         this._fetchAppHosts();
@@ -167,11 +191,11 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
 
         if (element instanceof AppHostItem) {
-            const items: (AppHostDetailItem | ResourcesGroupItem)[] = [];
+            const items: (DetailItem | ResourcesGroupItem)[] = [];
             const appHost = element.appHost;
 
             if (appHost.dashboardUrl) {
-                items.push(new AppHostDetailItem(
+                items.push(new DetailItem(
                     dashboardLabel,
                     'link-external',
                     appHost.dashboardUrl,
@@ -183,13 +207,13 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 ));
             }
 
-            items.push(new AppHostDetailItem(
+            items.push(new DetailItem(
                 appHostPidLabel(appHost.appHostPid),
                 'terminal',
             ));
 
             if (appHost.cliPid !== null) {
-                items.push(new AppHostDetailItem(
+                items.push(new DetailItem(
                     cliPidLabel(appHost.cliPid),
                     'terminal-cmd',
                 ));
@@ -208,21 +232,17 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
 
         if (element instanceof ResourceItem) {
-            const items: ResourceDetailItem[] = [];
             const urls = element.resource.urls?.filter(u => !u.isInternal) ?? [];
-            for (const url of urls) {
-                items.push(new ResourceDetailItem(
-                    resourceEndpointLabel(url.displayName ?? url.url),
-                    'link-external',
-                    url.url,
-                    {
-                        command: 'vscode.open',
-                        title: url.url,
-                        arguments: [vscode.Uri.parse(url.url)]
-                    }
-                ));
-            }
-            return items;
+            return urls.map(url => new DetailItem(
+                url.displayName ?? url.url,
+                'link-external',
+                url.url,
+                {
+                    command: 'vscode.open',
+                    title: url.url,
+                    arguments: [vscode.Uri.parse(url.url)]
+                }
+            ));
         }
 
         return [];
@@ -245,40 +265,23 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     stopAppHost(element: AppHostItem): void {
-        const appHostPath = element.appHost.appHostPath;
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop --apphost "${appHostPath}"`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop --apphost "${element.appHost.appHostPath}"`);
     }
 
     stopResource(element: ResourceItem): void {
-        const appHost = this._findAppHostForResource(element);
-        if (!appHost) {
-            return;
-        }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`stop "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
+        this._runResourceCommand(element, 'stop');
     }
 
     startResource(element: ResourceItem): void {
-        const appHost = this._findAppHostForResource(element);
-        if (!appHost) {
-            return;
-        }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`start "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
+        this._runResourceCommand(element, 'start');
     }
 
     restartResource(element: ResourceItem): void {
-        const appHost = this._findAppHostForResource(element);
-        if (!appHost) {
-            return;
-        }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`restart "${element.resource.name}" --apphost "${appHost.appHostPath}"`);
+        this._runResourceCommand(element, 'restart');
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        const appHost = this._findAppHostForResource(element);
-        if (!appHost) {
-            return;
-        }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --apphost "${appHost.appHostPath}" --follow`);
+        this._runResourceCommand(element, 'logs', '--follow');
     }
 
     async executeResourceCommand(element: ResourceItem): Promise<void> {
@@ -307,14 +310,17 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
     }
 
-    private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {
-        // The ResourceItem id is `resource:{pid}:{name}`, extract the pid
-        const parts = element.id?.split(':');
-        if (!parts || parts.length < 2) {
-            return undefined;
+    private _runResourceCommand(element: ResourceItem, command: string, ...extraArgs: string[]): void {
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
         }
-        const pid = parseInt(parts[1], 10);
-        return this._appHosts.find(a => a.appHostPid === pid);
+        const suffix = extraArgs.length > 0 ? ` ${extraArgs.join(' ')}` : '';
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`${command} "${element.resource.name}" --apphost "${appHost.appHostPath}"${suffix}`);
+    }
+
+    private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {
+        return this._appHosts.find(a => a.appHostPid === element.appHostPid);
     }
 
     private _fetchAppHosts(): void {

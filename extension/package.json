@@ -333,27 +333,27 @@
         },
         {
           "command": "aspire-vscode.stopResource",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource.*:canStop/",
           "group": "2_actions@1"
         },
         {
           "command": "aspire-vscode.startResource",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource.*:canStart/",
           "group": "2_actions@2"
         },
         {
           "command": "aspire-vscode.restartResource",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource.*:canRestart/",
           "group": "2_actions@3"
         },
         {
           "command": "aspire-vscode.viewResourceLogs",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource/",
           "group": "3_logs@1"
         },
         {
           "command": "aspire-vscode.executeResourceCommand",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == resource",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource/",
           "group": "4_commands@1"
         }
       ]

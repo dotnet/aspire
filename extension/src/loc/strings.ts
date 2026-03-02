@@ -57,7 +57,6 @@ export const appHostPidLabel = (pid: number) => vscode.l10n.t('Apphost PID: {0}'
 export const errorFetchingAppHosts = (error: string) => vscode.l10n.t('Error fetching running apphosts: {0}', error);
 export const resourcesGroupLabel = vscode.l10n.t('Resources');
 export const resourceStateLabel = (name: string, state: string) => vscode.l10n.t('{0} — {1}', name, state);
-export const resourceEndpointLabel = (url: string) => vscode.l10n.t('{0}', url);
 export const noCommandsAvailable = vscode.l10n.t('No commands available for this resource.');
 export const selectCommandPlaceholder = vscode.l10n.t('Select a command to execute');
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
