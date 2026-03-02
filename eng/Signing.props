@@ -59,6 +59,8 @@
 
     <!-- Sign the manifest catalog on Windows -->
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
+
+    <FileSignInfo Include="get-aspire-cli.ps1" CertificateName="PS1Cert" />
   </ItemGroup>
 
   <ItemGroup>
@@ -68,6 +70,7 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
+    <ItemsToSign Include="$(RepoRoot)eng\scripts\get-aspire-cli.ps1" />
     <!-- 
       Note: VS Code extension (.vsix) is NOT included here.
       Signing the VSIX changes its hash, breaking manifest integrity verification.
