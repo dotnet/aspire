@@ -231,4 +231,155 @@ internal sealed class GitTemplateEngine : IGitTemplateEngine
 
         return false;
     }
+
+    public async Task<bool> FetchAsync(ResolvedTemplate resolved, string targetDir, CancellationToken cancellationToken = default)
+    {
+        var repo = resolved.EffectiveRepo;
+        var templatePath = resolved.Entry.Path;
+
+        // For local sources, copy files directly.
+        if (Uri.TryCreate(repo, UriKind.Absolute, out var uri) && uri.IsFile || (!repo.Contains("://", StringComparison.Ordinal) && !repo.Contains('@') && Directory.Exists(repo)))
+        {
+            var sourcePath = Path.Combine(repo, templatePath);
+            if (!Directory.Exists(sourcePath))
+            {
+                _logger.LogError("Local template path does not exist: {Path}", sourcePath);
+                return false;
+            }
+            CopyDirectory(sourcePath, targetDir);
+            return true;
+        }
+
+        var gitRef = resolved.Source.Ref ?? "HEAD";
+        Directory.CreateDirectory(targetDir);
+
+        try
+        {
+            var cloneResult = await RunGitAsync(
+                targetDir,
+                ["clone", "--depth", "1", "--branch", gitRef, "--sparse", "--filter=blob:none", repo, "."],
+                cancellationToken).ConfigureAwait(false);
+
+            if (cloneResult != 0)
+            {
+                cloneResult = await RunGitAsync(
+                    targetDir,
+                    ["clone", "--depth", "1", "--sparse", "--filter=blob:none", repo, "."],
+                    cancellationToken).ConfigureAwait(false);
+
+                if (cloneResult != 0)
+                {
+                    _logger.LogError("Failed to clone repository {Repo}.", repo);
+                    return false;
+                }
+
+                await RunGitAsync(targetDir, ["fetch", "origin", gitRef], cancellationToken).ConfigureAwait(false);
+                await RunGitAsync(targetDir, ["checkout", "FETCH_HEAD"], cancellationToken).ConfigureAwait(false);
+            }
+
+            if (templatePath is not "." and not "")
+            {
+                await RunGitAsync(
+                    targetDir,
+                    ["sparse-checkout", "set", templatePath],
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            // Move template files from subdirectory to target root if needed
+            var templateSubDir = Path.Combine(targetDir, templatePath);
+            if (templatePath is not "." and not "" && Directory.Exists(templateSubDir))
+            {
+                var tempMove = targetDir + "_move";
+                Directory.Move(templateSubDir, tempMove);
+
+                foreach (var entry in Directory.GetFileSystemEntries(targetDir))
+                {
+                    var name = Path.GetFileName(entry);
+                    if (name == ".git" || entry == tempMove)
+                    {
+                        continue;
+                    }
+                    if (Directory.Exists(entry))
+                    {
+                        Directory.Delete(entry, recursive: true);
+                    }
+                    else
+                    {
+                        File.Delete(entry);
+                    }
+                }
+
+                foreach (var entry in Directory.GetFileSystemEntries(tempMove))
+                {
+                    var dest = Path.Combine(targetDir, Path.GetFileName(entry));
+                    if (Directory.Exists(entry))
+                    {
+                        Directory.Move(entry, dest);
+                    }
+                    else
+                    {
+                        File.Move(entry, dest);
+                    }
+                }
+                Directory.Delete(tempMove, recursive: true);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch template from {Repo}.", repo);
+            return false;
+        }
+    }
+
+    private static async Task<int> RunGitAsync(string workingDir, string[] args, CancellationToken cancellationToken)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo("git")
+        {
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach (var arg in args)
+        {
+            psi.ArgumentList.Add(arg);
+        }
+
+        using var process = System.Diagnostics.Process.Start(psi);
+        if (process is null)
+        {
+            return -1;
+        }
+
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        return process.ExitCode;
+    }
+
+    private static void CopyDirectory(string sourceDir, string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+        foreach (var dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var name = Path.GetFileName(dir);
+            if (s_excludedDirs.Contains(name))
+            {
+                continue;
+            }
+            Directory.CreateDirectory(Path.Combine(targetDir, Path.GetRelativePath(sourceDir, dir)));
+        }
+        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDir, file);
+            // Skip files in excluded dirs
+            var parts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (parts.Any(s_excludedDirs.Contains))
+            {
+                continue;
+            }
+            File.Copy(file, Path.Combine(targetDir, relativePath), overwrite: true);
+        }
+    }
 }

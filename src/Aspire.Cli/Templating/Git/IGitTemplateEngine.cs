@@ -16,4 +16,13 @@ internal interface IGitTemplateEngine
     /// <param name="variables">Variable values to use for substitution.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task ApplyAsync(string templateDir, string outputDir, IReadOnlyDictionary<string, string> variables, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches a template from a git repository to a local directory.
+    /// </summary>
+    /// <param name="resolved">The resolved template entry with source information.</param>
+    /// <param name="targetDir">Local directory to clone/copy the template into.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if the fetch succeeded; otherwise <c>false</c>.</returns>
+    Task<bool> FetchAsync(ResolvedTemplate resolved, string targetDir, CancellationToken cancellationToken = default);
 }

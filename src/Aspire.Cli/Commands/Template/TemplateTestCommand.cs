@@ -18,19 +18,18 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
 {
     private static readonly Argument<string?> s_pathArgument = new("path")
     {
-        Description = "Path to a template directory containing aspire-template.json (defaults to current directory)",
+        Description = "Path to a template directory containing aspire-template.json (defaults to interactive selection from the template index)",
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<string> s_outputOption = new("--output", "-o")
+    private static readonly Option<string?> s_outputOption = new("--output", "-o")
     {
-        Description = "Base directory for generated variant projects (required)",
-        Required = true
+        Description = "Base directory for generated variant projects (defaults to current directory)"
     };
 
     private static readonly Option<string?> s_nameOption = new("--name")
     {
-        Description = "Template name when path contains an aspire-template-index.json with multiple templates"
+        Description = "Template name to select from a local index or the remote template index"
     };
 
     private static readonly Option<bool> s_dryRunOption = new("--dry-run")
@@ -44,9 +43,11 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
     };
 
     private readonly IGitTemplateEngine _engine;
+    private readonly IGitTemplateIndexService _indexService;
 
     public TemplateTestCommand(
         IGitTemplateEngine engine,
+        IGitTemplateIndexService indexService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
@@ -55,6 +56,7 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
         : base("test", "Test a template by generating all variable combinations", features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _engine = engine;
+        _indexService = indexService;
         Arguments.Add(s_pathArgument);
         Options.Add(s_outputOption);
         Options.Add(s_nameOption);
@@ -64,99 +66,139 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var inputPath = parseResult.GetValue(s_pathArgument) ?? Directory.GetCurrentDirectory();
-        inputPath = Path.GetFullPath(inputPath);
-        var outputBase = Path.GetFullPath(parseResult.GetValue(s_outputOption)!);
+        var inputPath = parseResult.GetValue(s_pathArgument);
+        var outputBase = parseResult.GetValue(s_outputOption);
         var templateName = parseResult.GetValue(s_nameOption);
         var dryRun = parseResult.GetValue(s_dryRunOption);
         var jsonOutput = parseResult.GetValue(s_jsonOption);
 
+        // Resolve output directory — default to cwd
+        outputBase = outputBase is not null ? Path.GetFullPath(outputBase) : Directory.GetCurrentDirectory();
+
         // Resolve the template directory and manifest
-        var (templateDir, manifest) = await ResolveTemplateAsync(inputPath, templateName, cancellationToken);
-        if (manifest is null)
+        string? tempDir = null;
+        string templateDir;
+        GitTemplateManifest? manifest;
+
+        try
         {
-            return ExitCodeConstants.InvalidCommand;
-        }
-
-        // Generate the variable matrix
-        var (matrixVars, matrix) = GenerateMatrix(manifest);
-
-        if (!jsonOutput)
-        {
-            var emoji = dryRun ? KnownEmojis.MagnifyingGlassTiltedLeft : KnownEmojis.Microscope;
-            var action = dryRun ? "Previewing" : "Testing";
-            InteractionService.DisplayMessage(emoji, $"{action} template '{manifest.Name}' ({matrix.Count} combinations)");
-            InteractionService.DisplayPlainText("");
-        }
-
-        if (dryRun)
-        {
-            return RenderDryRun(matrixVars, matrix, jsonOutput);
-        }
-
-        // Create output directory
-        Directory.CreateDirectory(outputBase);
-
-        // Execute each combination
-        var results = new List<TestResult>();
-        for (var i = 0; i < matrix.Count; i++)
-        {
-            var combo = matrix[i];
-            var index = i + 1;
-            var dirName = BuildDirectoryName(index, matrixVars, combo);
-            var outputDir = Path.Combine(outputBase, dirName);
-            var projectName = $"TestProject{index:D3}";
-
-            var variables = new Dictionary<string, string> { ["projectName"] = projectName };
-            for (var v = 0; v < matrixVars.Count; v++)
+            if (inputPath is not null)
             {
-                variables[matrixVars[v]] = combo[v];
-            }
-
-            string? error = null;
-            try
-            {
-                await _engine.ApplyAsync(templateDir, outputDir, variables, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-            }
-
-            results.Add(new TestResult(index, variables, outputDir, error));
-
-            if (!jsonOutput)
-            {
-                RenderResultLine(index, matrixVars, combo, outputDir, error);
-            }
-        }
-
-        // Summary
-        var passed = results.Count(r => r.Error is null);
-        var failed = results.Count - passed;
-
-        if (jsonOutput)
-        {
-            RenderJsonOutput(manifest.Name, results, passed, failed);
-        }
-        else
-        {
-            InteractionService.DisplayPlainText("");
-            if (failed == 0)
-            {
-                InteractionService.DisplaySuccess($"All {passed} combinations passed");
+                // Explicit local path provided
+                (templateDir, manifest) = await ResolveLocalTemplateAsync(Path.GetFullPath(inputPath), templateName, cancellationToken);
             }
             else
             {
-                InteractionService.DisplayError($"{failed} of {results.Count} combinations failed");
-            }
-            InteractionService.DisplayPlainText($"Output: {outputBase}");
-        }
+                // Try cwd first for local template files, then fall back to index
+                var cwd = Directory.GetCurrentDirectory();
+                var hasLocalManifest = File.Exists(Path.Combine(cwd, "aspire-template.json"));
+                var hasLocalIndex = File.Exists(Path.Combine(cwd, "aspire-template-index.json"));
 
-        return failed > 0 ? 1 : 0;
+                if (hasLocalManifest || hasLocalIndex)
+                {
+                    (templateDir, manifest) = await ResolveLocalTemplateAsync(cwd, templateName, cancellationToken);
+                }
+                else
+                {
+                    // Select from the remote template index
+                    (templateDir, manifest, tempDir) = await ResolveFromIndexAsync(templateName, cancellationToken);
+                }
+            }
+
+            if (manifest is null)
+            {
+                return ExitCodeConstants.InvalidCommand;
+            }
+
+            // Generate the variable matrix
+            var (matrixVars, matrix) = GenerateMatrix(manifest);
+
+            if (!jsonOutput)
+            {
+                var emoji = dryRun ? KnownEmojis.MagnifyingGlassTiltedLeft : KnownEmojis.Microscope;
+                var action = dryRun ? "Previewing" : "Testing";
+                InteractionService.DisplayMessage(emoji, $"{action} template '{manifest.Name}' ({matrix.Count} combinations)");
+                InteractionService.DisplayPlainText("");
+            }
+
+            if (dryRun)
+            {
+                return RenderDryRun(matrixVars, matrix, jsonOutput);
+            }
+
+            // Create output directory
+            Directory.CreateDirectory(outputBase);
+
+            // Execute each combination
+            var results = new List<TestResult>();
+            for (var i = 0; i < matrix.Count; i++)
+            {
+                var combo = matrix[i];
+                var index = i + 1;
+                var dirName = BuildDirectoryName(index, matrixVars, combo);
+                var outputDir = Path.Combine(outputBase, dirName);
+                var projectName = $"TestProject{index:D3}";
+
+                var variables = new Dictionary<string, string> { ["projectName"] = projectName };
+                for (var v = 0; v < matrixVars.Count; v++)
+                {
+                    variables[matrixVars[v]] = combo[v];
+                }
+
+                string? error = null;
+                try
+                {
+                    await _engine.ApplyAsync(templateDir, outputDir, variables, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    error = ex.Message;
+                }
+
+                results.Add(new TestResult(index, variables, outputDir, error));
+
+                if (!jsonOutput)
+                {
+                    RenderResultLine(index, matrixVars, combo, outputDir, error);
+                }
+            }
+
+            // Summary
+            var passed = results.Count(r => r.Error is null);
+            var failed = results.Count - passed;
+
+            if (jsonOutput)
+            {
+                RenderJsonOutput(manifest.Name, results, passed, failed);
+            }
+            else
+            {
+                InteractionService.DisplayPlainText("");
+                if (failed == 0)
+                {
+                    InteractionService.DisplaySuccess($"All {passed} combinations passed");
+                }
+                else
+                {
+                    InteractionService.DisplayError($"{failed} of {results.Count} combinations failed");
+                }
+                InteractionService.DisplayPlainText($"Output: {outputBase}");
+            }
+
+            return failed > 0 ? 1 : 0;
+        }
+        finally
+        {
+            // Clean up temp directory if we fetched from the index
+            if (tempDir is not null && Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); }
+                catch { /* best effort cleanup */ }
+            }
+        }
     }
 
-    private async Task<(string templateDir, GitTemplateManifest? manifest)> ResolveTemplateAsync(
+    private async Task<(string templateDir, GitTemplateManifest? manifest)> ResolveLocalTemplateAsync(
         string inputPath, string? templateName, CancellationToken cancellationToken)
     {
         // Check for direct aspire-template.json
@@ -223,6 +265,65 @@ internal sealed class TemplateTestCommand : BaseTemplateSubCommand
 
         InteractionService.DisplayError($"No aspire-template.json or aspire-template-index.json found in {inputPath}");
         return (inputPath, null);
+    }
+
+    private async Task<(string templateDir, GitTemplateManifest? manifest, string? tempDir)> ResolveFromIndexAsync(
+        string? templateName, CancellationToken cancellationToken)
+    {
+        var templates = await InteractionService.ShowStatusAsync(
+            "Fetching template index...",
+            () => _indexService.GetTemplatesAsync(cancellationToken: cancellationToken));
+
+        var gitTemplates = templates.ToList();
+        if (gitTemplates.Count == 0)
+        {
+            InteractionService.DisplayError("No git templates found in the configured template index.");
+            return (string.Empty, null, null);
+        }
+
+        ResolvedTemplate selected;
+        if (templateName is not null)
+        {
+            var match = gitTemplates.FirstOrDefault(t => string.Equals(t.Entry.Name, templateName, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+            {
+                InteractionService.DisplayError($"Template '{templateName}' not found in index. Available: {string.Join(", ", gitTemplates.Select(t => t.Entry.Name))}");
+                return (string.Empty, null, null);
+            }
+            selected = match;
+        }
+        else
+        {
+            selected = await InteractionService.PromptForSelectionAsync(
+                "Select a template to test",
+                gitTemplates,
+                t => $"{t.Entry.Name} — {t.Entry.Description ?? t.EffectiveRepo}",
+                cancellationToken);
+        }
+
+        // Fetch the template to a temp directory
+        var tempDir = Path.Combine(Path.GetTempPath(), "aspire-template-test", Guid.NewGuid().ToString("N"));
+        var fetched = await InteractionService.ShowStatusAsync(
+            $"Fetching template '{selected.Entry.Name}'...",
+            () => _engine.FetchAsync(selected, tempDir, cancellationToken));
+
+        if (!fetched)
+        {
+            InteractionService.DisplayError($"Failed to fetch template '{selected.Entry.Name}' from {selected.EffectiveRepo}");
+            return (string.Empty, null, tempDir);
+        }
+
+        // Read the manifest
+        var manifestPath = Path.Combine(tempDir, "aspire-template.json");
+        if (!File.Exists(manifestPath))
+        {
+            InteractionService.DisplayError($"aspire-template.json not found in fetched template '{selected.Entry.Name}'");
+            return (tempDir, null, tempDir);
+        }
+
+        var json = await File.ReadAllTextAsync(manifestPath, cancellationToken).ConfigureAwait(false);
+        var manifest = JsonSerializer.Deserialize(json, GitTemplateJsonContext.Default.GitTemplateManifest);
+        return (tempDir, manifest, tempDir);
     }
 
     private static (List<string> variableNames, List<string[]> matrix) GenerateMatrix(GitTemplateManifest manifest)
