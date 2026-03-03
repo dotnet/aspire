@@ -148,4 +148,9 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public void DisplayRenderable(IRenderable renderable)
     {
     }
+
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        return callback(_ => { });
+    }
 }

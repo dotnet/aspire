@@ -13,7 +13,6 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -27,7 +26,6 @@ internal sealed class AppHostLauncher(
     CliExecutionContext executionContext,
     IFeatures features,
     IInteractionService interactionService,
-    IAnsiConsole ansiConsole,
     IAuxiliaryBackchannelMonitor backchannelMonitor,
     ILogger<AppHostLauncher> logger,
     TimeProvider timeProvider)
@@ -122,7 +120,9 @@ internal sealed class AppHostLauncher(
         logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
 
         // Start the child process and wait for the backchannel
-        var launchResult = await LaunchAndWaitForBackchannelAsync(executablePath, childArgs, expectedHash, cancellationToken);
+        var launchResult = await interactionService.ShowStatusAsync(
+            RunCommandStrings.StartingAppHostInBackground,
+            () => LaunchAndWaitForBackchannelAsync(executablePath, childArgs, expectedHash, cancellationToken));
 
         // Handle failure cases
         if (launchResult.Backchannel is null || launchResult.ChildProcess is null)
@@ -131,7 +131,7 @@ internal sealed class AppHostLauncher(
         }
 
         // Display results
-        await DisplayLaunchResultAsync(launchResult, effectiveAppHostFile, childLogFile, format, isExtensionHost, cancellationToken);
+        DisplayLaunchResult(launchResult, effectiveAppHostFile, childLogFile, format, isExtensionHost);
 
         return ExitCodeConstants.Success;
     }
@@ -203,7 +203,7 @@ internal sealed class AppHostLauncher(
         return (dotnetPath, childArgs);
     }
 
-    private record LaunchResult(Process? ChildProcess, IAppHostAuxiliaryBackchannel? Backchannel, bool ChildExitedEarly, int ChildExitCode);
+    private record LaunchResult(Process? ChildProcess, IAppHostAuxiliaryBackchannel? Backchannel, DashboardUrlsState? DashboardUrls, bool ChildExitedEarly, int ChildExitCode);
 
     private async Task<LaunchResult> LaunchAndWaitForBackchannelAsync(
         string executablePath,
@@ -211,68 +211,57 @@ internal sealed class AppHostLauncher(
         string expectedHash,
         CancellationToken cancellationToken)
     {
-        Process? childProcess = null;
-        var childExitedEarly = false;
-        var childExitCode = 0;
+        Process childProcess;
 
-        async Task<IAppHostAuxiliaryBackchannel?> WaitForBackchannelAsync()
+        try
         {
-            try
-            {
-                childProcess = DetachedProcessLauncher.Start(
-                    executablePath,
-                    childArgs,
-                    executionContext.WorkingDirectory.FullName);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to start child CLI process");
-                return null;
-            }
-
-            logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
-
-            var startTime = timeProvider.GetUtcNow();
-            var timeout = TimeSpan.FromSeconds(120);
-
-            while (timeProvider.GetUtcNow() - startTime < timeout)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (childProcess.HasExited)
-                {
-                    childExitedEarly = true;
-                    childExitCode = childProcess.ExitCode;
-                    logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
-                    return null;
-                }
-
-                await backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-
-                var connection = backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
-                if (connection is not null)
-                {
-                    return connection;
-                }
-
-                try
-                {
-                    await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-                }
-                catch (TimeoutException)
-                {
-                    // Expected - the 500ms delay elapsed without the process exiting
-                }
-            }
-
-            return null;
+            childProcess = DetachedProcessLauncher.Start(
+                executablePath,
+                childArgs,
+                executionContext.WorkingDirectory.FullName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to start child CLI process");
+            return new LaunchResult(null, null, null, false, 0);
         }
 
-        var backchannel = await interactionService.ShowStatusAsync(
-            RunCommandStrings.StartingAppHostInBackground,
-            WaitForBackchannelAsync);
+        logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
 
-        return new LaunchResult(childProcess, backchannel, childExitedEarly, childExitCode);
+        var startTime = timeProvider.GetUtcNow();
+        var timeout = TimeSpan.FromSeconds(120);
+
+        while (timeProvider.GetUtcNow() - startTime < timeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (childProcess.HasExited)
+            {
+                var exitCode = childProcess.ExitCode;
+                logger.LogWarning("Child CLI process exited with code {ExitCode}", exitCode);
+                return new LaunchResult(childProcess, null, null, true, exitCode);
+            }
+
+            await backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+
+            var connection = backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
+            if (connection is not null)
+            {
+                var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+                return new LaunchResult(childProcess, connection, dashboardUrls, false, 0);
+            }
+
+            try
+            {
+                await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                // Expected - the 500ms delay elapsed without the process exiting
+            }
+        }
+
+        return new LaunchResult(childProcess, null, null, false, 0);
     }
 
     private int HandleLaunchFailure(LaunchResult result, string childLogFile)
@@ -312,16 +301,15 @@ internal sealed class AppHostLauncher(
         return ExitCodeConstants.FailedToDotnetRunAppHost;
     }
 
-    private async Task DisplayLaunchResultAsync(
+    private void DisplayLaunchResult(
         LaunchResult result,
         FileInfo effectiveAppHostFile,
         string childLogFile,
         OutputFormat? format,
-        bool isExtensionHost,
-        CancellationToken cancellationToken)
+        bool isExtensionHost)
     {
         var appHostInfo = result.Backchannel!.AppHostInfo;
-        var dashboardUrls = await result.Backchannel.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+        var dashboardUrls = result.DashboardUrls;
         var pid = appHostInfo?.ProcessId ?? result.ChildProcess!.Id;
 
         if (format == OutputFormat.Json)
@@ -339,14 +327,14 @@ internal sealed class AppHostLauncher(
         {
             var appHostRelativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             RunCommand.RenderAppHostSummary(
-                ansiConsole,
+                interactionService,
                 appHostRelativePath,
                 dashboardUrls?.BaseUrlWithLoginToken,
                 codespacesUrl: null,
                 childLogFile,
                 isExtensionHost,
                 pid);
-            ansiConsole.WriteLine();
+            interactionService.DisplayEmptyLine();
 
             interactionService.DisplaySuccess(RunCommandStrings.AppHostStartedSuccessfully);
         }
