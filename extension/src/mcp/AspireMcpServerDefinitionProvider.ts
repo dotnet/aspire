@@ -52,7 +52,7 @@ export class AspireMcpServerDefinitionProvider implements vscode.McpServerDefini
 
 /**
  * Checks whether the current workspace appears to be an Aspire workspace
- * by looking for .aspire/settings.json files or AppHost-related project files.
+ * by looking for .aspire/settings.json files.
  */
 async function checkIsAspireWorkspace(): Promise<boolean> {
     if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
