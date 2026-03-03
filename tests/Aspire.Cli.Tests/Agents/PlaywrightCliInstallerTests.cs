@@ -155,8 +155,7 @@ public class PlaywrightCliInstallerTests
             {
                 ResolveResult = new NpmPackageInfo { Version = version, Integrity = integrity },
                 PackResult = tarballPath,
-                InstallGlobalResult = true,
-                AuditResult = true
+                InstallGlobalResult = true
             };
             var playwrightRunner = new TestPlaywrightCliRunner
             {
@@ -230,8 +229,7 @@ public class PlaywrightCliInstallerTests
             {
                 ResolveResult = new NpmPackageInfo { Version = targetVersion, Integrity = integrity },
                 PackResult = tarballPath,
-                InstallGlobalResult = true,
-                AuditResult = true
+                InstallGlobalResult = true
             };
             var playwrightRunner = new TestPlaywrightCliRunner
             {
@@ -306,32 +304,12 @@ public class PlaywrightCliInstallerTests
     }
 
     [Fact]
-    public async Task InstallAsync_WhenAuditSignaturesFails_ReturnsFalse()
-    {
-        var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
-        var npmRunner = new TestNpmRunner
-        {
-            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" },
-            AuditResult = false
-        };
-        var provenanceChecker = new TestNpmProvenanceChecker();
-        var playwrightRunner = new TestPlaywrightCliRunner();
-        var installer = new PlaywrightCliInstaller(npmRunner, provenanceChecker, playwrightRunner, new TestConsoleInteractionService(), new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
-
-        var result = await installer.InstallAsync(CreateTestContext(), CancellationToken.None);
-
-        Assert.False(result);
-        Assert.False(provenanceChecker.ProvenanceCalled);
-    }
-
-    [Fact]
     public async Task InstallAsync_WhenProvenanceCheckFails_ReturnsFalse()
     {
         var version = SemVersion.Parse("0.1.1", SemVersionStyles.Strict);
         var npmRunner = new TestNpmRunner
         {
-            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" },
-            AuditResult = true
+            ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-abc123" }
         };
         var provenanceChecker = new TestNpmProvenanceChecker { ProvenanceOutcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch };
         var playwrightRunner = new TestPlaywrightCliRunner();
@@ -359,7 +337,6 @@ public class PlaywrightCliInstallerTests
             var npmRunner = new TestNpmRunner
             {
                 ResolveResult = new NpmPackageInfo { Version = version, Integrity = "sha512-wronghash" },
-                AuditResult = false,
                 PackResult = tarballPath
             };
             var provenanceChecker = new TestNpmProvenanceChecker { ProvenanceOutcome = ProvenanceVerificationOutcome.AttestationFetchFailed };
@@ -559,7 +536,7 @@ public class PlaywrightCliInstallerTests
         public ProvenanceVerificationOutcome ProvenanceOutcome { get; set; } = ProvenanceVerificationOutcome.Verified;
         public bool ProvenanceCalled { get; private set; }
 
-        public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken)
+        public Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken, string? sriIntegrity = null)
         {
             ProvenanceCalled = true;
             return Task.FromResult(new ProvenanceVerificationResult

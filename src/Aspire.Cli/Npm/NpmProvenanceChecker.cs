@@ -16,7 +16,7 @@ internal sealed class NpmProvenanceChecker(HttpClient httpClient, ILogger<NpmPro
     internal const string SlsaProvenancePredicateType = "https://slsa.dev/provenance/v1";
 
     /// <inheritdoc />
-    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken)
+    public async Task<ProvenanceVerificationResult> VerifyProvenanceAsync(string packageName, string version, string expectedSourceRepository, string expectedWorkflowPath, string expectedBuildType, Func<WorkflowRefInfo, bool>? validateWorkflowRef, CancellationToken cancellationToken, string? sriIntegrity = null)
     {
         // Gate 1: Fetch attestations from the npm registry.
         string json;

@@ -144,22 +144,9 @@ internal sealed class PlaywrightCliInstaller(
 
         if (!validationDisabled)
         {
-            // Step 3: Verify Sigstore attestation signatures via npm audit signatures.
-            // This creates a temporary project to give npm audit signatures a working context.
-            logger.LogDebug("Verifying Sigstore attestations for {Package}@{Version}", PackageName, packageInfo.Version);
-            var auditPassed = await npmRunner.AuditSignaturesAsync(PackageName, packageInfo.Version.ToString(), cancellationToken);
-            if (!auditPassed)
-            {
-                logger.LogWarning(
-                    "Sigstore attestation verification failed for {Package}@{Version}. The package may not have valid attestations.",
-                    PackageName,
-                    packageInfo.Version);
-                return false;
-            }
-
-            logger.LogDebug("Sigstore attestation verification passed for {Package}@{Version}", PackageName, packageInfo.Version);
-
-            // Step 4: Verify provenance source repository from SLSA attestation.
+            // Step 3: Verify provenance via Sigstore bundle verification and SLSA attestation checks.
+            // This cryptographically verifies the Sigstore bundle (Fulcio CA, Rekor tlog, OIDC identity)
+            // and then checks the provenance fields (source repo, workflow, build type, ref).
             logger.LogDebug("Verifying provenance for {Package}@{Version}", PackageName, packageInfo.Version);
             var provenanceResult = await provenanceChecker.VerifyProvenanceAsync(
                 PackageName,
@@ -169,7 +156,8 @@ internal sealed class PlaywrightCliInstaller(
                 ExpectedBuildType,
                 refInfo => string.Equals(refInfo.Kind, "tags", StringComparison.Ordinal) &&
                            string.Equals(refInfo.Name, $"v{packageInfo.Version}", StringComparison.Ordinal),
-                cancellationToken);
+                cancellationToken,
+                sriIntegrity: packageInfo.Integrity);
 
             if (!provenanceResult.IsVerified)
             {
@@ -189,7 +177,7 @@ internal sealed class PlaywrightCliInstaller(
                 provenanceResult.Provenance?.SourceRepository);
         }
 
-        // Step 5: Download the tarball via npm pack.
+        // Step 4: Download the tarball via npm pack.
         var tempDir = Path.Combine(Path.GetTempPath(), $"aspire-playwright-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
 
@@ -204,7 +192,7 @@ internal sealed class PlaywrightCliInstaller(
                 return false;
             }
 
-            // Step 6: Verify the downloaded tarball's SHA-512 hash matches the SRI integrity value.
+            // Step 5: Verify the downloaded tarball's SHA-512 hash matches the SRI integrity value.
             if (!validationDisabled && !VerifyIntegrity(tarballPath, packageInfo.Integrity))
             {
                 logger.LogWarning(
@@ -219,7 +207,7 @@ internal sealed class PlaywrightCliInstaller(
                 logger.LogDebug("Integrity verification passed for {TarballPath}", tarballPath);
             }
 
-            // Step 7: Install globally from the verified tarball.
+            // Step 6: Install globally from the verified tarball.
             logger.LogDebug("Installing {Package}@{Version} globally", PackageName, packageInfo.Version);
             var installSuccess = await npmRunner.InstallGlobalAsync(tarballPath, cancellationToken);
 
@@ -229,7 +217,7 @@ internal sealed class PlaywrightCliInstaller(
                 return false;
             }
 
-            // Step 8: Generate skill files.
+            // Step 7: Generate skill files.
             logger.LogDebug("Generating Playwright CLI skill files");
             var skillsResult = await playwrightCliRunner.InstallSkillsAsync(cancellationToken);
             if (skillsResult)
