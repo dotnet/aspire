@@ -26,6 +26,7 @@ import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 import { AspireAppHostTreeProvider } from './views/AspireAppHostTreeProvider';
+import { AspireStatusBarProvider } from './views/AspireStatusBarProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -84,20 +85,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // Set initial context for welcome view
   vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', true);
 
-  // Start polling when the tree view becomes visible, stop when hidden
-  if (appHostTreeView.visible) {
-    appHostTreeProvider.startPolling();
-  }
-
-  appHostTreeView.onDidChangeVisibility(e => {
-    if (e.visible) {
-      appHostTreeProvider.startPolling();
-    } else {
-      appHostTreeProvider.stopPolling();
-    }
-  });
+  // Always poll for app host status — the status bar needs up-to-date data even
+  // when the tree view panel is hidden.
+  appHostTreeProvider.startPolling();
 
   context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, stopAppHostRegistration, stopResourceRegistration, startResourceRegistration, restartResourceRegistration, viewResourceLogsRegistration, executeResourceCommandRegistration, { dispose: () => appHostTreeProvider.dispose() });
+
+  // Status bar
+  const statusBarProvider = new AspireStatusBarProvider(appHostTreeProvider);
+  context.subscriptions.push(statusBarProvider);
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, cliUpdateSelfCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);

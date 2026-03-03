@@ -14,18 +14,18 @@ import {
     selectCommandPlaceholder,
 } from '../loc/strings';
 
-interface ResourceUrlJson {
+export interface ResourceUrlJson {
     name: string | null;
     displayName: string | null;
     url: string;
     isInternal: boolean;
 }
 
-interface ResourceCommandJson {
+export interface ResourceCommandJson {
     description: string | null;
 }
 
-interface ResourceJson {
+export interface ResourceJson {
     name: string;
     displayName: string | null;
     resourceType: string;
@@ -36,7 +36,7 @@ interface ResourceJson {
     commands: Record<string, ResourceCommandJson> | null;
 }
 
-interface AppHostDisplayInfo {
+export interface AppHostDisplayInfo {
     appHostPath: string;
     appHostPid: number;
     cliPid: number | null;
@@ -152,6 +152,14 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     private _errorMessage: string | undefined;
 
     constructor(private readonly _terminalProvider: AspireTerminalProvider) {}
+
+    get appHosts(): readonly AppHostDisplayInfo[] {
+        return this._appHosts;
+    }
+
+    get hasError(): boolean {
+        return this._errorMessage !== undefined;
+    }
 
     refresh(): void {
         this._fetchAppHosts();
