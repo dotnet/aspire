@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="MultipleInScopeAppHosts">
         <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
-        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <target state="translated">現在のディレクトリに、実行中の複数の AppHost が見つかりました。実行中の AppHost から選択してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
-        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
+        <target state="translated">現在のディレクトリに実行中の AppHost が見つかりません。実行中のすべての AppHost から選択してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="UsingAppHost">
         <source>Using AppHost: {0}</source>
-        <target state="new">Using AppHost: {0}</target>
+        <target state="translated">AppHost を使用しています: {0}</target>
         <note />
       </trans-unit>
     </body>

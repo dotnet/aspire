@@ -52,11 +52,6 @@
         <target state="translated">Ayrıntılar için günlükleri kontrol edin: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Çalışan örnekler kontrol ediliyor...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Apphost'a bağlanılıyor...</target>

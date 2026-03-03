@@ -52,11 +52,6 @@
         <target state="translated">Просмотрите дополнительные сведения в журналах: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Проверка запущенных экземпляров…</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Подключение к хосту приложений...</target>

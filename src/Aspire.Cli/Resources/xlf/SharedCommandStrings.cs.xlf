@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="MultipleInScopeAppHosts">
         <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
-        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <target state="translated">V aktuálním adresáři se našlo několik spuštěných hostitelů AppHost. Vyberte ze spuštěných hostitelů AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
-        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
+        <target state="translated">V aktuálním adresáři se nenašli žádní spuštění hostitelé aplikací. Vyberte z dostupných spuštěných hostitelů AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="UsingAppHost">
         <source>Using AppHost: {0}</source>
-        <target state="new">Using AppHost: {0}</target>
+        <target state="translated">Používá se AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>
