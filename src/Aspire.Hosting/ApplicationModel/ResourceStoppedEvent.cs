@@ -19,9 +19,7 @@ public class ResourceStoppedEvent(IResource resource, IServiceProvider services,
     /// <inheritdoc />
     public IResource Resource { get; } = resource;
 
-    /// <summary>
-    /// The <see cref="IServiceProvider"/> for the app host.
-    /// </summary>
+    /// <inheritdoc />
     public IServiceProvider Services { get; } = services;
 
     /// <summary>

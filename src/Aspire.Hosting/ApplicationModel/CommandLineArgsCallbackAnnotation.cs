@@ -48,6 +48,7 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args"> The list of command-line arguments.</param>
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
+[AspireExport(ExposeProperties = true)]
 public sealed class CommandLineArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
 {
     private readonly IResource? _resource;
@@ -85,7 +86,7 @@ public sealed class CommandLineArgsCallbackContext(IList<object> args, Cancellat
     /// The resource associated with this callback context.
     /// </summary>
     /// <remarks>
-    /// This will be set to the resource in all cases where .NET Aspire invokes the callback.
+    /// This will be set to the resource in all cases where Aspire invokes the callback.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown when the EnvironmentCallbackContext was created without a specified resource.</exception>
     public IResource Resource => _resource ?? throw new InvalidOperationException($"{nameof(Resource)} is not set. This callback context is not associated with a resource.");

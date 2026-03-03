@@ -2,9 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../NewCommandStrings.resx">
     <body>
+      <trans-unit id="ChannelOptionDescription">
+        <source>Channel to use for templates (stable, daily)</source>
+        <target state="translated">テンプレートに使用するチャネル (安定、毎日)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChannelOptionDescriptionWithStaging">
+        <source>Channel to use for templates (stable, staging, daily)</source>
+        <target state="translated">テンプレートに使用するチャネル (安定、ステージング、毎日)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Create a new Aspire project.</source>
-        <target state="translated">新しい Aspire プロジェクトを作成します。</target>
+        <source>Create a new app from an Aspire starter template.</source>
+        <target state="needs-review-translation">新しい Aspire プロジェクトを作成します。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -22,6 +32,11 @@
         <target state="translated">プロジェクト名が無効です。</target>
         <note />
       </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost.</source>
+        <target state="new">The programming language for the AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
         <target state="translated">作成するプロジェクトの名前。</target>
@@ -30,6 +45,11 @@
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">プロジェクトの出力パス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="new">Resolving template version...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

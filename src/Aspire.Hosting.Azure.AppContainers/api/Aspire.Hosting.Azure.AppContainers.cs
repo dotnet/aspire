@@ -92,5 +92,14 @@ namespace Aspire.Hosting.Azure.AppContainers
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
+    }
+
+    public partial class AzureContainerAppResource : AzureProvisioningResource
+    {
+        public AzureContainerAppResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure, ApplicationModel.IResource targetResource) : base(default!, default!) { }
+
+        public ApplicationModel.IResource TargetResource { get { throw null; } }
     }
 }

@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a container or project application launch argument.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Argument = {Argument}, IsSensitive = {IsSensitive}")]
-internal sealed class AppLaunchArgumentAnnotation(string argument, bool isSensitive) : IResourceAnnotation
+internal sealed class AppLaunchArgumentAnnotation(string argument, bool isSensitive)
 {
     /// <summary>
     /// The evaluated launch argument.

@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Tests;
 public class HealthCheckTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public void WithHttpHealthCheckThrowsIfReferencingEndpointByNameThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -34,7 +34,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public void WithHttpHealthCheckThrowsIfReferencingEndpointThatIsNotHttpScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -54,7 +54,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public void WithHttpsHealthCheckThrowsIfReferencingEndpointThatIsNotHttpsScheme()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -75,7 +75,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithHttpHealthCheckBlocksDependentResources()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
@@ -118,10 +118,9 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task BuildThrowsOnMissingHealthCheckRegistration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         builder.Services.AddLogging(b => {
-            b.AddXunit(testOutputHelper);
             b.AddFakeLogging();
         });
 

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -72,6 +74,7 @@ public static class AzureSqlExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/> builder.</returns>
+    [AspireExport("addAzureSqlServer", Description = "Adds an Azure SQL Database server resource")]
     public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -87,6 +90,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
@@ -100,6 +104,7 @@ public static class AzureSqlExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addDatabase", Description = "Adds an Azure SQL database resource")]
     public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -135,6 +140,7 @@ public static class AzureSqlExtensions
     /// </summary>
     /// <param name="builder">The builder for the Azure SQL resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDefaultAzureSku", Description = "Configures the Azure SQL database to use the default Azure SKU")]
     public static IResourceBuilder<AzureSqlDatabaseResource> WithDefaultAzureSku(this IResourceBuilder<AzureSqlDatabaseResource> builder)
     {
         builder.Resource.UseDefaultAzureSku = true;
@@ -164,6 +170,7 @@ public static class AzureSqlExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("runAsContainer", Description = "Configures the Azure SQL server to run locally in a SQL Server container")]
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -270,6 +277,9 @@ public static class AzureSqlExtensions
     {
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
+        // Check if this SQL Server has a private endpoint (via annotation)
+        var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
 
         (identifier, name) =>
@@ -301,37 +311,45 @@ public static class AzureSqlExtensions
                     TenantId = BicepFunction.GetSubscription().TenantId
                 },
                 Version = "12.0",
-                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                // When using private endpoints, disable public network access.
+                PublicNetworkAccess = hasPrivateEndpoint ? ServerNetworkAccessFlag.Disabled : ServerNetworkAccessFlag.Enabled,
                 MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
                 Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
         });
 
-        infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
+        // Only add firewall rules when not using private endpoints
+        if (!hasPrivateEndpoint)
         {
-            Parent = sqlServer,
-            Name = "AllowAllAzureIps",
-            StartIPAddress = "0.0.0.0",
-            EndIPAddress = "0.0.0.0"
-        });
-
-        if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
+            infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
             {
                 Parent = sqlServer,
-                Name = "AllowAllIps",
+                Name = "AllowAllAzureIps",
                 StartIPAddress = "0.0.0.0",
-                EndIPAddress = "255.255.255.255"
+                EndIPAddress = "0.0.0.0"
             });
+
+            if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
+            {
+                infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
+                {
+                    Parent = sqlServer,
+                    Name = "AllowAllIps",
+                    StartIPAddress = "0.0.0.0",
+                    EndIPAddress = "255.255.255.255"
+                });
+            }
         }
 
-        infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+        infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName.ToBicepExpression() });
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name.ToBicepExpression() });
 
-        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
+        // Output the resource id for private endpoint support.
+        infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = sqlServer.Id.ToBicepExpression() });
+
+        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login.ToBicepExpression() });
 
         return sqlServer;
     }

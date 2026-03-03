@@ -55,6 +55,8 @@ namespace Aspire.Hosting.Azure
 
         public AzureEventHubResource Parent { get { throw null; } }
 
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
@@ -69,6 +71,8 @@ namespace Aspire.Hosting.Azure
         public AzureEventHubsResource Parent { get { throw null; } }
 
         public long? PartitionCount { get { throw null; } set { } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -90,11 +94,19 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference EventHubsEndpoint { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
         public bool IsEmulator { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression? Port { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

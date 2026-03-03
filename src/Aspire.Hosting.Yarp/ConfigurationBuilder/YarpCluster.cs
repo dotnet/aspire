@@ -73,12 +73,11 @@ public class YarpCluster
     {
         var resourceName = resource.Name;
 
-        // NOTE: This should likely fallback to other endpoints with HTTP or HTTPS schemes in cases where they don't
-        //       have the default names.
-        var httpsEndpoint = resource.GetEndpoint("https");
-        var httpEndpoint = resource.GetEndpoint("http");
+        var endpoints = resource.GetEndpoints();
+        var hasHttpsEndpoint = endpoints.Any(e => e.Exists && e.IsHttps);
+        var hasHttpEndpoint = endpoints.Any(e => e.Exists && e.IsHttp);
 
-        var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
+        var scheme = (hasHttpsEndpoint, hasHttpEndpoint) switch
         {
             (true, true) => "https+http",
             (true, false) => "https",

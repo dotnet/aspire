@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 
-public class AddQdrantTests
+public class AddQdrantTests(ITestOutputHelper testOutputHelper)
 {
     private const int QdrantPortGrpc = 6334;
     private const int QdrantPortHttp = 6333;
@@ -17,7 +17,7 @@ public class AddQdrantTests
     [Fact]
     public void AddQdrantAddsGeneratedApiKeyParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var qd = appBuilder.AddQdrant("qd");
 
@@ -169,8 +169,16 @@ public class AddQdrantTests
         var pass = appBuilder.AddParameter("pass", "pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
-            .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
-            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
+            .WithEndpoint("grpc", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334);
+                e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "my-qdrant.dev.internal", 6334, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            })
+            .WithEndpoint("http", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333);
+                e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "my-qdrant.dev.internal", 6333, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            });
 
         var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(qdrant);
@@ -193,8 +201,8 @@ public class AddQdrantTests
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(2, containerServicesKeysCount);
 
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://my-qdrant:6334;Key=pass");
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant_http" && kvp.Value == "Endpoint=http://my-qdrant:6333;Key=pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://my-qdrant.dev.internal:6334;Key=pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant_http" && kvp.Value == "Endpoint=http://my-qdrant.dev.internal:6333;Key=pass");
     }
 
     [Fact]
@@ -274,7 +282,7 @@ public class AddQdrantTests
     [Fact]
     public void AddQdrantWithSpecifyingPorts()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var qdrant = builder.AddQdrant("my-qdrant", grpcPort: 5503, httpPort: 5504);
 

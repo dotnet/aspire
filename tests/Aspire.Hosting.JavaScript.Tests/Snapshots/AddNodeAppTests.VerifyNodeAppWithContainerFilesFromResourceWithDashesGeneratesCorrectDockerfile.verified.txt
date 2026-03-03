@@ -1,0 +1,23 @@
+﻿ARG STATIC_DEV_IMAGENAME=static-dev:static-dev-tag
+
+FROM node:22-alpine AS build
+
+WORKDIR /app
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm install
+COPY . .
+
+FROM ${STATIC_DEV_IMAGENAME} AS static_dev_stage
+
+FROM node:22-alpine AS runtime
+
+WORKDIR /app
+COPY --from=build /app /app
+COPY --from=static_dev_stage /app/dist /app/./static
+
+
+ENV NODE_ENV=production
+
+USER node
+
+ENTRYPOINT ["node","app.js"]

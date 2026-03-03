@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREUSERSECRETS001
+
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,8 @@ internal sealed class NoopUserSecretsManager : IUserSecretsManager
     private NoopUserSecretsManager()
     {
     }
+
+    public bool IsAvailable => false;
 
     public string FilePath => string.Empty;
 

@@ -196,7 +196,16 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Table.
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string ChartContainerParametersTab {
+            get {
+                return ResourceManager.GetString("ChartContainerParametersTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resources.
         /// </summary>
         public static string ChartContainerTableTab {
             get {
@@ -255,6 +264,33 @@ namespace Aspire.Dashboard.Resources {
         public static string CollapseAllSpansText {
             get {
                 return ResourceManager.GetString("CollapseAllSpansText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export JSON.
+        /// </summary>
+        public static string ExportJson {
+            get {
+                return ResourceManager.GetString("ExportJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export .env.
+        /// </summary>
+        public static string ExportEnv {
+            get {
+                return ResourceManager.GetString("ExportEnv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download.
+        /// </summary>
+        public static string Download {
+            get {
+                return ResourceManager.GetString("Download", resourceCulture);
             }
         }
         
@@ -752,7 +788,16 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Value not set.
+        /// </summary>
+        public static string ParameterValueNotSet {
+            get {
+                return ResourceManager.GetString("ParameterValueNotSet", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Resource actions.
         /// </summary>

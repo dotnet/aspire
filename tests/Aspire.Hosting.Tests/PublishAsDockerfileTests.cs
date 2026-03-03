@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 
@@ -253,8 +255,6 @@ public class PublishAsDockerfileTests
                 }
               ],
               "env": {
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
               }
             }
@@ -447,9 +447,9 @@ public class PublishAsDockerfileTests
         Assert.Equal(2, callbackCount);
     }
 
-    private static TempDirectory CreateDirectoryWithDockerFile()
+    private static TestTempDirectory CreateDirectoryWithDockerFile()
     {
-        var tempDir = new TempDirectory();
+        var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Join(tempDir.Path, "Dockerfile"), "this does not matter");
         return tempDir;
     }

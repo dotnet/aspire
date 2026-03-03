@@ -29,6 +29,9 @@ param(
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
 
+    [Parameter(HelpMessage = "Do not add the install path to PATH environment variable (useful for portable installs)")]
+    [switch]$SkipPath,
+
     [Parameter(HelpMessage = "Show help message")]
     [switch]$Help
 )
@@ -139,6 +142,7 @@ PARAMETERS:
     -Architecture <string>      Architecture (default: auto-detect)
     -InstallExtension           Install VS Code extension along with the CLI
     -UseInsiders                Install extension to VS Code Insiders instead of VS Code (requires -InstallExtension)
+    -SkipPath                   Do not add the install path to PATH environment variable (useful for portable installs)
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
     -Help                       Show this help message
 
@@ -161,6 +165,7 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -InstallExtension
     .\get-aspire-cli.ps1 -InstallExtension -UseInsiders
+    .\get-aspire-cli.ps1 -SkipPath
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -WhatIf
     .\get-aspire-cli.ps1 -Help
@@ -550,7 +555,103 @@ function Test-FileChecksum {
     }
 }
 
+# Function to get the CLI executable path for a given OS
+function Get-CliExecutablePath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$OS
+    )
+
+    $exeName = if ($OS -eq "win") { "aspire.exe" } else { "aspire" }
+    return Join-Path $DestinationPath $exeName
+}
+
+# Function to backup existing CLI executable before overwriting
+# This allows installation to proceed even when the CLI is running
+# The running process still has a handle to the old file, but the file can be renamed
+function Backup-ExistingCliExecutable {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if (Test-Path $TargetExePath) {
+        $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $backupPath = "$TargetExePath.old.$unixTimestamp"
+        
+        if ($PSCmdlet.ShouldProcess($TargetExePath, "Backup to $backupPath")) {
+            Write-Message "Backing up existing CLI: $TargetExePath -> $backupPath" -Level Verbose
+            
+            # Rename existing executable to .old.[timestamp]
+            Move-Item -Path $TargetExePath -Destination $backupPath -Force
+            return $backupPath
+        }
+    }
+    
+    return $null
+}
+
+# Function to restore CLI executable from backup if installation fails
+function Restore-CliExecutableFromBackup {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BackupPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if ($PSCmdlet.ShouldProcess($BackupPath, "Restore to $TargetExePath")) {
+        Write-Message "Restoring CLI from backup: $BackupPath -> $TargetExePath" -Level Warning
+        
+        if (Test-Path $TargetExePath) {
+            Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
+        }
+        
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+    }
+}
+
+# Function to clean up old backup files (aspire.exe.old.* or aspire.old.*)
+function Remove-OldCliBackupFiles {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    $directory = Split-Path -Parent $TargetExePath
+    if ([string]::IsNullOrEmpty($directory)) {
+        return
+    }
+    
+    $exeName = Split-Path -Leaf $TargetExePath
+    $searchPattern = "$exeName.old.*"
+    
+    $oldBackupFiles = Get-ChildItem -Path $directory -Filter $searchPattern -ErrorAction SilentlyContinue
+    foreach ($backupFile in $oldBackupFiles) {
+        if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
+            try {
+                Remove-Item -Path $backupFile.FullName -Force
+                Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
+            }
+            catch {
+                Write-Message "Failed to delete old backup file: $($backupFile.FullName) - $($_.Exception.Message)" -Level Verbose
+            }
+        }
+    }
+}
+
 function Expand-AspireCliArchive {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$ArchiveFile,
         [string]$DestinationPath,
@@ -559,11 +660,20 @@ function Expand-AspireCliArchive {
 
     Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
 
+    # Get the target executable path using shared function
+    $targetExePath = Get-CliExecutablePath -DestinationPath $DestinationPath -OS $OS
+    $backupPath = $null
+
     try {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
             Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
             New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+        }
+        else {
+            # Backup existing executable before extraction
+            # This allows installation to proceed even when the CLI is running
+            $backupPath = Backup-ExistingCliExecutable -TargetExePath $targetExePath
         }
 
         if ($OS -eq "win") {
@@ -590,10 +700,95 @@ function Expand-AspireCliArchive {
             }
         }
 
+        # Clean up old backup files on successful extraction
+        if ($backupPath -and (Test-Path $targetExePath)) {
+            Remove-OldCliBackupFiles -TargetExePath $targetExePath
+        }
+
         Write-Message "Successfully unpacked archive" -Level Verbose
     }
     catch {
+        # If anything goes wrong and we have a backup, restore it
+        if ($backupPath -and (Test-Path $backupPath)) {
+            Restore-CliExecutableFromBackup -BackupPath $backupPath -TargetExePath $targetExePath
+        }
         throw "Failed to unpack archive: $($_.Exception.Message)"
+    }
+}
+
+# Function to map quality to channel name
+function ConvertTo-ChannelName {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Quality
+    )
+    
+    switch ($Quality.ToLowerInvariant()) {
+        "release" { return "stable" }
+        "staging" { return "staging" }
+        "dev" { return "daily" }
+        default { return $Quality }
+    }
+}
+
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+function Save-GlobalSettings {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+    
+    if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
+        Write-Message "Setting global config: $Key = $Value" -Level Verbose
+        
+        $output = & $CliPath config set -g $Key $Value 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to set global config via aspire CLI: $output" -Level Warning
+            return
+        }
+        if ($output) {
+            Write-Message "$output" -Level Verbose
+        }
+        Write-Message "Global config saved: $Key = $Value" -Level Verbose
+    }
+}
+
+# Function to remove a global setting using the aspire CLI
+# Uses 'aspire config delete -g' to remove global configuration values
+# This is used when installing the release/stable channel to avoid forcing nuget.config creation
+function Remove-GlobalSettings {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+    
+    if ($PSCmdlet.ShouldProcess($Key, "Remove global config via aspire CLI")) {
+        Write-Message "Removing global config: $Key" -Level Verbose
+        
+        $output = & $CliPath config delete -g $Key 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to delete global config via aspire CLI: $output" -Level Verbose
+            return
+        }
+        Write-Message "Global config removed: $Key" -Level Verbose
     }
 }
 
@@ -967,14 +1162,28 @@ function Install-AspireCli {
             Write-Message "Successfully downloaded and validated: $($urls.ArchiveFilename)" -Level Verbose
         }
 
+        # Determine CLI path (needed for config operations)
+        $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
+        $cliPath = Join-Path $InstallPath $cliExe
+
         if ($PSCmdlet.ShouldProcess($InstallPath, "Install CLI")) {
             # Unpack the archive
             Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath -OS $targetOS
 
-            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $InstallPath $cliExe
-
             Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+        }
+
+        # Save the global channel setting if using quality-based download (not version-specific)
+        # This allows 'aspire new' and 'aspire init' to use the same channel by default
+        # For release/stable channel, remove the setting to avoid forcing nuget.config creation
+        if ([string]::IsNullOrWhiteSpace($Version)) {
+            $channel = ConvertTo-ChannelName -Quality $Quality
+            if ($channel -eq "stable") {
+                Remove-GlobalSettings -CliPath $cliPath -Key "channel"
+            }
+            else {
+                Save-GlobalSettings -CliPath $cliPath -Key "channel" -Value $channel
+            }
         }
 
         # Download and install VS Code extension if requested
@@ -1070,8 +1279,12 @@ function Start-AspireCliInstallation {
         # Download and install the Aspire CLI
         $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
 
-        # Update PATH environment variables
-        Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        # Update PATH environment variables unless -SkipPath is specified
+        if ($SkipPath) {
+            Write-Message "Skipping PATH configuration due to -SkipPath flag" -Level Info
+        } else {
+            Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        }
     }
     catch {
         # Display clean error message without stack trace

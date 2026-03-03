@@ -27,7 +27,7 @@ On Windows, Linux, or Mac you can use VS Code with the DevContainers extension. 
 * [VS Code](https://code.visualstudio.com/Download)
 * [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VSCode-remote.remote-containers)
 
-Then choose "Open Folder In Container", choose the root of your cloned repo, then choose ".NET Aspire - Contribute".
+Then choose "Open Folder In Container", choose the root of your cloned repo, then choose "Aspire - Contribute".
 
 ## Using Visual Studio
 

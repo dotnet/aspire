@@ -91,13 +91,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Aspire.Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required TraceMenuBuilder TraceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -132,25 +132,12 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private void UpdateTraceActionsMenu()
     {
+        if (_trace is null)
+        {
+            return;
+        }
+
         _traceActionsMenuItems.Clear();
-
-        // Add "View structured logs" at the top
-        _traceActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = ControlStringsLoc[nameof(ControlsStrings.ViewStructuredLogsText)],
-            Icon = new Icons.Regular.Size16.SlideTextSparkle(),
-            OnClick = () =>
-            {
-                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: _trace?.TraceId));
-                return Task.CompletedTask;
-            }
-        });
-
-        // Add divider
-        _traceActionsMenuItems.Add(new MenuButtonItem
-        {
-            IsDivider = true
-        });
 
         // Add expand/collapse options
         _traceActionsMenuItems.Add(new MenuButtonItem
@@ -168,6 +155,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             OnClick = CollapseAllSpansAsync,
             IsDisabled = !HasExpandedSpans()
         });
+
+        // Add divider
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            IsDivider = true
+        });
+
+        TraceMenuBuilder.AddMenuItems(_traceActionsMenuItems, _trace, showViewDetails: false);
     }
 
     // Internal to be used in unit tests
@@ -304,22 +299,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         // Get logs for the trace. Note that there isn't a limit on this query so all logs are returned.
         // There is a limit on the number of logs stored by the dashboard so this is implicitly limited.
         // If there are performance issues with displaying all logs then consider adding a limit to this query.
-        var logsContext = new GetLogsContext
-        {
-            ResourceKey = null,
-            Count = int.MaxValue,
-            StartIndex = 0,
-            Filters = [new FieldTelemetryFilter
-            {
-                Field = KnownStructuredLogFields.TraceIdField,
-                Condition = FilterCondition.Equals,
-                Value = _trace.TraceId
-            }]
-        };
-        var result = TelemetryRepository.GetLogs(logsContext);
+        var result = TelemetryRepository.GetLogsForTrace(_trace.TraceId);
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
         var apps = new HashSet<OtlpResource>();
@@ -544,15 +527,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
     {
-        return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
+        return GenAIHelpers.HasGenAIAttribute(spanViewModel.Span.Attributes);
     }
 
     private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
-            ViewportInformation,
             DialogService,
-            DialogsLoc,
             span,
             selectedLogEntryId: null,
             TelemetryRepository,

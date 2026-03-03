@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering and configuring Azure App Configuration in a .NET Aspire application.
+/// Provides extension methods for registering and configuring Azure App Configuration in an Aspire application.
 /// </summary>
 public static class AspireAppConfigurationExtensions
 {

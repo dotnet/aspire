@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREFILESYSTEM001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -54,6 +56,7 @@ namespace Aspire.Hosting;
 /// </code>
 /// </example>
 /// </remarks>
+[AspireExport(ExposeProperties = true)]
 public interface IDistributedApplicationBuilder
 {
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
@@ -89,7 +92,7 @@ public interface IDistributedApplicationBuilder
     /// in which the distributed application is running. The most important properties that
     /// the <see cref="DistributedApplicationExecutionContext" /> provides is the
     /// <see cref="DistributedApplicationExecutionContext.IsPublishMode"/> and <see cref="DistributedApplicationExecutionContext.IsRunMode"/>
-    /// properties. Developers building .NET Aspire based applications may whish to change the application
+    /// properties. Developers building Aspire based applications may whish to change the application
     /// model depending on whether they are running locally, or whether they are publishing to the cloud.
     /// </para>
     /// <example>
@@ -137,6 +140,35 @@ public interface IDistributedApplicationBuilder
     public IDistributedApplicationPipeline Pipeline { get; }
 
     /// <summary>
+    /// Gets the service for managing Aspire file system operations.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="FileSystemService"/> provides a centralized way to manage temporary files and directories
+    /// used by Aspire, enabling testability and consistent temp file management.
+    /// </para>
+    /// <para>
+    /// Resources and infrastructure code should use this service instead of static methods like
+    /// <see cref="Path.GetTempPath"/> or <see cref="Directory.CreateTempSubdirectory(string?)"/> to ensure
+    /// consistent directory management across the application.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IFileSystemService FileSystemService => throw new NotImplementedException();
+
+    /// <summary>
+    /// Gets the service for managing user secrets.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="UserSecretsManager"/> provides a centralized way to manage user secrets
+    /// used by Aspire, enabling testability and consistent secret management.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREUSERSECRETS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IUserSecretsManager UserSecretsManager => throw new NotImplementedException();
+
+    /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.
     /// </summary>
     /// <typeparam name="T">The type of resource to add.</typeparam>
@@ -151,7 +183,7 @@ public interface IDistributedApplicationBuilder
     /// </para>
     /// <example>
     /// This example shows the implementation of the <see cref="ContainerResourceBuilderExtensions.AddContainer(IDistributedApplicationBuilder, string, string)"/>
-    /// method which makes use of the <see cref="AddResource{T}(T)"/> method to add a container resource to the application. In .NET Aspire
+    /// method which makes use of the <see cref="AddResource{T}(T)"/> method to add a container resource to the application. In Aspire
     /// the pattern for defining new resources is to include a method that extends <see cref="IDistributedApplicationBuilder"/> and and then
     /// constructs a resource derived from <see cref="IResource"/> and adds it to the application model using the <see cref="AddResource{T}(T)"/>
     /// method. Other extension methods (such as <see cref="ContainerResourceBuilderExtensions.WithImage{T}(IResourceBuilder{T}, string, string)"/>
@@ -181,7 +213,7 @@ public interface IDistributedApplicationBuilder
     /// a resource builder for an existing resource.
     /// </para>
     /// <para>
-    /// This method is typically used when building extensions to .NET Aspire where the original resource builder cannot be
+    /// This method is typically used when building extensions to Aspire where the original resource builder cannot be
     /// referenced directly. Using the <see cref="CreateResourceBuilder{T}(T)"/> method allows for easier mutation of resources
     /// within the application model.
     /// </para>
@@ -237,5 +269,6 @@ public interface IDistributedApplicationBuilder
     /// when the process exists.
     /// </para>
     /// </remarks>
+    [AspireExport("build", Description = "Builds the distributed application")]
     DistributedApplication Build();
 }

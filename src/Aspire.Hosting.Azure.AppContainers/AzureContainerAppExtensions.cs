@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppContainers;
@@ -73,7 +76,7 @@ public static class AzureContainerAppExtensions
             infra.Add(tags);
 
             ProvisioningVariable? resourceToken = null;
-            if (appEnvResource.UseAzdNamingConvention)
+            if (appEnvResource.UseAzdNamingConvention || appEnvResource.UseCompactResourceNaming)
             {
                 resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
                 {
@@ -89,19 +92,23 @@ public static class AzureContainerAppExtensions
 
             infra.Add(identity);
 
-            ContainerRegistryService? containerRegistry = null;
-            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+            AzureProvisioningResource? registry = null;
+            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) &&
+                registryReferenceAnnotation.Registry is AzureProvisioningResource explicitRegistry)
             {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+                registry = explicitRegistry;
             }
-            else
+            else if (appEnvResource.DefaultContainerRegistry is not null)
             {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
+                registry = appEnvResource.DefaultContainerRegistry;
             }
+
+            if (registry is null)
+            {
+                throw new InvalidOperationException($"No container registry associated with environment '{appEnvResource.Name}'. This should have been added automatically.");
+            }
+
+            var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -146,6 +153,15 @@ public static class AzureContainerAppExtensions
                 },
                 Tags = tags
             };
+
+            // Configure VNet integration if a subnet is specified
+            if (appEnvResource.TryGetLastAnnotation<DelegatedSubnetAnnotation>(out var subnetAnnotation))
+            {
+                containerAppEnvironment.VnetConfiguration = new ContainerAppVnetConfiguration
+                {
+                    InfrastructureSubnetId = subnetAnnotation.SubnetId.AsProvisioningParameter(infra)
+                };
+            }
 
             infra.Add(containerAppEnvironment);
 
@@ -241,6 +257,30 @@ public static class AzureContainerAppExtensions
                                 $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
                             32);
                     }
+                    else if (appEnvResource.UseCompactResourceNaming)
+                    {
+                        Debug.Assert(resourceToken is not null);
+
+                        var volumeName = output.volume.Type switch
+                        {
+                            ContainerMountType.BindMount => $"bm{output.index}",
+                            ContainerMountType.Volume => output.volume.Source ?? $"v{output.index}",
+                            _ => throw new NotSupportedException()
+                        };
+
+                        // Remove '.' and '-' characters from volumeName
+                        volumeName = volumeName.Replace(".", "").Replace("-", "");
+
+                        share.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}"),
+                            60);
+
+                        containerAppStorage.Name = BicepFunction.Take(
+                            BicepFunction.Interpolate(
+                                $"{BicepFunction.ToLower(output.resource.Name)}-{BicepFunction.ToLower(volumeName)}-{resourceToken}"),
+                            32);
+                    }
                 }
             }
 
@@ -277,60 +317,85 @@ public static class AzureContainerAppExtensions
                     storageVolume.Name = BicepFunction.Interpolate($"vol{resourceToken}");
                 }
             }
+            else if (appEnvResource.UseCompactResourceNaming)
+            {
+                Debug.Assert(resourceToken is not null);
+
+                if (storageVolume is not null)
+                {
+                    // Sanitize env name for storage accounts: lowercase alphanumeric only.
+                    // Reserve 2 chars for "sv" prefix + 13 for uniqueString = 15, leaving 9 for the env name.
+                    var sanitizedPrefix = new string(appEnvResource.Name.ToLowerInvariant()
+                        .Where(c => char.IsLetterOrDigit(c)).ToArray());
+                    if (sanitizedPrefix.Length > 9)
+                    {
+                        sanitizedPrefix = sanitizedPrefix[..9];
+                    }
+
+                    storageVolume.Name = BicepFunction.Take(
+                        BicepFunction.Interpolate($"{sanitizedPrefix}sv{resourceToken}"),
+                        24);
+                }
+            }
 
             // Exposed so that callers reference the LA workspace in other bicep modules
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_NAME", typeof(string))
             {
-                Value = laWorkspace.Name
+                Value = laWorkspace.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID", typeof(string))
             {
-                Value = laWorkspace.Id
+                Value = laWorkspace.Id.ToBicepExpression()
             });
 
             // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
-                Value = containerRegistry.Name
+                Value = containerRegistry.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
             {
-                Value = containerRegistry.LoginServer
+                Value = containerRegistry.LoginServer.ToBicepExpression()
             });
 
             // Required by the IAzureContainerRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
-                Value = identity.Id
+                Value = identity.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", typeof(string))
             {
-                Value = containerAppEnvironment.Name
+                Value = containerAppEnvironment.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", typeof(string))
             {
-                Value = containerAppEnvironment.Id
+                Value = containerAppEnvironment.Id.ToBicepExpression()
             });
 
             // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
-                Value = containerAppEnvironment.DefaultDomain
+                Value = containerAppEnvironment.DefaultDomain.ToBicepExpression()
             });
         });
 
-        if (builder.ExecutionContext.IsRunMode)
-        {
+        // Create the default container registry resource before creating the environment
+        var registryName = $"{name}-acr";
+        var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName, containerAppEnvResource);
+        containerAppEnvResource.DefaultContainerRegistry = defaultRegistry;
+
+        // Create the resource builder first, then attach the registry to avoid recreating builders
+        var appEnvBuilder = builder.ExecutionContext.IsRunMode
             // HACK: We need to return a valid resource builder for the container app environment
             // but in run mode, we don't want to add the resource to the builder.
-            return builder.CreateResourceBuilder(containerAppEnvResource);
-        }
+            ? builder.CreateResourceBuilder(containerAppEnvResource)
+            : builder.AddResource(containerAppEnvResource);
 
-        return builder.AddResource(containerAppEnvResource);
+        return appEnvBuilder;
     }
 
     /// <summary>
@@ -351,6 +416,36 @@ public static class AzureContainerAppExtensions
     }
 
     /// <summary>
+    /// Configures the container app environment to use compact resource naming that maximally preserves
+    /// the <c>uniqueString</c> suffix for length-constrained Azure resources such as storage accounts.
+    /// </summary>
+    /// <param name="builder">The <see cref="AzureContainerAppEnvironmentResource"/> to configure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// By default, the generated Azure resource names use long static suffixes (e.g. <c>storageVolume</c>,
+    /// <c>managedStorage</c>) that can consume most of the 24-character storage account name limit, truncating
+    /// the <c>uniqueString(resourceGroup().id)</c> portion that provides cross-deployment uniqueness.
+    /// </para>
+    /// <para>
+    /// When enabled, this method shortens the static portions of generated names so the full 13-character
+    /// <c>uniqueString</c> is preserved. This prevents naming collisions when deploying multiple environments
+    /// to different resource groups.
+    /// </para>
+    /// <para>
+    /// This option only affects volume-related storage resources. It does not change the naming of the
+    /// container app environment, container registry, log analytics workspace, or managed identity.
+    /// Use <see cref="WithAzdResourceNaming"/> to change those names as well.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREACANAMING001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithCompactResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
+    {
+        builder.Resource.UseCompactResourceNaming = true;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures whether the Aspire dashboard should be included in the container app environment.
     /// </summary>
     /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
@@ -359,6 +454,24 @@ public static class AzureContainerAppExtensions
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithDashboard(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableDashboard = enable;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether HTTP endpoints should be upgraded to HTTPS in Azure Container Apps.
+    /// By default, HTTP endpoints are upgraded to HTTPS for security and WebSocket compatibility.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="upgrade">Whether to upgrade HTTP endpoints to HTTPS. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <remarks>
+    /// When disabled (<c>false</c>), HTTP endpoints will use HTTP scheme and port 80 in Azure Container Apps.
+    /// Note that explicit ports specified for development (e.g., port 8080) are still normalized
+    /// to standard ports (80/443) as required by Azure Container Apps.
+    /// </remarks>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithHttpsUpgrade(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool upgrade = true)
+    {
+        builder.Resource.PreserveHttpEndpoints = !upgrade;
         return builder;
     }
 
@@ -378,5 +491,58 @@ public static class AzureContainerAppExtensions
         builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
 
         return builder;
+    }
+
+    private static AzureContainerRegistryResource CreateDefaultAzureContainerRegistry(IDistributedApplicationBuilder builder, string name, AzureContainerAppEnvironmentResource containerAppEnvironment)
+    {
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        {
+            var registry = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, resourceName) =>
+                {
+                    var resource = ContainerRegistryService.FromExisting(identifier);
+                    resource.Name = resourceName;
+                    return resource;
+                },
+                (infra) =>
+                {
+                    var newRegistry = new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
+                        Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                    };
+
+                    if (containerAppEnvironment.UseAzdNamingConvention)
+                    {
+                        var resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
+                        {
+                            Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
+                        };
+                        infrastructure.Add(resourceToken);
+
+                        newRegistry.Name = new FunctionCallExpression(
+                            new IdentifierExpression("replace"),
+                            new InterpolatedStringExpression([
+                                new StringLiteralExpression("acr-"),
+                                new IdentifierExpression(resourceToken.BicepIdentifier)
+                            ]),
+                            new StringLiteralExpression("-"),
+                            new StringLiteralExpression(""));
+                    }
+
+                    return newRegistry;
+                });
+
+            infrastructure.Add(registry);
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
+            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
+        };
+
+        var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
+        return resource;
     }
 }

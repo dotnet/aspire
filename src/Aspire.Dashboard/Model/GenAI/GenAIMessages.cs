@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
@@ -126,7 +126,11 @@ public class MessagePartConverter : JsonConverter<MessagePart>
     }
 }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(MessagePart))]
 [JsonSerializable(typeof(TextPart))]
 [JsonSerializable(typeof(ToolCallRequestPart))]

@@ -79,9 +79,10 @@ internal static class ResourceExtensions
         {
             // If the value itself contains Helm expressions, use it directly in the template
             // Otherwise use the expression to reference values.yaml
-            secret.StringData[kvp.Key] = (kvp.Value.Value?.ContainsHelmExpression() == true)
-                ? kvp.Value.Value
-                : kvp.Value.HelmExpression;
+            secret.StringData[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                       ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                       : kvp.Value.Expression   // All secret values are strings
+                                         ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
@@ -108,7 +109,10 @@ internal static class ResourceExtensions
 
         foreach (var kvp in context.EnvironmentVariables.Where(kvp => !processedKeys.Contains(kvp.Key)))
         {
-            configMap.Data[kvp.Key] = kvp.Value.HelmExpression;
+            configMap.Data[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                     ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                     : kvp.Value.Expression   // All configmap values are strings
+                                       ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
@@ -136,15 +140,29 @@ internal static class ResourceExtensions
             },
         };
 
+        // Defense-in-depth: deduplicate ports by underlying value and protocol.
+        // The primary fix is in ProcessEndpoints() which skips the DefaultHttpsEndpoint
+        // (matching the core framework's SetBothPortsEnvVariables behavior). This dedup
+        // remains as a safety net for edge cases where multiple endpoints might still
+        // resolve to the same port value.
+        // See: https://github.com/dotnet/aspire/issues/14029
+        var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
+            var portValue = mapping.Port.ValueString ?? mapping.Port.ToScalar();
+            var portKey = (portValue, mapping.Protocol);
+            if (!addedPorts.Add(portKey))
+            {
+                continue; // Skip duplicate port/protocol combinations
+            }
+
             service.Spec.Ports.Add(
                 new()
                 {
                     Name = mapping.Name,
-                    Port = new(mapping.Port),
-                    TargetPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    Port = new(mapping.Port.ToScalar()),
+                    TargetPort = new(mapping.Port.ToScalar()),
+                    Protocol = mapping.Protocol,
                 });
         }
 
@@ -264,14 +282,23 @@ internal static class ResourceExtensions
             return container;
         }
 
+        // Defense-in-depth: deduplicate container ports (same rationale as ToService() above).
+        var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
+            var portValue = mapping.Port.ValueString ?? mapping.Port.ToScalar();
+            var portKey = (portValue, mapping.Protocol);
+            if (!addedPorts.Add(portKey))
+            {
+                continue;
+            }
+
             container.Ports.Add(
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    ContainerPort = new(mapping.Port.ToScalar()),
+                    Protocol = mapping.Protocol,
                 });
         }
 

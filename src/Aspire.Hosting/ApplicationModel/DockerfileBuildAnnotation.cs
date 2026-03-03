@@ -11,6 +11,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="stage">The name of the build stage to use for the build.</param>
 public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath, string? stage) : IResourceAnnotation
 {
+    private readonly SemaphoreSlim _materializationLock = new(1, 1);
+    private bool _isMaterialized;
+
     /// <summary>
     /// Gets the path to the context directory for the build.
     /// </summary>
@@ -62,4 +65,43 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// Container images without an entry point are not considered compute resources.
     /// </remarks>
     public bool HasEntrypoint { get; set; } = true;
+
+    /// <summary>
+    /// Materializes the Dockerfile from the factory if it hasn't been materialized yet.
+    /// This method is thread-safe and ensures the Dockerfile is only written once.
+    /// </summary>
+    /// <param name="context">The context containing services and resource information.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task MaterializeDockerfileAsync(DockerfileFactoryContext context, CancellationToken cancellationToken)
+    {
+        if (DockerfileFactory is null)
+        {
+            return;
+        }
+
+        // Fast path: check if already materialized before acquiring lock
+        if (_isMaterialized)
+        {
+            return;
+        }
+
+        await _materializationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Check again after acquiring the lock to avoid redundant work
+            if (_isMaterialized)
+            {
+                return;
+            }
+
+            var dockerfileContent = await DockerfileFactory(context).ConfigureAwait(false);
+            await File.WriteAllTextAsync(DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            _isMaterialized = true;
+        }
+        finally
+        {
+            _materializationLock.Release();
+        }
+    }
 }

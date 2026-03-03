@@ -12,6 +12,11 @@
         <target state="translated">AppHost i ustawienia domyślne usługi</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireJsFrontendStarter_Description">
+        <source>Starter App (ASP.NET Core/React)</source>
+        <target state="translated">Aplikacja startowa (ASP.NET Core/React)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
         <target state="translated">MSTest</target>
@@ -23,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
-        <source>React (Vite) &amp; FastAPI starter</source>
-        <target state="translated">Starter React (Vite) i FastAPI</target>
+        <source>Starter App (FastAPI/React)</source>
+        <target state="translated">Aplikacja startowa (FastAPI/React)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -38,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Blazor &amp; Minimal API starter</source>
-        <target state="translated">Starter interfejsów API Blazor i Minimal</target>
+        <source>Starter App (ASP.NET Core/Blazor)</source>
+        <target state="translated">Aplikacja startowa (ASP.NET Core/Blazor)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
@@ -118,9 +123,9 @@
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
-        <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Tworzenie projektu nie powiodło się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
-        <note>{0} is a number, --debug should not be localized</note>
+        <source>Project creation failed with exit code {0}. See logs at {1}</source>
+        <target state="new">Project creation failed with exit code {0}. See logs at {1}</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
@@ -148,9 +153,9 @@
         <note />
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
-        <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Instalacja szablonu nie powiodła się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
-        <note>{0} is a number, --debug should not be localized</note>
+        <source>The template installation failed with exit code {0}. See logs at {1}</source>
+        <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="Unknown">
         <source>Unknown</source>

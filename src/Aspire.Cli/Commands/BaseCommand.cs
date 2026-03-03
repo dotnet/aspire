@@ -7,6 +7,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
@@ -14,20 +15,37 @@ namespace Aspire.Cli.Commands;
 internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
+
+    /// <summary>
+    /// Gets the help group for this command.
+    /// When null, the command appears in the "Other Commands:" catch-all section.
+    /// </summary>
+    internal virtual HelpGroup HelpGroup => HelpGroup.None;
+
     private readonly CliExecutionContext _executionContext;
 
     protected CliExecutionContext ExecutionContext => _executionContext;
 
     protected IInteractionService InteractionService { get; }
 
-    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IInteractionService interactionService) : base(name, description)
+    protected AspireCliTelemetry Telemetry { get; }
+
+    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IInteractionService interactionService, AspireCliTelemetry telemetry) : base(name, description)
     {
         _executionContext = executionContext;
         InteractionService = interactionService;
+        Telemetry = telemetry;
         SetAction(async (parseResult, cancellationToken) =>
         {
             // Set the command on the execution context so background services can access it
             _executionContext.Command = this;
+
+            // Route human-readable output to stderr when JSON is requested so
+            // that only machine-readable data appears on stdout.
+            if (IsJsonFormatRequested(parseResult))
+            {
+                interactionService.Console = ConsoleOutput.Error;
+            }
 
             // TODO: SDK install goes here in the future.
 
@@ -53,38 +71,44 @@ internal abstract class BaseCommand : Command
 
     protected abstract Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken);
 
-    internal static int HandleProjectLocatorException(ProjectLocatorException ex, IInteractionService interactionService)
+    /// <summary>
+    /// Checks whether this command has a --format option whose parsed value is <see cref="OutputFormat.Json"/>.
+    /// </summary>
+    private bool IsJsonFormatRequested(ParseResult parseResult)
+    {
+        foreach (var option in Options)
+        {
+            if (option.Name == "--format" && option is Option<OutputFormat> formatOption)
+            {
+                return parseResult.GetValue(formatOption) == OutputFormat.Json;
+            }
+        }
+
+        return false;
+    }
+
+    internal static int HandleProjectLocatorException(ProjectLocatorException ex, IInteractionService interactionService, AspireCliTelemetry telemetry)
     {
         ArgumentNullException.ThrowIfNull(ex);
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        if (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
+        var errorMessage = ex.Message switch
         {
-            interactionService.DisplayError(InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        if (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
-        {
-            interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        if (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
-        {
-            interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        if (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
-        {
-            interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        if (string.Equals(ex.Message, ErrorStrings.AppHostsMayNotBeBuildable, StringComparisons.CliInputOrOutput))
-        {
-            interactionService.DisplayError(InteractionServiceStrings.UnbuildableAppHostsDetected);
-            return ExitCodeConstants.FailedToFindProject;
-        }
+            var m when string.Equals(m, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput)
+                => InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject,
+            var m when string.Equals(m, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput)
+                => InteractionServiceStrings.ProjectOptionDoesntExist,
+            var m when string.Equals(m, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput)
+                => InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound,
+            var m when string.Equals(m, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput)
+                => InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound,
+            var m when string.Equals(m, ErrorStrings.AppHostsMayNotBeBuildable, StringComparisons.CliInputOrOutput)
+                => InteractionServiceStrings.UnbuildableAppHostsDetected,
+            _ => string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message)
+        };
 
-        interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+        telemetry.RecordError(errorMessage, ex);
+        interactionService.DisplayError(errorMessage);
         return ExitCodeConstants.FailedToFindProject;
     }
 }

@@ -34,7 +34,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         if (!updateSteps.Any())
         {
             logger.LogInformation("No updates required for project: {ProjectFile}", projectFile.FullName);
-            interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ProjectUpToDateMessage);
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
@@ -52,12 +52,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             var projectName = new FileInfo(projectGroup.Key).Name;
             if (updateStepsByProject.Count > 1)
             {
-                interactionService.DisplayMessage("file_folder", $"[bold cyan]{projectName}[/]:");
+                interactionService.DisplayMessage(KnownEmojis.FileFolder, $"[bold cyan]{projectName.EscapeMarkup()}[/]:", allowMarkup: true);
             }
 
             foreach (var packageStep in projectGroup)
             {
-                interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
+                interactionService.DisplayMessage(KnownEmojis.Package, packageStep.GetFormattedDisplayText(), allowMarkup: true);
             }
 
             interactionService.DisplayEmptyLine();
@@ -66,7 +66,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // Display warning if fallback parsing was used
         if (fallbackUsed)
         {
-            interactionService.DisplayMessage("warning", $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]", allowMarkup: true);
             interactionService.DisplayEmptyLine();
         }
 
@@ -106,11 +106,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             interactionService.DisplayEmptyLine();
 
-            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
+            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForFilePathAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
-                isSecret: false,
+                directory: true,
                 required: true,
                 cancellationToken: cancellationToken);
 
@@ -120,11 +120,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         interactionService.DisplayEmptyLine();
 
-        foreach (var updateStep in updateSteps)
-        {
-            interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
-            await updateStep.Callback();
-        }
+        await interactionService.ShowStatusAsync(
+            UpdateCommandStrings.ApplyingUpdates,
+            async () =>
+            {
+                foreach (var updateStep in updateSteps)
+                {
+                    interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
+                    await updateStep.Callback();
+                }
+
+                return 0;
+            });
 
         interactionService.DisplayEmptyLine();
 
@@ -266,9 +273,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
+        // Detect what migration actions will be performed for .csproj files
+        var migrationInfo = DetectMigrationActions(context.AppHostProjectFile);
+
         var sdkUpdateStep = new PackageUpdateStep(
             string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
+            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!, interactionService, migrationInfo),
             "Aspire.AppHost.Sdk",
             sdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
@@ -276,11 +286,109 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
-    private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    private static SdkMigrationInfo DetectMigrationActions(FileInfo projectFile)
+    {
+        if (!string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SdkMigrationInfo(false, false);
+        }
+
+        try
+        {
+            var projectDocument = new XmlDocument();
+            projectDocument.PreserveWhitespace = true;
+            projectDocument.Load(projectFile.FullName);
+
+            var projectNode = projectDocument.SelectSingleNode("/Project");
+            if (projectNode is null)
+            {
+                return new SdkMigrationInfo(false, false);
+            }
+
+            // Check if using old SDK format (needs migration to new format)
+            var sdkAttribute = projectNode.Attributes?["Sdk"];
+            var usesOldFormat = sdkAttribute is null || !ContainsAspireAppHostSdk(sdkAttribute.Value);
+
+            // Check if Aspire.Hosting.AppHost package reference exists (will be removed)
+            var hasAppHostPackage = projectNode.SelectSingleNode("//PackageReference[@Include='Aspire.Hosting.AppHost']") is not null;
+
+            return new SdkMigrationInfo(usesOldFormat, hasAppHostPackage);
+        }
+        catch
+        {
+            return new SdkMigrationInfo(false, false);
+        }
+    }
+
+    private const string AspireAppHostSdkName = "Aspire.AppHost.Sdk";
+
+    /// <summary>
+    /// Checks if the Sdk attribute contains the Aspire.AppHost.Sdk.
+    /// Handles formats like "Aspire.AppHost.Sdk/13.0.1" or "Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk".
+    /// </summary>
+    private static bool ContainsAspireAppHostSdk(string sdkAttribute)
+    {
+        var sdks = sdkAttribute.Split(';');
+        foreach (var sdk in sdks)
+        {
+            var trimmedSdk = sdk.Trim();
+
+            // Check for exact match "Aspire.AppHost.Sdk" or "Aspire.AppHost.Sdk/version"
+            if (trimmedSdk.Equals(AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase) ||
+                trimmedSdk.StartsWith(AspireAppHostSdkName + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Updates the Aspire.AppHost.Sdk version in the Sdk attribute, preserving any other SDKs.
+    /// </summary>
+    private static string UpdateAspireAppHostSdkVersion(string sdkAttribute, string newVersion)
+    {
+        var sdks = sdkAttribute.Split(';');
+        var updatedSdks = new List<string>();
+
+        foreach (var sdk in sdks)
+        {
+            var trimmedSdk = sdk.Trim();
+
+            // Check if this is the Aspire.AppHost.Sdk
+            if (trimmedSdk.Equals(AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase) ||
+                trimmedSdk.StartsWith(AspireAppHostSdkName + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Replace with new version
+                updatedSdks.Add($"{AspireAppHostSdkName}/{newVersion}");
+            }
+            else
+            {
+                updatedSdks.Add(trimmedSdk);
+            }
+        }
+
+        return string.Join(";", updatedSdks);
+    }
+
+    internal static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package, IInteractionService interactionService, SdkMigrationInfo migrationInfo)
     {
         if (string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
         {
             await UpdateSdkVersionInCsprojAppHostAsync(projectFile, package);
+
+            // Display migration feedback messages
+            if (migrationInfo.WillMigrateToNewFormat)
+            {
+                interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture,
+                    UpdateCommandStrings.MigratedToNewSdkFormat, package.Version));
+            }
+
+            if (migrationInfo.WillRemoveAppHostPackage)
+            {
+                interactionService.DisplaySubtleMessage(UpdateCommandStrings.RemovedObsoleteAppHostPackage);
+            }
         }
         else if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
         {
@@ -293,7 +401,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         }
     }
 
-    private static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    internal static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
     {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
@@ -308,13 +416,15 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Check if the SDK is set via the Sdk attribute on the Project element (new format)
         var sdkAttribute = projectNode.Attributes?["Sdk"];
-        if (sdkAttribute is not null && sdkAttribute.Value.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+        if (sdkAttribute is not null && ContainsAspireAppHostSdk(sdkAttribute.Value))
         {
-            // New format: <Project Sdk="Aspire.AppHost.Sdk/version">
-            sdkAttribute.Value = $"Aspire.AppHost.Sdk/{package.Version}";
+            // Already using new format: <Project Sdk="Aspire.AppHost.Sdk/version">
+            // Update the version, preserving any other SDKs in the attribute
+            sdkAttribute.Value = UpdateAspireAppHostSdkVersion(sdkAttribute.Value, package.Version);
         }
         else
         {
+            // Migrate from old format to new format
             // Old format: <Sdk Name="Aspire.AppHost.Sdk" Version="..." />
             var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
             if (sdkNode is null)
@@ -322,12 +432,143 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
             }
 
-            sdkNode.Attributes?["Version"]?.Value = package.Version;
+            // Set the new format: <Project Sdk="Aspire.AppHost.Sdk/version">
+            // The Aspire.AppHost.Sdk already includes the base .NET SDK, so we replace any existing SDK attribute
+            if (sdkAttribute is not null)
+            {
+                sdkAttribute.Value = $"{AspireAppHostSdkName}/{package.Version}";
+            }
+            else
+            {
+                var newSdkAttribute = projectDocument.CreateAttribute("Sdk");
+                newSdkAttribute.Value = $"{AspireAppHostSdkName}/{package.Version}";
+                projectNode.Attributes!.SetNamedItem(newSdkAttribute);
+            }
+
+            // Remove the old <Sdk Name="Aspire.AppHost.Sdk" /> element and any surrounding whitespace
+            RemoveNodeWithWhitespace(sdkNode);
         }
+
+        // Remove the Aspire.Hosting.AppHost package reference if present (no longer needed with new SDK format)
+        RemovePackageReference(projectNode, "Aspire.Hosting.AppHost");
 
         projectDocument.Save(projectFile.FullName);
 
+        // The new SDK format adds an implicit PackageReference for Aspire.Hosting.AppHost with
+        // IsImplicitlyDefined="true". NuGet's Central Package Management (CPM) rejects any
+        // PackageVersion entry that targets an implicitly-defined package (NU1009). If the user
+        // was previously managing this package through CPM, we must also remove the now-orphaned
+        // PackageVersion entry from Directory.Packages.props to prevent the NU1009 error.
+        RemovePackageVersionFromDirectoryPackagesProps(projectFile, "Aspire.Hosting.AppHost");
+
         await Task.CompletedTask;
+    }
+
+    private static void RemoveNodeWithWhitespace(XmlNode node)
+    {
+        var parent = node.ParentNode;
+        if (parent is null)
+        {
+            return;
+        }
+
+        // Remove preceding whitespace (any text/whitespace node type)
+        var previousSibling = node.PreviousSibling;
+        if (previousSibling is XmlCharacterData charData && string.IsNullOrWhiteSpace(charData.Data))
+        {
+            parent.RemoveChild(previousSibling);
+        }
+
+        parent.RemoveChild(node);
+    }
+
+    private static void RemovePackageReference(XmlNode projectNode, string packageId)
+    {
+        var packageNode = projectNode.SelectSingleNode($"//PackageReference[@Include='{packageId}']");
+        if (packageNode?.ParentNode is null)
+        {
+            return;
+        }
+
+        var parentNode = packageNode.ParentNode;
+
+        // Remove the package reference and any preceding whitespace
+        RemoveNodeWithWhitespace(packageNode);
+
+        // If ItemGroup is now empty (only whitespace), remove it too
+        if (parentNode.Name == "ItemGroup" && IsEmptyOrWhitespace(parentNode))
+        {
+            RemoveNodeWithWhitespace(parentNode);
+        }
+    }
+
+    private static bool IsEmptyOrWhitespace(XmlNode node)
+    {
+        foreach (XmlNode child in node.ChildNodes)
+        {
+            // Check for any type of text/whitespace node (XmlText, XmlWhitespace, XmlSignificantWhitespace)
+            if (child is XmlCharacterData charData)
+            {
+                if (!string.IsNullOrWhiteSpace(charData.Data))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                // Non-text node found (element, comment, etc.)
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void RemovePackageVersionFromDirectoryPackagesProps(FileInfo projectFile, string packageId)
+    {
+        var cpmInfo = DetectCentralPackageManagement(projectFile);
+        if (!cpmInfo.UsesCentralPackageManagement || cpmInfo.DirectoryPackagesPropsFile is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var propsDocument = new XmlDocument();
+            propsDocument.PreserveWhitespace = true;
+            propsDocument.Load(cpmInfo.DirectoryPackagesPropsFile.FullName);
+
+            var packageVersionNode = propsDocument.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+            if (packageVersionNode?.ParentNode is null)
+            {
+                return;
+            }
+
+            var parentNode = packageVersionNode.ParentNode;
+
+            RemoveNodeWithWhitespace(packageVersionNode);
+
+            if (parentNode.Name == "ItemGroup" && IsEmptyOrWhitespace(parentNode))
+            {
+                RemoveNodeWithWhitespace(parentNode);
+            }
+
+            propsDocument.Save(cpmInfo.DirectoryPackagesPropsFile.FullName);
+        }
+        catch (Exception ex)
+        {
+            // The csproj has already been updated at this point, so we can't roll back.
+            // Inform the user what manual step is needed to complete the migration.
+            throw new ProjectUpdaterException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "The project file was updated successfully, but the PackageVersion entry for '{0}' could not be " +
+                    "removed from '{1}': {2}. Please manually remove the <PackageVersion Include=\"{0}\" ... /> " +
+                    "entry from this file to avoid NU1009 build errors.",
+                    packageId,
+                    cpmInfo.DirectoryPackagesPropsFile.FullName,
+                    ex.Message),
+                ex);
+        }
     }
 
     private static async Task UpdateSdkVersionInSingleFileAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
@@ -441,7 +682,13 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsUpdatablePackage(string packageId)
     {
-        return packageId.StartsWith("Aspire.");
+        // Skip Aspire.Hosting.AppHost - it's removed during SDK update (no longer needed with new SDK format)
+        if (string.Equals(packageId, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return packageId.StartsWith("Aspire.", StringComparison.Ordinal);
     }
 
     private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)
@@ -907,7 +1154,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
+        return $"[bold yellow]{PackageId.EscapeMarkup()}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 
@@ -920,3 +1167,5 @@ internal sealed class ProjectUpdaterException : System.Exception
 }
 
 internal record CentralPackageManagementInfo(bool UsesCentralPackageManagement, FileInfo? DirectoryPackagesPropsFile);
+
+internal record SdkMigrationInfo(bool WillMigrateToNewFormat, bool WillRemoveAppHostPackage);

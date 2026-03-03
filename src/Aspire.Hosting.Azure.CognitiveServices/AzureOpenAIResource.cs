@@ -25,9 +25,23 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
+    /// Gets the service endpoint URI expression for the Azure OpenAI resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("endpoint", this);
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the connection URI expression for the Azure OpenAI endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Format: The Azure OpenAI endpoint URL.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Endpoint}");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
@@ -64,15 +78,15 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a CognitiveServicesAccount with the same identifier already exists
         var existingAccount = resources.OfType<CognitiveServicesAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingAccount is not null)
         {
             return existingAccount;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var account = CognitiveServicesAccount.FromExisting(bicepIdentifier);
 
@@ -86,5 +100,10 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
 
         infra.Add(account);
         return account;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
     }
 }

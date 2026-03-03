@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -276,4 +277,40 @@ public sealed class ContainerFileSystemCallbackContext
     /// The app model resource the callback is associated with.
     /// </summary>
     public required IResource Model { get; init; }
+
+    /// <summary>
+    /// The path to the server authentication certificate file inside the container.
+    /// </summary>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public ContainerFileSystemCallbackHttpsCertificateContext? HttpsCertificateContext { get; set; }
+}
+
+/// <summary>
+/// Represents the context for server authentication certificate files in a <see cref="ContainerFileSystemCallbackContext"/>.
+/// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class ContainerFileSystemCallbackHttpsCertificateContext
+{
+    /// <summary>
+    /// A reference expression that resolves to the path to the server authentication certificate file inside the container.
+    /// Use GetValueAsync to resolve the path.
+    /// </summary>
+    public ReferenceExpression CertificatePath { get; init; } = null!;
+
+    /// <summary>
+    /// A reference expression that resolves to the path to the server authentication key file inside the container.
+    /// Use GetValueAsync to resolve the path.
+    /// </summary>
+    public ReferenceExpression KeyPath { get; init; } = null!;
+
+    /// <summary>
+    /// A reference expression that resolves to the path to the server authentication PFX file inside the container.
+    /// Use GetValueAsync to resolve the path.
+    /// </summary>
+    public ReferenceExpression PfxPath { get; init; } = null!;
+
+    /// <summary>
+    /// The password for the server authentication key inside the container or null if no password is required.
+    /// </summary>
+    public string? Password { get; init; }
 }

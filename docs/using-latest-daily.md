@@ -1,6 +1,6 @@
 # Set up your machine to use the latest Aspire builds
 
-If you just want an official release of .NET Aspire, you don't need this document. [The Aspire documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) will get you started.
+If you just want an official release of Aspire, you don't need this document. [The Aspire documentation](https://aspire.dev/get-started/what-is-aspire/) will get you started.
 
 If you want the latest, unsupported build of Aspire to try, read on.
 
@@ -44,7 +44,7 @@ curl -sSL https://aspire.dev/install.sh | bash -s -- --install-extension -q dev
 
 ## Create a new Project
 
-Create an empty .NET Aspire project on the command line:
+Create an empty Aspire project on the command line:
 
 ```shell
 aspire new

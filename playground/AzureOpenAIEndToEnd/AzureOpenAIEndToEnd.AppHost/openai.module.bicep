@@ -36,4 +36,6 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
 
 output connectionString string = 'Endpoint=${openai.properties.endpoint}'
 
+output endpoint string = openai.properties.endpoint
+
 output name string = openai.name

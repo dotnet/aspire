@@ -55,6 +55,13 @@ export interface RunSessionPayload {
     args?: string[];
 }
 
+export interface DebugLaunchSettings {
+    env?: { [key: string]: string };
+    args?: string[];
+    launchProfile?: string;
+    disableLaunchProfile?: boolean;
+}
+
 export interface DcpServerConnectionInfo {
     address: string;
     token: string;
@@ -100,6 +107,10 @@ export interface LaunchOptions {
     debugSession: AspireDebugSession;
 };
 
+export interface StartAppHostOptions {
+    forceBuild: boolean;
+}
+
 export interface AspireResourceDebugSession {
     id: string;
     session: vscode.DebugSession;
@@ -118,7 +129,7 @@ export interface AspireExtendedDebugConfiguration extends vscode.DebugConfigurat
 }
 
 interface AspireDebuggersConfiguration {
-    [key: string]: Record<string, any>;
+    [key: string]: DebugLaunchSettings;
 }
 
 export interface RunSessionInfo {

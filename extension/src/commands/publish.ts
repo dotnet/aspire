@@ -1,10 +1,8 @@
+import { AspireEditorCommandProvider } from '../editor/AspireEditorCommandProvider';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
-import { isWorkspaceOpen } from '../utils/workspace';
+import { getAppHostArgs } from '../utils/appHostArgs';
 
-export async function publishCommand(terminalProvider: AspireTerminalProvider) {
-    if (!isWorkspaceOpen()) {
-        return;
-    }
-
-    terminalProvider.sendAspireCommandToAspireTerminal('publish');
+export async function publishCommand(terminalProvider: AspireTerminalProvider, editorCommandProvider: AspireEditorCommandProvider) {
+    const appHostArgs = await getAppHostArgs(editorCommandProvider);
+    await terminalProvider.sendAspireCommandToAspireTerminal('publish', true, appHostArgs);
 }

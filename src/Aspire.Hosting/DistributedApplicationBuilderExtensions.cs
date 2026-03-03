@@ -25,7 +25,7 @@ public static class DistributedApplicationBuilderExtensions
     /// resource builder for an existing resource based on its name.
     /// </para>
     /// <para>
-    /// This method is typically used when testing .NET Aspire applications where the original resource builder cannot be
+    /// This method is typically used when testing Aspire applications where the original resource builder cannot be
     /// referenced directly. Using the <see cref="CreateResourceBuilder{T}(IDistributedApplicationBuilder, string)"/> method allows for easier mutation
     /// of resources within the test scenario.
     /// </para>

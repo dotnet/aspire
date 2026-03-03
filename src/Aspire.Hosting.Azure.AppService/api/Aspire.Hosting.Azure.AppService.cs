@@ -10,13 +10,27 @@ namespace Aspire.Hosting
 {
     public static partial class AzureAppServiceComputeResourceExtensions
     {
-        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure)
+        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite>? configure = null, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot>? configureSlot = null)
             where T : ApplicationModel.IComputeResource { throw null; }
     }
 
     public static partial class AzureAppServiceEnvironmentExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> applicationInsightsLocation) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> applicationInsightsBuilder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, string applicationInsightsLocation) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, bool enable = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDeploymentSlot(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> deploymentSlot) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDeploymentSlot(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, string deploymentSlot) { throw null; }
     }
 }
 
@@ -32,9 +46,17 @@ namespace Aspire.Hosting.Azure
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
 
+        public BicepOutputReference AzureAppInsightsConnectionStringReference { get { throw null; } }
+
+        public BicepOutputReference AzureAppInsightsInstrumentationKeyReference { get { throw null; } }
+
+        public BicepOutputReference DashboardUriReference { get { throw null; } }
+
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
     }
 
     public sealed partial class AzureAppServiceWebsiteCustomizationAnnotation : ApplicationModel.IResourceAnnotation
@@ -42,5 +64,19 @@ namespace Aspire.Hosting.Azure
         public AzureAppServiceWebsiteCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure) { }
 
         public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> Configure { get { throw null; } }
+    }
+
+    public partial class AzureAppServiceWebSiteResource : AzureProvisioningResource
+    {
+        public AzureAppServiceWebSiteResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure, ApplicationModel.IResource targetResource) : base(default!, default!) { }
+
+        public ApplicationModel.IResource TargetResource { get { throw null; } }
+    }
+
+    public sealed partial class AzureAppServiceWebsiteSlotCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AzureAppServiceWebsiteSlotCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot> configure) { }
+
+        public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot> Configure { get { throw null; } }
     }
 }

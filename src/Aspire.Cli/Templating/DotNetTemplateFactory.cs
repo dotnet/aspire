@@ -6,12 +6,13 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Certificates;
-using Aspire.Cli.Configuration;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
@@ -25,19 +26,69 @@ internal class DotNetTemplateFactory(
     ICertificateService certificateService,
     IPackagingService packagingService,
     INewCommandPrompter prompter,
+    ITemplateVersionPrompter templateVersionPrompter,
     CliExecutionContext executionContext,
-    IFeatures features)
+    IDotNetSdkInstaller sdkInstaller,
+    IFeatures features,
+    IConfigurationService configurationService,
+    AspireCliTelemetry telemetry,
+    ICliHostEnvironment hostEnvironment,
+    TemplateNuGetConfigService templateNuGetConfigService)
     : ITemplateFactory
 {
-    public IEnumerable<ITemplate> GetTemplates()
+    // Template-specific options
+    private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
     {
+        Description = TemplatingStrings.UseLocalhostTld_Description,
+        DefaultValueFactory = _ => false
+    };
+    private static readonly Option<bool?> s_useRedisCacheOption = new("--use-redis-cache")
+    {
+        Description = TemplatingStrings.UseRedisCache_Description,
+        DefaultValueFactory = _ => false
+    };
+    private static readonly Option<string?> s_testFrameworkOption = new("--test-framework")
+    {
+        Description = TemplatingStrings.PromptForTFMOptions_Description
+    };
+    private static readonly Option<string?> s_xunitVersionOption = new("--xunit-version")
+    {
+        Description = TemplatingStrings.EnterXUnitVersion_Description
+    };
+
+    public async Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await IsDotNetSdkAvailableAsync(cancellationToken))
+        {
+            return [];
+        }
+
         var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
-        return GetTemplatesCore(showAllTemplates);
+        var nonInteractive = !hostEnvironment.SupportsInteractiveInput;
+        return GetTemplatesCore(showAllTemplates, nonInteractive);
     }
 
-    public IEnumerable<ITemplate> GetInitTemplates()
+    public async Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        return GetTemplatesCore(showAllTemplates: true, nonInteractive: true);
+        if (!await IsDotNetSdkAvailableAsync(cancellationToken))
+        {
+            return [];
+        }
+
+        return [CreateSingleFileTemplate(nonInteractive: true)];
+    }
+
+    private async Task<bool> IsDotNetSdkAvailableAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var check = await sdkInstaller.CheckAsync(cancellationToken);
+            return check.Success;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates, bool nonInteractive = false)
@@ -49,10 +100,19 @@ internal class DotNetTemplateFactory(
             ApplyExtraAspireStarterOptions,
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
-                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+                : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
-        // Single-file AppHost templates
+        yield return new CallbackTemplate(
+            "aspire-ts-cs-starter",
+            TemplatingStrings.AspireJsFrontendStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyExtraAspireJsFrontendStarterOptions,
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
+            );
+
         yield return new CallbackTemplate(
             "aspire-py-starter",
             TemplatingStrings.AspirePyStarter_Description,
@@ -60,17 +120,7 @@ internal class DotNetTemplateFactory(
             ApplyDevLocalhostTldOption,
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
-                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
-            );
-
-        yield return new CallbackTemplate(
-            "aspire-apphost-singlefile",
-            TemplatingStrings.AspireAppHostSingleFile_Description,
-            projectName => $"./{projectName}",
-            ApplyDevLocalhostTldOption,
-            nonInteractive
-                ? ApplySingleFileTemplateWithNoExtraArgsAsync
-                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
+                : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
         if (showAllTemplates)
@@ -126,7 +176,7 @@ internal class DotNetTemplateFactory(
             _ => { },
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
-                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
+                : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
             );
 
         // Prepends a test framework selection step then calls the
@@ -138,7 +188,7 @@ internal class DotNetTemplateFactory(
                 TemplatingStrings.IntegrationTestsTemplate_Description,
                 projectName => $"./{projectName}",
                 _ => { },
-                async (template, parseResult, ct) =>
+                async (template, inputs, parseResult, ct) =>
                 {
                     var testTemplate = await prompter.PromptForTemplateAsync(
                         [msTestTemplate, xunitTemplate, nunitTemplate],
@@ -146,9 +196,22 @@ internal class DotNetTemplateFactory(
                     );
 
                     var testCallbackTemplate = (CallbackTemplate)testTemplate;
-                    return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
+                    return await testCallbackTemplate.ApplyTemplateAsync(inputs, parseResult, ct);
                 });
         }
+    }
+
+    private CallbackTemplate CreateSingleFileTemplate(bool nonInteractive)
+    {
+        return new CallbackTemplate(
+            "aspire-apphost-singlefile",
+            TemplatingStrings.AspireAppHostSingleFile_Description,
+            projectName => $"./{projectName}",
+            ApplyDevLocalhostTldOption,
+            nonInteractive
+                ? ApplySingleFileTemplateWithNoExtraArgsAsync
+                : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
+            );
     }
 
     private async Task<string[]> PromptForExtraAspireStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
@@ -181,6 +244,16 @@ internal class DotNetTemplateFactory(
         return extraArgs.ToArray();
     }
 
+    private async Task<string[]> PromptForExtraAspireJsFrontendStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
     private async Task<string[]> PromptForExtraAspireXUnitOptionsAsync(ParseResult result, CancellationToken cancellationToken)
     {
         var extraArgs = new List<string>();
@@ -192,7 +265,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForDevLocalhostTldOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var useLocalhostTld = result.GetValue<bool?>("--localhost-tld");
+        var useLocalhostTld = result.GetValue(s_localhostTldOption);
         if (!useLocalhostTld.HasValue)
         {
             useLocalhostTld = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseLocalhostTld_Prompt, [TemplatingStrings.No, TemplatingStrings.Yes], choice => choice, cancellationToken) switch
@@ -205,14 +278,14 @@ internal class DotNetTemplateFactory(
 
         if (useLocalhostTld ?? false)
         {
-            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
             extraArgs.Add("--localhost-tld");
         }
     }
 
     private async Task PromptForRedisCacheOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
+        var useRedisCache = result.GetValue(s_useRedisCacheOption);
         if (!useRedisCache.HasValue)
         {
             useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
@@ -225,14 +298,14 @@ internal class DotNetTemplateFactory(
 
         if (useRedisCache ?? false)
         {
-            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseRedisCache_UsingRedisCache);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, TemplatingStrings.UseRedisCache_UsingRedisCache);
             extraArgs.Add("--use-redis-cache");
         }
     }
 
     private async Task PromptForTestFrameworkOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var testFramework = result.GetValue<string?>("--test-framework");
+        var testFramework = result.GetValue(s_testFrameworkOption);
 
         if (testFramework is null)
         {
@@ -264,7 +337,7 @@ internal class DotNetTemplateFactory(
                 await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
             }
 
-            interactionService.DisplayMessage("check_mark", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForTFM_UsingForTesting, testFramework));
 
             extraArgs.Add("--test-framework");
             extraArgs.Add(testFramework);
@@ -273,7 +346,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForXUnitVersionOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var xunitVersion = result.GetValue<string?>("--xunit-version");
+        var xunitVersion = result.GetValue(s_xunitVersionOption);
         if (string.IsNullOrEmpty(xunitVersion))
         {
             xunitVersion = await interactionService.PromptForSelectionAsync(
@@ -291,39 +364,44 @@ internal class DotNetTemplateFactory(
     {
         ApplyDevLocalhostTldOption(command);
 
-        var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
-        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
-        useRedisCacheOption.DefaultValueFactory = _ => false;
-        command.Options.Add(useRedisCacheOption);
+        AddOptionIfMissing(command, s_useRedisCacheOption);
+        AddOptionIfMissing(command, s_testFrameworkOption);
+        AddOptionIfMissing(command, s_xunitVersionOption);
+    }
 
-        var testFrameworkOption = new Option<string?>("--test-framework");
-        testFrameworkOption.Description = TemplatingStrings.PromptForTFMOptions_Description;
-        command.Options.Add(testFrameworkOption);
+    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    {
+        ApplyDevLocalhostTldOption(command);
 
-        var xunitVersionOption = new Option<string?>("--xunit-version");
-        xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
-        command.Options.Add(xunitVersionOption);
+        AddOptionIfMissing(command, s_useRedisCacheOption);
     }
 
     private static void ApplyDevLocalhostTldOption(Command command)
     {
-        var useLocalhostTldOption = new Option<bool?>("--localhost-tld");
-        useLocalhostTldOption.Description = TemplatingStrings.UseLocalhostTld_Description;
-        useLocalhostTldOption.DefaultValueFactory = _ => false;
-        command.Options.Add(useLocalhostTldOption);
+        AddOptionIfMissing(command, s_localhostTldOption);
     }
 
-    private async Task<TemplateResult> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private static void AddOptionIfMissing(Command command, Option option)
     {
-        return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
+        if (!command.Options.Contains(option))
+        {
+            command.Options.Add(option);
+        }
     }
 
-    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, TemplateInputs inputs, ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.CommandResult.Command is InitCommand)
+        return await ApplyTemplateAsync(template, inputs, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, TemplateInputs inputs, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    {
+        // For single-file templates invoked via InitCommand, use the working directory as the output
+        if (inputs.UseWorkingDirectory)
         {
             return await ApplyTemplateAsync(
                 template,
+                inputs,
                 executionContext.WorkingDirectory.Name,
                 executionContext.WorkingDirectory.FullName,
                 parseResult,
@@ -335,6 +413,7 @@ internal class DotNetTemplateFactory(
         {
             return await ApplyTemplateAsync(
                 template,
+                inputs,
                 parseResult,
                 extraArgsCallback,
                 cancellationToken
@@ -342,29 +421,35 @@ internal class DotNetTemplateFactory(
         }
     }
 
-    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, TemplateInputs inputs, ParseResult parseResult, CancellationToken cancellationToken)
     {
         return ApplySingleFileTemplate(
             template,
+            inputs,
             parseResult,
             (_, _) => Task.FromResult(Array.Empty<string>()),
             cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, TemplateInputs inputs, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
-        var name = await GetProjectNameAsync(parseResult, cancellationToken);
-        var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, telemetry, cancellationToken))
+        {
+            return new TemplateResult(ExitCodeConstants.SdkNotInstalled);
+        }
 
-        return await ApplyTemplateAsync(template, name, outputPath, parseResult, extraArgsCallback, cancellationToken);
+        var name = await GetProjectNameAsync(inputs, cancellationToken);
+        var outputPath = await GetOutputPathAsync(inputs, template.PathDeriver, name, cancellationToken);
+
+        return await ApplyTemplateAsync(template, inputs, name, outputPath, parseResult, extraArgsCallback, cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, string name, string outputPath, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, TemplateInputs inputs, string name, string outputPath, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         try
         {
-            var source = parseResult.GetValue<string?>("--source");
-            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+            var source = inputs.Source;
+            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(inputs, cancellationToken: cancellationToken);
 
             // Some templates have additional arguments that need to be applied to the `dotnet new` command
             // when it is executed. This callback will get those arguments and potentially prompt for them.
@@ -373,7 +458,7 @@ internal class DotNetTemplateFactory(
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                $":ice:  {TemplatingStrings.GettingTemplates}",
+                TemplatingStrings.GettingTemplates,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -397,20 +482,20 @@ internal class DotNetTemplateFactory(
                         options: options,
                         cancellationToken: cancellationToken);
                     return result;
-                });
+                }, emoji: KnownEmojis.Ice);
 
             if (templateInstallResult.ExitCode != 0)
             {
                 interactionService.DisplayLines(templateInstallCollector.GetLines());
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode));
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.TemplateInstallationFailed, templateInstallResult.ExitCode, executionContext.LogFilePath));
                 return new TemplateResult(ExitCodeConstants.FailedToInstallTemplates);
             }
 
-            interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
+            interactionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
 
             var newProjectCollector = new OutputCollector();
             var newProjectExitCode = await interactionService.ShowStatusAsync(
-                $":rocket:  {TemplatingStrings.CreatingNewProject}",
+                TemplatingStrings.CreatingNewProject,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -428,7 +513,7 @@ internal class DotNetTemplateFactory(
                                 cancellationToken);
 
                     return result;
-                });
+                }, emoji: KnownEmojis.Rocket);
 
             if (newProjectExitCode != 0)
             {
@@ -441,19 +526,21 @@ internal class DotNetTemplateFactory(
                 }
 
                 interactionService.DisplayLines(newProjectCollector.GetLines());
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode, executionContext.LogFilePath));
                 return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
             }
 
-            await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.
-            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
+            await templateNuGetConfigService.PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
             // Create .aspire/settings.json with appHostPath if an AppHost project is found
             await CreateSettingsFileAsync(outputPath, cancellationToken);
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
+
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }
@@ -467,6 +554,11 @@ internal class DotNetTemplateFactory(
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
+        catch (Exceptions.ChannelNotFoundException ex)
+        {
+            interactionService.DisplayError(ex.Message);
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
+        }
         catch (EmptyChoicesException ex)
         {
             interactionService.DisplayError(ex.Message);
@@ -474,9 +566,9 @@ internal class DotNetTemplateFactory(
         }
     }
 
-    private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<string> GetProjectNameAsync(TemplateInputs inputs, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
+        if (inputs.Name is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
         {
             var defaultName = executionContext.WorkingDirectory.Name;
             name = await prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
@@ -485,9 +577,9 @@ internal class DotNetTemplateFactory(
         return name;
     }
 
-    private async Task<string> GetOutputPathAsync(ParseResult parseResult, Func<string, string> pathDeriver, string projectName, CancellationToken cancellationToken)
+    private async Task<string> GetOutputPathAsync(TemplateInputs inputs, Func<string, string> pathDeriver, string projectName, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--output") is not { } outputPath)
+        if (inputs.Output is not { } outputPath)
         {
             outputPath = await prompter.PromptForOutputPath(pathDeriver(projectName), cancellationToken);
         }
@@ -495,10 +587,42 @@ internal class DotNetTemplateFactory(
         return Path.GetFullPath(outputPath);
     }
 
-    private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(TemplateInputs inputs, CancellationToken cancellationToken)
     {
-        _ = parseResult;
-        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
+        
+        // Check if channel was provided via inputs (highest priority)
+        var channelName = inputs.Channel;
+        
+        // If no channel in inputs, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
+        
+        if (hasChannelSetting)
+        {
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new Exceptions.ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // If there are hives (PR build directories), include all channels.
+            // Otherwise, only use the implicit/default channel to avoid prompting.
+            var hasHives = executionContext.GetPrHiveCount() > 0;
+            channels = hasHives 
+                ? allChannels 
+                : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
@@ -524,7 +648,7 @@ internal class DotNetTemplateFactory(
 
         var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
 
-        if (parseResult.GetValue<string>("--version") is { } version)
+        if (inputs.Version is { } version)
         {
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             if (explicitPackageFromChannel.Package is not null)
@@ -533,50 +657,15 @@ internal class DotNetTemplateFactory(
             }
         }
 
-        var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
+        {
+            return orderedPackagesFromChannels.First();
+        }
+
+        var selectedPackageFromChannel = await templateVersionPrompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
-    }
-
-    /// <summary>
-    /// Prompts to create or update a NuGet.config for explicit channels.
-    /// When the output directory differs from the working directory, a NuGet.config is created/updated
-    /// only in the output directory. When they are the same (in-place creation), existing behavior
-    /// is preserved where the working directory NuGet.config is considered for updates.
-    /// </summary>
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
-    {
-        if (channel.Type is not PackageChannelType.Explicit)
-        {
-            return;
-        }
-
-        var mappings = channel.Mappings;
-        if (mappings is null || mappings.Length == 0)
-        {
-            return;
-        }
-
-        var workingDir = executionContext.WorkingDirectory;
-        var outputDir = new DirectoryInfo(outputPath);
-
-        // Determine if we're creating the project in-place (output directory same as working directory)
-        var normalizedOutputPath = Path.GetFullPath(outputPath);
-        var normalizedWorkingPath = workingDir.FullName;
-        var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
-
-        var nugetConfigPrompter = new NuGetConfigPrompter(interactionService);
-
-        if (!isInPlaceCreation)
-        {
-            // For subdirectory creation, always create/update NuGet.config in the output directory only
-            // and ignore any existing NuGet.config in the working directory
-            await nugetConfigPrompter.CreateOrUpdateWithoutPromptAsync(outputDir, channel, cancellationToken);
-            return;
-        }
-
-        // In-place creation: preserve existing behavior
-        // Prompt user before creating or updating NuGet.config
-        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(workingDir, channel, cancellationToken);
     }
 
     /// <summary>
@@ -609,8 +698,8 @@ internal class DotNetTemplateFactory(
             foreach (var projectFile in projectFiles)
             {
                 var information = await runner.GetAppHostInformationAsync(
-                    projectFile, 
-                    new DotNetCliRunnerInvocationOptions(), 
+                    projectFile,
+                    new DotNetCliRunnerInvocationOptions(),
                     cancellationToken);
 
                 if (information.ExitCode == 0 && information.IsAspireHost)
@@ -662,7 +751,7 @@ internal class DotNetTemplateFactory(
 
                 var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFilePath)
                     .Replace(Path.DirectorySeparatorChar, '/');
-                interactionService.DisplayMessage("file_cabinet", 
+                interactionService.DisplayMessage(KnownEmojis.FileCabinet,
                     string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
             }
         }
@@ -670,7 +759,7 @@ internal class DotNetTemplateFactory(
         {
             // If settings file creation fails, don't fail the entire operation
             // Just continue without creating the settings file
-            interactionService.DisplayMessage("warning", $"Failed to create settings file: {ex.Message.EscapeMarkup()}. Continuing without settings file.");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"Failed to create settings file: {ex.Message.EscapeMarkup()}. Continuing without settings file.");
         }
     }
 
@@ -715,5 +804,5 @@ internal class DotNetTemplateFactory(
 
         return false;
     }
-}
 
+}

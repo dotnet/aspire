@@ -79,7 +79,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
@@ -133,7 +133,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
@@ -226,7 +226,7 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
-                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums", env.Value);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
@@ -257,7 +257,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "postgres",
                 "POSTGRES_PASSWORD": "{pg-password.value}"
               },
@@ -300,7 +300,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "{user.value}",
                 "POSTGRES_PASSWORD": "{pass.value}"
               },
@@ -326,7 +326,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "{user.value}",
                 "POSTGRES_PASSWORD": "{pg2-password.value}"
               },
@@ -352,7 +352,7 @@ public class AddPostgresTests
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "postgres",
                 "POSTGRES_PASSWORD": "{pass.value}"
               },
@@ -453,7 +453,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var username = builder.AddParameter("pg-user", "myuser");
@@ -515,7 +515,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
@@ -693,9 +693,9 @@ public class AddPostgresTests
         var postgres = appBuilder.AddPostgres("postgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432));
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
-        var config2 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(postgres.Resource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(postgres.Resource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);
@@ -705,5 +705,170 @@ public class AddPostgresTests
             Assert.True(config2.ContainsKey(kvp.Key), $"Key {kvp.Key} should exist in second call");
             Assert.Equal(kvp.Value, config2[kvp.Key]);
         });
+    }
+
+    [Theory]
+    [InlineData("17.6", 17)]
+    [InlineData("18.1", 18)]
+    [InlineData("18", 18)]
+    [InlineData("18-alpine", 18)]
+    [InlineData("17.6-bookworm", 17)]
+    [InlineData("16.0", 16)]
+    [InlineData("9.6", 9)]
+    public void TryParsePostgresMajorVersionReturnsTrueForValidTags(string tag, int expectedMajorVersion)
+    {
+        var result = PostgresBuilderExtensions.TryParsePostgresMajorVersion(tag, out var majorVersion);
+
+        Assert.True(result);
+        Assert.Equal(expectedMajorVersion, majorVersion);
+    }
+
+    [Theory]
+    [InlineData("latest")]
+    [InlineData("alpine")]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("abc")]
+    public void TryParsePostgresMajorVersionReturnsFalseForInvalidTags(string tag)
+    {
+        var result = PostgresBuilderExtensions.TryParsePostgresMajorVersion(tag, out var majorVersion);
+
+        Assert.False(result);
+        Assert.Equal(0, majorVersion);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataVolumeUsesLegacyPathForPostgres17(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres");
+
+        // Default image is v17.x, so should use legacy path
+        if (isReadOnly.HasValue)
+        {
+            postgres.WithDataVolume(isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            postgres.WithDataVolume();
+        }
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal($"{builder.GetVolumePrefix()}-myPostgres-data", volumeAnnotation.Source);
+        Assert.Equal("/var/lib/postgresql/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataVolumeUsesNewPathForPostgres18(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "18.1");
+
+        if (isReadOnly.HasValue)
+        {
+            postgres.WithDataVolume(isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            postgres.WithDataVolume();
+        }
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal($"{builder.GetVolumePrefix()}-myPostgres-data", volumeAnnotation.Source);
+        Assert.Equal("/var/lib/postgresql", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Fact]
+    public void WithDataVolumeUsesNewPathForPostgres18Alpine()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "18-alpine")
+            .WithDataVolume();
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("/var/lib/postgresql", volumeAnnotation.Target);
+    }
+
+    [Fact]
+    public void WithDataVolumeUsesLegacyPathForUnparsableTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "latest")
+            .WithDataVolume();
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        // When tag can't be parsed, fall back to legacy path for safety
+        Assert.Equal("/var/lib/postgresql/data", volumeAnnotation.Target);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountUsesLegacyPathForPostgres17(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres");
+
+        // Default image is v17.x, so should use legacy path
+        if (isReadOnly.HasValue)
+        {
+            postgres.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            postgres.WithDataBindMount("mydata");
+        }
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
+        Assert.Equal("/var/lib/postgresql/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountUsesNewPathForPostgres18(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("myPostgres")
+            .WithImage("postgres", "18.1");
+
+        if (isReadOnly.HasValue)
+        {
+            postgres.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            postgres.WithDataBindMount("mydata");
+        }
+
+        var volumeAnnotation = postgres.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
+        Assert.Equal("/var/lib/postgresql", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
 }

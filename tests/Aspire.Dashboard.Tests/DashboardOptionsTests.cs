@@ -214,18 +214,17 @@ public sealed class DashboardOptionsTests
     #region OTLP options
 
     [Fact]
-    public void OtlpOptions_NeitherEndpointSet()
+    public void OtlpOptions_NeitherEndpointSet_Succeeds()
     {
+        // OTLP endpoints are optional - telemetry can be imported via the UI
         var options = GetValidOptions();
         options.Otlp.GrpcEndpointUrl = null;
         options.Otlp.HttpEndpointUrl = null;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(
-            $"Neither OTLP/gRPC or OTLP/HTTP endpoint URLs are configured. Specify either a {DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName} or {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.",
-            result.FailureMessage);
+        Assert.True(result.Succeeded);
+        Assert.Null(result.FailureMessage);
     }
 
     [Fact]
@@ -259,7 +258,7 @@ public sealed class DashboardOptionsTests
         [
             new("ASPNETCORE_URLS", "http://localhost:8000/"),
             new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
-            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey, "true"),
+            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessageName.ConfigKey, "true"),
         ]));
         var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
 

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMMAND001
+
 using System.Text.Json.Nodes;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
@@ -145,7 +147,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_RemoveDefaultHostStorageWhenUseHostStorageIsUsed()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -172,7 +174,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WorksWithMultipleProjects()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -609,7 +611,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_Works()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -634,7 +636,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -656,7 +658,7 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -679,7 +681,6 @@ public class AzureFunctionsTests
         }
 
         // Verify common environment variables are set
-        Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
         Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
         Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
     }
@@ -687,7 +688,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create temporary project files
@@ -707,10 +708,10 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -742,7 +743,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -755,5 +756,19 @@ public class AzureFunctionsTests
 
         // Verify that AzureFunctionsAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_AddsRequiredCommandAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var funcApp = builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        // Verify that RequiredCommandAnnotation for 'func' is added
+        var annotation = funcApp.Resource.Annotations.OfType<RequiredCommandAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("func", annotation.Command);
+        Assert.Equal("https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools", annotation.HelpLink);
     }
 }

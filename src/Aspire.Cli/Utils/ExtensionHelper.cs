@@ -31,4 +31,8 @@ internal static class KnownCapabilities
 {
     public const string DevKit = "devkit";
     public const string Project = "project";
+    public const string BuildDotnetUsingCli = "build-dotnet-using-cli";
+    public const string Baseline = "baseline.v1";
+    public const string SecretPrompts = "secret-prompts.v1";
+    public const string FilePickers = "file-pickers.v1";
 }

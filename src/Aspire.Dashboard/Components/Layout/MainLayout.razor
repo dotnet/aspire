@@ -1,10 +1,9 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons
 @using Aspire.Dashboard.Components.Interactions
 @using Aspire.Dashboard.Components.Dialogs
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Assistant
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@inject IStringLocalizer<Dialogs> DialogsLoc
 @inherits LayoutComponentBase
 
 <div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
@@ -34,7 +33,7 @@
                           Title="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
                 <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Neutral"/>
             </FluentButton>
-            @if (!Options.CurrentValue.Mcp.Disabled.GetValueOrDefault())
+            @if (Options.CurrentValue.Mcp.GetEndpointAddress() != null && !Options.CurrentValue.Mcp.Disabled.GetValueOrDefault())
             {
                 <FluentButton Class="header-button"
                               Appearance="Appearance.Stealth" OnClick="@LaunchMcpAsync"

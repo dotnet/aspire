@@ -24,7 +24,7 @@ public class OtelMetricsTests
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(true)]
     [InlineData(false)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]

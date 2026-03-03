@@ -65,7 +65,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -248,8 +248,8 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
-    private string GetResourceName(OtlpResource app) => OtlpResource.GetResourceName(app, _resources);
-    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app, _resources);
+    private string GetResourceName(OtlpResource app) => OtlpHelpers.GetResourceName(app, _resources);
+    private string GetResourceName(OtlpResourceView app) => OtlpHelpers.GetResourceName(app.Resource, _resources);
 
     private static string GetRowClass(OtlpTrace entry)
     {
@@ -363,7 +363,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
-            DismissTitle = DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,

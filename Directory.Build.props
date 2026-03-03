@@ -39,7 +39,8 @@
     <!-- Issue: https://github.com/dotnet/aspire/issues/10175 -->
     <!-- NU1510: The project does not reference any target framework and will not be restored. -->
     <!-- TODO: Re-enable and remove this. -->
-    <NoWarn>$(NoWarn);xUnit1051;NU1510</NoWarn>
+    <!-- ASPIREATS001: Aspire Type System APIs are experimental -->
+    <NoWarn>$(NoWarn);xUnit1051;NU1510;ASPIREATS001</NoWarn>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->
@@ -50,7 +51,7 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86' ">386</BuildArch>
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
-    <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64Version)/tools/</DcpDir>
+    <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64Version)/tools/</DcpDir>
 
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->

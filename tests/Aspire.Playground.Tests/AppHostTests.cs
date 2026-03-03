@@ -17,7 +17,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
-[RequiresDocker]
+[RequiresFeature(TestFeature.Docker)]
 public class AppHostTests
 {
     private readonly ITestOutputHelper _testOutput;

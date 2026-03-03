@@ -11,9 +11,10 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using StreamJsonRpc;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -46,7 +47,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -92,7 +93,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -144,7 +145,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -191,7 +192,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -237,7 +238,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -295,7 +296,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -374,7 +375,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -442,7 +443,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -494,7 +495,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -549,7 +550,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -574,7 +575,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var runner = new TestDotNetCliRunner();
 
         // Simulate successful build
-        runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
+        runner.BuildAsyncCallback = (projectFile, noRestore, options, cancellationToken) => 0;
 
         // Simulate compatible app host
         runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
@@ -583,10 +584,10 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         };
 
         // Simulate successful app host run with the prompt backchannel
-        runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+        runner.RunAsyncCallback = async (projectFile, watch, noBuild, noRestore, args, env, backchannelCompletionSource, options, cancellationToken) =>
         {
             backchannelCompletionSource?.SetResult(promptBackchannel);
-            await promptBackchannel.WaitForCompletion();
+            await promptBackchannel.WaitForCompletion().DefaultTimeout();
             return 0;
         };
 
@@ -620,7 +621,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act - use the --debug flag
         var result = command.Parse("publish --debug");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -664,7 +665,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -707,7 +708,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -720,52 +721,10 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Should show: [bold]Environment Name[/]
         Assert.Equal("[bold]Environment Name[/]", promptCall.PromptText);
     }
-
-    [Fact]
-    public async Task PublishCommand_SingleInputPrompt_EscapesSpectreMarkupInLabels()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var promptBackchannel = new TestPromptBackchannel();
-        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
-
-        // Set up a single-input prompt with Spectre markup characters in both StatusText and Label
-        promptBackchannel.AddPrompt("markup-prompt", "Value [required]", InputTypes.Text, "Enter value [1-10]", isRequired: true);
-
-        // Set up the expected user response
-        consoleService.SetupStringPromptResponse("5");
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
-        });
-
-        services.AddSingleton<IInteractionService>(consoleService);
-
-        var serviceProvider = services.BuildServiceProvider();
-        var command = serviceProvider.GetRequiredService<RootCommand>();
-
-        // Act
-        var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-
-        // Verify that square brackets are properly escaped
-        var promptCalls = consoleService.StringPromptCalls;
-        Assert.Single(promptCalls);
-        var promptCall = promptCalls[0];
-
-        // Square brackets should be escaped to [[bracket]]
-        Assert.Contains("[[1-10]]", promptCall.PromptText);
-        Assert.Contains("[[required]]", promptCall.PromptText);
-    }
 }
 
-// Test implementation of IAppHostBackchannel that simulates prompt interactions
-internal sealed class TestPromptBackchannel : IAppHostBackchannel
+// Test implementation of IAppHostCliBackchannel that simulates prompt interactions
+internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();
@@ -821,7 +780,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                 }
             };
 
-            await completionSource.Task.WaitAsync(cancellationToken);
+            await completionSource.Task.WaitAsync(cancellationToken).DefaultTimeout();
         }
 
         _completionSource.SetResult();
@@ -870,17 +829,13 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         yield break;
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ConnectAsync(string socketPath, bool autoReconnect, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
         yield break;
-    }
-
-    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
-    {
-        // No-op for test implementation
     }
 }
 
@@ -896,6 +851,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
 
+    public ConsoleOutput Console { get; set; }
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
@@ -930,6 +886,9 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 
         return Task.FromResult(defaultValue ?? string.Empty);
     }
+
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+        => PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken);
 
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
@@ -981,25 +940,29 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     }
 
     // Default implementations for other interface methods
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
-    public void ShowStatus(string statusText, Action action) => action();
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
-    public void DisplayMessage(string emoji, string message) { }
-    public void DisplaySuccess(string message) { }
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
+    public void DisplaySuccess(string message, bool allowMarkup = false) { }
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
     public void DisplayMarkdown(string markdown) { }
+    public void DisplayMarkupLine(string markup) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
+
+    public void DisplayRenderable(IRenderable renderable) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var messageType = isErrorMessage ? "error" : "info";
-        Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+        System.Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
     }
 }
 

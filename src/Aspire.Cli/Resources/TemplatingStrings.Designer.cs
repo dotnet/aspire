@@ -133,6 +133,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to React (Vite) &amp; Minimal API starter.
+        /// </summary>
+        public static string AspireJsFrontendStarter_Description {
+            get {
+                return ResourceManager.GetString("AspireJsFrontendStarter_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to xUnit.
         /// </summary>
         public static string AspireXUnit_Description {
@@ -268,7 +277,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Project creation failed with exit code {0}. For more information run with --debug switch..
+        ///   Looks up a localized string similar to Project creation failed with exit code {0}. See logs at {1}.
         /// </summary>
         public static string ProjectCreationFailed {
             get {
@@ -322,7 +331,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The template installation failed with exit code {0}. For more information run with --debug switch..
+        ///   Looks up a localized string similar to The template installation failed with exit code {0}. See logs at {1}.
         /// </summary>
         public static string TemplateInstallationFailed {
             get {

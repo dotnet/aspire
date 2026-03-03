@@ -48,13 +48,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -133,6 +130,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointMcpBody)]);
         }
+        if (ShouldShowUnsecuredApiMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointApiBody)]);
+        }
 
         if (unsecuredEndpointsMessage.Length > 0)
         {
@@ -174,12 +175,26 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private bool ShouldShowUnsecuredTelemetryMessage()
     {
-        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
+        // Only show warning if at least one OTLP endpoint is configured
+        return (Options.CurrentValue.Otlp.GetGrpcEndpointAddress() != null || Options.CurrentValue.Otlp.GetHttpEndpointAddress() != null) &&
+               Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured &&
+               !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
     }
 
     private bool ShouldShowUnsecuredMcpMessage()
     {
-        return Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured && !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
+        // Only show warning if MCP endpoint is configured and MCP is not disabled
+        return Options.CurrentValue.Mcp.GetEndpointAddress() != null &&
+               !Options.CurrentValue.Mcp.Disabled.GetValueOrDefault() &&
+               Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured &&
+               !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
+    }
+
+    private bool ShouldShowUnsecuredApiMessage()
+    {
+        // Only show warning if API is enabled and unsecured
+        return Options.CurrentValue.Api.Enabled == true &&
+               Options.CurrentValue.Api.AuthMode == ApiAuthMode.Unsecured;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -208,19 +223,18 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = "Aspire MCP server",
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = null,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Width = "700px",
+            Width = "min(800px, 100vw)",
             Id = McpDialogId,
             OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, McpDialogId))
+            if (Equals(_openPageDialog.Id, McpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -236,7 +250,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -251,7 +264,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, HelpDialogId))
+            if (Equals(_openPageDialog.Id, HelpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -272,7 +285,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
@@ -286,7 +298,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, SettingsDialogId))
+            if (Equals(_openPageDialog.Id, SettingsDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }

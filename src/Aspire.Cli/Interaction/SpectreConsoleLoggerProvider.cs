@@ -1,17 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 
 namespace Aspire.Cli.Interaction;
 
-internal class SpectreConsoleLoggerProvider(IServiceProvider serviceProvider) : ILoggerProvider
+internal class SpectreConsoleLoggerProvider : ILoggerProvider
 {
+    private readonly TextWriter _output;
+
+    /// <summary>
+    /// Creates a logger provider that writes to the specified output.
+    /// </summary>
+    /// <param name="output">The text writer to write log messages to.</param>
+    public SpectreConsoleLoggerProvider(TextWriter output)
+    {
+        _output = output;
+    }
+
     public ILogger CreateLogger(string categoryName)
     {
-        return new SpectreConsoleLogger(serviceProvider, categoryName);
+        return new SpectreConsoleLogger(_output, categoryName);
     }
 
     public void Dispose()
@@ -19,10 +29,8 @@ internal class SpectreConsoleLoggerProvider(IServiceProvider serviceProvider) : 
     }
 }
 
-internal class SpectreConsoleLogger(IServiceProvider serviceProvider, string categoryName) : ILogger
+internal class SpectreConsoleLogger(TextWriter output, string categoryName) : ILogger
 {
-    private IInteractionService InteractionService => serviceProvider.GetRequiredService<IInteractionService>();
-
     public bool IsEnabled(LogLevel logLevel) =>
         logLevel >= LogLevel.Debug &&
         (categoryName.StartsWith("Aspire.Cli", StringComparison.Ordinal) || logLevel >= LogLevel.Warning);
@@ -50,15 +58,10 @@ internal class SpectreConsoleLogger(IServiceProvider serviceProvider, string cat
         // Format timestamp to show only time (HH:mm:ss) for debugging purposes
         var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
-        // Use DisplaySubtleMessage for clean debug output
-        // If using extension host, use the console method directly
-        if (InteractionService is ExtensionInteractionService extensionInteractionService)
-        {
-            extensionInteractionService.ConsoleDisplaySubtleMessage($"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
-            return;
-        }
+        var logMessage = $"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}";
 
-        InteractionService.DisplaySubtleMessage($"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
+        // Write to the configured output (stderr by default)
+        output.WriteLine(logMessage);
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch

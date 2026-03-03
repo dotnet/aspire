@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Kafka.Tests;
 public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyWaitForOnKafkaBlocksDependentResources()
     {
@@ -55,7 +55,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyKafkaResource()
     {
@@ -70,6 +70,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -112,7 +113,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -165,6 +166,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -214,6 +216,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default);
 

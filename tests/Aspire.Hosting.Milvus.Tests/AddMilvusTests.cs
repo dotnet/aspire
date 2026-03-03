@@ -8,7 +8,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Milvus.Tests;
-public class AddMilvusTests
+public class AddMilvusTests(ITestOutputHelper testOutputHelper)
 {
     private const int MilvusPortGrpc = 19530;
 
@@ -96,7 +96,11 @@ public class AddMilvusTests
         var pass = appBuilder.AddParameter("apikey", "pass");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
-            .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
+            .WithEndpoint("grpc", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc);
+                e.AllAllocatedEndpoints.AddOrUpdateAllocatedEndpoint(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, new AllocatedEndpoint(e, "my-milvus.dev.internal", MilvusPortGrpc, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            });
 
         var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(milvus);
@@ -118,7 +122,7 @@ public class AddMilvusTests
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, containerServicesKeysCount);
 
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://my-milvus:19530;Key=root:pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://my-milvus.dev.internal:19530;Key=root:pass");
     }
 
     [Fact]
@@ -173,7 +177,7 @@ public class AddMilvusTests
     [Fact]
     public void AddMilvusWithSpecifyingPorts()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var pass = builder.AddParameter("apikey", "pass");
 

@@ -21,7 +21,7 @@ namespace Aspire.Cli.Backchannel;
 internal interface IExtensionBackchannel
 {
     Task ConnectAsync(CancellationToken cancellationToken);
-    Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken);
+    Task DisplayMessageAsync(string emojiName, string message, CancellationToken cancellationToken);
     Task DisplaySuccessAsync(string message, CancellationToken cancellationToken);
     Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken);
     Task DisplayErrorAsync(string error, CancellationToken cancellationToken);
@@ -36,6 +36,7 @@ internal interface IExtensionBackchannel
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<string?> PromptForFilePathAsync(string promptText, string? defaultValue, bool directory, CancellationToken cancellationToken);
     Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -50,8 +51,6 @@ internal interface IExtensionBackchannel
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
-    private const string BaselineCapability = "baseline.v1";
-    internal const string SecretPromptsCapability = "secret-prompts.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
@@ -221,12 +220,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                     [_token],
                     cancellationToken);
 
-                if (!capabilities.Any(s => s == BaselineCapability))
+                if (!capabilities.Any(s => s == KnownCapabilities.Baseline))
                 {
                     throw new ExtensionIncompatibleException(
                         string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                            BaselineCapability),
-                        BaselineCapability
+                            KnownCapabilities.Baseline),
+                        KnownCapabilities.Baseline
                     );
                 }
 
@@ -237,18 +236,18 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                 _logger.LogError(ex,
                     "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
                     Name,
-                    BaselineCapability);
+                    KnownCapabilities.Baseline);
 
                 throw new ExtensionIncompatibleException(
                     string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                        BaselineCapability),
-                    BaselineCapability
+                        KnownCapabilities.Baseline),
+                    KnownCapabilities.Baseline
                 );
             }
         }
     }
 
-    public async Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)
+    public async Task DisplayMessageAsync(string emojiName, string message, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -260,7 +259,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         await rpc.InvokeWithCancellationAsync(
             "displayMessage",
-            [_token, emoji, message],
+            [_token, emojiName, message],
             cancellationToken);
     }
 
@@ -541,6 +540,24 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             await ShowStatusAsync(null, cancellationToken);
             throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
         }
+
+        return result;
+    }
+
+    public async Task<string?> PromptForFilePathAsync(string promptText, string? defaultValue, bool directory, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for file path with text: {PromptText}, default value: {DefaultValue}, directory: {Directory}", promptText, defaultValue, directory);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForFilePath",
+            [_token, promptText, defaultValue, directory],
+            cancellationToken);
 
         return result;
     }

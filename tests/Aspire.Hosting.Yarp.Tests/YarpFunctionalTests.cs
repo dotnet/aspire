@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Yarp.Tests;
 public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
     public async Task VerifyYarpResourceExtensionsConfig()
     {

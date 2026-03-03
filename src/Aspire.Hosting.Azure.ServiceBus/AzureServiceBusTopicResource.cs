@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -17,6 +18,8 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Topic = {TopicName}")]
+[AspireExport(ExposeProperties = true)]
 public class AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
@@ -34,11 +37,15 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     /// <summary>
     /// Gets the parent Azure Service Bus resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public AzureServiceBusResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 
     /// <summary>
     /// Gets the connection string expression for the Azure Service Bus Topic.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(TopicName, null);
 
     /// <summary>
@@ -131,5 +138,15 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        foreach (var property in ((IResourceWithConnectionString)Parent).GetConnectionProperties())
+        {
+            yield return property;
+        }
+
+        yield return new("TopicName", ReferenceExpression.Create($"{TopicName}"));
     }
 }

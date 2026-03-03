@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
 
@@ -40,7 +39,7 @@ public class AzureBicepResourceTests
         {
             var id = new UserAssignedIdentity("id");
             infrastructure.Add(id);
-            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
+            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId.ToBicepExpression() });
         }
 
         return new()
@@ -59,10 +58,10 @@ public class AzureBicepResourceTests
             { builder => builder.AddPostgres(resourceName).AsAzurePostgresFlexibleServer() },
             { builder => builder.AddRedis(resourceName).AsAzureRedis() },
             { builder => builder.AddSqlServer(resourceName).AsAzureSqlDatabase() },
+            { builder => builder.AddAzureRedis(resourceName) },
 #pragma warning restore CS0618 // Type or member is obsolete
             { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
-            { builder => builder.AddAzureRedis(resourceName) },
-            { builder => builder.AddAzureRedisEnterprise(resourceName) },
+            { builder => builder.AddAzureManagedRedis(resourceName) },
             { builder => builder.AddAzureSearch(resourceName) },
             { builder => builder.AddAzureServiceBus(resourceName) },
             { builder => builder.AddAzureSignalR(resourceName) },
@@ -246,5 +245,77 @@ public class AzureBicepResourceTests
         
         // Assert - Step depends on CreateProvisioningContext
         Assert.Contains(AzureEnvironmentResource.CreateProvisioningContextStepName, step.DependsOnSteps);
+    }
+
+    [Fact]
+    public void GetBicepTemplateFile_WithTemplateFile_ReturnsOriginalPathWhenDirectoryProvided()
+    {
+        // This test verifies the fix for https://github.com/dotnet/aspire/issues/13967
+        // When a templateFile is specified, GetBicepTemplateFile should return the original path
+        // and not combine it with the directory parameter.
+
+        using var tempDir = new TestTempDirectory();
+
+        // Create a test bicep file
+        var bicepFileName = "test-template.bicep";
+        var bicepFilePath = Path.Combine(tempDir.Path, bicepFileName);
+        File.WriteAllText(bicepFilePath, "param location string = resourceGroup().location");
+
+        // Create the AzureBicepResource with the templateFile
+        var resource = new AzureBicepResource("test-resource", templateFile: bicepFilePath);
+
+        // Create a different directory to pass to GetBicepTemplateFile
+        var outputDir = Path.Combine(tempDir.Path, "output");
+        Directory.CreateDirectory(outputDir);
+
+        // Get the bicep template file with a directory parameter
+        using var templateFile = resource.GetBicepTemplateFile(outputDir);
+
+        // The path should be the original template file path, not combined with outputDir
+        Assert.Equal(bicepFilePath, templateFile.Path);
+        Assert.True(File.Exists(templateFile.Path), $"The template file should exist at {templateFile.Path}");
+    }
+
+    [Fact]
+    public void GetBicepTemplateFile_WithTemplateFile_ReturnsOriginalPathWithoutDirectory()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        // Create a test bicep file
+        var bicepFileName = "test-template.bicep";
+        var bicepFilePath = Path.Combine(tempDir.Path, bicepFileName);
+        File.WriteAllText(bicepFilePath, "param location string = resourceGroup().location");
+
+        // Create the AzureBicepResource with the templateFile
+        var resource = new AzureBicepResource("test-resource", templateFile: bicepFilePath);
+
+        // Get the bicep template file without a directory parameter
+        using var templateFile = resource.GetBicepTemplateFile();
+
+        // The path should be the original template file path
+        Assert.Equal(bicepFilePath, templateFile.Path);
+    }
+
+    [Fact]
+    public void GetBicepTemplateFile_WithTemplateString_WritesToDirectory()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var bicepContent = "param location string = resourceGroup().location";
+
+        // Create the AzureBicepResource with a template string (not a file)
+        var resource = new AzureBicepResource("test-resource", templateString: bicepContent);
+
+        // Create a directory to pass to GetBicepTemplateFile
+        var outputDir = Path.Combine(tempDir.Path, "output");
+        Directory.CreateDirectory(outputDir);
+
+        // Get the bicep template file with a directory parameter
+        using var templateFile = resource.GetBicepTemplateFile(outputDir);
+
+        // The path should be in the output directory
+        Assert.StartsWith(outputDir, templateFile.Path);
+        Assert.True(File.Exists(templateFile.Path), $"The template file should exist at {templateFile.Path}");
+        Assert.Equal(bicepContent, File.ReadAllText(templateFile.Path));
     }
 }

@@ -158,6 +158,9 @@ public class UnitTestResult
     [XmlAttribute("endTime")]
     public string? EndTime { get; set; }
 
+    [XmlAttribute("duration")]
+    public string? Duration { get; set; }
+
     public Output? Output { get; set; }
 }
 

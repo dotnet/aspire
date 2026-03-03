@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -9,14 +11,14 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Aspire.Dashboard.ConsoleLogs;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
+using Aspire.Shared;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +39,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
-                                             CodespacesUrlRewriter codespaceUrlRewriter
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             IFileSystemService directoryService
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
@@ -226,7 +229,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 }
             };
 
-            var customConfigPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+            var customConfigPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
 
             _customRuntimeConfigPath = customConfigPath;
@@ -268,7 +271,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        var tempPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
@@ -285,63 +288,55 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        // Create custom runtime config with AppHost's framework versions
-        var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+        ExecutableResource dashboardResource;
 
-        // Find the dashboard DLL path
-        string dashboardDll;
-        if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
+        if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
-            // Dashboard path is already a DLL
-            dashboardDll = fullyQualifiedDashboardPath;
+            // aspire-managed is self-contained, run directly with "dashboard" subcommand
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Insert(0, "dashboard");
+            }));
         }
         else
         {
-            // For executables, the corresponding DLL is named after the base executable name
-            // Handle Windows (.exe), Unix (no extension), and direct DLL cases
-            var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
-            var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
+            // Non-bundle: run via dotnet exec with custom runtime config
+            // Create custom runtime config with AppHost's framework versions
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
 
-            string baseName;
-            if (fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            string dashboardDll;
+            if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
             {
-                // Windows executable: remove .exe extension
-                baseName = fileName.Substring(0, fileName.Length - 4);
-            }
-            else if (fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            {
-                // Already a DLL: use as-is
                 dashboardDll = fullyQualifiedDashboardPath;
-                if (!File.Exists(dashboardDll))
-                {
-                    distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
-                }
-                return;
             }
             else
             {
-                // Unix executable (no extension) or other: use full filename as base
-                baseName = fileName;
+                // For executables with separate DLLs
+                var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
+                var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
+                var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                    ? fileName.Substring(0, fileName.Length - 4)
+                    : fileName;
+                dashboardDll = Path.Combine(directory, $"{baseName}.dll");
             }
-
-            dashboardDll = Path.Combine(directory, $"{baseName}.dll");
 
             if (!File.Exists(dashboardDll))
             {
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
+
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Add("exec");
+                args.Add("--runtimeconfig");
+                args.Add(customRuntimeConfigPath);
+                args.Add(dashboardDll);
+            }));
         }
-
-        // Always use dotnet exec with the custom runtime config
-        var dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
-
-        dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
-        {
-            args.Add("exec");
-            args.Add("--runtimeconfig");
-            args.Add(customRuntimeConfigPath);
-            args.Add(dashboardDll);
-        }));
 
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
@@ -355,6 +350,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
         // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
         dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
+        // Add the ContentView icon to the dashboard resource
+        dashboardResource.Annotations.Add(new ResourceIconAnnotation("ContentView"));
 
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app.
@@ -372,16 +370,38 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
         var mcpEndpointUrl = options.McpEndpointUrl;
 
-        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
+        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, async (@event, cancellationToken) =>
         {
             var browserToken = options.DashboardToken;
 
-            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            // Get the actual allocated URL from the dashboard resource endpoint
+            string? dashboardUrl = null;
+
+            if (@event.Resource is IResourceWithEndpoints resourceWithEndpoints)
             {
-                return Task.CompletedTask;
+                // Try HTTPS first, then HTTP
+                var httpsEndpoint = resourceWithEndpoints.GetEndpoint("https");
+                var httpEndpoint = resourceWithEndpoints.GetEndpoint("http");
+
+                var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
+                if (endpoint.Exists)
+                {
+                    dashboardUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                }
             }
 
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+            // Fall back to configured URL if we couldn't get it from the resource
+            if (string.IsNullOrEmpty(dashboardUrl))
+            {
+                if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+                {
+                    return;
+                }
+
+                dashboardUrl = firstDashboardUrl.GetLeftPart(UriPartial.Authority);
+            }
+
+            dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUrl);
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
@@ -389,8 +409,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
-
-            return Task.CompletedTask;
         });
 
         foreach (var d in dashboardUrls?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
@@ -432,6 +450,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
+            var browserToken = options.DashboardToken;
+
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -442,6 +462,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
+
+                        // Append the browser token to the URL as a query string parameter if token is configured
+                        if (!string.IsNullOrEmpty(browserToken))
+                        {
+                            url.Url = $"{url.Url}/login?t={browserToken}";
+                        }
                     }
                     else
                     {
@@ -457,13 +483,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
-            ResourceType = dashboardResource switch
-            {
-                ExecutableResource => KnownResourceTypes.Executable,
-                ProjectResource => KnownResourceTypes.Project,
-                ContainerResource => KnownResourceTypes.Container,
-                _ => dashboardResource.GetType().Name
-            },
+            ResourceType = dashboardResource.GetResourceType(),
             IsHidden = hideDashboard
         };
 
@@ -498,6 +518,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var browserToken = options.DashboardToken;
         var otlpApiKey = options.OtlpApiKey;
         var mcpApiKey = options.McpApiKey;
+        var apiKey = options.ApiKey;
 
         var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -559,16 +580,31 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
         }
 
-        // Configure MCP API key
-        if (!string.IsNullOrEmpty(mcpApiKey))
+        // Configure MCP API key. Falls back to ApiKey if McpApiKey not set.
+        var effectiveMcpApiKey = mcpApiKey ?? apiKey;
+        if (!string.IsNullOrEmpty(effectiveMcpApiKey))
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "ApiKey";
-            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = mcpApiKey;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = effectiveMcpApiKey;
         }
         else
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "Unsecured";
         }
+
+        // Configure API key (for Telemetry API). ApiKey is canonical, no fallback from McpApiKey.
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "ApiKey";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiPrimaryApiKeyName.EnvVarName] = apiKey;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "Unsecured";
+        }
+
+        // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)
+        context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUseCliMcpName.EnvVarName] = "true";
 
         // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
         // via the ILogger.

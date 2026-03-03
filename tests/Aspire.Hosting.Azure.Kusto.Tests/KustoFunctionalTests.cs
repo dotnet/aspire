@@ -39,7 +39,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_Starts()
     {
@@ -56,6 +56,7 @@ public class KustoFunctionalTests
         await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(_testOutputHelper);
         hb.Configuration["ConnectionStrings:KustoConnection"] = await kusto.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
@@ -88,7 +89,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
@@ -107,6 +108,7 @@ public class KustoFunctionalTests
         await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(_testOutputHelper);
         hb.Configuration["ConnectionStrings:KustoTestDbConnection"] = await kustoDb.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
@@ -165,7 +167,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
     {
@@ -192,7 +194,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
     {
@@ -223,13 +225,13 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory();
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 

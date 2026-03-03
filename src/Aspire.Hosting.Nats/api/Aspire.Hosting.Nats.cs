@@ -35,10 +35,20 @@ namespace Aspire.Hosting.ApplicationModel
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public EndpointReferenceExpression Host { get { throw null; } }
+
         public ParameterResource? PasswordParameter { get { throw null; } set { } }
+
+        public EndpointReferenceExpression Port { get { throw null; } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
 
+        public ReferenceExpression UriExpression { get { throw null; } }
+
         public ParameterResource? UserNameParameter { get { throw null; } set { } }
+
+        public ReferenceExpression UserNameReference { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

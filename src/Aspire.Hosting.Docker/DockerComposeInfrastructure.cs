@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE003
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
@@ -43,12 +45,20 @@ internal sealed class DockerComposeInfrastructure(
 
                 dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
                 {
-                    ComputeEnvironment = environment
+                    ComputeEnvironment = environment,
+                    ContainerRegistry = GetContainerRegistry(environment, @event.Model)
                 });
             }
 
             foreach (var r in @event.Model.GetComputeResources())
             {
+                // Skip resources that are explicitly targeted to a different compute environment
+                var resourceComputeEnvironment = r.GetComputeEnvironment();
+                if (resourceComputeEnvironment is not null && resourceComputeEnvironment != environment)
+                {
+                    continue;
+                }
+
                 // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
                 if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
                 {
@@ -61,10 +71,30 @@ internal sealed class DockerComposeInfrastructure(
                 // Add deployment target annotation to the resource
                 r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
                 {
-                    ComputeEnvironment = environment
+                    ComputeEnvironment = environment,
+                    ContainerRegistry = GetContainerRegistry(environment, @event.Model)
                 });
             }
         }
+    }
+
+    private static IContainerRegistry GetContainerRegistry(DockerComposeEnvironmentResource environment, DistributedApplicationModel appModel)
+    {
+        // Check for explicit container registry reference annotation on the environment
+        if (environment.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            return annotation.Registry;
+        }
+
+        // Check if there's a single container registry in the app model
+        var registries = appModel.Resources.OfType<IContainerRegistry>().ToArray();
+        if (registries.Length == 1)
+        {
+            return registries[0];
+        }
+
+        // Fall back to local container registry for Docker Compose scenarios
+        return LocalContainerRegistry.Instance;
     }
 
     private static void EnsureNoPublishAsDockerComposeServiceAnnotations(DistributedApplicationModel appModel)

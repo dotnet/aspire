@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREFILESYSTEM001
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -100,6 +101,7 @@ public class AzureBicepProvisionerTests
             secretClientProvider,
             services.GetRequiredService<IDeploymentStateManager>(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            services.GetRequiredService<IFileSystemService>(),
             NullLogger<BicepProvisioner>.Instance);
 
         // Assert
@@ -225,6 +227,11 @@ public class AzureBicepProvisionerTests
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+        }
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)

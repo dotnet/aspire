@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.Resources;
-using Aspire.Hosting.UserSecrets;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;

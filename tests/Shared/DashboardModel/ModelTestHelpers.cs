@@ -25,7 +25,9 @@ public static class ModelTestHelpers
         ImmutableArray<RelationshipViewModel>? relationships = null,
         bool hidden = false,
         string? iconName = null,
-        IconVariant? iconVariant = null)
+        IconVariant? iconVariant = null,
+        ImmutableArray<VolumeViewModel>? volumes = null,
+        ImmutableArray<HealthReportViewModel>? healthReports = null)
     {
         return new ResourceViewModel
         {
@@ -33,17 +35,18 @@ public static class ModelTestHelpers
             ResourceType = resourceType ?? KnownResourceTypes.Container,
             DisplayName = displayName ?? resourceName ?? "Display name!",
             Uid = Guid.NewGuid().ToString(),
+            ReplicaIndex = 0,
             CreationTimeStamp = DateTime.UtcNow,
             StartTimeStamp = DateTime.UtcNow,
             StopTimeStamp = DateTime.UtcNow,
             Environment = environment ?? [],
             Urls = urls ?? [],
-            Volumes = [],
+            Volumes = volumes ?? [],
             Properties = properties?.ToImmutableDictionary() ?? ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             State = state?.ToString(),
             KnownState = state,
             StateStyle = stateStyle,
-            HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
+            HealthReports = healthReports ?? (reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)]),
             Commands = commands ?? [],
             Relationships = relationships ?? [],
             IsHidden = hidden,

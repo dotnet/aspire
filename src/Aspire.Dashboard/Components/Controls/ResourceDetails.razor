@@ -1,11 +1,9 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Components.Controls.PropertyValues
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
 @using Humanizer
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Diagnostics.HealthChecks
-@using Aspire.Dashboard.Model.Otlp
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IStringLocalizer<Resources> Loc
@@ -23,7 +21,7 @@
                           ButtonClass="resource-details-actions"
                           Icon="@(new Icons.Regular.Size20.Options())"
                           Items="@_resourceActionsMenuItems"
-                          Title="@Loc[nameof(ControlsStrings.ActionsButtonText)]"
+                          Title="@Loc[nameof(Resources.ResourcesChangeViewOptions)]"
                           slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">
@@ -280,11 +278,14 @@
         // Otherwise, render a link for the URL
         else
         {
+            // Mask querystring values for display
+            var displayUrl = DashboardUIHelpers.MaskQueryStringValues(vm.Url);
+
             if (highlighting)
             {
-                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
+                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@displayUrl" /></a>;
             }
-            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+            return @<a href="@vm.Url" target="_blank">@displayUrl</a>;
         }
     }
 

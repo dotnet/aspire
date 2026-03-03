@@ -124,12 +124,18 @@ config.ps1
 # Node.js modules
 node_modules/
 
+# Maven build outputs
+target/
+dependency-reduced-pom.xml
+
 # Ignore cache created with the Angular CLI.
 .angular/
 
 # Python Compile Outputs
 
 *.pyc
+*.egg-info/
+/playground/python/**/build
 
 # IntelliJ
 .idea/
@@ -152,11 +158,17 @@ node_modules/
 # Publisher Outputs
 playground/**/publish/
 
+# TypeScript AppHost
+playground/**/dist/
+
 # Verify
 *.received.*
 
 #Aspire CLI
 .aspire/
+
+# Required for polyglot apps
+!playground/polyglot/**/.aspire/
 
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
@@ -173,3 +185,6 @@ extension/.vscode-test/
 extension/l10n/bundle.l10n.json
 extension/l10n/bundle.l10n.*.json
 extension/package.nls.*.json
+
+# Playwright CLI artifacts
+.playwright-cli/

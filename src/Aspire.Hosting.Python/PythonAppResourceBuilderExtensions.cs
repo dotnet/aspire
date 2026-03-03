@@ -8,13 +8,13 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001
 
 namespace Aspire.Hosting;
 
@@ -294,7 +294,31 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     c.Args.Add("--reload");
                 }
+            })
+            .WithHttpsCertificateConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--ssl-keyfile");
+                ctx.Arguments.Add(ctx.KeyPath);
+                ctx.Arguments.Add("--ssl-certfile");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                if (ctx.Password is not null)
+                {
+                    ctx.Arguments.Add("--ssl-keyfile-password");
+                    ctx.Arguments.Add(ctx.Password);
+                }
+
+                return Task.CompletedTask;
             });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // If a TLS certificate is configured, override the endpoint to use HTTPS instead of HTTP.
+            // Uvicorn only supports binding to a single port.
+            resourceBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
+            {
+                resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
+            });
+        }
 
         return resourceBuilder;
     }
@@ -317,8 +341,6 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        // Register Python environment validation services (once per builder)
-        builder.Services.TryAddSingleton<PythonInstallationManager>();
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -605,7 +627,7 @@ public static class PythonAppResourceBuilderExtensions
         context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
         var runtimeImage = baseImageAnnotation?.RuntimeImage ?? $"python:{pythonVersion}-slim-bookworm";
 
-        // Check if requirements.txt exists
+        // Check if requirements.txt or pyproject.toml exists
         var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
         var hasRequirementsTxt = File.Exists(requirementsTxtPath);
 
@@ -643,6 +665,30 @@ public static class PythonAppResourceBuilderExtensions
                   && rm -rf /var/lib/apt/lists/*
                 """)
                 .EmptyLine();
+        }
+        else
+        {
+            var pyprojectTomlPath = Path.Combine(resource.WorkingDirectory, "pyproject.toml");
+            var hasPyprojectToml = File.Exists(pyprojectTomlPath);
+
+            if (hasPyprojectToml)
+            {
+                // Copy pyproject.toml first for better layer caching
+                stage
+                    .Comment("Copy pyproject.toml for dependency installation")
+                    .Copy("pyproject.toml", "/app/pyproject.toml")
+                    .EmptyLine()
+                    .Comment("Install dependencies using pip")
+                    .Run(
+                    """
+                apt-get update \
+                  && apt-get install -y --no-install-recommends build-essential \
+                  && pip install --no-cache-dir . \
+                  && apt-get purge -y --auto-remove build-essential \
+                  && rm -rf /var/lib/apt/lists/*
+                """)
+                    .EmptyLine();
+            }
         }
 
         // Copy the rest of the application
@@ -1186,9 +1232,6 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Register UV validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
-
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1253,43 +1296,32 @@ public static class PythonAppResourceBuilderExtensions
             var installerName = $"{builder.Resource.Name}-installer";
             builder.ApplicationBuilder.TryCreateResourceBuilder<PythonInstallerResource>(installerName, out var existingResource);
 
-            if (!install)
-            {
-                if (existingResource != null)
-                {
-                    // Remove existing installer resource if install is false
-                    builder.ApplicationBuilder.Resources.Remove(existingResource.Resource);
-                    builder.Resource.Annotations.OfType<PythonPackageInstallerAnnotation>()
-                        .ToList()
-                        .ForEach(a => builder.Resource.Annotations.Remove(a));
-                }
-                return;
-            }
-
             if (existingResource is not null)
             {
-                // Installer already exists, it will be reconfigured via BeforeStartEvent
+                // Installer already exists, update its configuration based on install parameter
+                if (!install)
+                {
+                    // Add WithExplicitStart to the existing installer when install is false
+                    existingResource.WithExplicitStart();
+                }
+                // Note: Wait relationships are managed dynamically by SetupDependencies during BeforeStartEvent.
+                // No need to remove wait annotations here - SetupDependencies checks for ExplicitStartupAnnotation
+                // and skips creating wait relationships when install=false.
                 return;
             }
 
             var installer = new PythonInstallerResource(installerName, builder.Resource);
             var installerBuilder = builder.ApplicationBuilder.AddResource(installer)
                 .WithParentRelationship(builder.Resource)
-                .ExcludeFromManifest();
+                .ExcludeFromManifest()
+                .WithCertificateTrustScope(CertificateTrustScope.None);
 
-            // Add validation for the installer command (uv or python)
-            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
+            if (!install)
             {
-                // Check which command this installer is using (set by BeforeStartEvent)
-                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
-                    executable.Command == "uv")
-                {
-                    // Validate that uv is installed - don't throw so the app fails as it normally would
-                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-                }
-                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
-            });
+                // Add WithExplicitStart when install is false
+                // Note: Wait relationships are managed by SetupDependencies, which checks for ExplicitStartupAnnotation
+                installerBuilder.WithExplicitStart();
+            }
 
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
@@ -1307,6 +1339,13 @@ public static class PythonAppResourceBuilderExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(builder.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                // Add required command validation based on the package manager
+                if (packageManager.ExecutableName == "uv")
+                {
+                    installerBuilder.WithRequiredCommand("uv", "https://docs.astral.sh/uv/getting-started/installation/");
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
 
                 return Task.CompletedTask;
             });
@@ -1365,12 +1404,7 @@ public static class PythonAppResourceBuilderExtensions
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest()
-            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
-            {
-                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
-                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
-                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-            });
+            .WithRequiredCommand(pythonCommand, "https://www.python.org/downloads/");
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }
@@ -1407,21 +1441,33 @@ public static class PythonAppResourceBuilderExtensions
             return; // Resource doesn't exist, nothing to set up
         }
 
+        // Check if installer has explicit start annotation (install=false was used)
+        var shouldSkipInstallerWait = installerBuilder?.Resource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _) ?? false;
+
         // Set up wait dependencies based on what exists:
-        // 1. If both venv creator and installer exist: installer waits for venv creator, app waits for installer
-        // 2. If only installer exists: app waits for installer
-        // 3. If only venv creator exists: app waits for venv creator (no installer needed)
-        // 4. If neither exists: app runs directly (no waits needed)
+        // 1. If both venv creator and installer exist (and installer doesn't have explicit start): installer waits for venv creator, app waits for installer
+        // 2. If both exist but installer has explicit start: app waits for venv creator only
+        // 3. If only installer exists (without explicit start): app waits for installer
+        // 4. If only venv creator exists: app waits for venv creator (no installer needed)
+        // 5. If neither exists or installer has explicit start: app runs directly (no waits needed)
 
         if (venvCreatorBuilder != null && installerBuilder != null)
         {
-            // Both exist: installer waits for venv, app waits for installer
-            installerBuilder.WaitForCompletion(venvCreatorBuilder);
-            appBuilder.WaitForCompletion(installerBuilder);
+            if (!shouldSkipInstallerWait)
+            {
+                // Both exist and installer should run automatically: installer waits for venv, app waits for installer
+                installerBuilder.WaitForCompletion(venvCreatorBuilder);
+                appBuilder.WaitForCompletion(installerBuilder);
+            }
+            else
+            {
+                // Installer has explicit start, so only app waits for venv creator
+                appBuilder.WaitForCompletion(venvCreatorBuilder);
+            }
         }
-        else if (installerBuilder != null)
+        else if (installerBuilder != null && !shouldSkipInstallerWait)
         {
-            // Only installer exists: app waits for installer
+            // Only installer exists (without explicit start): app waits for installer
             appBuilder.WaitForCompletion(installerBuilder);
         }
         else if (venvCreatorBuilder != null)
@@ -1429,7 +1475,7 @@ public static class PythonAppResourceBuilderExtensions
             // Only venv creator exists: app waits for venv creator
             appBuilder.WaitForCompletion(venvCreatorBuilder);
         }
-        // If neither exists, no wait relationships needed
+        // If neither exists or installer has explicit start, no wait relationships needed for the app
     }
 
     private static bool ShouldCreateVenv<T>(IResourceBuilder<T> builder) where T : PythonAppResource

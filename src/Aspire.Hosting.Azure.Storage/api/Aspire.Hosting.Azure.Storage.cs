@@ -55,6 +55,8 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public AzureBlobStorageResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureBlobStorageResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureStorageResource>, ApplicationModel.IResourceWithParent, IResourceWithAzureFunctionsConfig
@@ -64,6 +66,10 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public AzureStorageResource Parent { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -77,6 +83,8 @@ namespace Aspire.Hosting.Azure
         public AzureQueueStorageResource Parent { get { throw null; } }
 
         public string QueueName { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureQueueStorageResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureStorageResource>, ApplicationModel.IResourceWithParent, IResourceWithAzureFunctionsConfig
@@ -86,6 +94,10 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public AzureStorageResource Parent { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -105,13 +117,19 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference BlobEndpoint { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression BlobUriExpression { get { throw null; } }
+
         public bool IsEmulator { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public BicepOutputReference QueueEndpoint { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression QueueUriExpression { get { throw null; } }
+
         public BicepOutputReference TableEndpoint { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression TableUriExpression { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
@@ -125,6 +143,10 @@ namespace Aspire.Hosting.Azure
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public AzureStorageResource Parent { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

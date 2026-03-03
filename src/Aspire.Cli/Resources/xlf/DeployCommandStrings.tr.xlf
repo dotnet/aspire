@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
-        <target state="translated">Bir Aspire AppHost içeriğini tanımlanan dağıtım hedeflerine dağıtın. (Önizleme)</target>
+        <source>Deploy an apphost to its deployment targets. (Preview)</source>
+        <target state="needs-review-translation">Bir Aspire AppHost içeriğini tanımlanan dağıtım hedeflerine dağıtın. (Önizleme)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

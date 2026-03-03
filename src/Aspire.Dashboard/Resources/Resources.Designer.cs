@@ -473,7 +473,16 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ResourcesNoResources", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to No parameters found.
+        /// </summary>
+        public static string ResourcesNoParameters {
+            get {
+                return ResourceManager.GetString("ResourcesNoParameters", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to No filters.
         /// </summary>
@@ -579,6 +588,24 @@ namespace Aspire.Dashboard.Resources {
         public static string TotalItemsFooterSingularText {
             get {
                 return ResourceManager.GetString("TotalItemsFooterSingularText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Showing &lt;strong&gt;{0} parameters&lt;/strong&gt;.
+        /// </summary>
+        public static string TotalItemsFooterParametersPluralText {
+            get {
+                return ResourceManager.GetString("TotalItemsFooterParametersPluralText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Showing &lt;strong&gt;{0} parameter&lt;/strong&gt;.
+        /// </summary>
+        public static string TotalItemsFooterParametersSingularText {
+            get {
+                return ResourceManager.GetString("TotalItemsFooterParametersSingularText", resourceCulture);
             }
         }
         

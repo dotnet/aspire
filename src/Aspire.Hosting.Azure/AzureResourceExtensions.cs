@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 
 namespace Aspire.Hosting;
@@ -31,4 +32,42 @@ public static class AzureResourceExtensions
     /// <returns>A valid Bicep identifier.</returns>
     public static string GetBicepIdentifier(this IAzureResource resource) =>
         Infrastructure.NormalizeBicepIdentifier(resource.Name);
+
+    /// <summary>
+    /// Clears all default role assignments for the specified Azure resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method removes all default role assignments from the Azure resource. This can be useful when 
+    /// role assignments can't be created, for example on existing resources where you don't have permission
+    /// to create the assignments.
+    /// </remarks>
+    /// <example>
+    /// Clear default role assignments for an Azure Key Vault resource:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var keyVault = builder.AddAzureKeyVault("keyvault")
+    ///     .RunAsExisting("kv-dev-secrets", "rg-keyvault")
+    ///     .ClearDefaultRoleAssignments();
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithReference(keyVault);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> ClearDefaultRoleAssignments<T>(this IResourceBuilder<T> builder)
+        where T : IAzureResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotations = builder.Resource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToList();
+        foreach (var annotation in annotations)
+        {
+            builder.Resource.Annotations.Remove(annotation);
+        }
+
+        return builder;
+    }
 }

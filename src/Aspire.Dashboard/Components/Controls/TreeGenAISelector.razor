@@ -1,5 +1,4 @@
-﻿@using Aspire.Dashboard.Otlp.Model
-@using Metrics = Aspire.Dashboard.Resources.Metrics
+﻿@using Metrics = Aspire.Dashboard.Resources.Metrics
 
 <FluentTreeView Class="genai-message-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>

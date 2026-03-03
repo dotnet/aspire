@@ -145,6 +145,7 @@ public static class CommandResults
 /// <summary>
 /// The result of executing a command. Returned from <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
+[AspireDto]
 public sealed class ExecuteCommandResult
 {
     /// <summary>
@@ -166,6 +167,7 @@ public sealed class ExecuteCommandResult
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.UpdateState"/>.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public sealed class UpdateCommandStateContext
 {
     /// <summary>
@@ -182,6 +184,7 @@ public sealed class UpdateCommandStateContext
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public sealed class ExecuteCommandContext
 {
     /// <summary>

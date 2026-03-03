@@ -1,7 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using System.Collections.Immutable
-@using Aspire.Dashboard.Utils
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="structured-log-details-layout">
@@ -18,6 +18,12 @@
                       Autofocus="true"
                       @bind-Value="_filter"
                       slot="end" />
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                          Icon="@(new Icons.Regular.Size20.Options())"
+                          Items="@_logActionsMenuItems"
+                          Title="@Loc[nameof(ControlsStrings.ActionsButtonText)]"
+                          slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">
         <FluentAccordion>

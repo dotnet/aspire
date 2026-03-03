@@ -16,6 +16,7 @@ public class WithOtlpExporterTests
     [InlineData(OtlpProtocol.HttpProtobuf, "http://localhost:8889", "http://localhost:8890", "http://localhost:8890", "http/protobuf")]
     [InlineData(OtlpProtocol.Grpc, "http://localhost:8889", "http://localhost:8890", "http://localhost:8889", "grpc")]
     [InlineData(OtlpProtocol.Grpc, null, null, "http://localhost:18889", "grpc")]
+    [InlineData(OtlpProtocol.HttpJson, "http://localhost:8889", "http://localhost:8890", "http://localhost:8890", "http/json")]
     [Theory]
     public async Task OtlpEndpointSet(OtlpProtocol? protocol, string? grpcEndpoint, string? httpEndpoint, string expectedUrl, string expectedProtocol)
     {
@@ -57,6 +58,28 @@ public class WithOtlpExporterTests
 
         var container = builder.AddResource(new ContainerResource("testSource"))
             .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
+
+        using var app = builder.Build();
+
+        var serviceProvider = app.Services.GetRequiredService<IServiceProvider>();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+                container.Resource,
+                serviceProvider: serviceProvider
+            ).DefaultTimeout()
+        );
+    }
+
+    [Fact]
+    public async Task RequiredHttpJsonOtlpThrowsExceptionIfNotRegistered()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = null;
+
+        var container = builder.AddResource(new ContainerResource("testSource"))
+            .WithOtlpExporter(OtlpProtocol.HttpJson);
 
         using var app = builder.Build();
 

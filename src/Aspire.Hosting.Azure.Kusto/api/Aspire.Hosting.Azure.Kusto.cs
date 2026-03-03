@@ -6,21 +6,24 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-namespace Aspire.Hosting.Azure.Kusto
+namespace Aspire.Hosting
 {
     public static partial class AzureKustoBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> AddReadWriteDatabase(this ApplicationModel.IResourceBuilder<AzureKustoClusterResource> builder, string name, string? databaseName = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKustoReadWriteDatabaseResource> AddReadWriteDatabase(this ApplicationModel.IResourceBuilder<Azure.AzureKustoClusterResource> builder, string name, string? databaseName = null) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<AzureKustoClusterResource> builder, System.Action<ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource>>? configureContainer = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKustoClusterResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.AzureKustoClusterResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureKustoEmulatorResource>>? configureContainer = null) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> builder, string script) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKustoReadWriteDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<Azure.AzureKustoReadWriteDatabaseResource> builder, string script) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource> builder, int port) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKustoEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<Azure.AzureKustoEmulatorResource> builder, int port) { throw null; }
     }
+}
 
+namespace Aspire.Hosting.Azure
+{
     public partial class AzureKustoClusterResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints
     {
         public AzureKustoClusterResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
@@ -33,9 +36,13 @@ namespace Aspire.Hosting.Azure.Kusto
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureKustoEmulatorResource : ApplicationModel.ContainerResource
@@ -54,5 +61,7 @@ namespace Aspire.Hosting.Azure.Kusto
         public string DatabaseName { get { throw null; } }
 
         public AzureKustoClusterResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

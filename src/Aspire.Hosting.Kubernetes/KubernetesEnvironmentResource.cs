@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Pipelines;
@@ -81,6 +82,8 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// </remarks>
     public string DefaultServiceType { get; set; } = "ClusterIP";
 
+    internal IPortAllocator PortAllocator { get; } = new PortAllocator();
+
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
@@ -89,6 +92,7 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
             var step = new PipelineStep
             {
                 Name = $"publish-{Name}",
+                Description = $"Publishes the Kubernetes environment configuration for {Name}.",
                 Action = ctx => PublishAsync(ctx)
             };
             step.RequiredBy(WellKnownPipelineSteps.Publish);
@@ -96,12 +100,9 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
         }));
     }
 
-    /// <summary>
-    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
-    /// </summary>
-    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
-    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
-    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    /// <inheritdoc/>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
 

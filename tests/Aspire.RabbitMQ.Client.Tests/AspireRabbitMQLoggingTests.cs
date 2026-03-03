@@ -31,7 +31,7 @@ public class AspireRabbitMQLoggingTests
     /// and then stop the container. This will cause the RabbitMQ client to log an error message.
     /// </summary>
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task EndToEndLoggingTest()
     {

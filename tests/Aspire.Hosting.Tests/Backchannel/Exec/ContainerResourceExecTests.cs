@@ -14,7 +14,7 @@ public class ContainerResourceExecTests : ExecTestsBase
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task Exec_NginxContainer_ListFiles_WithWorkdirSpecified_ProducesLogs_Success()
     {
         string[] args = [
@@ -39,7 +39,7 @@ public class ContainerResourceExecTests : ExecTestsBase
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task Exec_NginxContainer_ListFiles_ProducesLogs_Success()
     {
         string[] args = [

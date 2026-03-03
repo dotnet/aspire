@@ -82,6 +82,12 @@ internal static class CommandsConfigurationExtensions
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
+        // Use a more detailed description for .NET projects to help AI understand
+        // that source code changes won't take effect until rebuilding the project.
+        var restartDescription = resource is ProjectResource
+            ? CommandStrings.RestartProjectDescription
+            : CommandStrings.RestartDescription;
+
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.RestartCommand,
             displayName: CommandStrings.RestartName,
@@ -105,7 +111,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
-            displayDescription: CommandStrings.RestartDescription,
+            displayDescription: restartDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "ArrowCounterclockwise",

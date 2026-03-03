@@ -33,12 +33,12 @@ public static class TestDistributedApplicationBuilder
 
     public static IDistributedApplicationTestingBuilder Create(params string[] args)
     {
-        return CreateCore(args, (_) => { });
+        return CreateCore(args, (options) => { options.TrustDeveloperCertificate = false; });
     }
 
     public static IDistributedApplicationTestingBuilder Create(ITestOutputHelper testOutputHelper, params string[] args)
     {
-        return CreateCore(args, (_) => { }, testOutputHelper);
+        return CreateCore(args, (options) => { options.TrustDeveloperCertificate = false; }, testOutputHelper);
     }
 
     public static IDistributedApplicationTestingBuilder Create(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)

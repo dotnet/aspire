@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Playground.Tests;
 
-[RequiresDocker]
+[RequiresFeature(TestFeature.Docker)]
 public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 {
     [Fact]
@@ -58,7 +58,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [RequiresTools(["func"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9243")]
     public async Task AzureFunctionsTest()

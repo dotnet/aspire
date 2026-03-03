@@ -58,6 +58,7 @@ public static class OracleDatabaseBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithImage(OracleContainerImageTags.Image, OracleContainerImageTags.Tag)
                       .WithImageRegistry(OracleContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordParameter;

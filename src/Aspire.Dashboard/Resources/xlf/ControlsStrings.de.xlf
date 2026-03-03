@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
-        <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Graph. Navigieren Sie zur Registerkarte "Tabelle", um eine barrierefreie Ansicht anzuzeigen.</target>
+        <source>Graph. For an accessible view please navigate to the Resources tab</source>
+        <target state="translated">Graph. Navigieren Sie zur Registerkarte „Ressourcen“, um eine barrierefreie Ansicht anzuzeigen.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -72,14 +72,19 @@
         <target state="translated">Es wurde eine Kardinalitätsbegrenzung festgestellt</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="translated">Parameter</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Anzahl anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Tabelle</target>
+        <source>Resources</source>
+        <target state="translated">Ressourcen</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -117,6 +122,11 @@
         <target state="translated">Details</target>
         <note />
       </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="translated">Herunterladen</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Dauer</target>
@@ -140,6 +150,16 @@
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
         <target state="translated">Alle erweitern</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="translated">.env exportieren</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="translated">JSON exportieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -335,6 +355,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Seitensymbolleiste</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterValueNotSet">
+        <source>Value not set</source>
+        <target state="translated">Wert nicht festgelegt</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseButtonTitle">

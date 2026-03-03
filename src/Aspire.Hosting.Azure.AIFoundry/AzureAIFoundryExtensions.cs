@@ -388,10 +388,10 @@ public static class AzureAIFoundryExtensions
 
         infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
         {
-            Value = cogServicesAccount.Properties.Endpoint
+            Value = cogServicesAccount.Properties.Endpoint.ToBicepExpression()
         });
 
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name.ToBicepExpression() });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
 

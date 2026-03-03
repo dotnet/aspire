@@ -1,12 +1,8 @@
 ﻿@page "/structuredlogs"
 @page "/structuredlogs/resource/{resourceName}"
 
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Utils
 @using Aspire.Dashboard.Resources
-@using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -148,7 +144,7 @@
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@MessageColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]">
                                             @* Tooltip is displayed by the message GridValue instance *@
-                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" LaunchGenAIVisualizerCallback="@LaunchGenAIVisualizerAsync" />
+                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" IsGenAILogCallback="@IsGenAILogEntry" LaunchGenAIVisualizerCallback="@LaunchGenAIVisualizerAsync" />
                                         </AspireTemplateColumn>
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))

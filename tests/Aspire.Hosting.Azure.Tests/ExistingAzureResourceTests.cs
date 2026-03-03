@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -326,6 +324,7 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
+    [Obsolete]
     public async Task SupportsExistingAzureRedisWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -343,6 +342,7 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
+    [Obsolete]
     public async Task SupportsExistingAzureRedisWithResouceGroupAndAccessKeyAuth()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -365,7 +365,7 @@ public class ExistingAzureResourceTests
 
         var existingResourceName = builder.AddParameter("existingResourceName");
         var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
-        var redis = builder.AddAzureRedisEnterprise("redis")
+        var redis = builder.AddAzureManagedRedis("redis")
             .PublishAsExisting(existingResourceName, existingResourceGroupName);
 
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
@@ -379,7 +379,7 @@ public class ExistingAzureResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var redis = builder.AddAzureRedisEnterprise("redis")
+        var redis = builder.AddAzureManagedRedis("redis")
             .PublishAsExisting("existingResourceName", "existingResourceGroupName")
             .WithAccessKeyAuthentication();
 

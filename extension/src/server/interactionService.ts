@@ -2,7 +2,7 @@ import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces, selectDirectoryTitle, selectFileTitle } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { ProgressNotifier } from './progressNotifier';
 import { applyTextStyle, formatText } from '../utils/strings';
@@ -16,6 +16,7 @@ export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     promptForSecretString: (promptText: string, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForFilePath: (promptText: string, defaultValue: string | null, directory: boolean) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     promptForSelections: (promptText: string, choices: string[]) => Promise<string[] | null>;
@@ -40,15 +41,56 @@ export interface IInteractionService {
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
+// Support both PascalCase (old) and camelCase (new) for backwards compatibility
+// with different versions of the CLI/AppHost.
+//
+// BREAKING CHANGE: ModelContextProtocol package was updated from an older version to 0.2.0-preview.1
+// (and later to 0.4.0-preview.3), which changed the default JSON serialization to use camelCase
+// (via JsonNamingPolicy.CamelCase) to comply with the MCP specification.
+//
+// This type definition supports both formats to maintain compatibility with:
+// - Older CLI/AppHost versions that serialize with PascalCase
+// - Newer CLI/AppHost versions (with ModelContextProtocol 0.2.0+) that serialize with camelCase
 type DashboardUrls = {
-    BaseUrlWithLoginToken: string;
-    CodespacesUrlWithLoginToken: string | null;
+    // New camelCase format (ModelContextProtocol 0.2.0+)
+    dashboardHealthy?: boolean;
+    baseUrlWithLoginToken?: string;
+    codespacesUrlWithLoginToken?: string | null;
+    // Old PascalCase format (pre-ModelContextProtocol 0.2.0)
+    DashboardHealthy?: boolean;
+    BaseUrlWithLoginToken?: string;
+    CodespacesUrlWithLoginToken?: string | null;
 };
 
+// Helper to access DashboardUrls properties in a case-insensitive way.
+// Prefers the new camelCase format but falls back to PascalCase for backwards compatibility.
+function getDashboardUrlProperty(urls: DashboardUrls, property: 'baseUrl' | 'codespacesUrl'): string {
+    if (property === 'baseUrl') {
+        // Try camelCase first (new format), then PascalCase (old format)
+        return urls.baseUrlWithLoginToken ?? urls.BaseUrlWithLoginToken ?? '';
+    } else {
+        // Try camelCase first (new format), then PascalCase (old format)
+        return urls.codespacesUrlWithLoginToken ?? urls.CodespacesUrlWithLoginToken ?? '';
+    }
+}
+
+// Support both PascalCase (old) and camelCase (new) for backwards compatibility.
+// DisplayLineState is serialized with ModelContextProtocol.McpJsonUtilities.DefaultOptions
+// which changed to camelCase in version 0.2.0+
 type ConsoleLine = {
-    Stream: 'stdout' | 'stderr';
-    Line: string;
+    // New camelCase format (ModelContextProtocol 0.2.0+)
+    stream?: 'stdout' | 'stderr';
+    line?: string;
+    // Old PascalCase format (pre-ModelContextProtocol 0.2.0)
+    Stream?: 'stdout' | 'stderr';
+    Line?: string;
 };
+
+// Helper to access ConsoleLine properties in a case-insensitive way.
+// Prefers the new camelCase format but falls back to PascalCase for backwards compatibility.
+function getConsoleLineText(line: ConsoleLine): string {
+    return line.line ?? line.Line ?? '';
+}
 
 export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
@@ -94,7 +136,7 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
     }
 
     async promptForSecretString(promptText: string, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -125,7 +167,29 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
+    }
+
+    async promptForFilePath(promptText: string, defaultValue: string | null, directory: boolean): Promise<string | null> {
+        extensionLogOutputChannel.info(`Prompting for file path: ${promptText}, directory: ${directory}, default: ${defaultValue ?? 'null'}`);
+
+        const defaultUri = defaultValue ? vscode.Uri.file(defaultValue) : undefined;
+        const openLabel = directory ? selectDirectoryTitle : selectFileTitle;
+
+        const result = await vscode.window.showOpenDialog({
+            canSelectFiles: !directory,
+            canSelectFolders: directory,
+            canSelectMany: false,
+            defaultUri,
+            openLabel,
+            title: formatText(promptText),
+        });
+
+        if (!result || result.length === 0) {
+            return null;
+        }
+
+        return result[0].fsPath;
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
@@ -251,10 +315,15 @@ export class InteractionService implements IInteractionService {
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
         extensionLogOutputChannel.info(`Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
-        this.writeDebugSessionMessage(dashboard + ': ' + dashboardUrls.BaseUrlWithLoginToken, true, AnsiColors.Green);
+        const baseUrl = getDashboardUrlProperty(dashboardUrls, 'baseUrl');
+        const codespacesUrl = getDashboardUrlProperty(dashboardUrls, 'codespacesUrl');
 
-        if (dashboardUrls.CodespacesUrlWithLoginToken) {
-            this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, AnsiColors.Green);
+        this.writeDebugSessionMessage(`${dashboard}: `, true, AnsiColors.Green, false);
+        this.writeDebugSessionMessage(baseUrl, true, AnsiColors.Blue);
+
+        if (codespacesUrl) {
+            this.writeDebugSessionMessage(`${codespaces}: `, true, AnsiColors.Green, false);
+            this.writeDebugSessionMessage(codespacesUrl, true, AnsiColors.Blue);
         }
 
         //  If aspire.enableAspireDashboardAutoLaunch is true, the dashboard will be launched automatically and we do not need
@@ -262,7 +331,7 @@ export class InteractionService implements IInteractionService {
         const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
         if (enableDashboardAutoLaunch) {
             // Open the dashboard URL in an external browser. Prefer codespaces URL if available.
-            const urlToOpen = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
+            const urlToOpen = codespacesUrl || baseUrl;
             vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
             return;
         }
@@ -271,7 +340,7 @@ export class InteractionService implements IInteractionService {
             { title: directLink }
         ];
 
-        if (dashboardUrls.CodespacesUrlWithLoginToken) {
+        if (codespacesUrl) {
             actions.push({ title: codespacesLink });
         }
 
@@ -289,18 +358,18 @@ export class InteractionService implements IInteractionService {
                 extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
                 if (selected.title === directLink) {
-                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+                    vscode.env.openExternal(vscode.Uri.parse(baseUrl));
                 }
-                else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
-                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+                else if (selected.title === codespacesLink && codespacesUrl) {
+                    vscode.env.openExternal(vscode.Uri.parse(codespacesUrl));
                 }
             });
         }, 1000);
     }
 
     async displayLines(lines: ConsoleLine[]) {
-        const displayText = lines.map(line => line.Line).join('\n');
-        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.Line)));
+        const displayText = lines.map(line => getConsoleLineText(line)).join('\n');
+        lines.forEach(line => extensionLogOutputChannel.info(formatText(getConsoleLineText(line))));
 
         // Open a new temp file with the displayText
         const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });
@@ -350,14 +419,14 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    writeDebugSessionMessage(message: string, stdout: boolean, textStyle: string | null | undefined) {
+    writeDebugSessionMessage(message: string, stdout: boolean, textStyle: string | null | undefined, addNewLine: boolean = true) {
         const debugSession = this._getAspireDebugSession();
         if (!debugSession) {
             extensionLogOutputChannel.warn('Attempted to write to debug session, but no active debug session exists.');
             return;
         }
 
-        debugSession.sendMessage(applyTextStyle(message, textStyle), true, stdout ? 'stdout' : 'stderr');
+        debugSession.sendMessage(applyTextStyle(message, textStyle), addNewLine, stdout ? 'stdout' : 'stderr');
     }
 
     async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
@@ -366,7 +435,15 @@ export class InteractionService implements IInteractionService {
             throw new Error(aspireDebugSessionNotInitialized);
         }
 
-        return debugSession.startAppHost(projectFile, args, environment, debug);
+        // Query CLI capabilities to determine if the CLI has already built the project
+        const cliCapabilities = this._rpcClient ? await this._rpcClient.getCliCapabilities() : [];
+
+        // If CLI has 'build-dotnet-using-cli' capability, it already built the project, so we don't need to force a build
+        // For backwards compatibility with older CLIs that don't have this capability, we force a build
+        const cliBuiltProject = cliCapabilities.includes('build-dotnet-using-cli');
+        const forceBuild = !cliBuiltProject;
+
+        return debugSession.startAppHost(projectFile, args, environment, debug, { forceBuild });
     }
 
     stopDebugging() {
@@ -427,6 +504,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
     connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, required: boolean) => interactionService.promptForSecretString(promptText, required, rpcClient)));
+    connection.onRequest("promptForFilePath", middleware('promptForFilePath', async (promptText: string, defaultValue: string | null, directory: boolean) => interactionService.promptForFilePath(promptText, defaultValue, directory)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("promptForSelections", middleware('promptForSelections', interactionService.promptForSelections.bind(interactionService)));

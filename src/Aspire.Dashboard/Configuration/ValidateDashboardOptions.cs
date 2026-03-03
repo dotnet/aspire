@@ -65,32 +65,37 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(otlpParseErrorMessage);
         }
 
-        switch (options.Otlp.AuthMode)
+        // Only validate OTLP auth mode if at least one OTLP endpoint is configured
+        var hasOtlpEndpoint = !string.IsNullOrEmpty(options.Otlp.GrpcEndpointUrl) || !string.IsNullOrEmpty(options.Otlp.HttpEndpointUrl);
+        if (hasOtlpEndpoint)
         {
-            case OtlpAuthMode.Unsecured:
-                break;
-            case OtlpAuthMode.ApiKey:
-                if (string.IsNullOrEmpty(options.Otlp.PrimaryApiKey))
-                {
-                    errorMessages.Add($"PrimaryApiKey is required when OTLP authentication mode is API key. Specify a {DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey} value.");
-                }
-                break;
-            case OtlpAuthMode.ClientCertificate:
-                for (var i = 0; i < options.Otlp.AllowedCertificates.Count; i++)
-                {
-                    var allowedCertRule = options.Otlp.AllowedCertificates[i];
-                    if (string.IsNullOrEmpty(allowedCertRule.Thumbprint))
+            switch (options.Otlp.AuthMode)
+            {
+                case OtlpAuthMode.Unsecured:
+                    break;
+                case OtlpAuthMode.ApiKey:
+                    if (string.IsNullOrEmpty(options.Otlp.PrimaryApiKey))
                     {
-                        errorMessages.Add($"Thumbprint on allow certificate rule is not configured. Specify a {DashboardConfigNames.DashboardOtlpAllowedCertificatesName.ConfigKey}:{i}:Thumbprint value.");
+                        errorMessages.Add($"PrimaryApiKey is required when OTLP authentication mode is API key. Specify a {DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey} value.");
                     }
-                }
-                break;
-            case null:
-                errorMessages.Add($"OTLP endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
-                break;
-            default:
-                errorMessages.Add($"Unexpected OTLP authentication mode: {options.Otlp.AuthMode}");
-                break;
+                    break;
+                case OtlpAuthMode.ClientCertificate:
+                    for (var i = 0; i < options.Otlp.AllowedCertificates.Count; i++)
+                    {
+                        var allowedCertRule = options.Otlp.AllowedCertificates[i];
+                        if (string.IsNullOrEmpty(allowedCertRule.Thumbprint))
+                        {
+                            errorMessages.Add($"Thumbprint on allow certificate rule is not configured. Specify a {DashboardConfigNames.DashboardOtlpAllowedCertificatesName.ConfigKey}:{i}:Thumbprint value.");
+                        }
+                    }
+                    break;
+                case null:
+                    errorMessages.Add($"OTLP endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
+                    break;
+                default:
+                    errorMessages.Add($"Unexpected OTLP authentication mode: {options.Otlp.AuthMode}");
+                    break;
+            }
         }
 
         if (!options.Mcp.TryParseOptions(out var mcpParseErrorMessage))
@@ -98,17 +103,33 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(mcpParseErrorMessage);
         }
 
-        switch (options.Mcp.AuthMode)
+        // Parse Dashboard API options
+        if (!options.Api.TryParseOptions(out var apiParseErrorMessage))
         {
-            case McpAuthMode.Unsecured:
-                break;
-            case McpAuthMode.ApiKey:
-                if (string.IsNullOrEmpty(options.Mcp.PrimaryApiKey))
-                {
-                    errorMessages.Add($"PrimaryApiKey is required when MCP authentication mode is API key. Specify a {DashboardConfigNames.DashboardMcpPrimaryApiKeyName.ConfigKey} value.");
-                }
-                break;
+            errorMessages.Add(apiParseErrorMessage);
+        }
 
+        // Validate API auth configuration
+        var effectiveApiAuthMode = options.Api.AuthMode;
+        // Also check MCP-specific AuthMode for backward compatibility
+        if (effectiveApiAuthMode is null && options.Mcp.AuthMode is not null)
+        {
+            effectiveApiAuthMode = options.Mcp.AuthMode switch
+            {
+                McpAuthMode.ApiKey => ApiAuthMode.ApiKey,
+                McpAuthMode.Unsecured => ApiAuthMode.Unsecured,
+                _ => null
+            };
+        }
+
+        if (effectiveApiAuthMode is ApiAuthMode.ApiKey)
+        {
+            // Check if any API key is configured (either in Api or Mcp section)
+            var hasApiKey = !string.IsNullOrEmpty(options.Api.PrimaryApiKey) || !string.IsNullOrEmpty(options.Mcp.PrimaryApiKey);
+            if (!hasApiKey)
+            {
+                errorMessages.Add($"PrimaryApiKey is required when API authentication mode is ApiKey. Specify Dashboard:Api:PrimaryApiKey or Dashboard:Mcp:PrimaryApiKey.");
+            }
         }
 
         if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))

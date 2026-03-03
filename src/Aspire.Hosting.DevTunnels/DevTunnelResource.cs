@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.DevTunnels;
@@ -13,6 +14,7 @@ namespace Aspire.Hosting.DevTunnels;
 /// <param name="command"></param>
 /// <param name="workingDirectory"></param>
 /// <param name="options"></param>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, TunnelId = {TunnelId}")]
 public sealed class DevTunnelResource(string name, string tunnelId, string command, string workingDirectory, DevTunnelOptions? options = null)
     : ExecutableResource(name, command, workingDirectory)
 {

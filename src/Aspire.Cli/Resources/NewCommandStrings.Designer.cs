@@ -113,9 +113,35 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string ChannelOptionDescription {
+            get {
+                return ResourceManager.GetString("ChannelOptionDescription", resourceCulture);
+            }
+        }
+        
+        public static string ChannelOptionDescriptionWithStaging {
+            get {
+                return ResourceManager.GetString("ChannelOptionDescriptionWithStaging", resourceCulture);
+            }
+        }
+
+        public static string LanguageOptionDescription
+        {
+            get
+            {
+                return ResourceManager.GetString("LanguageOptionDescription", resourceCulture);
+            }
+        }
+        
         public static string PromptToUsePrereleaseTemplates {
             get {
                 return ResourceManager.GetString("PromptToUsePrereleaseTemplates", resourceCulture);
+            }
+        }
+
+        public static string ResolvingTemplateVersion {
+            get {
+                return ResourceManager.GetString("ResolvingTemplateVersion", resourceCulture);
             }
         }
     }

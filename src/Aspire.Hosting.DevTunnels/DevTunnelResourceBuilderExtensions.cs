@@ -1,12 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMMAND001
+
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
+using Aspire.Hosting.DevTunnels.Resources;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -74,7 +78,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
         }
 
         // Add services
-        builder.Services.TryAddSingleton<DevTunnelCliInstallationManager>();
         builder.Services.TryAddSingleton<DevTunnelLoginManager>();
         builder.Services.TryAddSingleton<LoggedOutNotificationManager>();
         builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
@@ -117,12 +120,23 @@ public static partial class DevTunnelsResourceBuilderExtensions
             {
                 var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
-                var devTunnelCliInstallationManager = e.Services.GetRequiredService<DevTunnelCliInstallationManager>();
+                var commandValidator = e.Services.GetRequiredService<IRequiredCommandValidator>();
                 var devTunnelEnvironmentManager = e.Services.GetRequiredService<DevTunnelLoginManager>();
                 var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
 
-                // Ensure CLI is available
-                await devTunnelCliInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                // Validate the CLI is available and version is supported.
+                // We use manual validation here instead of WithRequiredCommand call because our
+                // OnBeforeResourceStarted handler runs before the global RequiredCommandValidationLifecycleHook runs.
+                var cliAnnotation = new RequiredCommandAnnotation(tunnelResource.Command)
+                {
+                    HelpLink = "https://learn.microsoft.com/azure/developer/dev-tunnels/get-started#install",
+                    ValidationCallback = ValidateDevTunnelCliVersionAsync
+                };
+                var result = await commandValidator.ValidateAsync(tunnelResource, cliAnnotation, ct).ConfigureAwait(false);
+                if (!result.IsValid)
+                {
+                    throw new DistributedApplicationException(result.ValidationMessage);
+                }
 
                 // Login to the dev tunnels service if needed
                 logger.LogInformation("Ensuring user is logged in to dev tunnel service");
@@ -140,7 +154,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     var exception = new DistributedApplicationException($"Error trying to create the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                         portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(exception);
+#pragma warning restore CS0618 // Type or member is obsolete
                     }
                     throw;
                 }
@@ -195,7 +211,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     catch (Exception ex)
                     {
                         portLogger.LogError(ex, "Error trying to create dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
+#pragma warning disable CS0618 // Type or member is obsolete
                         portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(ex);
+#pragma warning restore CS0618 // Type or member is obsolete
                         throw;
                     }
 
@@ -396,7 +414,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
     /// Each endpoint defined on the target resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{sourceResourceName}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <remarks>
     /// Referencing a dev tunnel will delay the start of the resource until the referenced dev tunnel's endpoint is allocated.
@@ -428,19 +446,41 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
+                var schemeIndexTracker = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
                 foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
                 {
                     var serviceName = targetResource.Resource.Name;
                     var endpointName = port.TargetEndpoint.EndpointName;
+                    var encodedServiceName = EnvironmentVariableNameEncoder.Encode(serviceName);
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
                     {
-                        context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+                        // Use the endpoint's scheme (not name) in the service discovery key so that
+                        // .NET service discovery can correctly match the scheme segment to the URI scheme.
+                        var scheme = port.TargetEndpoint.Scheme;
+                        if (!schemeIndexTracker.TryGetValue(scheme, out var index))
+                        {
+                            index = 0;
+                        }
+
+                        // Find the next unused index for this scheme in case of collisions with other callbacks.
+                        var key = $"services__{serviceName}__{scheme}__{index}";
+                        while (context.EnvironmentVariables.ContainsKey(key))
+                        {
+                            index++;
+                            key = $"services__{serviceName}__{scheme}__{index}";
+                        }
+
+                        context.EnvironmentVariables[key] = port.TunnelEndpoint;
+                        schemeIndexTracker[scheme] = index + 1;
                     }
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                     {
-                        context.EnvironmentVariables[$"{serviceName.ToUpperInvariant()}_{endpointName.ToUpperInvariant()}"] = port.TunnelEndpoint;
+                        var endpointKey = $"{encodedServiceName.ToUpperInvariant()}_{encodedEndpointName.ToUpperInvariant()}";
+                        context.EnvironmentVariables[endpointKey] = port.TunnelEndpoint;
                     }
                 }
             });
@@ -700,6 +740,28 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
     }
 
+    internal static async Task<RequiredCommandValidationResult> ValidateDevTunnelCliVersionAsync(RequiredCommandValidationContext context)
+    {
+        var devTunnelClient = context.Services.GetRequiredService<IDevTunnelClient>();
+
+        try
+        {
+            var version = await devTunnelClient.GetVersionAsync(logger: null, context.CancellationToken).ConfigureAwait(false);
+
+            if (version < DevTunnelCli.MinimumSupportedVersion)
+            {
+                return RequiredCommandValidationResult.Failure(
+                    string.Format(CultureInfo.CurrentCulture, MessageStrings.DevtunnelCliVersionNotSupported, version, DevTunnelCli.MinimumSupportedVersion));
+            }
+
+            return RequiredCommandValidationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return RequiredCommandValidationResult.Failure(ex.Message);
+        }
+    }
+
     private static bool TryValidateLabels(List<string>? labels, [NotNullWhen(false)] out string? errorMessage)
     {
         if (labels is null || labels.Count == 0)
@@ -731,9 +793,4 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
     [GeneratedRegex(@"^[\w\-=_]{1,50}$")]
     private static partial Regex LabelRegex();
-
-    private sealed class DevTunnelResourceStartedEvent(DevTunnelResource tunnel) : IDistributedApplicationResourceEvent
-    {
-        public IResource Resource { get; } = tunnel;
-    }
 }

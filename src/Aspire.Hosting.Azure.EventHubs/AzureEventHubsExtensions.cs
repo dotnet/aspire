@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -10,6 +12,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Expressions;
 using AzureProvisioning = Azure.Provisioning.EventHubs;
 
 namespace Aspire.Hosting;
@@ -44,6 +47,11 @@ public static class AzureEventHubsExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
+
+            // Check if this Event Hubs has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var eventHubsNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -66,17 +74,37 @@ public static class AzureEventHubsExtensions
                         {
                             Name = skuParameter
                         },
+                        // When using private endpoints, disable public network access.
+                        PublicNetworkAccess = hasPrivateEndpoint
+                            ? AzureProvisioning.EventHubsPublicNetworkAccess.Disabled
+                            : AzureProvisioning.EventHubsPublicNetworkAccess.Enabled,
                         Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                     };
                     return resource;
                 });
 
-            infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
+            infrastructure.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint.ToBicepExpression() });
+
+            // Extract hostname from endpoint: split(replace(endpoint, 'https://', ''), ':')[0]
+            var replaceExpr = new FunctionCallExpression(
+                new IdentifierExpression("replace"),
+                eventHubsNamespace.ServiceBusEndpoint.Compile(),
+                new StringLiteralExpression("https://"),
+                new StringLiteralExpression(""));
+            var splitExpr = new FunctionCallExpression(
+                new IdentifierExpression("split"),
+                replaceExpr,
+                new StringLiteralExpression(":"));
+            var hostNameExpr = new IndexExpression(splitExpr, new IntLiteralExpression(0));
+
+            // We need the HostName specifically because the Azure SDK client use it instead of the full endpoint.
+            infrastructure.Add(new ProvisioningOutput("eventHubsHostName", typeof(string)) { Value = (BicepValue<string>)hostNameExpr });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = eventHubsNamespace.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = eventHubsNamespace.Name.ToBicepExpression() });
 
-            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = eventHubsNamespace.Id.ToBicepExpression() });
 
             foreach (var hub in azureResource.Hubs)
             {

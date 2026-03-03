@@ -33,6 +33,9 @@
 .PARAMETER HiveOnly
     Only install NuGet packages to the hive, skip CLI download
 
+.PARAMETER SkipPath
+    Do not add the install path to PATH environment variable (useful for portable installs)
+
 .PARAMETER KeepArchive
     Keep downloaded archive files after installation
 
@@ -62,6 +65,9 @@
 
 .EXAMPLE
     .\get-aspire-cli-pr.ps1 1234 -UseInsiders
+
+.EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -SkipPath
 
 .EXAMPLE
     Piped execution
@@ -106,6 +112,9 @@ param(
 
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
+
+    [Parameter(HelpMessage = "Do not add the install path to PATH environment variable (useful for portable installs)")]
+    [switch]$SkipPath,
 
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
@@ -360,6 +369,98 @@ function Get-RuntimeIdentifier {
     return "${computedTargetOS}-${computedTargetArch}"
 }
 
+# Function to get the CLI executable path based on host OS
+function Get-CliExecutablePath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath
+    )
+
+    $exeName = if ($Script:HostOS -eq "win") { "aspire.exe" } else { "aspire" }
+    return Join-Path $DestinationPath $exeName
+}
+
+# Function to backup existing CLI executable before overwriting
+# This allows installation to proceed even when the CLI is running
+# The running process still has a handle to the old file, but the file can be renamed
+function Backup-ExistingCliExecutable {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if (Test-Path $TargetExePath) {
+        $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $backupPath = "$TargetExePath.old.$unixTimestamp"
+        
+        if ($PSCmdlet.ShouldProcess($TargetExePath, "Backup to $backupPath")) {
+            Write-Message "Backing up existing CLI: $TargetExePath -> $backupPath" -Level Verbose
+            
+            # Rename existing executable to .old.[timestamp]
+            Move-Item -Path $TargetExePath -Destination $backupPath -Force
+            return $backupPath
+        }
+    }
+    
+    return $null
+}
+
+# Function to restore CLI executable from backup if installation fails
+function Restore-CliExecutableFromBackup {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BackupPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if ($PSCmdlet.ShouldProcess($BackupPath, "Restore to $TargetExePath")) {
+        Write-Message "Restoring CLI from backup: $BackupPath -> $TargetExePath" -Level Warning
+        
+        if (Test-Path $TargetExePath) {
+            Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
+        }
+        
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+    }
+}
+
+# Function to clean up old backup files (aspire.exe.old.* or aspire.old.*)
+function Remove-OldCliBackupFiles {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    $directory = Split-Path -Parent $TargetExePath
+    if ([string]::IsNullOrEmpty($directory)) {
+        return
+    }
+    
+    $exeName = Split-Path -Leaf $TargetExePath
+    $searchPattern = "$exeName.old.*"
+    
+    $oldBackupFiles = Get-ChildItem -Path $directory -Filter $searchPattern -ErrorAction SilentlyContinue
+    foreach ($backupFile in $oldBackupFiles) {
+        if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
+            try {
+                Remove-Item -Path $backupFile.FullName -Force
+                Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
+            }
+            catch {
+                Write-Message "Failed to delete old backup file: $($backupFile.FullName) - $($_.Exception.Message)" -Level Verbose
+            }
+        }
+    }
+}
+
 function Expand-AspireCliArchive {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -373,50 +474,68 @@ function Expand-AspireCliArchive {
 
     Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
 
-    # Create destination directory if it doesn't exist
-    if (-not (Test-Path $DestinationPath)) {
-        Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
-        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-    }
+    # Get the target executable path using shared function
+    $targetExePath = Get-CliExecutablePath -DestinationPath $DestinationPath
+    $backupPath = $null
 
-    Write-Message "Extracting archive: $ArchiveFile" -Level Verbose
-    # Check archive format based on file extension and extract accordingly
-    if ($ArchiveFile -match "\.zip$") {
-        # Use Expand-Archive for ZIP files
-        if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
-            throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
+    try {
+        # Create destination directory if it doesn't exist
+        if (-not (Test-Path $DestinationPath)) {
+            Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
+            New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+        }
+        else {
+            # Backup existing executable before extraction
+            # This allows installation to proceed even when the CLI is running
+            $backupPath = Backup-ExistingCliExecutable -TargetExePath $targetExePath
         }
 
-        try {
+        Write-Message "Extracting archive: $ArchiveFile" -Level Verbose
+        # Check archive format based on file extension and extract accordingly
+        if ($ArchiveFile -match "\.zip$") {
+            # Use Expand-Archive for ZIP files
+            if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
+                throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
+            }
+
             Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
         }
-        catch {
-            throw "Failed to unpack archive: $($_.Exception.Message)"
-        }
-    }
-    elseif ($ArchiveFile -match "\.tar\.gz$") {
-        # Use tar for tar.gz files
-        if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
-            throw "tar command not found. Please install tar to extract tar.gz files."
-        }
+        elseif ($ArchiveFile -match "\.tar\.gz$") {
+            # Use tar for tar.gz files
+            if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
+                throw "tar command not found. Please install tar to extract tar.gz files."
+            }
 
-        $currentLocation = Get-Location
-        try {
-            Set-Location $DestinationPath
-            & tar -xzf $ArchiveFile
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to extract tar.gz archive: $ArchiveFile. tar command returned exit code $LASTEXITCODE"
+            $currentLocation = Get-Location
+            try {
+                Set-Location $DestinationPath
+                & tar -xzf $ArchiveFile
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to extract tar.gz archive: $ArchiveFile. tar command returned exit code $LASTEXITCODE"
+                }
+            }
+            finally {
+                Set-Location $currentLocation
             }
         }
-        finally {
-            Set-Location $currentLocation
+        else {
+            throw "Unsupported archive format: $ArchiveFile. Only .zip and .tar.gz files are supported."
         }
-    }
-    else {
-        throw "Unsupported archive format: $ArchiveFile. Only .zip and .tar.gz files are supported."
-    }
 
-    Write-Message "Successfully unpacked archive" -Level Verbose
+        # Clean up old backup files on successful extraction
+        if ($backupPath -and (Test-Path $targetExePath)) {
+            Remove-OldCliBackupFiles -TargetExePath $targetExePath
+        }
+
+        Write-Message "Successfully unpacked archive" -Level Verbose
+    }
+    catch {
+        # If anything goes wrong and we have a backup, restore it
+        if ($backupPath -and (Test-Path $backupPath)) {
+            Restore-CliExecutableFromBackup -BackupPath $backupPath -TargetExePath $targetExePath
+        }
+        throw "Failed to unpack archive: $($_.Exception.Message)"
+    }
 }
 
 # Simplified installation path determination
@@ -580,6 +699,37 @@ function Remove-TempDirectory {
 # =============================================================================
 # END: Shared code
 # =============================================================================
+
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+function Save-GlobalSettings {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+    
+    if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
+        Write-Message "Setting global config: $Key = $Value" -Level Verbose
+        
+        $output = & $CliPath config set -g $Key $Value 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to set global config via aspire CLI" -Level Warning
+            return
+        }
+        Write-Message "Global config saved: $Key = $Value" -Level Verbose
+    }
+}
 
 # Function to check if gh command is available
 function Test-GitHubCLIDependency {
@@ -1087,9 +1237,22 @@ function Start-DownloadAndInstall {
         }
     }
 
+    # Save the global channel setting to the PR hive channel
+    # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    if (-not $HiveOnly) {
+        # Determine CLI path
+        $cliExe = if ($Script:HostOS -eq "win") { "aspire.exe" } else { "aspire" }
+        $cliPath = Join-Path $cliBinDir $cliExe
+        Save-GlobalSettings -CliPath $cliPath -Key "channel" -Value "pr-$PRNumber"
+    }
+
     # Update PATH environment variables
     if (-not $HiveOnly) {
-        Update-PathEnvironment -CliBinDir $cliBinDir
+        if ($SkipPath) {
+            Write-Message "Skipping PATH configuration due to -SkipPath flag" -Level Info
+        } else {
+            Update-PathEnvironment -CliBinDir $cliBinDir
+        }
     }
 }
 

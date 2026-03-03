@@ -20,6 +20,8 @@ internal sealed class BackchannelService(
     : BackgroundService
 {
     private JsonRpc? _rpc;
+    private Socket? _serverSocket;
+    private string? _socketPath;
 
     public bool IsBackchannelExpected => configuration.GetValue<string>(KnownConfigNames.UnixSocketPath) is {};
 
@@ -39,8 +41,18 @@ internal sealed class BackchannelService(
                 return;
             }
 
+            _socketPath = unixSocketPath;
+
+            // Delete existing socket file if it exists (stale from previous run)
+            if (File.Exists(unixSocketPath))
+            {
+                logger.LogDebug("Deleting existing socket file: {SocketPath}", unixSocketPath);
+                File.Delete(unixSocketPath);
+            }
+
             logger.LogDebug("Listening for backchannel connection on socket path: {SocketPath}", unixSocketPath);
             var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            _serverSocket = serverSocket;
             var endpoint = new UnixDomainSocketEndPoint(unixSocketPath);
             serverSocket.Bind(endpoint);
             serverSocket.Listen();
@@ -75,5 +87,43 @@ internal sealed class BackchannelService(
             logger.LogDebug("Backchannel service was cancelled: {Message}", ex.Message);
             return;
         }
+    }
+
+    public override void Dispose()
+    {
+        // Dispose the RPC connection
+        _rpc?.Dispose();
+        _rpc = null;
+
+        // Close and dispose the server socket
+        if (_serverSocket is not null)
+        {
+            try
+            {
+                _serverSocket.Close();
+                _serverSocket.Dispose();
+            }
+            catch
+            {
+                // Ignore errors during socket cleanup
+            }
+            _serverSocket = null;
+        }
+
+        // Delete the socket file to allow rebinding
+        if (_socketPath is not null && File.Exists(_socketPath))
+        {
+            try
+            {
+                File.Delete(_socketPath);
+                logger.LogDebug("Deleted backchannel socket file: {SocketPath}", _socketPath);
+            }
+            catch
+            {
+                // Ignore errors during file cleanup
+            }
+        }
+
+        base.Dispose();
     }
 }

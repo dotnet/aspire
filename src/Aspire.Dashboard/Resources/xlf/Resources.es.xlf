@@ -222,6 +222,11 @@
         <target state="translated">Ocultar tipos de recursos</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesNoParameters">
+        <source>No parameters found</source>
+        <target state="translated">No se ha encontrado ningún parámetro</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">No hay ningún filtro</target>
@@ -281,6 +286,16 @@
         <source>URLs</source>
         <target state="translated">Direcciones URL</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterParametersPluralText">
+        <source>Showing &lt;strong&gt;{0} parameters&lt;/strong&gt;</source>
+        <target state="new">Showing &lt;strong&gt;{0} parameters&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterParametersSingularText">
+        <source>Showing &lt;strong&gt;{0} parameter&lt;/strong&gt;</source>
+        <target state="new">Showing &lt;strong&gt;{0} parameter&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</source>

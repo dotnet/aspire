@@ -111,7 +111,7 @@ Follow the established emoji patterns from existing templates:
 ```markdown
 ### ✨ Azure AI Foundry integration
 
-.NET Aspire now provides first-class support for Azure AI Foundry, enabling you to easily integrate AI models and deployments into your distributed applications.
+Aspire now provides first-class support for Azure AI Foundry, enabling you to easily integrate AI models and deployments into your distributed applications.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -139,14 +139,14 @@ This integration streamlines AI model deployment and management, allowing you to
 
 The Azure Storage APIs have been consolidated for better consistency across blob, table, and queue services.
 
-**Before (.NET Aspire 9.0)**:
+**Before (Aspire 9.0)**:
 ```csharp
 // Old inconsistent naming
 builder.AddAzureBlobStorage("storage");
 builder.AddAzureDataTables("tables"); 
 ```
 
-**After (.NET Aspire 9.1)**:
+**After (Aspire 9.1)**:
 ```csharp
 // New consistent naming
 builder.AddAzureStorage("storage");

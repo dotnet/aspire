@@ -6,10 +6,8 @@ import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
 import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
-import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 
 export function initializeTelemetry(otlpUrl, headers, resourceAttributes) {
     const otlpOptions = {
@@ -18,13 +16,15 @@ export function initializeTelemetry(otlpUrl, headers, resourceAttributes) {
     };
 
     var attributes = parseDelimitedValues(resourceAttributes);
-    attributes[SemanticResourceAttributes.SERVICE_NAME] = 'browser';
+    attributes['service.name'] = 'browser';
 
     const provider = new WebTracerProvider({
-        resource: new Resource(attributes),
+        resource: resourceFromAttributes(attributes),
+        spanProcessors: [
+            new SimpleSpanProcessor(new ConsoleSpanExporter()),
+            new SimpleSpanProcessor(new OTLPTraceExporter(otlpOptions))
+        ]
     });
-    provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
-    provider.addSpanProcessor(new SimpleSpanProcessor(new OTLPTraceExporter(otlpOptions)));
 
     provider.register({
         // Changing default contextManager to use ZoneContextManager - supports asynchronous operations - optional

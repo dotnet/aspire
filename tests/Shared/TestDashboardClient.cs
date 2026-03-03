@@ -19,7 +19,7 @@ public class TestDashboardClient : IDashboardClient
     private readonly IList<ResourceViewModel>? _initialResources;
 
     public bool IsEnabled { get; }
-    public Task WhenConnected { get; } = Task.CompletedTask;
+    public Task WhenConnected { get; }
     public string ApplicationName { get; } = "TestApp";
 
     public TestDashboardClient(
@@ -30,10 +30,12 @@ public class TestDashboardClient : IDashboardClient
         Func<Channel<WatchInteractionsResponseUpdate>>? interactionChannelProvider = null,
         Channel<ResourceCommandResponseViewModel>? resourceCommandsChannel = null,
         Channel<WatchInteractionsRequestUpdate>? sendInteractionUpdateChannel = null,
-        IList<ResourceViewModel>? initialResources = null)
+        IList<ResourceViewModel>? initialResources = null,
+        Task? whenConnected = null)
     {
         IsEnabled = isEnabled ?? false;
         ApplicationName = applicationName ?? "TestApp";
+        WhenConnected = whenConnected ?? Task.CompletedTask;
         _consoleLogsChannelProvider = consoleLogsChannelProvider;
         _resourceChannelProvider = resourceChannelProvider;
         _interactionChannelProvider = interactionChannelProvider;

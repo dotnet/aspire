@@ -16,7 +16,6 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial class AzureLogAnalyticsWorkspaceReferenceAnnotation : ApplicationModel.IResourceAnnotation
     {
         public AzureLogAnalyticsWorkspaceReferenceAnnotation(AzureLogAnalyticsWorkspaceResource workspace) { }

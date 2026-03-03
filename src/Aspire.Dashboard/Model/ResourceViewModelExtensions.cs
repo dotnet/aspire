@@ -9,6 +9,26 @@ namespace Aspire.Dashboard.Model;
 
 internal static class ResourceViewModelExtensions
 {
+    /// <summary>
+    /// Converts the resource properties to a dictionary of string values.
+    /// This is used to provide a consistent interface for code that works with both
+    /// ResourceViewModel (Dashboard) and ResourceSnapshot (CLI).
+    /// </summary>
+    public static IReadOnlyDictionary<string, string?> GetPropertiesAsDictionary(this ResourceViewModel resource)
+    {
+        var result = new Dictionary<string, string?>(StringComparer.Ordinal);
+
+        foreach (var (key, property) in resource.Properties)
+        {
+            if (property.Value.TryConvertToString(out var stringValue))
+            {
+                result[key] = stringValue;
+            }
+        }
+
+        return result;
+    }
+
     public static bool IsContainer(this ResourceViewModel resource)
     {
         return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);
@@ -17,6 +37,11 @@ internal static class ResourceViewModelExtensions
     public static bool IsProject(this ResourceViewModel resource)
     {
         return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
+    }
+
+    public static bool IsTool(this ResourceViewModel resource)
+    {
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Tool);
     }
 
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
@@ -47,6 +72,11 @@ internal static class ResourceViewModelExtensions
     public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
     {
         return resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
+    }
+    
+    public static bool TryGetToolPackage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
+    {
+        return resource.TryGetCustomDataString(KnownProperties.Tool.Package, out projectPath);
     }
 
     public static bool TryGetExecutablePath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? executablePath)

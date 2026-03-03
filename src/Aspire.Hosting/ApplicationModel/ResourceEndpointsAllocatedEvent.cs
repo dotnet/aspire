@@ -16,8 +16,6 @@ public class ResourceEndpointsAllocatedEvent(IResource resource, IServiceProvide
     /// <inheritdoc />
     public IResource Resource { get; } = resource;
 
-    /// <summary>
-    /// The <see cref="IServiceProvider"/> instance.
-    /// </summary>
+    /// <inheritdoc />
     public IServiceProvider Services { get; } = services;
 }

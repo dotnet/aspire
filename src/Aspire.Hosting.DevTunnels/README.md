@@ -117,7 +117,7 @@ builder.AddProject<Projects.ClientApp>("client")
        .WithReference(web, publicTunnel);  // Use the tunneled address for 'web'
 ```
 
-Environment variables are injected after the tunnel port is allocated using the [Aspire service discovery](https://learn.microsoft.com/dotnet/aspire/service-discovery/overview) configuration format:
+Environment variables are injected after the tunnel port is allocated using the [Aspire service discovery](https://aspire.dev/fundamentals/service-discovery/) configuration format:
 
 ```env
 services__{ResourceName}__{EndpointName}__0 = https://{public-host}/
@@ -206,7 +206,7 @@ The logging helps you verify that your tunnel configuration is working as expect
 
 ## Additional documentation
 
-* [Aspire documentation](https://learn.microsoft.com/dotnet/aspire/)
+* [Aspire documentation](https://aspire.dev/integrations/devtools/dev-tunnels/)
 * [Dev tunnels service](https://learn.microsoft.com/azure/developer/dev-tunnels/overview)
 * [Dev tunnels FAQ](https://learn.microsoft.com/azure/developer/dev-tunnels/faq)
 

@@ -111,14 +111,14 @@ internal sealed class DcpHost
             if (dcpInfo is not null)
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
-                
+
                 // Show UI notification if container runtime is unhealthy
                 TryShowContainerRuntimeNotification(dcpInfo, cancellationToken);
             }
         }
         finally
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
         }
     }
 
@@ -200,11 +200,6 @@ internal sealed class DcpHost
             dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.ExtensionsPath);
         }
 
-        if (!string.IsNullOrEmpty(_dcpOptions.BinPath))
-        {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", _dcpOptions.BinPath);
-        }
-
         // Set an environment variable to contain session info that should be deleted when DCP is done
         // Currently this contains the Unix socket for logging and the kubeconfig
         dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
@@ -218,6 +213,25 @@ internal sealed class DcpHost
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
+
+        // Set diagnostic log folder if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+        }
+
+        // Set diagnostic log level if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+        }
+
+        // Set preserve executable logs if configured (takes precedence over environment variable)
+        if (_dcpOptions.PreserveExecutableLogs == true)
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
+        }
+
         return dcpProcessSpec;
     }
 
@@ -389,7 +403,7 @@ internal sealed class DcpHost
 
             // Create a cancellation token source that can be cancelled when runtime becomes healthy
             var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
-            
+
             // Single background task to show notification and poll for health updates
             _ = Task.Run(async () =>
             {
@@ -405,7 +419,7 @@ internal sealed class DcpHost
                         try
                         {
                             var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
-                            
+
                             if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
                             {
                                 // Container runtime is now healthy, exit the polling loop
@@ -423,10 +437,10 @@ internal sealed class DcpHost
                             _logger.LogDebug(ex, "Error while polling container runtime health for notification");
                         }
                     }
-                    
+
                     // Cancel the notification at the end of the loop
                     notificationCts.Cancel();
-                    
+
                     // Wait for notification task to complete
                     try
                     {

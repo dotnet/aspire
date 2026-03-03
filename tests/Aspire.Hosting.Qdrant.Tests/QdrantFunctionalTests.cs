@@ -21,7 +21,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     private static readonly float[] s_testVector = { 0.10022575f, -0.23998135f };
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyQdrantResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -38,6 +38,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -85,7 +86,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -123,6 +124,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -168,6 +170,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -219,10 +222,10 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddQdrantWithDefaultsAddsUrlAnnotations()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var qdrant = builder.AddQdrant("qdrant");
 
@@ -248,7 +251,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnQdrantBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

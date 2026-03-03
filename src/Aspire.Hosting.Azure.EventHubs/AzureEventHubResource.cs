@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -16,6 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
 public class AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent)
     : Resource(name), IResourceWithParent<AzureEventHubsResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
@@ -114,5 +116,15 @@ public class AzureEventHubResource(string name, string hubName, AzureEventHubsRe
     {
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        foreach (var property in ((IResourceWithConnectionString)Parent).GetConnectionProperties())
+        {
+            yield return property;
+        }
+
+        yield return new("EventHubName", ReferenceExpression.Create($"{HubName}"));
     }
 }

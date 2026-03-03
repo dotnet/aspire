@@ -6,25 +6,71 @@ on:
       versionOverrideArg:
         required: false
         type: string
+      configuration:
+        required: false
+        type: string
+        default: Debug
 
 jobs:
 
   build_cli_archives:
     name: Build CLI (${{ matrix.targets.os }})
-    runs-on: ${{ matrix.targets.os }}
+    runs-on: ${{ matrix.targets.runner }}
     strategy:
       matrix:
         targets:
           - os: ubuntu-latest
+            runner: ubuntu-latest
             rids: linux-x64
           - os: windows-latest
+            runner: windows-latest
             rids: win-x64
           - os: macos-latest
+            runner: macos-latest
             rids: osx-arm64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      # Download RID-specific NuGet packages (for DCP) used by Bundle.proj
+      - name: Download RID-specific NuGets
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806  # v4.1.9
+        with:
+          name: built-nugets-for-${{ matrix.targets.rids }}
+          path: artifacts/packages/Release/Shipping
+
+      - name: Build bundle payload archive (Windows)
+        if: ${{ matrix.targets.os == 'windows-latest' }}
+        shell: pwsh
+        run: >
+          .\dotnet.cmd
+          msbuild
+          eng/Bundle.proj
+          /restore
+          /p:Configuration=${{ inputs.configuration }}
+          /p:TargetRid=${{ matrix.targets.rids }}
+          /p:BundleVersion=ci-bundlepayload
+          /p:SkipNativeBuild=true
+          /p:ContinuousIntegrationBuild=true
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BundlePayload.binlog
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Build bundle payload archive (Unix)
+        if: ${{ matrix.targets.os != 'windows-latest' }}
+        shell: bash
+        run: >
+          ./dotnet.sh
+          msbuild
+          eng/Bundle.proj
+          /restore
+          /p:Configuration=${{ inputs.configuration }}
+          /p:TargetRid=${{ matrix.targets.rids }}
+          /p:BundleVersion=ci-bundlepayload
+          /p:SkipNativeBuild=true
+          /p:ContinuousIntegrationBuild=true
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BundlePayload.binlog
+          ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Windows)
         if: ${{ matrix.targets.os == 'windows-latest' }}
@@ -34,10 +80,12 @@ jobs:
           -ci
           -build
           -restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          -configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildCli.binlog
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
+          /p:BundlePayloadPath=${{ github.workspace }}/artifacts/bundle/aspire-ci-bundlepayload-${{ matrix.targets.rids }}.tar.gz
           ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Unix)
@@ -48,18 +96,13 @@ jobs:
           --ci
           --build
           --restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          --configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildCli.binlog
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
+          /p:BundlePayloadPath=${{ github.workspace }}/artifacts/bundle/aspire-ci-bundlepayload-${{ matrix.targets.rids }}.tar.gz
           ${{ inputs.versionOverrideArg }}
-
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
-        with:
-          name: cli-native-logs-${{ matrix.targets.rids }}
-          path: artifacts/log/**
 
       - name: Upload CLI archives
         if: success()
@@ -69,3 +112,10 @@ jobs:
           path: artifacts/packages/**/aspire-cli*
           retention-days: 15
           if-no-files-found: error
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: cli-native-logs-${{ matrix.targets.rids }}
+          path: artifacts/log/**

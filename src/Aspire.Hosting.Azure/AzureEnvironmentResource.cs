@@ -71,6 +71,7 @@ public sealed class AzureEnvironmentResource : Resource
             var publishStep = new PipelineStep
             {
                 Name = $"publish-{Name}",
+                Description = $"Publishes the Azure environment configuration for {Name}.",
                 Action = ctx => PublishAsync(ctx),
                 RequiredBySteps = [WellKnownPipelineSteps.Publish],
                 DependsOnSteps = [WellKnownPipelineSteps.PublishPrereq]
@@ -79,6 +80,7 @@ public sealed class AzureEnvironmentResource : Resource
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-login",
+                Description = "Validates Azure CLI authentication before deployment.",
                 Action = ctx => ValidateAzureLoginAsync(ctx),
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
@@ -87,11 +89,15 @@ public sealed class AzureEnvironmentResource : Resource
             var createContextStep = new PipelineStep
             {
                 Name = CreateProvisioningContextStepName,
+                Description = "Creates the Azure provisioning context for infrastructure deployment.",
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
                     var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
                     ProvisioningContextTask.TrySetResult(provisioningContext);
+
+                    // Add Azure deployment information to the pipeline summary
+                    AddToPipelineSummary(ctx, provisioningContext);
                 },
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
@@ -101,6 +107,7 @@ public sealed class AzureEnvironmentResource : Resource
             var provisionStep = new PipelineStep
             {
                 Name = ProvisionInfrastructureStepName,
+                Description = "Aggregation step for all Azure infrastructure provisioning operations.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
@@ -117,6 +124,28 @@ public sealed class AzureEnvironmentResource : Resource
         Location = location;
         ResourceGroupName = resourceGroupName;
         PrincipalId = principalId;
+    }
+
+    /// <summary>
+    /// Adds Azure deployment information to the pipeline summary.
+    /// </summary>
+    /// <param name="ctx">The pipeline step context.</param>
+    /// <param name="provisioningContext">The Azure provisioning context.</param>
+    private static void AddToPipelineSummary(PipelineStepContext ctx, ProvisioningContext provisioningContext)
+    {
+        var resourceGroupName = provisioningContext.ResourceGroup.Name;
+        var subscriptionId = provisioningContext.Subscription.Id.Name;
+        var location = provisioningContext.Location.Name;
+
+        var tenantId = provisioningContext.Tenant.TenantId;
+        var tenantSegment = tenantId.HasValue ? $"#@{tenantId.Value}" : "#";
+        var portalUrl = $"https://portal.azure.com/{tenantSegment}/resource/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/overview";
+        var resourceGroupValue = $"[{resourceGroupName}]({portalUrl})";
+
+        ctx.Summary.Add("☁️ Target", "Azure");
+        ctx.Summary.Add("📦 Resource Group", resourceGroupValue);
+        ctx.Summary.Add("🔑 Subscription", subscriptionId);
+        ctx.Summary.Add("🌐 Location", location);
     }
 
     private Task PublishAsync(PipelineStepContext context)

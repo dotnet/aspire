@@ -4,13 +4,14 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <DefineConstants>$(DefineConstants);ASPIRE_EVENTSOURCE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS8002;IL3000</NoWarn>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting orchestration</PackageTags>
     <Description>Core abstractions for the Aspire application model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Dcp\BundleDiscovery.cs" />
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
@@ -21,6 +22,7 @@
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)EnvironmentVariableNameEncoder.cs" Link="ApplicationModel\EnvironmentVariableNameEncoder.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)OtlpEndpointResolver.cs" Link="Utils\OtlpEndpointResolver.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
@@ -38,17 +40,22 @@
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
-    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
     <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
+    <Compile Include="$(SharedDir)BackchannelConstants.cs" Link="Backchannel\BackchannelConstants.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="UserSecrets\UserSecretsPathHelper.cs" />
+    <Compile Include="$(SharedDir)X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
+    <Compile Include="$(SharedDir)PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
@@ -109,8 +116,23 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Python.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.DotnetTool.Tests" />
     <InternalsVisibleTo Include="Aspire.TestUtilities" />
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
+    <InternalsVisibleTo Include="aspire-server" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes" />
+    <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost" />
+    <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
 
 </Project>

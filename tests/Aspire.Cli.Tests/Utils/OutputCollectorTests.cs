@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -36,7 +37,7 @@ public class OutputCollectorTests
             });
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).DefaultTimeout();
 
         // Assert - Should have all lines without any exceptions
         var lines = collector.GetLines().ToList();
@@ -45,7 +46,7 @@ public class OutputCollectorTests
         // Check that we have both stdout and stderr entries
         var stdoutLines = lines.Where(l => l.Stream == "stdout").ToList();
         var stderrLines = lines.Where(l => l.Stream == "stderr").ToList();
-        
+
         Assert.Equal(threadCount * linesPerThread / 2, stdoutLines.Count);
         Assert.Equal(threadCount * linesPerThread / 2, stderrLines.Count);
     }
@@ -65,7 +66,7 @@ public class OutputCollectorTests
         Assert.Single(snapshot);
         Assert.Equal("initial line", snapshot[0].Line);
         Assert.Equal("stdout", snapshot[0].Stream);
-        
+
         // New call should include the additional line
         var newSnapshot = collector.GetLines().ToList();
         Assert.Equal(2, newSnapshot.Count);
@@ -95,8 +96,8 @@ public class OutputCollectorTests
         });
 
         // Act & Assert - Should complete without exceptions
-        await Task.WhenAll(readerTask, writerTask);
-        
+        await Task.WhenAll(readerTask, writerTask).DefaultTimeout();
+
         // Verify final state
         var finalLines = collector.GetLines().ToList();
         Assert.Equal(100, finalLines.Count);

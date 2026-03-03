@@ -31,8 +31,18 @@
     <ItemGroup>
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.zip" />
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.tar.gz" />
+      <!-- VS Code extension artifacts: VSIX, manifest, and signature file -->
       <_ExtensionFilesToPublish Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix" />
+      <_ExtensionManifestFiles Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.manifest" />
+      <_ExtensionSignatureFiles Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.signature.p7s" />
+    </ItemGroup>
 
+    <!-- Validate VS Code extension artifacts: we expect exactly 1 VSIX and 1 manifest file.
+         The signature file is created by signVsix.proj which runs after publish, so validation happens there. -->
+    <Error Condition="@(_ExtensionFilesToPublish->Count()) != 1" Text="Expected exactly 1 VS Code extension VSIX file but found @(_ExtensionFilesToPublish->Count()). Files: @(_ExtensionFilesToPublish, ', ')" />
+    <Error Condition="@(_ExtensionManifestFiles->Count()) != 1" Text="Expected exactly 1 VS Code extension manifest file but found @(_ExtensionManifestFiles->Count()). Files: @(_ExtensionManifestFiles, ', ')" />
+
+    <ItemGroup>
       <!-- Extract RID from each archive file -->
       <_ArchiveFilesWithRid Include="@(_ArchiveFiles)">
         <!-- Extract the rid from filenames like aspire-cli-linux-x64-9.0-dev.tar.gz and aspire-cli-linux-arm64-9.4.0-preview.1.25358.11.zip -->
@@ -118,6 +128,19 @@
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
       <ItemsToPushToBlobFeed Include="@(_ExtensionFilesToPublish)">
+        <IsShipping>false</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+      <!-- VS Code extension manifest file needed for marketplace publishing -->
+      <ItemsToPushToBlobFeed Include="@(_ExtensionManifestFiles)">
+        <IsShipping>false</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+      <!-- VS Code extension signature file for marketplace publishing with signature verification.
+           This file is created by signVsix.proj which runs after publish, so it may not exist here. -->
+      <ItemsToPushToBlobFeed Include="@(_ExtensionSignatureFiles)" Condition="@(_ExtensionSignatureFiles->Count()) > 0">
         <IsShipping>false</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
