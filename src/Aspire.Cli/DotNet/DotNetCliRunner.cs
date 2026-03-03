@@ -747,24 +747,27 @@ internal sealed class DotNetCliRunner(
 
         var cliArgsList = new List<string>
         {
-            "add"
+            "package"
         };
 
         // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
         var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
         if (isSingleFileAppHost)
         {
-            cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
+            cliArgsList.Add("add");
+            cliArgsList.AddRange(["--file", projectFilePath.FullName]);
             // For single-file AppHost, use packageName@version format
             cliArgsList.Add($"{packageName}@{packageVersion}");
         }
         else
         {
-            cliArgsList.AddRange([projectFilePath.FullName, "package"]);
+            cliArgsList.Add("add");
             // For non single-file scenarios, use separate --version flag
             cliArgsList.Add(packageName);
             cliArgsList.Add("--version");
             cliArgsList.Add(packageVersion);
+            cliArgsList.Add("--project");
+            cliArgsList.Add(projectFilePath.FullName);
         }
 
         if (string.IsNullOrEmpty(nugetSource))
