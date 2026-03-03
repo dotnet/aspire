@@ -185,6 +185,18 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public bool IsProxied { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether TLS is enabled for this endpoint.
+    /// </summary>
+    /// <remarks>
+    /// This property is used to track TLS state on the endpoint so that connection string expressions
+    /// can dynamically include TLS-related parameters (e.g., <c>ssl=true</c> for Redis) at resolution time
+    /// rather than at expression build time. For HTTP-based endpoints, the <see cref="UriScheme"/> property
+    /// being set to <c>https</c> already implies TLS. This property is primarily useful for non-HTTP protocols
+    /// (e.g., Redis, databases) that need explicit TLS configuration in their connection strings.
+    /// </remarks>
+    public bool TlsEnabled { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.
     /// </summary>
     internal bool FromLaunchProfile { get; set; }

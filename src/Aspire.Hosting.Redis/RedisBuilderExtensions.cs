@@ -91,7 +91,7 @@ public static class RedisBuilderExtensions
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         var redisBuilder = builder.AddResource(redis)
-            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName, scheme: "redis")
             .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(RedisContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey)
@@ -181,6 +181,11 @@ public static class RedisBuilderExtensions
                 // configure the environment variables to use it.
                 redisBuilder
                     .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                    .WithEndpoint(RedisResource.PrimaryEndpointName, e =>
+                    {
+                        e.UriScheme = "rediss";
+                        e.TlsEnabled = true;
+                    })
                     .WithArgs(argsCtx =>
                     {
                         argsCtx.Args.Add("--tls-port");
@@ -188,13 +193,8 @@ public static class RedisBuilderExtensions
                         argsCtx.Args.Add("--port");
                         argsCtx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
                     });
-
-                redis.TlsEnabled = true;
             });
         }
-
-        // Disable HTTPS developer certificate by default to avoid connection string timing issues
-        redisBuilder.WithoutHttpsCertificate();
 
         return redisBuilder;
     }

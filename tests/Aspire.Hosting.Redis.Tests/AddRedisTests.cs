@@ -44,7 +44,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
@@ -72,7 +72,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(9813, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
@@ -154,7 +154,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -185,7 +185,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               ],
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -223,7 +223,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -258,7 +258,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -835,6 +835,63 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         await builder.Eventing.PublishAsync(beforeStartEvent);
 
         Assert.True(redis.Resource.TlsEnabled);
+
+        // Verify the connection string expression includes ssl=true after TLS is enabled
+        var connectionStringExpression = redis.Resource.ConnectionStringExpression;
+        Assert.Contains(",ssl=true", connectionStringExpression.ValueExpression);
+
+        // Verify the endpoint annotation also has TlsEnabled
+        var endpoint = Assert.Single(redis.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "tcp");
+        Assert.True(endpoint.TlsEnabled);
+        Assert.Equal("rediss", endpoint.UriScheme);
+
+        // Verify the URI expression uses the endpoint scheme
+        var uriExpression = redis.Resource.UriExpression;
+        Assert.Contains("{myredis.bindings.tcp.scheme}", uriExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task RedisConnectionStringResolvesWithTlsDynamically()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var cert = CreateTestCertificate();
+
+        var redis = builder.AddRedis("myredis")
+            .WithHttpsCertificate(cert)
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379));
+
+        // Before BeforeStartEvent, TLS is not yet enabled
+        Assert.False(redis.Resource.TlsEnabled);
+
+        // The manifest expression does not include ssl=true before TLS is enabled
+        var expressionBeforeTls = redis.Resource.ConnectionStringExpression;
+        Assert.DoesNotContain(",ssl=true", expressionBeforeTls.ValueExpression);
+
+        // But the expression has a DeferredValueProvider that will resolve dynamically
+        // Resolve the runtime value — should NOT have ssl=true yet
+        var resolvedBeforeTls = await expressionBeforeTls.GetValueAsync(default(CancellationToken));
+        Assert.NotNull(resolvedBeforeTls);
+        Assert.DoesNotContain(",ssl=true", resolvedBeforeTls);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate the BeforeStartEvent to enable TLS
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // Now TLS is enabled
+        Assert.True(redis.Resource.TlsEnabled);
+
+        // The deferred value provider resolves dynamically — the SAME captured expression
+        // now resolves with ssl=true because the callback reads current TlsEnabled state
+        var resolvedAfterTls = await expressionBeforeTls.GetValueAsync(default(CancellationToken));
+        Assert.NotNull(resolvedAfterTls);
+        Assert.Contains(",ssl=true", resolvedAfterTls);
+
+        // The new expression from the getter also reflects TLS in its manifest expression
+        var expressionAfterTls = redis.Resource.ConnectionStringExpression;
+        Assert.Contains(",ssl=true", expressionAfterTls.ValueExpression);
     }
 
     [Fact]
@@ -850,6 +907,10 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         // Simulate the BeforeStartEvent
         var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
         Assert.False(redis.Resource.TlsEnabled);
+
+        // Verify the connection string expression does NOT include ssl=true
+        var connectionStringExpression = redis.Resource.ConnectionStringExpression;
+        Assert.DoesNotContain(",ssl=true", connectionStringExpression.ValueExpression);
     }
 
     private static X509Certificate2 CreateTestCertificate()

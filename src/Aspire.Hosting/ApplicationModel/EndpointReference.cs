@@ -62,6 +62,15 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public bool IsHttps => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "https");
 
+    /// <summary>
+    /// Gets a value indicating whether TLS is enabled for this endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Returns <see langword="false"/> if the endpoint annotation has not been added to the resource yet.
+    /// Once the annotation exists, this property delegates to <see cref="EndpointAnnotation.TlsEnabled"/>.
+    /// </remarks>
+    public bool TlsEnabled => Exists && EndpointAnnotation.TlsEnabled;
+
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
     /// <summary>
@@ -114,6 +123,25 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
         return new(this, property);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="DeferredValueProvider"/> that resolves to <paramref name="enabledValue"/> when
+    /// <see cref="EndpointAnnotation.TlsEnabled"/> is <see langword="true"/> on this endpoint, or to
+    /// <paramref name="disabledValue"/> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The returned provider evaluates the TLS state lazily each time its value is resolved, making it
+    /// safe to embed in a <see cref="ReferenceExpression"/> that is built before TLS is configured
+    /// (e.g., before <c>BeforeStartEvent</c> fires).
+    /// </remarks>
+    /// <param name="enabledValue">The value to return when TLS is enabled (e.g., <c>",ssl=true"</c>).</param>
+    /// <param name="disabledValue">The value to return when TLS is not enabled. Defaults to an empty string.</param>
+    /// <returns>A <see cref="DeferredValueProvider"/> whose value tracks the TLS state of this endpoint.</returns>
+    public DeferredValueProvider TlsValue(string enabledValue, string disabledValue = "")
+    {
+        return new DeferredValueProvider(
+            () => TlsEnabled ? enabledValue : disabledValue);
     }
 
     /// <summary>

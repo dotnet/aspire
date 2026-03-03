@@ -53,9 +53,17 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public ParameterResource? PasswordParameter { get; private set; }
 
     /// <summary>
-    /// Determines whether Tls is enabled for the resource
+    /// Gets or sets a value indicating whether TLS is enabled for the Redis server.
     /// </summary>
-    public bool TlsEnabled { get; internal set; }
+    /// <remarks>
+    /// This property proxies through to <see cref="EndpointAnnotation.TlsEnabled"/> on the
+    /// <see cref="PrimaryEndpoint"/>. When set to <see langword="true"/>, the connection string
+    /// expression dynamically includes <c>,ssl=true</c> and the URI expression uses the
+    /// <c>rediss://</c> scheme. This value is resolved lazily at expression evaluation time,
+    /// avoiding timing issues when TLS is enabled later in the application lifecycle
+    /// (e.g., during the <c>BeforeStartEvent</c>).
+    /// </remarks>
+    public bool TlsEnabled => PrimaryEndpoint.TlsEnabled;
 
     /// <summary>
     /// Arguments for the Dockerfile
@@ -72,10 +80,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             builder.Append($",password={PasswordParameter}");
         }
 
-        if (TlsEnabled)
-        {
-            builder.Append($",ssl=true");
-        }
+        builder.Append($"{PrimaryEndpoint.TlsValue(",ssl=true")}");
 
         return builder.Build();
     }
@@ -127,14 +132,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            if (TlsEnabled)
-            {
-                builder.AppendLiteral("rediss://");
-            }
-            else
-            {
-                builder.AppendLiteral("redis://");
-            }
+            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Scheme)}");
+            builder.AppendLiteral("://");
 
             if (PasswordParameter is not null)
             {
