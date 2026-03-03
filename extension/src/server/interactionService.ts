@@ -9,7 +9,7 @@ import { applyTextStyle, formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
-import { AnsiColors } from '../utils/AspireTerminalProvider';
+import { AnsiColors, AspireTerminal } from '../utils/AspireTerminalProvider';
 import { isDirectory } from '../utils/io';
 
 export interface IInteractionService {
@@ -35,7 +35,7 @@ export interface IInteractionService {
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
-    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
+    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean, options?: DebugSessionOptions) => Promise<void>;
     writeDebugSessionMessage: (message: string, stdout: boolean, textStyle?: string) => void;
 }
 
@@ -92,14 +92,21 @@ function getConsoleLineText(line: ConsoleLine): string {
     return line.line ?? line.Line ?? '';
 }
 
+type DebugSessionOptions = {
+    command?: string;
+    args?: string[];
+};
+
 export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
+    private _getAspireTerminal?: () => AspireTerminal;
 
     private _rpcClient?: ICliRpcClient;
     private _progressNotifier: ProgressNotifier;
 
-    constructor(getAspireDebugSession: () => AspireDebugSession | null, rpcClient: ICliRpcClient) {
+    constructor(getAspireDebugSession: () => AspireDebugSession | null, rpcClient: ICliRpcClient, getAspireTerminal?: () => AspireTerminal) {
         this._getAspireDebugSession = getAspireDebugSession;
+        this._getAspireTerminal = getAspireTerminal;
         this._rpcClient = rpcClient;
         this._progressNotifier = new ProgressNotifier(this._rpcClient);
     }
@@ -368,12 +375,18 @@ export class InteractionService implements IInteractionService {
     }
 
     async displayLines(lines: ConsoleLine[]) {
-        const displayText = lines.map(line => getConsoleLineText(line)).join('\n');
-        lines.forEach(line => extensionLogOutputChannel.info(formatText(getConsoleLineText(line))));
-
-        // Open a new temp file with the displayText
-        const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });
-        await vscode.window.showTextDocument(doc, { preview: false });
+        const debugSession = this._getAspireDebugSession();
+        const aspireTerminal = !debugSession ? this._getAspireTerminal?.() : undefined;
+        for (const line of lines) {
+            const text = getConsoleLineText(line);
+            const stream = line.stream ?? line.Stream;
+            extensionLogOutputChannel.info(formatText(text));
+            if (debugSession) {
+                debugSession.sendMessage(text, true, stream !== 'stderr' ? 'stdout' : 'stderr');
+            } else if (aspireTerminal) {
+                aspireTerminal.terminal.sendText(text, true);
+            }
+        }
     }
 
     displayCancellationMessage() {
@@ -460,14 +473,18 @@ export class InteractionService implements IInteractionService {
         debugSession.notifyAppHostStartupCompleted();
     }
 
-    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean): Promise<void> {
+    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean, options?: DebugSessionOptions): Promise<void> {
         this.clearProgressNotification();
+
+        const command = options?.command ?? 'run';
 
         const debugConfiguration: AspireExtendedDebugConfiguration = {
             type: 'aspire',
-            name: `Aspire: ${getRelativePathToWorkspace(projectFile ?? workingDirectory)}`,
+            name: `Aspire ${command}: ${getRelativePathToWorkspace(projectFile ?? workingDirectory)}`,
             request: 'launch',
             program: projectFile ?? workingDirectory,
+            command: command as AspireExtendedDebugConfiguration['command'],
+            args: options?.args,
             noDebug: !debug,
         };
 
@@ -523,6 +540,6 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
-    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
+    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean, options?: DebugSessionOptions) => interactionService.startDebugSession(workingDirectory, projectFile, debug, options)));
     connection.onRequest("writeDebugSessionMessage", middleware('writeDebugSessionMessage', interactionService.writeDebugSessionMessage.bind(interactionService)));
 }
