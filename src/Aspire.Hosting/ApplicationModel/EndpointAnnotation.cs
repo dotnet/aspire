@@ -22,6 +22,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _portSetToNull;
     private int? _targetPort;
     private bool _targetPortSetToNull;
+    private bool? _tlsEnabled;
     private readonly NetworkIdentifier _networkID;
 
     /// <summary>
@@ -194,7 +195,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// being set to <c>https</c> already implies TLS. This property is primarily useful for non-HTTP protocols
     /// (e.g., Redis, databases) that need explicit TLS configuration in their connection strings.
     /// </remarks>
-    public bool TlsEnabled { get; set; }
+    public bool TlsEnabled
+    {
+        get => _tlsEnabled ?? (UriScheme == "https");
+        set => _tlsEnabled = value;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.

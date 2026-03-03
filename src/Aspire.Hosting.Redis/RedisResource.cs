@@ -80,7 +80,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             builder.Append($",password={PasswordParameter}");
         }
 
-        builder.Append($"{PrimaryEndpoint.TlsValue(",ssl=true")}");
+        builder.Append($"{PrimaryEndpoint.GetTlsValue(enabledValue: ",ssl=true", disabledValue: null)}");
 
         return builder.Build();
     }

@@ -138,7 +138,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="enabledValue">The value to return when TLS is enabled (e.g., <c>",ssl=true"</c>).</param>
     /// <param name="disabledValue">The value to return when TLS is not enabled. Defaults to an empty string.</param>
     /// <returns>A <see cref="DeferredValueProvider"/> whose value tracks the TLS state of this endpoint.</returns>
-    public DeferredValueProvider TlsValue(string enabledValue, string disabledValue = "")
+    public DeferredValueProvider GetTlsValue(string enabledValue, string? disabledValue)
     {
         return new DeferredValueProvider(
             () => TlsEnabled ? enabledValue : disabledValue);
