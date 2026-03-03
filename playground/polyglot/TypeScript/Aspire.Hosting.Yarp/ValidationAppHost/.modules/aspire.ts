@@ -26,8 +26,17 @@ import {
 // Handle Type Aliases (Internal - not exported to users)
 // ============================================================================
 
+/** Handle to IYarpConfigurationBuilder */
+type IYarpConfigurationBuilderHandle = Handle<'Aspire.Hosting.Yarp/Aspire.Hosting.IYarpConfigurationBuilder'>;
+
+/** Handle to YarpCluster */
+type YarpClusterHandle = Handle<'Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.YarpCluster'>;
+
 /** Handle to YarpResource */
 type YarpResourceHandle = Handle<'Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.YarpResource'>;
+
+/** Handle to YarpRoute */
+type YarpRouteHandle = Handle<'Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.YarpRoute'>;
 
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
@@ -369,6 +378,73 @@ export interface WithImageOptions {
 export interface WithReferenceOptions {
     connectionName?: string;
     optional?: boolean;
+}
+
+export interface WithTransformCopyRequestHeadersOptions {
+    copy?: boolean;
+}
+
+export interface WithTransformCopyResponseHeadersOptions {
+    copy?: boolean;
+}
+
+export interface WithTransformCopyResponseTrailersOptions {
+    copy?: boolean;
+}
+
+export interface WithTransformForwardedOptions {
+    useHost?: boolean;
+    useProto?: boolean;
+    forFormat?: NodeFormat;
+    byFormat?: NodeFormat;
+    action?: ForwardedTransformActions;
+}
+
+export interface WithTransformQueryRouteValueOptions {
+    append?: boolean;
+}
+
+export interface WithTransformQueryValueOptions {
+    append?: boolean;
+}
+
+export interface WithTransformRequestHeaderOptions {
+    append?: boolean;
+}
+
+export interface WithTransformRequestHeaderRouteValueOptions {
+    append?: boolean;
+}
+
+export interface WithTransformResponseHeaderOptions {
+    append?: boolean;
+    condition?: ResponseCondition;
+}
+
+export interface WithTransformResponseHeaderRemoveOptions {
+    condition?: ResponseCondition;
+}
+
+export interface WithTransformResponseTrailerOptions {
+    append?: boolean;
+    condition?: ResponseCondition;
+}
+
+export interface WithTransformResponseTrailerRemoveOptions {
+    condition?: ResponseCondition;
+}
+
+export interface WithTransformUseOriginalHostHeaderOptions {
+    useOriginal?: boolean;
+}
+
+export interface WithTransformXForwardedOptions {
+    headerPrefix?: string;
+    xDefault?: ForwardedTransformActions;
+    xFor?: ForwardedTransformActions;
+    xHost?: ForwardedTransformActions;
+    xProto?: ForwardedTransformActions;
+    xPrefix?: ForwardedTransformActions;
 }
 
 export interface WithUrlExpressionOptions {
@@ -903,6 +979,506 @@ export class ResourceUrlsCallbackContext {
 }
 
 // ============================================================================
+// YarpRoute
+// ============================================================================
+
+/**
+ * Type class for YarpRoute.
+ */
+export class YarpRoute {
+    constructor(private _handle: YarpRouteHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Adds the transform which will add X-Forwarded-* headers. */
+    /** @internal */
+    async _withTransformXForwardedInternal(headerPrefix?: string, xDefault?: ForwardedTransformActions, xFor?: ForwardedTransformActions, xHost?: ForwardedTransformActions, xProto?: ForwardedTransformActions, xPrefix?: ForwardedTransformActions): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (headerPrefix !== undefined) rpcArgs.headerPrefix = headerPrefix;
+        if (xDefault !== undefined) rpcArgs.xDefault = xDefault;
+        if (xFor !== undefined) rpcArgs.xFor = xFor;
+        if (xHost !== undefined) rpcArgs.xHost = xHost;
+        if (xProto !== undefined) rpcArgs.xProto = xProto;
+        if (xPrefix !== undefined) rpcArgs.xPrefix = xPrefix;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformXForwarded',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformXForwarded(options?: WithTransformXForwardedOptions): YarpRoutePromise {
+        const headerPrefix = options?.headerPrefix;
+        const xDefault = options?.xDefault;
+        const xFor = options?.xFor;
+        const xHost = options?.xHost;
+        const xProto = options?.xProto;
+        const xPrefix = options?.xPrefix;
+        return new YarpRoutePromise(this._withTransformXForwardedInternal(headerPrefix, xDefault, xFor, xHost, xProto, xPrefix));
+    }
+
+    /** Adds the transform which will add the Forwarded header as defined by [RFC 7239](https://tools.ietf.org/html/rfc7239). */
+    /** @internal */
+    async _withTransformForwardedInternal(useHost?: boolean, useProto?: boolean, forFormat?: NodeFormat, byFormat?: NodeFormat, action?: ForwardedTransformActions): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (useHost !== undefined) rpcArgs.useHost = useHost;
+        if (useProto !== undefined) rpcArgs.useProto = useProto;
+        if (forFormat !== undefined) rpcArgs.forFormat = forFormat;
+        if (byFormat !== undefined) rpcArgs.byFormat = byFormat;
+        if (action !== undefined) rpcArgs.action = action;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformForwarded',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformForwarded(options?: WithTransformForwardedOptions): YarpRoutePromise {
+        const useHost = options?.useHost;
+        const useProto = options?.useProto;
+        const forFormat = options?.forFormat;
+        const byFormat = options?.byFormat;
+        const action = options?.action;
+        return new YarpRoutePromise(this._withTransformForwardedInternal(useHost, useProto, forFormat, byFormat, action));
+    }
+
+    /** Adds the transform which will set the given header with the Base64 encoded client certificate. */
+    /** @internal */
+    async _withTransformClientCertHeaderInternal(headerName: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformClientCertHeader',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformClientCertHeader(headerName: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformClientCertHeaderInternal(headerName));
+    }
+
+    /** Adds the transform that will replace the HTTP method if it matches. */
+    /** @internal */
+    async _withTransformHttpMethodChangeInternal(fromHttpMethod: string, toHttpMethod: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, fromHttpMethod, toHttpMethod };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformHttpMethodChange',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformHttpMethodChange(fromHttpMethod: string, toHttpMethod: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformHttpMethodChangeInternal(fromHttpMethod, toHttpMethod));
+    }
+
+    /** Adds the transform that will append or set the query parameter from the given value. */
+    /** @internal */
+    async _withTransformQueryValueInternal(queryKey: string, value: string, append?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, queryKey, value };
+        if (append !== undefined) rpcArgs.append = append;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformQueryValue',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformQueryValue(queryKey: string, value: string, options?: WithTransformQueryValueOptions): YarpRoutePromise {
+        const append = options?.append;
+        return new YarpRoutePromise(this._withTransformQueryValueInternal(queryKey, value, append));
+    }
+
+    /** Adds the transform that will append or set the query parameter from a route value. */
+    /** @internal */
+    async _withTransformQueryRouteValueInternal(queryKey: string, routeValueKey: string, append?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, queryKey, routeValueKey };
+        if (append !== undefined) rpcArgs.append = append;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformQueryRouteValue',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformQueryRouteValue(queryKey: string, routeValueKey: string, options?: WithTransformQueryRouteValueOptions): YarpRoutePromise {
+        const append = options?.append;
+        return new YarpRoutePromise(this._withTransformQueryRouteValueInternal(queryKey, routeValueKey, append));
+    }
+
+    /** Adds the transform that will remove the given query key. */
+    /** @internal */
+    async _withTransformQueryRemoveKeyInternal(queryKey: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, queryKey };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformQueryRemoveKey',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformQueryRemoveKey(queryKey: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformQueryRemoveKeyInternal(queryKey));
+    }
+
+    /** Adds the transform which will enable or suppress copying request headers to the proxy request. */
+    /** @internal */
+    async _withTransformCopyRequestHeadersInternal(copy?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (copy !== undefined) rpcArgs.copy = copy;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformCopyRequestHeaders',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformCopyRequestHeaders(options?: WithTransformCopyRequestHeadersOptions): YarpRoutePromise {
+        const copy = options?.copy;
+        return new YarpRoutePromise(this._withTransformCopyRequestHeadersInternal(copy));
+    }
+
+    /** Adds the transform which will copy the incoming request Host header to the proxy request. */
+    /** @internal */
+    async _withTransformUseOriginalHostHeaderInternal(useOriginal?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (useOriginal !== undefined) rpcArgs.useOriginal = useOriginal;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformUseOriginalHostHeader',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformUseOriginalHostHeader(options?: WithTransformUseOriginalHostHeaderOptions): YarpRoutePromise {
+        const useOriginal = options?.useOriginal;
+        return new YarpRoutePromise(this._withTransformUseOriginalHostHeaderInternal(useOriginal));
+    }
+
+    /** Adds the transform which will append or set the request header. */
+    /** @internal */
+    async _withTransformRequestHeaderInternal(headerName: string, value: string, append?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName, value };
+        if (append !== undefined) rpcArgs.append = append;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformRequestHeader',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformRequestHeader(headerName: string, value: string, options?: WithTransformRequestHeaderOptions): YarpRoutePromise {
+        const append = options?.append;
+        return new YarpRoutePromise(this._withTransformRequestHeaderInternal(headerName, value, append));
+    }
+
+    /** Adds the transform which will append or set the request header from a route value. */
+    /** @internal */
+    async _withTransformRequestHeaderRouteValueInternal(headerName: string, routeValueKey: string, append?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName, routeValueKey };
+        if (append !== undefined) rpcArgs.append = append;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformRequestHeaderRouteValue',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformRequestHeaderRouteValue(headerName: string, routeValueKey: string, options?: WithTransformRequestHeaderRouteValueOptions): YarpRoutePromise {
+        const append = options?.append;
+        return new YarpRoutePromise(this._withTransformRequestHeaderRouteValueInternal(headerName, routeValueKey, append));
+    }
+
+    /** Adds the transform which will remove the request header. */
+    /** @internal */
+    async _withTransformRequestHeaderRemoveInternal(headerName: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformRequestHeaderRemove',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformRequestHeaderRemove(headerName: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformRequestHeaderRemoveInternal(headerName));
+    }
+
+    /** Adds the transform which will only copy the allowed request headers. Other transforms */
+    /** @internal */
+    async _withTransformRequestHeadersAllowedInternal(allowedHeaders: string[]): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, allowedHeaders };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformRequestHeadersAllowed',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformRequestHeadersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformRequestHeadersAllowedInternal(allowedHeaders));
+    }
+
+    /** Adds the transform which will enable or suppress copying response headers to the client response. */
+    /** @internal */
+    async _withTransformCopyResponseHeadersInternal(copy?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (copy !== undefined) rpcArgs.copy = copy;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformCopyResponseHeaders',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformCopyResponseHeaders(options?: WithTransformCopyResponseHeadersOptions): YarpRoutePromise {
+        const copy = options?.copy;
+        return new YarpRoutePromise(this._withTransformCopyResponseHeadersInternal(copy));
+    }
+
+    /** Adds the transform which will enable or suppress copying response trailers to the client response. */
+    /** @internal */
+    async _withTransformCopyResponseTrailersInternal(copy?: boolean): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle };
+        if (copy !== undefined) rpcArgs.copy = copy;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformCopyResponseTrailers',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformCopyResponseTrailers(options?: WithTransformCopyResponseTrailersOptions): YarpRoutePromise {
+        const copy = options?.copy;
+        return new YarpRoutePromise(this._withTransformCopyResponseTrailersInternal(copy));
+    }
+
+    /** Adds the transform which will append or set the response header. */
+    /** @internal */
+    async _withTransformResponseHeaderInternal(headerName: string, value: string, append?: boolean, condition?: ResponseCondition): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName, value };
+        if (append !== undefined) rpcArgs.append = append;
+        if (condition !== undefined) rpcArgs.condition = condition;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseHeader',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseHeader(headerName: string, value: string, options?: WithTransformResponseHeaderOptions): YarpRoutePromise {
+        const append = options?.append;
+        const condition = options?.condition;
+        return new YarpRoutePromise(this._withTransformResponseHeaderInternal(headerName, value, append, condition));
+    }
+
+    /** Adds the transform which will remove the response header. */
+    /** @internal */
+    async _withTransformResponseHeaderRemoveInternal(headerName: string, condition?: ResponseCondition): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName };
+        if (condition !== undefined) rpcArgs.condition = condition;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseHeaderRemove',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseHeaderRemove(headerName: string, options?: WithTransformResponseHeaderRemoveOptions): YarpRoutePromise {
+        const condition = options?.condition;
+        return new YarpRoutePromise(this._withTransformResponseHeaderRemoveInternal(headerName, condition));
+    }
+
+    /** Adds the transform which will only copy the allowed response headers. Other transforms */
+    /** @internal */
+    async _withTransformResponseHeadersAllowedInternal(allowedHeaders: string[]): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, allowedHeaders };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseHeadersAllowed',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseHeadersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformResponseHeadersAllowedInternal(allowedHeaders));
+    }
+
+    /** Adds the transform which will append or set the response trailer. */
+    /** @internal */
+    async _withTransformResponseTrailerInternal(headerName: string, value: string, append?: boolean, condition?: ResponseCondition): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName, value };
+        if (append !== undefined) rpcArgs.append = append;
+        if (condition !== undefined) rpcArgs.condition = condition;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseTrailer',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseTrailer(headerName: string, value: string, options?: WithTransformResponseTrailerOptions): YarpRoutePromise {
+        const append = options?.append;
+        const condition = options?.condition;
+        return new YarpRoutePromise(this._withTransformResponseTrailerInternal(headerName, value, append, condition));
+    }
+
+    /** Adds the transform which will remove the response trailer. */
+    /** @internal */
+    async _withTransformResponseTrailerRemoveInternal(headerName: string, condition?: ResponseCondition): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, headerName };
+        if (condition !== undefined) rpcArgs.condition = condition;
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseTrailerRemove',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseTrailerRemove(headerName: string, options?: WithTransformResponseTrailerRemoveOptions): YarpRoutePromise {
+        const condition = options?.condition;
+        return new YarpRoutePromise(this._withTransformResponseTrailerRemoveInternal(headerName, condition));
+    }
+
+    /** Adds the transform which will only copy the allowed response trailers. Other transforms */
+    /** @internal */
+    async _withTransformResponseTrailersAllowedInternal(allowedHeaders: string[]): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, allowedHeaders };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformResponseTrailersAllowed',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformResponseTrailersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformResponseTrailersAllowedInternal(allowedHeaders));
+    }
+
+}
+
+/**
+ * Thenable wrapper for YarpRoute that enables fluent chaining.
+ */
+export class YarpRoutePromise implements PromiseLike<YarpRoute> {
+    constructor(private _promise: Promise<YarpRoute>) {}
+
+    then<TResult1 = YarpRoute, TResult2 = never>(
+        onfulfilled?: ((value: YarpRoute) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds the transform which will add X-Forwarded-* headers. */
+    withTransformXForwarded(options?: WithTransformXForwardedOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformXForwarded(options)));
+    }
+
+    /** Adds the transform which will add the Forwarded header as defined by [RFC 7239](https://tools.ietf.org/html/rfc7239). */
+    withTransformForwarded(options?: WithTransformForwardedOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformForwarded(options)));
+    }
+
+    /** Adds the transform which will set the given header with the Base64 encoded client certificate. */
+    withTransformClientCertHeader(headerName: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformClientCertHeader(headerName)));
+    }
+
+    /** Adds the transform that will replace the HTTP method if it matches. */
+    withTransformHttpMethodChange(fromHttpMethod: string, toHttpMethod: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformHttpMethodChange(fromHttpMethod, toHttpMethod)));
+    }
+
+    /** Adds the transform that will append or set the query parameter from the given value. */
+    withTransformQueryValue(queryKey: string, value: string, options?: WithTransformQueryValueOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformQueryValue(queryKey, value, options)));
+    }
+
+    /** Adds the transform that will append or set the query parameter from a route value. */
+    withTransformQueryRouteValue(queryKey: string, routeValueKey: string, options?: WithTransformQueryRouteValueOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformQueryRouteValue(queryKey, routeValueKey, options)));
+    }
+
+    /** Adds the transform that will remove the given query key. */
+    withTransformQueryRemoveKey(queryKey: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformQueryRemoveKey(queryKey)));
+    }
+
+    /** Adds the transform which will enable or suppress copying request headers to the proxy request. */
+    withTransformCopyRequestHeaders(options?: WithTransformCopyRequestHeadersOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformCopyRequestHeaders(options)));
+    }
+
+    /** Adds the transform which will copy the incoming request Host header to the proxy request. */
+    withTransformUseOriginalHostHeader(options?: WithTransformUseOriginalHostHeaderOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformUseOriginalHostHeader(options)));
+    }
+
+    /** Adds the transform which will append or set the request header. */
+    withTransformRequestHeader(headerName: string, value: string, options?: WithTransformRequestHeaderOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformRequestHeader(headerName, value, options)));
+    }
+
+    /** Adds the transform which will append or set the request header from a route value. */
+    withTransformRequestHeaderRouteValue(headerName: string, routeValueKey: string, options?: WithTransformRequestHeaderRouteValueOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformRequestHeaderRouteValue(headerName, routeValueKey, options)));
+    }
+
+    /** Adds the transform which will remove the request header. */
+    withTransformRequestHeaderRemove(headerName: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformRequestHeaderRemove(headerName)));
+    }
+
+    /** Adds the transform which will only copy the allowed request headers. Other transforms */
+    withTransformRequestHeadersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformRequestHeadersAllowed(allowedHeaders)));
+    }
+
+    /** Adds the transform which will enable or suppress copying response headers to the client response. */
+    withTransformCopyResponseHeaders(options?: WithTransformCopyResponseHeadersOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformCopyResponseHeaders(options)));
+    }
+
+    /** Adds the transform which will enable or suppress copying response trailers to the client response. */
+    withTransformCopyResponseTrailers(options?: WithTransformCopyResponseTrailersOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformCopyResponseTrailers(options)));
+    }
+
+    /** Adds the transform which will append or set the response header. */
+    withTransformResponseHeader(headerName: string, value: string, options?: WithTransformResponseHeaderOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseHeader(headerName, value, options)));
+    }
+
+    /** Adds the transform which will remove the response header. */
+    withTransformResponseHeaderRemove(headerName: string, options?: WithTransformResponseHeaderRemoveOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseHeaderRemove(headerName, options)));
+    }
+
+    /** Adds the transform which will only copy the allowed response headers. Other transforms */
+    withTransformResponseHeadersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseHeadersAllowed(allowedHeaders)));
+    }
+
+    /** Adds the transform which will append or set the response trailer. */
+    withTransformResponseTrailer(headerName: string, value: string, options?: WithTransformResponseTrailerOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseTrailer(headerName, value, options)));
+    }
+
+    /** Adds the transform which will remove the response trailer. */
+    withTransformResponseTrailerRemove(headerName: string, options?: WithTransformResponseTrailerRemoveOptions): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseTrailerRemove(headerName, options)));
+    }
+
+    /** Adds the transform which will only copy the allowed response trailers. Other transforms */
+    withTransformResponseTrailersAllowed(allowedHeaders: string[]): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformResponseTrailersAllowed(allowedHeaders)));
+    }
+
+}
+
+// ============================================================================
 // DistributedApplicationBuilder
 // ============================================================================
 
@@ -1041,7 +1617,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddYarp for polyglot app hosts. */
+    /** Adds a YARP container to the application model. */
     /** @internal */
     async _addYarpInternal(name: string): Promise<YarpResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1101,7 +1677,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddYarp for polyglot app hosts. */
+    /** Adds a YARP container to the application model. */
     addYarp(name: string): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.addYarp(name)));
     }
@@ -1154,6 +1730,70 @@ export class DistributedApplicationEventingPromise implements PromiseLike<Distri
     /** Invokes the Unsubscribe method */
     unsubscribe(subscription: DistributedApplicationEventSubscriptionHandle): DistributedApplicationEventingPromise {
         return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.unsubscribe(subscription)));
+    }
+
+}
+
+// ============================================================================
+// YarpConfigurationBuilder
+// ============================================================================
+
+/**
+ * Type class for YarpConfigurationBuilder.
+ */
+export class YarpConfigurationBuilder {
+    constructor(private _handle: IYarpConfigurationBuilderHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Invokes the AddRoute method */
+    /** @internal */
+    async _addRouteInternal(path: string, cluster: YarpClusterHandle): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, path, cluster };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting/IYarpConfigurationBuilder.addRoute',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    addRoute(path: string, cluster: YarpClusterHandle): YarpRoutePromise {
+        return new YarpRoutePromise(this._addRouteInternal(path, cluster));
+    }
+
+    /** Invokes the AddCluster method */
+    async addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, endpoint };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting/IYarpConfigurationBuilder.addCluster',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for YarpConfigurationBuilder that enables fluent chaining.
+ */
+export class YarpConfigurationBuilderPromise implements PromiseLike<YarpConfigurationBuilder> {
+    constructor(private _promise: Promise<YarpConfigurationBuilder>) {}
+
+    then<TResult1 = YarpConfigurationBuilder, TResult2 = never>(
+        onfulfilled?: ((value: YarpConfigurationBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Invokes the AddRoute method */
+    addRoute(path: string, cluster: YarpClusterHandle): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.addRoute(path, cluster)));
+    }
+
+    /** Invokes the AddCluster method */
+    addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addCluster(endpoint));
     }
 
 }
@@ -4258,6 +4898,26 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
     }
 
     /** @internal */
+    private async _withConfigurationInternal(configurationBuilder: (obj: YarpConfigurationBuilder) => Promise<void>): Promise<YarpResource> {
+        const configurationBuilderId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as IYarpConfigurationBuilderHandle;
+            const obj = new YarpConfigurationBuilder(objHandle, this._client);
+            await configurationBuilder(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configurationBuilder: configurationBuilderId };
+        const result = await this._client.invokeCapability<YarpResourceHandle>(
+            'Aspire.Hosting.Yarp/withConfiguration',
+            rpcArgs
+        );
+        return new YarpResource(result, this._client);
+    }
+
+    /** Configure the YARP resource. */
+    withConfiguration(configurationBuilder: (obj: YarpConfigurationBuilder) => Promise<void>): YarpResourcePromise {
+        return new YarpResourcePromise(this._withConfigurationInternal(configurationBuilder));
+    }
+
+    /** @internal */
     private async _withHostPortInternal(port?: number): Promise<YarpResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (port !== undefined) rpcArgs.port = port;
@@ -4268,7 +4928,7 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
         return new YarpResource(result, this._client);
     }
 
-    /** Exports WithHostPort for polyglot app hosts. */
+    /** Configures the host port that the YARP resource is exposed on instead of using randomly assigned port. */
     withHostPort(options?: WithHostPortOptions): YarpResourcePromise {
         const port = options?.port;
         return new YarpResourcePromise(this._withHostPortInternal(port));
@@ -4285,7 +4945,7 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
         return new YarpResource(result, this._client);
     }
 
-    /** Exports WithHostHttpsPort for polyglot app hosts. */
+    /** Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port. */
     withHostHttpsPort(options?: WithHostHttpsPortOptions): YarpResourcePromise {
         const port = options?.port;
         return new YarpResourcePromise(this._withHostHttpsPortInternal(port));
@@ -4301,7 +4961,7 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
         return new YarpResource(result, this._client);
     }
 
-    /** Exports PublishWithStaticFiles for polyglot app hosts. */
+    /** In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot. */
     publishWithStaticFiles(resourceWithFiles: ResourceBuilderBase): YarpResourcePromise {
         return new YarpResourcePromise(this._publishWithStaticFilesInternal(resourceWithFiles));
     }
@@ -4518,17 +5178,22 @@ export class YarpResourcePromise implements PromiseLike<YarpResource> {
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithHostPort for polyglot app hosts. */
+    /** Configure the YARP resource. */
+    withConfiguration(configurationBuilder: (obj: YarpConfigurationBuilder) => Promise<void>): YarpResourcePromise {
+        return new YarpResourcePromise(this._promise.then(obj => obj.withConfiguration(configurationBuilder)));
+    }
+
+    /** Configures the host port that the YARP resource is exposed on instead of using randomly assigned port. */
     withHostPort(options?: WithHostPortOptions): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.withHostPort(options)));
     }
 
-    /** Exports WithHostHttpsPort for polyglot app hosts. */
+    /** Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port. */
     withHostHttpsPort(options?: WithHostHttpsPortOptions): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.withHostHttpsPort(options)));
     }
 
-    /** Exports PublishWithStaticFiles for polyglot app hosts. */
+    /** In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot. */
     publishWithStaticFiles(resourceWithFiles: ResourceBuilderBase): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.publishWithStaticFiles(resourceWithFiles)));
     }
@@ -5539,8 +6204,10 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointRe
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.YarpRoute', (handle, client) => new YarpRoute(handle as YarpRouteHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
+registerHandleWrapper('Aspire.Hosting.Yarp/Aspire.Hosting.IYarpConfigurationBuilder', (handle, client) => new YarpConfigurationBuilder(handle as IYarpConfigurationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));

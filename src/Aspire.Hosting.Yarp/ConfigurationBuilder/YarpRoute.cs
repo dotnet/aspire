@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Represents a route for YARP
 /// </summary>
+[AspireExport]
 public class YarpRoute
 {
     // Testing only
