@@ -27,6 +27,7 @@ public static class AzureContainerRegistryExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureContainerRegistryResource}"/> builder.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty.</exception>
+    [global::Aspire.Hosting.AspireExport("addAzureContainerRegistry", Description = "Exports AddAzureContainerRegistry for polyglot app hosts.")]
     public static IResourceBuilder<AzureContainerRegistryResource> AddAzureContainerRegistry(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -160,6 +161,7 @@ public static class AzureContainerRegistryExtensions
     ///     .WithPurgeTask("0 1 * * *", ago: TimeSpan.FromDays(7), keep: 5);
     /// </code>
     /// </example>
+    [global::Aspire.Hosting.AspireExport("withPurgeTask", Description = "Exports WithPurgeTask for polyglot app hosts.")]
     public static IResourceBuilder<AzureContainerRegistryResource> WithPurgeTask(
         this IResourceBuilder<AzureContainerRegistryResource> builder,
         string schedule,
