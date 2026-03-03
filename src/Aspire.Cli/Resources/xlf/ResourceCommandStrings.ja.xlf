@@ -22,11 +22,6 @@
         <target state="new">connect to</target>
         <note />
       </trans-unit>
-      <trans-unit id="StartDescription">
-        <source>Start an apphost in the background.</source>
-        <target state="translated">停止しているリソースを開始します。</target>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

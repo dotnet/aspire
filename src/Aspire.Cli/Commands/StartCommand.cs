@@ -29,7 +29,7 @@ internal sealed class StartCommand : BaseCommand
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
         AppHostLauncher appHostLauncher)
-        : base("start", ResourceCommandStrings.StartDescription,
+        : base("start", StartCommandStrings.Description,
                features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
