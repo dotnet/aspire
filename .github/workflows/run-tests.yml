@@ -538,14 +538,17 @@ jobs:
 
       - name: Copy CLI E2E recordings for upload
         if: always()
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p cli-e2e-recordings
-          find testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
-          if [ -n "$(ls -A cli-e2e-recordings 2>/dev/null)" ]; then
-            echo "Found recordings:"
-            ls -la cli-e2e-recordings/
-          fi
+          New-Item -ItemType Directory -Path cli-e2e-recordings -Force | Out-Null
+          $castFiles = Get-ChildItem -Path testresults -Filter "*.cast" -Recurse -ErrorAction SilentlyContinue
+          if ($castFiles) {
+            foreach ($f in $castFiles) {
+              Copy-Item -Path $f.FullName -Destination cli-e2e-recordings/ -Force
+            }
+            Write-Host "Found recordings:"
+            Get-ChildItem cli-e2e-recordings/ | Format-Table Name, Length
+          }
 
       - name: Upload CLI E2E recordings
         if: always()
