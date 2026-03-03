@@ -45,7 +45,7 @@ jobs:
         run: |
           PR_NUMBER="${{ inputs.pr_number }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
+
           gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body \
             "🚀 **Deployment tests starting** on PR #${PR_NUMBER}...
 
@@ -61,19 +61,19 @@ jobs:
     permissions:
       contents: read
     outputs:
-      matrix: ${{ steps.enumerate.outputs.deployment_tests_matrix }}
+      matrix: ${{ steps.enumerate.outputs.all_tests }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: ./.github/actions/enumerate-tests
         id: enumerate
         with:
-          includeDeployment: true
+          buildArgs: '/p:OnlyDeploymentTests=true'
 
       - name: Display test matrix
         run: |
           echo "Deployment test matrix:"
-          echo '${{ steps.enumerate.outputs.deployment_tests_matrix }}' | jq .
+          echo '${{ steps.enumerate.outputs.all_tests }}' | jq .
 
   # Build solution and CLI once, share via artifacts
   build:
@@ -107,16 +107,16 @@ jobs:
           ARTIFACT_DIR="${{ github.workspace }}/cli-artifacts"
           mkdir -p "$ARTIFACT_DIR/bin"
           mkdir -p "$ARTIFACT_DIR/packages"
-          
+
           # Copy CLI binary and dependencies
           cp -r "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/"* "$ARTIFACT_DIR/bin/"
-          
+
           # Copy NuGet packages
           PACKAGES_DIR="${{ github.workspace }}/artifacts/packages/Release/Shipping"
           if [ -d "$PACKAGES_DIR" ]; then
             find "$PACKAGES_DIR" -name "*.nupkg" -exec cp {} "$ARTIFACT_DIR/packages/" \;
           fi
-          
+
           echo "CLI artifacts prepared:"
           ls -la "$ARTIFACT_DIR/bin/"
           echo "Package count: $(find "$ARTIFACT_DIR/packages" -name "*.nupkg" | wc -l)"
@@ -132,7 +132,7 @@ jobs:
   deploy-test:
     name: Deploy (${{ matrix.shortname }})
     needs: [enumerate, build]
-    if: ${{ needs.enumerate.outputs.matrix != '{"shortname":[]}' && needs.enumerate.outputs.matrix != '' }}
+    if: ${{ needs.enumerate.outputs.matrix != '{"include":[]}' && needs.enumerate.outputs.matrix != '' }}
     runs-on: 8-core-ubuntu-latest
     environment: deployment-testing
     permissions:
@@ -170,22 +170,22 @@ jobs:
         run: |
           ASPIRE_HOME="$HOME/.aspire"
           mkdir -p "$ASPIRE_HOME/bin"
-          
+
           # Copy CLI binary and dependencies
           cp -r "${{ github.workspace }}/cli-artifacts/bin/"* "$ASPIRE_HOME/bin/"
           chmod +x "$ASPIRE_HOME/bin/aspire"
-          
+
           # Add to PATH for this job
           echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
-          
+
           # Set up NuGet hive for local packages
           HIVE_DIR="$ASPIRE_HOME/hives/local/packages"
           mkdir -p "$HIVE_DIR"
           cp "${{ github.workspace }}/cli-artifacts/packages/"*.nupkg "$HIVE_DIR/" 2>/dev/null || true
-          
+
           # Configure CLI to use local channel
           "$ASPIRE_HOME/bin/aspire" config set channel local --global || true
-          
+
           echo "✅ Aspire CLI installed:"
           "$ASPIRE_HOME/bin/aspire" --version
 
@@ -199,7 +199,7 @@ jobs:
           script: |
             const token = await core.getIDToken('api://AzureADTokenExchange');
             core.setSecret(token);
-            
+
             // Login directly - token never leaves this step
             await exec.exec('az', [
               'login', '--service-principal',
@@ -208,7 +208,7 @@ jobs:
               '--federated-token', token,
               '--allow-no-subscriptions'
             ]);
-            
+
             await exec.exec('az', [
               'account', 'set',
               '--subscription', process.env.AZURE_SUBSCRIPTION_ID
@@ -245,7 +245,7 @@ jobs:
             --results-directory ${{ github.workspace }}/testresults \
             -- \
             --filter-not-trait "quarantined=true" \
-            --filter-class "Aspire.Deployment.EndToEnd.Tests.${{ matrix.shortname }}" \
+            ${{ matrix.extraTestArgs }} \
             || echo "test_failed=true" >> $GITHUB_OUTPUT
 
       - name: Upload test results
@@ -361,7 +361,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            
+
             // Get all jobs for this workflow run to determine per-test results
             const jobs = await github.paginate(
               github.rest.actions.listJobsForWorkflowRun,
@@ -372,23 +372,23 @@ jobs:
                 per_page: 100
               }
             );
-            
+
             console.log(`Total jobs found: ${jobs.length}`);
-            
+
             // Filter for deploy-test matrix jobs (format: "Deploy (TestClassName)")
             const deployJobs = jobs.filter(job => job.name.startsWith('Deploy ('));
-            
+
             const passedTests = [];
             const failedTests = [];
             const cancelledTests = [];
-            
+
             for (const job of deployJobs) {
               // Extract test name from job name "Deploy (TestClassName)"
               const match = job.name.match(/^Deploy \((.+)\)$/);
               const testName = match ? match[1] : job.name;
-              
+
               console.log(`Job "${job.name}" - conclusion: ${job.conclusion}, status: ${job.status}`);
-              
+
               if (job.conclusion === 'success') {
                 passedTests.push(testName);
               } else if (job.conclusion === 'failure') {
@@ -397,15 +397,15 @@ jobs:
                 cancelledTests.push(testName);
               }
             }
-            
+
             console.log(`Passed: ${passedTests.length}, Failed: ${failedTests.length}, Cancelled: ${cancelledTests.length}`);
-            
+
             // Output results for later steps
             core.setOutput('passed_tests', JSON.stringify(passedTests));
             core.setOutput('failed_tests', JSON.stringify(failedTests));
             core.setOutput('cancelled_tests', JSON.stringify(cancelledTests));
             core.setOutput('total_tests', passedTests.length + failedTests.length + cancelledTests.length);
-            
+
             // List all artifacts for the current workflow run
             const allArtifacts = await github.paginate(
               github.rest.actions.listWorkflowRunArtifacts,
@@ -416,53 +416,53 @@ jobs:
                 per_page: 100
               }
             );
-            
+
             console.log(`Total artifacts found: ${allArtifacts.length}`);
-            
+
             // Filter for deployment test recording artifacts
-            const recordingArtifacts = allArtifacts.filter(a => 
+            const recordingArtifacts = allArtifacts.filter(a =>
               a.name.startsWith('deployment-test-recordings-')
             );
-            
+
             console.log(`Found ${recordingArtifacts.length} recording artifacts`);
-            
+
             // Create recordings directory
             const recordingsDir = 'recordings';
             fs.mkdirSync(recordingsDir, { recursive: true });
-            
+
             // Download each artifact
             for (const artifact of recordingArtifacts) {
               console.log(`Downloading ${artifact.name}...`);
-              
+
               const download = await github.rest.actions.downloadArtifact({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 artifact_id: artifact.id,
                 archive_format: 'zip'
               });
-              
+
               const artifactPath = path.join(recordingsDir, `${artifact.name}.zip`);
               fs.writeFileSync(artifactPath, Buffer.from(download.data));
               console.log(`Saved to ${artifactPath}`);
             }
-            
+
             core.setOutput('artifact_count', recordingArtifacts.length);
 
       - name: Extract recordings from artifacts
         shell: bash
         run: |
           mkdir -p cast_files
-          
+
           for zipfile in recordings/*.zip; do
             if [ -f "$zipfile" ]; then
               echo "Extracting $zipfile..."
               unzip -o "$zipfile" -d "recordings/extracted_$(basename "$zipfile" .zip)" || true
             fi
           done
-          
+
           # Find and copy all .cast files
           find recordings -name "*.cast" -exec cp {} cast_files/ \; 2>/dev/null || true
-          
+
           echo "Found recordings:"
           ls -la cast_files/ || echo "No .cast files found"
 
@@ -479,12 +479,12 @@ jobs:
           RUN_ID="${{ github.run_id }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}"
           TEST_RESULT="${{ needs.deploy-test.result }}"
-          
+
           # Parse the test results from JSON
           PASSED_COUNT=$(echo "$PASSED_TESTS" | jq 'length')
           FAILED_COUNT=$(echo "$FAILED_TESTS" | jq 'length')
           CANCELLED_COUNT=$(echo "$CANCELLED_TESTS" | jq 'length')
-          
+
           # Determine overall status
           if [ "$FAILED_COUNT" -gt 0 ]; then
             EMOJI="❌"
@@ -499,66 +499,66 @@ jobs:
             EMOJI="❓"
             STATUS="unknown"
           fi
-          
+
           # Build the comment header
           COMMENT_BODY="${EMOJI} **Deployment E2E Tests ${STATUS}**
-          
+
           **Summary:** ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
-          
+
           [View workflow run](${RUN_URL})"
-          
+
           # Add passed tests section if any
           if [ "$PASSED_COUNT" -gt 0 ]; then
             PASSED_LIST=$(echo "$PASSED_TESTS" | jq -r '.[]' | while read test; do echo "- ✅ ${test}"; done)
             COMMENT_BODY="${COMMENT_BODY}
-          
+
           ### Passed Tests
           ${PASSED_LIST}"
           fi
-          
+
           # Add failed tests section if any
           if [ "$FAILED_COUNT" -gt 0 ]; then
             FAILED_LIST=$(echo "$FAILED_TESTS" | jq -r '.[]' | while read test; do echo "- ❌ ${test}"; done)
             COMMENT_BODY="${COMMENT_BODY}
-          
+
           ### Failed Tests
           ${FAILED_LIST}"
           fi
-          
+
           # Add cancelled tests section if any
           if [ "$CANCELLED_COUNT" -gt 0 ]; then
             CANCELLED_LIST=$(echo "$CANCELLED_TESTS" | jq -r '.[]' | while read test; do echo "- ⚠️ ${test}"; done)
             COMMENT_BODY="${COMMENT_BODY}
-          
+
           ### Cancelled Tests
           ${CANCELLED_LIST}"
           fi
-          
+
           # Check for recordings and upload them
           RECORDINGS_DIR="cast_files"
-          
+
           if [ -d "$RECORDINGS_DIR" ] && compgen -G "$RECORDINGS_DIR"/*.cast > /dev/null; then
             # Install asciinema
             pip install --quiet asciinema
-            
+
             RECORDING_TABLE="
-          
+
           ### 🎬 Terminal Recordings
-          
+
           | Test | Recording |
           |------|-----------|"
-            
+
             UPLOAD_COUNT=0
-            
+
             for castfile in "$RECORDINGS_DIR"/*.cast; do
               if [ -f "$castfile" ]; then
                 filename=$(basename "$castfile" .cast)
                 echo "Uploading $castfile..."
-                
+
                 # Upload to asciinema and capture URL
                 UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
                 ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
-                
+
                 if [ -n "$ASCIINEMA_URL" ]; then
                   RECORDING_TABLE="${RECORDING_TABLE}
           | ${filename} | [▶️ View Recording](${ASCIINEMA_URL}) |"
@@ -571,16 +571,16 @@ jobs:
                 fi
               fi
             done
-            
+
             if [ $UPLOAD_COUNT -gt 0 ]; then
               COMMENT_BODY="${COMMENT_BODY}${RECORDING_TABLE}"
             fi
-            
+
             echo "Uploaded $UPLOAD_COUNT recordings"
           else
             echo "No recordings found in $RECORDINGS_DIR"
           fi
-          
+
           # Post the comment
           gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
           echo "Posted comment to PR #${PR_NUMBER}"

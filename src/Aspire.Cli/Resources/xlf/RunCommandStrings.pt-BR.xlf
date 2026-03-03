@@ -52,11 +52,6 @@
         <target state="translated">Verifique os logs para obter detalhes: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Verificando se há instâncias em execução...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Conectando ao apphost...</target>

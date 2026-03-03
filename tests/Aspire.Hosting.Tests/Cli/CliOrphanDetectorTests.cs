@@ -13,6 +13,7 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "4")]
 public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

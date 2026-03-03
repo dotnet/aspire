@@ -52,11 +52,6 @@
         <target state="translated">Details finden Sie in den Protokollen: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Es wird nach ausgeführten Instanzen gesucht…</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Verbindung zum AppHost wird hergestellt...</target>

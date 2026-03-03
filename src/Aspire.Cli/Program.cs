@@ -290,6 +290,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddSingleton<IBannerService, BannerService>();
+        builder.Services.AddSingleton<ResourceColorMap>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
@@ -315,6 +316,12 @@ public class Program
         // VS Code CLI operations.
         builder.Services.AddSingleton<IVsCodeCliRunner, VsCodeCliRunner>();
         builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
+
+        // Npm and Playwright CLI operations.
+        builder.Services.AddSingleton<Aspire.Cli.Npm.INpmRunner, Aspire.Cli.Npm.NpmRunner>();
+        builder.Services.AddHttpClient<Aspire.Cli.Npm.INpmProvenanceChecker, Aspire.Cli.Npm.SigstoreNpmProvenanceChecker>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.IPlaywrightCliRunner, Aspire.Cli.Agents.Playwright.PlaywrightCliRunner>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.PlaywrightCliInstaller>();
 
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();

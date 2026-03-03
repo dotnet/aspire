@@ -36,6 +36,7 @@ internal interface IExtensionBackchannel
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<string?> PromptForFilePathAsync(string promptText, string? defaultValue, bool directory, CancellationToken cancellationToken);
     Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -539,6 +540,24 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             await ShowStatusAsync(null, cancellationToken);
             throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
         }
+
+        return result;
+    }
+
+    public async Task<string?> PromptForFilePathAsync(string promptText, string? defaultValue, bool directory, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for file path with text: {PromptText}, default value: {DefaultValue}, directory: {Directory}", promptText, defaultValue, directory);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForFilePath",
+            [_token, promptText, defaultValue, directory],
+            cancellationToken);
 
         return result;
     }

@@ -47,6 +47,11 @@
         <target state="translated">プロジェクトの出力パス。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="new">Resolving template version...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a template:</source>
         <target state="translated">テンプレートの選択:</target>

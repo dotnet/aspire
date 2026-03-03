@@ -156,6 +156,11 @@ internal class ConsoleInteractionService : IInteractionService
         return await _outConsole.PromptAsync(prompt, cancellationToken);
     }
 
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        return PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken);
+    }
+
     public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
@@ -302,6 +307,16 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayRenderable(IRenderable renderable)
     {
         MessageConsole.Write(renderable);
+    }
+
+    public async Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        await MessageConsole.Live(initialRenderable)
+            .AutoClear(false)
+            .StartAsync(async ctx =>
+            {
+                await callback(renderable => ctx.UpdateTarget(renderable));
+            });
     }
 
     public void DisplayCancellationMessage()
