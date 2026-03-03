@@ -130,14 +130,13 @@ internal sealed class SdkGenerateCommand : BaseCommand
             var integrations = new List<IntegrationReference>();
             if (codeGenPackage is not null)
             {
-                integrations.Add(new IntegrationReference(codeGenPackage, VersionHelper.GetDefaultTemplateVersion(), ProjectPath: null));
+                integrations.Add(IntegrationReference.FromPackage(codeGenPackage, VersionHelper.GetDefaultTemplateVersion()));
             }
 
             // Add the integration project as a project reference
-            integrations.Add(new IntegrationReference(
+            integrations.Add(IntegrationReference.FromProject(
                 Path.GetFileNameWithoutExtension(integrationProject.FullName),
-                Version: null,
-                ProjectPath: integrationProject.FullName));
+                integrationProject.FullName));
 
             _logger.LogDebug("Building AppHost server for SDK generation");
 

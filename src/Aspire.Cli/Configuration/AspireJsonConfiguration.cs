@@ -185,7 +185,7 @@ internal sealed class AspireJsonConfiguration
         var sdkVersion = GetEffectiveSdkVersion(defaultSdkVersion);
 
         // Base package always included
-        yield return new IntegrationReference("Aspire.Hosting", sdkVersion, ProjectPath: null);
+        yield return IntegrationReference.FromPackage("Aspire.Hosting", sdkVersion);
 
         if (Packages is null)
         {
@@ -206,7 +206,7 @@ internal sealed class AspireJsonConfiguration
             if (string.IsNullOrEmpty(trimmedValue))
             {
                 // NuGet package reference with no explicit version — fall back to the SDK version
-                yield return new IntegrationReference(packageName, sdkVersion, ProjectPath: null);
+                yield return IntegrationReference.FromPackage(packageName, sdkVersion);
                 continue;
             }
 
@@ -214,12 +214,12 @@ internal sealed class AspireJsonConfiguration
             {
                 // Project reference — resolve relative path to absolute
                 var absolutePath = Path.GetFullPath(Path.Combine(settingsDirectory, trimmedValue));
-                yield return new IntegrationReference(packageName, Version: null, ProjectPath: absolutePath);
+                yield return IntegrationReference.FromProject(packageName, absolutePath);
             }
             else
             {
                 // NuGet package reference with explicit version
-                yield return new IntegrationReference(packageName, trimmedValue, ProjectPath: null);
+                yield return IntegrationReference.FromPackage(packageName, trimmedValue);
             }
         }
     }

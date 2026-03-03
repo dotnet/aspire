@@ -14,8 +14,8 @@ public class PrebuiltAppHostServerTests
     {
         var packageRefs = new List<IntegrationReference>
         {
-            new("Aspire.Hosting", "13.2.0", null),
-            new("Aspire.Hosting.Redis", "13.2.0", null)
+            IntegrationReference.FromPackage("Aspire.Hosting", "13.2.0"),
+            IntegrationReference.FromPackage("Aspire.Hosting.Redis", "13.2.0")
         };
         var projectRefs = new List<IntegrationReference>();
 
@@ -36,7 +36,7 @@ public class PrebuiltAppHostServerTests
         var packageRefs = new List<IntegrationReference>();
         var projectRefs = new List<IntegrationReference>
         {
-            new("MyIntegration", null, "/path/to/MyIntegration.csproj")
+            IntegrationReference.FromProject("MyIntegration", "/path/to/MyIntegration.csproj")
         };
 
         var xml = PrebuiltAppHostServer.GenerateIntegrationProjectFile(packageRefs, projectRefs, "/tmp/libs");
@@ -54,12 +54,12 @@ public class PrebuiltAppHostServerTests
     {
         var packageRefs = new List<IntegrationReference>
         {
-            new("Aspire.Hosting", "13.2.0", null),
-            new("Aspire.Hosting.Redis", "13.2.0", null)
+            IntegrationReference.FromPackage("Aspire.Hosting", "13.2.0"),
+            IntegrationReference.FromPackage("Aspire.Hosting.Redis", "13.2.0")
         };
         var projectRefs = new List<IntegrationReference>
         {
-            new("MyIntegration", null, "/path/to/MyIntegration.csproj")
+            IntegrationReference.FromProject("MyIntegration", "/path/to/MyIntegration.csproj")
         };
 
         var xml = PrebuiltAppHostServer.GenerateIntegrationProjectFile(packageRefs, projectRefs, "/tmp/libs");
@@ -74,7 +74,7 @@ public class PrebuiltAppHostServerTests
     {
         var packageRefs = new List<IntegrationReference>
         {
-            new("Aspire.Hosting", "13.2.0", null)
+            IntegrationReference.FromPackage("Aspire.Hosting", "13.2.0")
         };
         var projectRefs = new List<IntegrationReference>();
 

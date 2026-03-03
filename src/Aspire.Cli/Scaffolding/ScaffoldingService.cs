@@ -65,7 +65,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(sdkVersion);
-            integrations.Add(new IntegrationReference(codeGenPackage, codeGenVersion, ProjectPath: null));
+            integrations.Add(IntegrationReference.FromPackage(codeGenPackage, codeGenVersion));
         }
 
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);

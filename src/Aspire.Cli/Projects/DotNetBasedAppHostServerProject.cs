@@ -26,7 +26,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     private const string AppsFolder = "hosts";
     public const string ProjectFileName = "AppHostServer.csproj";
     private const string ProjectDllName = "AppHostServer.dll";
-    private const string TargetFramework = "net10.0";
+    internal const string TargetFramework = "net10.0";
     public const string BuildFolder = "build";
     private const string AssemblyName = "AppHostServer";
 
@@ -207,7 +207,11 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             }
             else
             {
-                otherPackages.Add((integration.Name, integration.Version!));
+                if (integration.Version is null)
+                {
+                    throw new InvalidOperationException($"Integration '{integration.Name}' is neither a project reference nor a package reference (both Version and ProjectPath are null).");
+                }
+                otherPackages.Add((integration.Name, integration.Version));
             }
         }
 

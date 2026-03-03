@@ -170,7 +170,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
         return await _nugetService.RestorePackagesAsync(
             packages,
-            "net10.0",
+            DotNetBasedAppHostServerProject.TargetFramework,
             sources: sources,
             workingDirectory: appHostDirectory,
             ct: cancellationToken);
@@ -199,44 +199,13 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         }
         Directory.CreateDirectory(outputDir);
 
-        // Write nuget.config first so we can reference its path in the project file
-        string? nugetConfigPath = null;
-
-        // Copy nuget.config from the user's apphost directory if present
-        var appHostDirectory = Path.GetDirectoryName(_appPath)!;
-        var userNugetConfig = Path.Combine(appHostDirectory, "nuget.config");
-        if (File.Exists(userNugetConfig))
-        {
-            nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
-            File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
-        }
-
-        // Ensure the synthetic project can find NuGet packages from the configured channel
-        // NuGetConfigMerger only works for explicit channels, so for implicit/hive channels
-        // we need to get the sources directly and write a nuget.config
+        // Resolve channel sources to add via RestoreAdditionalProjectSources
+        IEnumerable<string>? channelSources = null;
         if (channelName is not null)
         {
             try
             {
-                var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
-                if (sources is not null)
-                {
-                    nugetConfigPath = Path.Combine(restoreDir, "nuget.config");
-                    var sourceElements = string.Join("\n    ",
-                        sources.Select((s, i) => $"""<add key="channel-source-{i}" value="{System.Security.SecurityElement.Escape(s)}" />"""));
-
-                    var nugetConfig = $"""
-                        <?xml version="1.0" encoding="utf-8"?>
-                        <configuration>
-                          <packageSources>
-                            <clear />
-                            {sourceElements}
-                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-                          </packageSources>
-                        </configuration>
-                        """;
-                    await File.WriteAllTextAsync(nugetConfigPath, nugetConfig, cancellationToken);
-                }
+                channelSources = await GetNuGetSourcesAsync(channelName, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -244,7 +213,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             }
         }
 
-        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir, nugetConfigPath);
+        var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir, channelSources);
         var projectFilePath = Path.Combine(restoreDir, "IntegrationRestore.csproj");
         await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
 
@@ -297,10 +266,10 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         List<IntegrationReference> packageRefs,
         List<IntegrationReference> projectRefs,
         string outputDir,
-        string? nugetConfigPath = null)
+        IEnumerable<string>? additionalSources = null)
     {
         var propertyGroup = new XElement("PropertyGroup",
-            new XElement("TargetFramework", "net10.0"),
+            new XElement("TargetFramework", DotNetBasedAppHostServerProject.TargetFramework),
             new XElement("EnableDefaultItems", "false"),
             new XElement("CopyLocalLockFileAssemblies", "true"),
             new XElement("ProduceReferenceAssembly", "false"),
@@ -308,10 +277,14 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             new XElement("GenerateDocumentationFile", "false"),
             new XElement("OutDir", outputDir));
 
-        // Force all projects in the build graph to use our nuget.config
-        if (nugetConfigPath is not null)
+        // Add channel sources without replacing the user's nuget.config
+        if (additionalSources is not null)
         {
-            propertyGroup.Add(new XElement("RestoreConfigFile", nugetConfigPath));
+            var sourceList = string.Join(";", additionalSources);
+            if (sourceList.Length > 0)
+            {
+                propertyGroup.Add(new XElement("RestoreAdditionalProjectSources", sourceList));
+            }
         }
 
         var doc = new XDocument(
@@ -322,9 +295,16 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         if (packageRefs.Count > 0)
         {
             doc.Root!.Add(new XElement("ItemGroup",
-                packageRefs.Select(p => new XElement("PackageReference",
-                    new XAttribute("Include", p.Name),
-                    new XAttribute("Version", p.Version!)))));
+                packageRefs.Select(p =>
+                {
+                    if (p.Version is null)
+                    {
+                        throw new InvalidOperationException($"Package reference '{p.Name}' is missing a version.");
+                    }
+                    return new XElement("PackageReference",
+                        new XAttribute("Include", p.Name),
+                        new XAttribute("Version", p.Version));
+                })));
         }
 
         if (projectRefs.Count > 0)

@@ -139,7 +139,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Gets all integration references including the code generation package for the current language.
     /// </summary>
-    private async Task<List<IntegrationReference>> GetAllPackagesAsync(
+    private async Task<List<IntegrationReference>> GetIntegrationReferencesAsync(
         AspireJsonConfiguration config,
         DirectoryInfo directory,
         CancellationToken cancellationToken)
@@ -150,7 +150,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(defaultSdkVersion);
-            integrations.Add(new IntegrationReference(codeGenPackage, codeGenVersion, ProjectPath: null));
+            integrations.Add(IntegrationReference.FromPackage(codeGenPackage, codeGenVersion));
         }
         return integrations;
     }
@@ -188,7 +188,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Step 1: Load config - source of truth for SDK version and packages
         var config = LoadConfiguration(directory);
-        var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
+        var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
         var sdkVersion = GetPrepareSdkVersion(config);
 
         var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
@@ -295,7 +295,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Load config - source of truth for SDK version and packages
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
+            var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
@@ -599,7 +599,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, directory, cancellationToken);
+            var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             // Prepare the AppHost server (build for dev mode, restore for prebuilt)

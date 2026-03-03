@@ -129,10 +129,9 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             if (integrationProject is not null)
             {
-                integrations.Add(new IntegrationReference(
+                integrations.Add(IntegrationReference.FromProject(
                     Path.GetFileNameWithoutExtension(integrationProject.FullName),
-                    Version: null,
-                    ProjectPath: integrationProject.FullName));
+                    integrationProject.FullName));
             }
 
             _logger.LogDebug("Building AppHost server for capability scanning");

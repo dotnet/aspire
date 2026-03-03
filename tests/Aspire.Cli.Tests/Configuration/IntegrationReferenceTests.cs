@@ -10,7 +10,7 @@ public class IntegrationReferenceTests
     [Fact]
     public void PackageReference_HasVersionAndNoProjectPath()
     {
-        var reference = new IntegrationReference("Aspire.Hosting.Redis", "13.2.0", null);
+        var reference = IntegrationReference.FromPackage("Aspire.Hosting.Redis", "13.2.0");
 
         Assert.True(reference.IsPackageReference);
         Assert.False(reference.IsProjectReference);
@@ -21,7 +21,7 @@ public class IntegrationReferenceTests
     [Fact]
     public void ProjectReference_HasProjectPathAndNoVersion()
     {
-        var reference = new IntegrationReference("MyIntegration", null, "/path/to/MyIntegration.csproj");
+        var reference = IntegrationReference.FromProject("MyIntegration", "/path/to/MyIntegration.csproj");
 
         Assert.True(reference.IsProjectReference);
         Assert.False(reference.IsPackageReference);
