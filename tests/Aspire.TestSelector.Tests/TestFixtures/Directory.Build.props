@@ -7,11 +7,12 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>
-  <!-- Exclude from solution build -->
+  <!-- Exclude from solution build and test enumeration -->
   <Target Name="Build" />
   <Target Name="Rebuild" />
   <Target Name="Clean" />
   <Target Name="Restore" />
   <Target Name="Pack" />
   <Target Name="Publish" />
+  <Target Name="Test" />
 </Project>
