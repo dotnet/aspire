@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Points de terminaison</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderHealth">
         <source>Health</source>
-        <target state="new">Health</target>
+        <target state="translated">Intégrité</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderName">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="HeaderState">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">État</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderType">
