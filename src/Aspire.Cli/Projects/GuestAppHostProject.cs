@@ -965,7 +965,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        await _interactionService.ShowStatusAsync(
+        var regenerateResult = await _interactionService.ShowStatusAsync(
             UpdateCommandStrings.RegeneratingSdkCode,
             async () =>
             {
@@ -975,7 +975,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 {
                     return new UpdatePackagesResult { UpdatesApplied = false };
                 }
+
+                return new UpdatePackagesResult { UpdatesApplied = true };
             });
+
+        if (!regenerateResult.UpdatesApplied)
+        {
+            return regenerateResult;
+        }
 
         _interactionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.RegeneratedSdkCode);
 
