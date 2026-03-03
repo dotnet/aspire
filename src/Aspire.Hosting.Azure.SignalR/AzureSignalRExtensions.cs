@@ -54,7 +54,6 @@ public static class AzureSignalRExtensions
     /// 
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureSignalRResource}, SignalRBuiltInRole[])"/>.
     /// </remarks>
-    /// <remarks>This overload is not available in polyglot app hosts. Use <see cref="AddAzureSignalRForPolyglot"/> instead.</remarks>
     [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, AzureSignalRServiceMode serviceMode)
     {
