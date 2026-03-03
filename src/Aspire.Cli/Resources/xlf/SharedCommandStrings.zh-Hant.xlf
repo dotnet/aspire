@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="MultipleInScopeAppHosts">
         <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
-        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <target state="translated">目前目錄中找到多個正在執行的 AppHost。請從正在執行的 AppHost 中選取。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
-        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
+        <target state="translated">目前目錄中找不到正在執行的 AppHost。請從所有正在執行的 AppHost 中選取。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="UsingAppHost">
         <source>Using AppHost: {0}</source>
-        <target state="new">Using AppHost: {0}</target>
+        <target state="translated">使用 AppHost: {0}</target>
         <note />
       </trans-unit>
     </body>

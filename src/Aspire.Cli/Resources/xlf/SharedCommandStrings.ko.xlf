@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="MultipleInScopeAppHosts">
         <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
-        <target state="new">Multiple running AppHosts found in the current directory. Select from running AppHosts.</target>
+        <target state="translated">현재 디렉터리에서 실행 중인 AppHost가 여러 개 있습니다. 실행 중인 AppHost 중에서 선택합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
-        <target state="new">No running AppHosts found in the current directory. Select from all running AppHosts.</target>
+        <target state="translated">현재 디렉터리에서 실행 중인 AppHost가 없습니다. 실행 중인 모든 AppHost 중에서 선택합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostOptionDescription">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="UsingAppHost">
         <source>Using AppHost: {0}</source>
-        <target state="new">Using AppHost: {0}</target>
+        <target state="translated">AppHost를 사용하는 중: {0}</target>
         <note />
       </trans-unit>
     </body>
