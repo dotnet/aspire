@@ -6,45 +6,20 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
 namespace Aspire.Cli.Tests;
 
 public class DotNetSdkInstallerTests
 {
-    private static CliExecutionContext CreateTestExecutionContext()
-    {
-        var tempPath = Path.Combine(Path.GetTempPath(), "aspire-cli-tests", Guid.NewGuid().ToString());
-        var workingDirectory = new DirectoryInfo(tempPath);
-        var hivesDirectory = new DirectoryInfo(Path.Combine(tempPath, "hives"));
-        var cacheDirectory = new DirectoryInfo(Path.Combine(tempPath, "cache"));
-        var sdksDirectory = new DirectoryInfo(Path.Combine(tempPath, "sdks"));
-        var logsDirectory = new DirectoryInfo(Path.Combine(tempPath, "logs"));
-        
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, logsDirectory, "test.log", debugMode: false);
-    }
-
-    private static ILogger<DotNetSdkInstaller> CreateTestLogger()
-    {
-        return NullLogger<DotNetSdkInstaller>.Instance;
-    }
-
-    private static IDotNetCliRunner CreateTestDotNetCliRunner()
-    {
-        return new TestDotNetCliRunner();
-    }
-
     [Fact]
     public async Task CheckAsync_WhenDotNetIsAvailable_ReturnsTrue()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
 
         // This test assumes the test environment has .NET SDK installed
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         Assert.True(success);
     }
@@ -55,10 +30,10 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // This test assumes the test environment has .NET SDK installed with a version >= 8.0.0
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         Assert.True(success);
     }
@@ -69,11 +44,10 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride(DotNetSdkInstaller.MinimumSdkVersion);
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // Use the actual minimum version constant and check the behavior
-        // Since this test environment has 8.0.117, it should return false for 9.0.302
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // Don't assert the specific result, just ensure the method doesn't throw
         // The behavior will depend on what SDK versions are actually installed
@@ -86,10 +60,10 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("99.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // Use an unreasonably high version that should not exist
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         Assert.False(success);
     }
@@ -100,61 +74,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // Use an invalid version string
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         Assert.False(success);
-    }
-
-    [Fact]
-    public async Task InstallAsync_CreatesSdksDirectory()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
-        var context = CreateTestExecutionContext();
-        var configuration = CreateEmptyConfiguration();
-        var installer = new DotNetSdkInstaller(features, configuration, context, CreateTestDotNetCliRunner(), CreateTestLogger());
-
-        // Get the sdks directory path
-        var sdksDirectory = context.SdksDirectory.FullName;
-        var sdkVersion = DotNetSdkInstaller.GetEffectiveMinimumSdkVersion(configuration);
-        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
-
-        // Clean up if it exists from a previous test
-        if (Directory.Exists(sdkInstallPath))
-        {
-            Directory.Delete(sdkInstallPath, recursive: true);
-        }
-
-        // Note: We can't actually test the full installation in unit tests
-        // because it requires downloading and running install scripts.
-        // This test just verifies that the method exists and can be called.
-        // The actual installation would be tested in integration tests.
-        
-        // For now, we just verify the method signature exists and doesn't throw
-        // ArgumentNullException or similar for valid inputs
-        var installTask = installer.InstallAsync(CancellationToken.None);
-        
-        // We expect this to either succeed or fail with a network/download error,
-        // but not throw NotImplementedException anymore
-        Assert.NotNull(installTask);
-    }
-
-    [Fact]
-    public void GetSdksDirectory_ReturnsValidPath()
-    {
-        var context = CreateTestExecutionContext();
-        
-        // Verify the sdks directory from the execution context
-        var sdksDirectory = context.SdksDirectory.FullName;
-        
-        // Verify the path contains the expected components
-        Assert.Contains("sdks", sdksDirectory);
-        
-        // Verify it's a valid path format
-        Assert.False(string.IsNullOrWhiteSpace(sdksDirectory));
     }
 
     [Fact]
@@ -163,10 +88,10 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, false);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // Use an invalid version string
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         Assert.True(success);
     }
@@ -177,11 +102,11 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // This test verifies that the architecture-specific command is used
         // Since the implementation adds --arch flag, it should still work correctly
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // The test should pass if the command with --arch flag works
         Assert.True(success);
@@ -191,10 +116,10 @@ public class DotNetSdkInstallerTests
     public async Task CheckAsync_UsesOverrideMinimumSdkVersion_WhenConfigured()
     {
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration);
 
         // The installer should use the override version instead of the constant
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // Should use 8.0.0 instead of 9.0.302, which should be available in test environment
         Assert.True(success);
@@ -203,10 +128,10 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_UsesDefaultMinimumSdkVersion_WhenNotConfigured()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the default constant
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -217,11 +142,10 @@ public class DotNetSdkInstallerTests
     {
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
-        var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the minimum SDK version
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -233,10 +157,10 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration);
 
         // The installer should use the override version instead of the baseline constant
-        var (success, _, _, _) = await installer.CheckAsync().DefaultTimeout();
+        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
 
         // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
         Assert.True(success);
@@ -351,33 +275,6 @@ public class DotNetSdkInstallerTests
                 new KeyValuePair<string, string?>("overrideMinimumSdkVersion", overrideVersion)
             })
             .Build();
-    }
-
-    [Fact]
-    public void EmbeddedScripts_AreAccessible()
-    {
-        // Verify that the embedded scripts can be accessed from the assembly
-        var assembly = typeof(DotNetSdkInstaller).Assembly;
-        
-        var bashScriptResource = assembly.GetManifestResourceStream("Aspire.Cli.Resources.dotnet-install.sh");
-        var powershellScriptResource = assembly.GetManifestResourceStream("Aspire.Cli.Resources.dotnet-install.ps1");
-        
-        Assert.NotNull(bashScriptResource);
-        Assert.NotNull(powershellScriptResource);
-        
-        // Verify scripts have content
-        Assert.True(bashScriptResource.Length > 0, "Bash script should not be empty");
-        Assert.True(powershellScriptResource.Length > 0, "PowerShell script should not be empty");
-        
-        // Verify scripts start with expected headers
-        using var bashReader = new StreamReader(bashScriptResource);
-        var firstLine = bashReader.ReadLine();
-        Assert.NotNull(firstLine);
-        Assert.Contains("#!/", firstLine);
-        
-        using var powershellReader = new StreamReader(powershellScriptResource);
-        var content = powershellReader.ReadToEnd();
-        Assert.Contains("dotnet", content, StringComparison.OrdinalIgnoreCase);
     }
 }
 

@@ -161,6 +161,21 @@ dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.cspr
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
+### CRITICAL: Do NOT use VSTest-style `--filter` with `dotnet test`
+
+This repo uses **Microsoft.Testing.Platform (MTP)** as the test runner, not VSTest. The classic `--filter` argument (before `--`) uses VSTest filter syntax and **will hang or behave unexpectedly** with MTP.
+
+```bash
+# WRONG - VSTest-style filter, will hang with MTP
+dotnet test tests/Project.Tests/Project.Tests.csproj --filter "FullyQualifiedName~ClassName"
+
+# CORRECT - MTP-native filters go after the -- separator
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-class "*.ClassName"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "*.MethodName"
+```
+
+All test filtering must use MTP-native switches placed **after `--`**. See the filter switches listed below for the full set of options.
+
 ### CRITICAL: Excluding Quarantined and Outerloop Tests
 
 When running tests in automated environments (including Copilot agent), **always exclude quarantined and outerloop tests** to avoid false negatives and long-running tests:

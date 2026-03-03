@@ -78,6 +78,16 @@
       IsResourceBuilder: true,
       IsDistributedApplicationBuilder: false,
       IsDistributedApplication: false
+    },
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource,
+      ClrType: TestVaultResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false,
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
     }
   ],
   ReturnsBuilder: true,

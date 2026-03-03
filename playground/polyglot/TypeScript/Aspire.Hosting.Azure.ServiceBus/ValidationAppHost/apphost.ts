@@ -3,6 +3,7 @@
 
 import {
     createBuilder,
+    AzureServiceBusRole,
     AzureServiceBusFilterType,
     type AzureServiceBusRule,
     type AzureServiceBusCorrelationFilter,
@@ -109,18 +110,18 @@ await subscription.withProperties(async (s) => {
     });
 });
 
-// ── 7. withRoleAssignments — string-based role assignment shim ─────────────
+// ── 7. withRoleAssignments — enum-based role assignment shim ───────────────
 // On the parent ServiceBus resource (all 3 roles)
 await serviceBus.withRoleAssignments(serviceBus, [
-    "AzureServiceBusDataOwner",
-    "AzureServiceBusDataSender",
-    "AzureServiceBusDataReceiver",
+    AzureServiceBusRole.AzureServiceBusDataOwner,
+    AzureServiceBusRole.AzureServiceBusDataSender,
+    AzureServiceBusRole.AzureServiceBusDataReceiver,
 ]);
 
 // On child resources
-await queue.withRoleAssignments(serviceBus, ["AzureServiceBusDataReceiver"]);
-await topic.withRoleAssignments(serviceBus, ["AzureServiceBusDataSender"]);
-await subscription.withRoleAssignments(serviceBus, ["AzureServiceBusDataReceiver"]);
+await queue.withRoleAssignments(serviceBus, [AzureServiceBusRole.AzureServiceBusDataReceiver]);
+await topic.withRoleAssignments(serviceBus, [AzureServiceBusRole.AzureServiceBusDataSender]);
+await subscription.withRoleAssignments(serviceBus, [AzureServiceBusRole.AzureServiceBusDataReceiver]);
 
 // ── 8. Verify enum values are accessible ────────────────────────────────────
 const _sqlFilter = AzureServiceBusFilterType.SqlFilter;

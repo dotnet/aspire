@@ -7,6 +7,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Interaction;
@@ -22,7 +23,7 @@ internal interface IExtensionInteractionService : IInteractionService
     void DisplayConsolePlainText(string message);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
     void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
-    void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true);
+    void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -60,7 +61,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     // Connection was lost - only log to console, don't try to send over the closed connection
                     _consoleInteractionService.DisplaySubtleMessage(ex.Message);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not ExtensionOperationCanceledException)
                 {
                     // Try to display error to extension, but if that fails due to connection issues, just log to console
                     try
@@ -77,22 +78,22 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         });
     }
 
-    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action).ConfigureAwait(false);
+        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action, emoji, allowMarkup).ConfigureAwait(false);
         result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
         Debug.Assert(result);
         return value;
     }
 
-    public void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.ShowStatus(statusText, action);
+        _consoleInteractionService.ShowStatus(statusText, action, emoji, allowMarkup);
 
         result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
         Debug.Assert(result);
@@ -146,6 +147,58 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
+    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        if (_extensionPromptEnabled)
+        {
+            var hasFilePickersCapability = await Backchannel.HasCapabilityAsync(KnownCapabilities.FilePickers, _cancellationToken).ConfigureAwait(false);
+
+            if (hasFilePickersCapability)
+            {
+                var tcs = new TaskCompletionSource<string?>();
+
+                await _extensionTaskChannel.Writer.WriteAsync(async () =>
+                {
+                    try
+                    {
+                        var result = await Backchannel.PromptForFilePathAsync(promptText.RemoveSpectreFormatting(), defaultValue, directory, _cancellationToken).ConfigureAwait(false);
+                        tcs.SetResult(result);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.SetException(ex);
+                    }
+                }, cancellationToken).ConfigureAwait(false);
+
+                var picked = await tcs.Task.ConfigureAwait(false);
+
+                if (picked is null)
+                {
+                    throw new ExtensionOperationCanceledException(promptText);
+                }
+
+                if (validator is not null)
+                {
+                    var validationResult = validator(picked);
+
+                    if (!validationResult.Successful)
+                    {
+                        var errorMessage = validationResult.Message ?? "Invalid selection.";
+                        DisplayError(errorMessage);
+                        throw new InvalidOperationException(errorMessage);
+                    }
+                }
+
+                return picked;
+            }
+
+            // Fall back to string prompt for older extensions without file picker support
+            return await PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await _consoleInteractionService.PromptForFilePathAsync(promptText, defaultValue, validator, directory, required, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
@@ -162,7 +215,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -191,7 +247,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -220,7 +279,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
-                    DisplayError(ex.Message);
+                    if (ex is not ExtensionOperationCanceledException)
+                    {
+                        DisplayError(ex.Message);
+                    }
                 }
             }, cancellationToken).ConfigureAwait(false);
 
@@ -247,30 +309,30 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayError(errorMessage);
     }
 
-    public void DisplayMessage(string emojiName, string message)
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emojiName, message.RemoveSpectreFormatting(), _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayMessageAsync(emoji.Name, message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayMessage(emojiName, message);
+        _consoleInteractionService.DisplayMessage(emoji, message, allowMarkup);
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplaySuccess(string message, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySuccessAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySuccess(message);
+        _consoleInteractionService.DisplaySuccess(message, allowMarkup);
     }
 
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
+        _consoleInteractionService.DisplaySubtleMessage(message, allowMarkup);
     }
 
-    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false)
     {
-        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
+        _consoleInteractionService.DisplaySubtleMessage(message, allowMarkup);
     }
 
     public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
@@ -346,6 +408,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
+    }
+
+    public void DisplayRenderable(IRenderable renderable)
+    {
+        _consoleInteractionService.DisplayRenderable(renderable);
     }
 
     public void LogMessage(LogLevel logLevel, string message)

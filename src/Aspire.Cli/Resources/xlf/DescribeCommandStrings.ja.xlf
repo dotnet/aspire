@@ -12,6 +12,31 @@
         <target state="new">Continuously stream resource state changes.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderEndpoints">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderHealth">
+        <source>Health</source>
+        <target state="new">Health</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderName">
+        <source>Name</source>
+        <target state="new">Name</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderState">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderType">
+        <source>Type</source>
+        <target state="new">Type</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">機械処理用の JSON 形式で出力します。</target>

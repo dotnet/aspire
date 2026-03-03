@@ -2642,6 +2642,77 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
+    /// <summary>
+    /// Subscribes to the <see cref="BeforeStartEvent"/> and invokes the specified callback when an HTTPS certificate
+    /// is determined to be available for the resource. This is used to conditionally update endpoint URI schemes or
+    /// perform other HTTPS-related configuration at startup.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when HTTPS is enabled. Receives an <see cref="HttpsEndpointUpdateCallbackContext"/>
+    /// providing access to the service provider, resource, and application model.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// The callback is invoked when either:
+    /// <list type="bullet">
+    /// <item>No <see cref="HttpsCertificateAnnotation"/> is present and the <see cref="IDeveloperCertificateService"/> indicates
+    /// that HTTPS should be used by default.</item>
+    /// <item>An <see cref="HttpsCertificateAnnotation"/> is present that requests a developer certificate or provides a custom certificate.</item>
+    /// </list>
+    /// <example>
+    /// Switch an endpoint to HTTPS when a certificate is available:
+    /// <code lang="csharp">
+    /// builder.SubscribeHttpsEndpointsUpdate(ctx =>
+    /// {
+    ///     builder.WithEndpoint("http", ep => ep.UriScheme = "https");
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> SubscribeHttpsEndpointsUpdate<TResource>(this IResourceBuilder<TResource> builder, Action<HttpsEndpointUpdateCallbackContext> callback)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var resource = builder.Resource;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        {
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.UseForHttps)
+                {
+                    addHttps = true;
+                }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
+
+            if (addHttps)
+            {
+                var context = new HttpsEndpointUpdateCallbackContext
+                {
+                    Services = @event.Services,
+                    Resource = resource,
+                    Model = @event.Model,
+                    CancellationToken = cancellationToken,
+                };
+
+                callback(context);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return builder;
+    }
+
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
     // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
     // if found.

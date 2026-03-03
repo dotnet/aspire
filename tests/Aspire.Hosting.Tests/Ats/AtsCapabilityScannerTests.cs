@@ -90,6 +90,14 @@ public class AtsCapabilityScannerTests
     }
 
     [Fact]
+    public void MapToAtsTypeId_IEnumerableOfString_ReturnsStringArray()
+    {
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IEnumerable<string>));
+
+        Assert.Equal("string[]", result);
+    }
+
+    [Fact]
     public void MapToAtsTypeId_IResourceBuilder_ExtractsResourceType()
     {
         var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IResourceBuilder<TestResource>));
@@ -115,6 +123,24 @@ public class AtsCapabilityScannerTests
 
         // System.Object maps to 'any'
         Assert.Equal("any", result);
+    }
+
+    [Fact]
+    public void ScanAssembly_IEnumerableCapability_UsesArrayTypes()
+    {
+        var result = AtsCapabilityScanner.ScanAssembly(typeof(AtsCapabilityScannerTests).Assembly);
+
+        var enumerableParameterCapability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/testEnumerableParameter", StringComparison.Ordinal));
+        var itemsParameter = Assert.Single(enumerableParameterCapability.Parameters);
+        var itemsType = Assert.IsType<AtsTypeRef>(itemsParameter.Type);
+        Assert.Equal("string[]", itemsType.TypeId);
+        Assert.Equal(AtsTypeCategory.Array, itemsType.Category);
+
+        var enumerableReturnCapability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/testEnumerableReturn", StringComparison.Ordinal));
+        Assert.Equal("string[]", enumerableReturnCapability.ReturnType.TypeId);
+        Assert.Equal(AtsTypeCategory.Array, enumerableReturnCapability.ReturnType.Category);
     }
 
     #endregion
@@ -173,6 +199,23 @@ public class AtsCapabilityScannerTests
     {
         public TestResource(string name) : base(name)
         {
+        }
+    }
+
+    private static class TestExports
+    {
+        [AspireExport("testEnumerableParameter")]
+        public static void TestEnumerableParameter(IDistributedApplicationBuilder builder, IEnumerable<string> items)
+        {
+            _ = builder;
+            _ = items;
+        }
+
+        [AspireExport("testEnumerableReturn")]
+        public static IEnumerable<string> TestEnumerableReturn(IDistributedApplicationBuilder builder)
+        {
+            _ = builder;
+            return [];
         }
     }
 

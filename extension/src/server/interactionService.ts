@@ -2,7 +2,7 @@ import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces, selectDirectoryTitle, selectFileTitle } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { ProgressNotifier } from './progressNotifier';
 import { applyTextStyle, formatText } from '../utils/strings';
@@ -16,6 +16,7 @@ export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     promptForSecretString: (promptText: string, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForFilePath: (promptText: string, defaultValue: string | null, directory: boolean) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     promptForSelections: (promptText: string, choices: string[]) => Promise<string[] | null>;
@@ -167,6 +168,28 @@ export class InteractionService implements IInteractionService {
         });
 
         return input ?? null;
+    }
+
+    async promptForFilePath(promptText: string, defaultValue: string | null, directory: boolean): Promise<string | null> {
+        extensionLogOutputChannel.info(`Prompting for file path: ${promptText}, directory: ${directory}, default: ${defaultValue ?? 'null'}`);
+
+        const defaultUri = defaultValue ? vscode.Uri.file(defaultValue) : undefined;
+        const openLabel = directory ? selectDirectoryTitle : selectFileTitle;
+
+        const result = await vscode.window.showOpenDialog({
+            canSelectFiles: !directory,
+            canSelectFolders: directory,
+            canSelectMany: false,
+            defaultUri,
+            openLabel,
+            title: formatText(promptText),
+        });
+
+        if (!result || result.length === 0) {
+            return null;
+        }
+
+        return result[0].fsPath;
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
@@ -481,6 +504,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
     connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, required: boolean) => interactionService.promptForSecretString(promptText, required, rpcClient)));
+    connection.onRequest("promptForFilePath", middleware('promptForFilePath', async (promptText: string, defaultValue: string | null, directory: boolean) => interactionService.promptForFilePath(promptText, defaultValue, directory)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("promptForSelections", middleware('promptForSelections', interactionService.promptForSelections.bind(interactionService)));

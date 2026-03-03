@@ -1250,4 +1250,35 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.DoesNotContain("items = {", code);
         Assert.DoesNotContain("items = {\n        get: async", code);
     }
+
+    [Fact]
+    public void Generate_ConcreteAndInterfaceWithSameClassName_NoDuplicateClasses()
+    {
+        // TestVaultResource (concrete) and ITestVaultResource (interface) both derive
+        // to the same TypeScript class name "TestVaultResource". The codegen must emit
+        // exactly one class definition, preferring the concrete type.
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var code = files["aspire.ts"];
+
+        // Count occurrences of the class definition
+        var classCount = CountOccurrences(code, "export class TestVaultResource ");
+        Assert.Equal(1, classCount);
+
+        // Also verify the Promise wrapper is not duplicated
+        var promiseCount = CountOccurrences(code, "export class TestVaultResourcePromise ");
+        Assert.Equal(1, promiseCount);
+    }
+
+    private static int CountOccurrences(string text, string pattern)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) != -1)
+        {
+            count++;
+            index += pattern.Length;
+        }
+        return count;
+    }
 }

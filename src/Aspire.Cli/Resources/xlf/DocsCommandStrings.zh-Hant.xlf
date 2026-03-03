@@ -32,6 +32,31 @@
         <target state="translated">依據識別字串取得文件頁面的完整內容。</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderScore">
+        <source>Score</source>
+        <target state="new">Score</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSection">
+        <source>Section</source>
+        <target state="new">Section</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSlug">
+        <source>Slug</source>
+        <target state="new">Slug</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSummary">
+        <source>Summary</source>
+        <target state="new">Summary</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderTitle">
+        <source>Title</source>
+        <target state="new">Title</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of search results to return (default: 5, max: 10).</source>
         <target state="translated">最多回傳的搜尋結果數量 (預設: 5，最大值: 10)。</target>

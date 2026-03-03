@@ -81,8 +81,9 @@ internal sealed partial class CertificateService(
         };
 
         var (_, result) = await interactionService.ShowStatusAsync(
-            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
-            async () => await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken));
+            InteractionServiceStrings.CheckingCertificates,
+            async () => await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken),
+            emoji: KnownEmojis.LockedWithKey);
 
         // Return the result or a default "no certificates" result
         return result ?? new CertificateTrustResult
@@ -115,13 +116,14 @@ internal sealed partial class CertificateService(
             };
 
             var trustExitCode = await interactionService.ShowStatusAsync(
-                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
-                () => certificateToolRunner.TrustHttpCertificateAsync(options, cancellationToken));
+                InteractionServiceStrings.TrustingCertificates,
+                () => certificateToolRunner.TrustHttpCertificateAsync(options, cancellationToken),
+                emoji: KnownEmojis.LockedWithKey);
 
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(collector.GetLines());
-                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
+                interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
             }
 
             // Re-check trust status after trust operation

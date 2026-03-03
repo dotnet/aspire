@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -649,7 +648,9 @@ public static class AzureServiceBusExtensions
     /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <remarks>
-    /// This overload is not available in polyglot app hosts. Use the string-based overload with role names (e.g., "AzureServiceBusDataSender") instead.
+    /// This overload is not available in polyglot app hosts. Use
+    /// <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureServiceBusResource}, AzureServiceBusRole[])"/>
+    /// instead.
     /// <example>
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
@@ -662,7 +663,7 @@ public static class AzureServiceBusExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "ServiceBusBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the string-based overload instead.")]
+    [AspireExportIgnore(Reason = "ServiceBusBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureServiceBusRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureServiceBusResource> target,
@@ -678,34 +679,33 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The resource to which the specified roles will be assigned.</param>
     /// <param name="target">The target Azure Service Bus namespace.</param>
-    /// <param name="roles">The built-in Service Bus role names to be assigned (e.g., "AzureServiceBusDataSender", "AzureServiceBusDataReceiver").</param>
+    /// <param name="roles">The Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
-    /// <exception cref="ArgumentException">Thrown when a role name is not a valid Service Bus built-in role.</exception>
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureServiceBusRole"/> value.</exception>
     [AspireExport("withRoleAssignments", Description = "Assigns Service Bus roles to a resource")]
     internal static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureServiceBusResource> target,
-        params string[] roles)
+        params AzureServiceBusRole[] roles)
         where T : IResource
     {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<ServiceBusBuiltInRole>());
+        }
+
         var builtInRoles = new ServiceBusBuiltInRole[roles.Length];
         for (var i = 0; i < roles.Length; i++)
         {
-            if (!s_serviceBusRolesByName.TryGetValue(roles[i], out var role))
+            builtInRoles[i] = roles[i] switch
             {
-                throw new ArgumentException($"'{roles[i]}' is not a valid Service Bus built-in role. Valid roles: {string.Join(", ", s_serviceBusRolesByName.Keys)}.", nameof(roles));
-            }
-
-            builtInRoles[i] = role;
+                AzureServiceBusRole.AzureServiceBusDataOwner => ServiceBusBuiltInRole.AzureServiceBusDataOwner,
+                AzureServiceBusRole.AzureServiceBusDataReceiver => ServiceBusBuiltInRole.AzureServiceBusDataReceiver,
+                AzureServiceBusRole.AzureServiceBusDataSender => ServiceBusBuiltInRole.AzureServiceBusDataSender,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureServiceBusRole)} value.", nameof(roles))
+            };
         }
 
         return builder.WithRoleAssignments(target, builtInRoles);
     }
-
-    private static readonly FrozenDictionary<string, ServiceBusBuiltInRole> s_serviceBusRolesByName = new Dictionary<string, ServiceBusBuiltInRole>(StringComparer.OrdinalIgnoreCase)
-    {
-        [nameof(ServiceBusBuiltInRole.AzureServiceBusDataOwner)] = ServiceBusBuiltInRole.AzureServiceBusDataOwner,
-        [nameof(ServiceBusBuiltInRole.AzureServiceBusDataReceiver)] = ServiceBusBuiltInRole.AzureServiceBusDataReceiver,
-        [nameof(ServiceBusBuiltInRole.AzureServiceBusDataSender)] = ServiceBusBuiltInRole.AzureServiceBusDataSender,
-    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 }

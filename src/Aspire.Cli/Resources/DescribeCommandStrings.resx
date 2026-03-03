@@ -138,4 +138,19 @@
   <data name="SelectAppHostAction" xml:space="preserve">
     <value>describe</value>
   </data>
+  <data name="HeaderName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="HeaderType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="HeaderState" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="HeaderHealth" xml:space="preserve">
+    <value>Health</value>
+  </data>
+  <data name="HeaderEndpoints" xml:space="preserve">
+    <value>Endpoints</value>
+  </data>
 </root>

@@ -86,7 +86,7 @@ internal sealed class AddCommand : BaseCommand
             // Check if the .NET SDK is available (only needed for .NET projects)
             if (project.LanguageId == KnownLanguageId.CSharp)
             {
-                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
                 {
                     return ExitCodeConstants.SdkNotInstalled;
                 }
@@ -212,14 +212,16 @@ internal sealed class AddCommand : BaseCommand
             // which prevents 'dotnet add package' from modifying the project.
             if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
             {
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
-                    effectiveAppHostProjectFile,
-                    ExecutionContext.HomeDirectory,
-                    cancellationToken);
+                var runningInstanceResult = await InteractionService.ShowStatusAsync(
+                    AddCommandStrings.CheckingForRunningInstances,
+                    async () => await project.FindAndStopRunningInstanceAsync(
+                        effectiveAppHostProjectFile,
+                        ExecutionContext.HomeDirectory,
+                        cancellationToken));
 
                 if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
                 {
-                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                    InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
                 }
                 else if (runningInstanceResult == RunningInstanceResult.StopFailed)
                 {

@@ -147,7 +147,7 @@ internal sealed class RunCommand : BaseCommand
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // Validate that --format is only used with --detach
-        if (format is not null && !detach)
+        if (format == OutputFormat.Json && !detach)
         {
             InteractionService.DisplayError(RunCommandStrings.FormatRequiresDetach);
             return ExitCodeConstants.InvalidCommand;
@@ -206,12 +206,14 @@ internal sealed class RunCommand : BaseCommand
                 // Even if we fail to stop we won't block the apphost starting
                 // to make sure we don't ever break flow. It should mostly stop
                 // just fine though.
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+                var runningInstanceResult = await InteractionService.ShowStatusAsync(
+                    RunCommandStrings.CheckingForRunningInstances,
+                    async () => await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken));
 
                 // If in isolated mode and a running instance was stopped, warn the user
                 if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
                 {
-                    InteractionService.DisplayMessage("warning", RunCommandStrings.IsolatedModeRunningInstanceWarning);
+                    InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
                 }
             }
 
@@ -368,7 +370,7 @@ internal sealed class RunCommand : BaseCommand
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
+            InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex) when (ex is ObjectDisposedException || (ex is OperationCanceledException oce && oce.InnerException is ConnectionLostException))
@@ -383,7 +385,7 @@ internal sealed class RunCommand : BaseCommand
             Telemetry.RecordError(errorMessage, ex);
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
-            InteractionService.DisplayMessage("page_facing_up", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath.EscapeMarkup()));
+            InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }

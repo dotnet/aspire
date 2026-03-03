@@ -86,5 +86,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UnknownPath", resourceCulture);
             }
         }
+
+        public static string ResourcesOptionDescription {
+            get {
+                return ResourceManager.GetString("ResourcesOptionDescription", resourceCulture);
+            }
+        }
     }
 }

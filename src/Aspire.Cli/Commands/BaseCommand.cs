@@ -40,6 +40,13 @@ internal abstract class BaseCommand : Command
             // Set the command on the execution context so background services can access it
             _executionContext.Command = this;
 
+            // Route human-readable output to stderr when JSON is requested so
+            // that only machine-readable data appears on stdout.
+            if (IsJsonFormatRequested(parseResult))
+            {
+                interactionService.Console = ConsoleOutput.Error;
+            }
+
             // TODO: SDK install goes here in the future.
 
             var exitCode = await ExecuteAsync(parseResult, cancellationToken);
@@ -63,6 +70,22 @@ internal abstract class BaseCommand : Command
     }
 
     protected abstract Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks whether this command has a --format option whose parsed value is <see cref="OutputFormat.Json"/>.
+    /// </summary>
+    private bool IsJsonFormatRequested(ParseResult parseResult)
+    {
+        foreach (var option in Options)
+        {
+            if (option.Name == "--format" && option is Option<OutputFormat> formatOption)
+            {
+                return parseResult.GetValue(formatOption) == OutputFormat.Json;
+            }
+        }
+
+        return false;
+    }
 
     internal static int HandleProjectLocatorException(ProjectLocatorException ex, IInteractionService interactionService, AspireCliTelemetry telemetry)
     {

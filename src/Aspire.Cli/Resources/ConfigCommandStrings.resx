@@ -219,4 +219,10 @@
   <data name="SetFeatureHint" xml:space="preserve">
     <value>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</value>
   </data>
+  <data name="HeaderKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="HeaderValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
 </root>

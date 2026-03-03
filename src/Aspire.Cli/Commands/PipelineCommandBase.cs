@@ -170,10 +170,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync(GetProgressMessage(parseResult), async () =>
             {
                 var completedTask = await Task.WhenAny(backchannelCompletionSource.Task, pendingRun);
                 if (completedTask == backchannelCompletionSource.Task)
@@ -191,7 +191,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 // Include possible error if the run task faulted.
                 var innerException = completedTask.IsFaulted ? completedTask.Exception : null;
                 throw new InvalidOperationException("Run completed without returning a backchannel.", innerException);
-            });
+            }, emoji: KnownEmojis.HammerAndWrench);
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
@@ -335,7 +335,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 {
                     // New step - log it
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", allowMarkup: true);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -344,7 +344,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", allowMarkup: true);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -379,7 +379,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                     _ => $"[[{timestamp}]] [[{logPrefix}]] {message}"
                 };
                 
-                InteractionService.DisplaySubtleMessage(formattedMessage, escapeMarkup: false);
+                InteractionService.DisplaySubtleMessage(formattedMessage, allowMarkup: true);
             }
             else
             {
@@ -390,17 +390,17 @@ internal abstract class PipelineCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", allowMarkup: true);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
                         var completionMessage = ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data);
-                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", escapeMarkup: false);
+                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", allowMarkup: true);
                     }
                 }
                 else
                 {
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", allowMarkup: true);
                 }
             }
         }
@@ -412,7 +412,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
             var statusText = ConvertTextWithMarkdownFlag(publishingActivity.Data.StatusText, publishingActivity.Data);
-            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
+            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", allowMarkup: true);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");

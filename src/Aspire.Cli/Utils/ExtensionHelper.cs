@@ -35,4 +35,5 @@ internal static class KnownCapabilities
     public const string Baseline = "baseline.v1";
     public const string SecretPrompts = "secret-prompts.v1";
     public const string Browser = "browser";
+    public const string FilePickers = "file-pickers.v1";
 }

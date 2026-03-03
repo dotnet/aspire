@@ -24,8 +24,6 @@ internal class ExecCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
     private readonly IDotNetSdkInstaller _sdkInstaller;
-    private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly IFeatures _features;
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", ExecCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_resourceOption = new("--resource", "-r")
@@ -55,7 +53,7 @@ internal class ExecCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -63,8 +61,6 @@ internal class ExecCommand : BaseCommand
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
         _sdkInstaller = sdkInstaller;
-        _hostEnvironment = hostEnvironment;
-        _features = features;
 
         Options.Add(s_appHostOption);
         Options.Add(s_resourceOption);
@@ -79,7 +75,7 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -189,14 +185,14 @@ internal class ExecCommand : BaseCommand
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
                 backchannel = await InteractionService.ShowStatusAsync(
-                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
+                    RunCommandStrings.StartingAppHost,
                     async () =>
                     {
                         // If we use the --wait-for-debugger option we print out the process ID
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                            InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
@@ -204,10 +200,10 @@ internal class ExecCommand : BaseCommand
                         // good signal that the debugger was attached (or timed out).
                         var backchannel = await backchannelCompletionSource.Task.WaitAsync(cancellationToken);
                         return backchannel;
-                    });
+                    }, emoji: KnownEmojis.LinkedPaperclips);
 
                 commandExitCode = await InteractionService.ShowStatusAsync<int?>(
-                    $":running_shoe: {ExecCommandStrings.Running}",
+                    ExecCommandStrings.Running,
                     async () =>
                     {
                         // execute tool and stream the output
@@ -223,19 +219,19 @@ internal class ExecCommand : BaseCommand
                         }
 
                         return exitCode;
-                    });
+                    }, emoji: KnownEmojis.RunningShoe);
             }
             finally
             {
                 if (backchannel is not null)
                 {
                     _ = await InteractionService.ShowStatusAsync<int>(
-                    $":linked_paperclips: {ExecCommandStrings.StoppingAppHost}",
+                    ExecCommandStrings.StoppingAppHost,
                     async () =>
                     {
                         await backchannel.RequestStopAsync(cancellationToken);
                         return ExitCodeConstants.Success;
-                    });
+                    }, emoji: KnownEmojis.LinkedPaperclips);
                 }
             }
 
