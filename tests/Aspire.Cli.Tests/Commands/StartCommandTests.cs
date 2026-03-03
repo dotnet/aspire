@@ -68,16 +68,17 @@ public class StartCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task StartCommand_RejectsPositionalResourceArgument()
+    public void StartCommand_ForwardsUnmatchedTokensToAppHost()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("start myresource");
+        var result = command.Parse("start -- --custom-arg value");
 
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-        Assert.NotEqual(ExitCodeConstants.Success, exitCode);
+        Assert.Empty(result.Errors);
+        Assert.Contains("--custom-arg", result.UnmatchedTokens);
+        Assert.Contains("value", result.UnmatchedTokens);
     }
 }

@@ -37,6 +37,8 @@ internal sealed class StartCommand : BaseCommand
 
         Options.Add(s_noBuildOption);
         AppHostLauncher.AddLaunchOptions(this);
+
+        TreatUnmatchedTokensAsErrors = false;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -48,7 +50,7 @@ internal sealed class StartCommand : BaseCommand
         var noBuild = parseResult.GetValue(s_noBuildOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
         var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
-        var additionalArgs = new List<string>();
+        var additionalArgs = parseResult.UnmatchedTokens.ToList();
 
         if (noBuild)
         {
