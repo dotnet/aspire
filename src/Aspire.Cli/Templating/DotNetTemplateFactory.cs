@@ -54,6 +54,13 @@ internal class DotNetTemplateFactory(
         Description = TemplatingStrings.EnterXUnitVersion_Description
     };
 
+    public IEnumerable<ITemplate> GetTemplates()
+    {
+        var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
+        var nonInteractive = !hostEnvironment.SupportsInteractiveInput;
+        return GetTemplatesCore(showAllTemplates, nonInteractive);
+    }
+
     public async Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
         if (!await IsDotNetSdkAvailableAsync(cancellationToken))
