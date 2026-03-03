@@ -53,7 +53,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public ParameterResource? PasswordParameter { get; private set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether TLS is enabled for the Redis server.
+    /// Indicates whether TLS is enabled for the Redis server.
     /// </summary>
     /// <remarks>
     /// This property proxies through to <see cref="EndpointAnnotation.TlsEnabled"/> on the
