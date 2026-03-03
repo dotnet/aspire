@@ -113,7 +113,7 @@ public static class GitHubModelsExtensions
     /// <param name="apiKey">The API key parameter.</param>
     /// <returns>The resource builder.</returns>
     /// <exception cref="ArgumentException">Thrown when the provided parameter is not marked as secret.</exception>
-    [global::Aspire.Hosting.AspireExport("withApiKey", Description = "Exports WithApiKey for polyglot app hosts.")]
+    [global::Aspire.Hosting.AspireExport("withApiKey", Description = "Configures the GitHub Models API key from a secret parameter.")]
     public static IResourceBuilder<GitHubModelResource> WithApiKey(this IResourceBuilder<GitHubModelResource> builder, IResourceBuilder<ParameterResource> apiKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
