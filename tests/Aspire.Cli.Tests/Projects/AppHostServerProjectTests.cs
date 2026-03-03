@@ -288,48 +288,19 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         }
         outputHelper.WriteLine("================================");
 
-        // Assert - verify nuget.config uses the correct channel
-        // Note: NuGetConfigMerger creates the file as "nuget.config" (lowercase)
-        var nugetConfigPath = Path.Combine(project.ProjectModelPath, "nuget.config");
-        
-        // Build diagnostic info for assertion failure
-        var diagnosticInfo = new System.Text.StringBuilder();
-        diagnosticInfo.AppendLine($"appPath: {appPath}");
-        diagnosticInfo.AppendLine($"settingsJson path: {settingsJson}");
-        diagnosticInfo.AppendLine($"settingsJson exists: {File.Exists(settingsJson)}");
-        if (File.Exists(settingsJson))
-        {
-            diagnosticInfo.AppendLine($"settingsJson content: {File.ReadAllText(settingsJson)}");
-        }
-        diagnosticInfo.AppendLine($"project.ProjectModelPath: {project.ProjectModelPath}");
-        diagnosticInfo.AppendLine($"nugetConfigPath: {nugetConfigPath}");
-        diagnosticInfo.AppendLine($"nugetConfigPath exists: {File.Exists(nugetConfigPath)}");
-        
-        // List all files for debugging case sensitivity issues
-        if (Directory.Exists(project.ProjectModelPath))
-        {
-            diagnosticInfo.AppendLine("Files in ProjectModelPath:");
-            foreach (var file in Directory.GetFiles(project.ProjectModelPath))
-            {
-                diagnosticInfo.AppendLine($"  - {Path.GetFileName(file)}");
-            }
-        }
-        
-        // The nuget.config should exist
-        Assert.True(File.Exists(nugetConfigPath), $"nuget.config should be created\n\nDiagnostics:\n{diagnosticInfo}");
-        
-        var nugetConfigContent = await File.ReadAllTextAsync(nugetConfigPath);
+        // Assert - verify the csproj uses RestoreAdditionalProjectSources with the correct channel sources
+        var projectFilePath = Path.Combine(project.ProjectModelPath, DotNetBasedAppHostServerProject.ProjectFileName);
 
-        // Normalize paths for snapshot (replace machine-specific paths)
-        var normalizedContent = nugetConfigContent
-            .Replace(prNewHive.FullName, "{PR_NEW_HIVE}")
-            .Replace(prOldHive.FullName, "{PR_OLD_HIVE}");
+        Assert.True(File.Exists(projectFilePath), $"Project file should be created at {projectFilePath}");
 
-        // Snapshot verification - this will fail if the bug exists
-        // Expected: Contains {PR_NEW_HIVE} (project-local channel)
-        // Bug behavior: Contains {PR_OLD_HIVE} (global config channel)
-        await Verify(normalizedContent, extension: "xml")
-            .UseFileName("AppHostServerProject_NuGetConfig_UsesProjectLocalChannel");
+        var projectContent = await File.ReadAllTextAsync(projectFilePath);
+        var projectDoc = XDocument.Parse(projectContent);
+        var restoreSources = projectDoc.Descendants("RestoreAdditionalProjectSources").FirstOrDefault()?.Value;
+
+        // Should contain the pr-new hive path (project-local channel), NOT pr-old (global config)
+        Assert.NotNull(restoreSources);
+        Assert.Contains(prNewHive.FullName, restoreSources);
+        Assert.DoesNotContain(prOldHive.FullName, restoreSources);
     }
 
     /// <summary>

@@ -335,11 +335,11 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
 
         // Handle NuGet config and channel resolution
         string? channelName = null;
-        var nugetConfigPath = Path.Combine(_projectModelPath, "nuget.config");
 
         var userNugetConfig = FindNuGetConfig(_appPath);
         if (userNugetConfig is not null)
         {
+            var nugetConfigPath = Path.Combine(_projectModelPath, "nuget.config");
             File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
         }
 
@@ -352,27 +352,38 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         }
 
-        PackageChannel? channel;
-        if (!string.IsNullOrEmpty(configuredChannelName))
-        {
-            channel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
-        }
-        else
-        {
-            channel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Explicit);
-        }
+        // Resolve channel sources and add them via RestoreAdditionalProjectSources
+        // This is additive — it preserves the user's nuget.config and adds channel-specific sources
+        var channelSources = new List<string>();
+        var matchedChannels = !string.IsNullOrEmpty(configuredChannelName)
+            ? channels.Where(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase))
+            : channels.Where(c => c.Type == PackageChannelType.Explicit);
 
-        if (channel is not null)
+        foreach (var ch in matchedChannels)
         {
-            await NuGetConfigMerger.CreateOrUpdateAsync(
-                new DirectoryInfo(_projectModelPath),
-                channel,
-                cancellationToken: cancellationToken);
-            channelName = channel.Name;
+            channelName ??= ch.Name;
+            if (ch.Mappings is not null)
+            {
+                foreach (var mapping in ch.Mappings)
+                {
+                    if (!channelSources.Contains(mapping.Source, StringComparer.OrdinalIgnoreCase))
+                    {
+                        channelSources.Add(mapping.Source);
+                    }
+                }
+            }
         }
 
         // Create the project file
         var doc = CreateProjectFile(integrations);
+
+        // Add channel sources to the project so project references can resolve packages
+        if (channelSources.Count > 0)
+        {
+            var sourceList = string.Join(";", channelSources);
+            doc.Root!.Descendants("PropertyGroup").First()
+                .Add(new XElement("RestoreAdditionalProjectSources", sourceList));
+        }
 
         // Add appsettings.json to output
         doc.Root!.Add(new XElement("ItemGroup",
