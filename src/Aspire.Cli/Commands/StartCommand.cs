@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -47,10 +48,19 @@ internal sealed class StartCommand : BaseCommand
         var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
         var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
 
+        // Detect bare-word arguments that look like resource names and guide users
+        // to the new 'aspire resource <name> start' syntax.
+        var unmatchedTokens = parseResult.UnmatchedTokens;
+        if (unmatchedTokens.Count > 0 && !unmatchedTokens[0].StartsWith('-'))
+        {
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.StartUnmatchedResourceHint, unmatchedTokens[0]));
+            return ExitCodeConstants.InvalidCommand;
+        }
+
         var noBuild = parseResult.GetValue(s_noBuildOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
         var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
-        var additionalArgs = parseResult.UnmatchedTokens.ToList();
+        var additionalArgs = unmatchedTokens.ToList();
 
         if (noBuild)
         {

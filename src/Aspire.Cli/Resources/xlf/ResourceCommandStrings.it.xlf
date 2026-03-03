@@ -27,6 +27,11 @@
         <target state="translated">Avviare una risorsa arrestata.</target>
         <note />
       </trans-unit>
+      <trans-unit id="StartUnmatchedResourceHint">
+        <source>Unrecognized argument '{0}'. To start a resource, use: aspire resource {0} start</source>
+        <target state="new">Unrecognized argument '{0}'. To start a resource, use: aspire resource {0} start</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
