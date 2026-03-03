@@ -456,7 +456,7 @@ internal class DotNetTemplateFactory(
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                $":ice:  {TemplatingStrings.GettingTemplates}",
+                TemplatingStrings.GettingTemplates,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -480,7 +480,7 @@ internal class DotNetTemplateFactory(
                         options: options,
                         cancellationToken: cancellationToken);
                     return result;
-                });
+                }, emoji: KnownEmojis.Ice);
 
             if (templateInstallResult.ExitCode != 0)
             {

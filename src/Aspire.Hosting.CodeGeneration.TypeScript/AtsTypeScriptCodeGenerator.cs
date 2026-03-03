@@ -1320,9 +1320,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             // Multi-parameter callback - .NET sends as { p0, p1, ... }
             var paramNames = callbackParameters.Select((p, i) => $"p{i}").ToList();
-            var destructure = string.Join(", ", paramNames);
+            var destructureWithTypes = string.Join(", ", paramNames.Select(p => $"{p}: unknown"));
 
-            WriteLine($"            const args = argsData as {{ {destructure}: unknown }};");
+            WriteLine($"            const args = argsData as {{ {destructureWithTypes} }};");
 
             var callArgs = new List<string>();
             for (var i = 0; i < callbackParameters.Count; i++)

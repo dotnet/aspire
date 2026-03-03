@@ -93,4 +93,7 @@
   <data name="AddingServiceDefaultsProjectToSolution" xml:space="preserve">
     <value>Adding ServiceDefaults project to solution...</value>
   </data>
+  <data name="ResolvingTemplateVersion" xml:space="preserve">
+    <value>Resolving template version...</value>
+  </data>
 </root>

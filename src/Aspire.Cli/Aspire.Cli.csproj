@@ -16,6 +16,9 @@
          in BackchannelJsonSerializerContext.cs. Suppress until MCP graduates these types. -->
     <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
     <PublishAot>true</PublishAot>
+    <!-- Sigstore and Tuf packages are not strong-named. Aspire.Cli is an executable tool,
+         not a library referenced by strong-named assemblies, so this is safe. -->
+    <SignAssembly>false</SignAssembly>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <OptimizationPreference>Size</OptimizationPreference>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
@@ -54,6 +57,8 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
+    <PackageReference Include="Sigstore" />
+    <PackageReference Include="Tuf" />
     <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
@@ -70,6 +75,7 @@
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)ColorGenerator.cs" Link="Utils\ColorGenerator.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)DurationFormatter.cs" Link="Utils\DurationFormatter.cs" />

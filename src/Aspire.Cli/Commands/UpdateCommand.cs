@@ -152,7 +152,9 @@ internal sealed class UpdateCommand : BaseCommand
             var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
             PackageChannel channel;
 
-            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var allChannels = await InteractionService.ShowStatusAsync(
+                UpdateCommandStrings.CheckingForUpdates,
+                async () => await _packagingService.GetChannelsAsync(cancellationToken));
 
             if (!string.IsNullOrEmpty(channelName))
             {
@@ -347,8 +349,16 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             // Extract archive
-            InteractionService.DisplayMessage(KnownEmojis.Package, "Extracting new CLI...");
-            await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
+            await InteractionService.ShowStatusAsync(
+                UpdateCommandStrings.ExtractingNewCli,
+                async () =>
+                {
+                    await ArchiveHelper.ExtractAsync(archivePath, tempExtractDir, cancellationToken);
+                    return 0;
+                },
+                KnownEmojis.Package);
+
+            InteractionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.ExtractedNewCli);
 
             // Find the aspire executable in the extracted files
             var newExePath = Path.Combine(tempExtractDir, exeName);

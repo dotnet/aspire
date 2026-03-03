@@ -515,6 +515,14 @@ class TestRedisResource(ResourceBuilderBase):
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/waitForReadyAsync", args)
 
+    def with_multi_param_handle_callback(self, callback: Callable[[TestCallbackContext, TestEnvironmentContext], None]) -> TestRedisResource:
+        """Tests multi-param callback destructuring"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback", args)
+
 
 class TestResourceContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):

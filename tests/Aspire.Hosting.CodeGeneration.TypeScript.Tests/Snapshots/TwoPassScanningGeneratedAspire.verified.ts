@@ -7467,6 +7467,29 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         );
     }
 
+    /** @internal */
+    private async _withMultiParamHandleCallbackInternal(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as TestCallbackContextHandle;
+            const arg1 = new TestCallbackContext(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as TestEnvironmentContextHandle;
+            const arg2 = new TestEnvironmentContext(arg2Handle, this._client);
+            await callback(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withMultiParamHandleCallback',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Tests multi-param callback destructuring */
+    withMultiParamHandleCallback(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withMultiParamHandleCallbackInternal(callback));
+    }
+
 }
 
 /**
@@ -7802,6 +7825,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Waits for the resource to be ready */
     waitForReadyAsync(timeout: number, options?: WaitForReadyAsyncOptions): Promise<boolean> {
         return this._promise.then(obj => obj.waitForReadyAsync(timeout, options));
+    }
+
+    /** Tests multi-param callback destructuring */
+    withMultiParamHandleCallback(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withMultiParamHandleCallback(callback)));
     }
 
 }
