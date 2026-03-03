@@ -918,7 +918,7 @@ public static class ProjectResourceBuilderExtensions
 
         return new VSCodeCSharpDebuggerProperties
         {
-            WorkingDirectory = Path.GetDirectoryName(projectPath)!,
+            WorkingDirectory = Path.GetDirectoryName(projectPath) ?? projectPath,
             Name = $"{modeText} C#: {displayProgramPath}",
             Program = projectPath
         };

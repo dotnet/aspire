@@ -945,7 +945,8 @@ public static class PythonAppResourceBuilderExtensions
                 string interpreterPath;
                 if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
                 {
-                    interpreterPath = string.Empty;
+                    options.DebugConsoleLogger.LogWarning("No virtual environment configured for resource '{ResourceName}'. Falling back to system 'python'.", builder.Resource.Name);
+                    interpreterPath = "python";
                 }
                 else
                 {

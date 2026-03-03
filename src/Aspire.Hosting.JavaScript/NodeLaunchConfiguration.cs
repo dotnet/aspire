@@ -91,13 +91,13 @@ internal class VSCodeNodeDebuggerProperties : VSCodeDebuggerPropertiesBase
     /// The pattern &lt;node_internals&gt;/** skips Node.js internal modules.
     /// </summary>
     [JsonPropertyName("skipFiles")]
-    public string[]? SkipFiles { get; set; }
+    public string[]? SkipFiles { get; set; } = ["<node_internals>/**"];
 
     /// <summary>
     /// Use JavaScript source maps (if they exist). Defaults to true.
     /// </summary>
     [JsonPropertyName("sourceMaps")]
-    public bool? SourceMaps { get; set; }
+    public bool? SourceMaps { get; set; } = true;
 
     /// <summary>
     /// An array of glob patterns for locating generated JavaScript files from source maps.
@@ -127,7 +127,7 @@ internal class VSCodeNodeDebuggerProperties : VSCodeDebuggerPropertiesBase
     /// Track all subprocesses of the program and debug them too.
     /// </summary>
     [JsonPropertyName("autoAttachChildProcesses")]
-    public bool? AutoAttachChildProcesses { get; set; }
+    public bool? AutoAttachChildProcesses { get; set; } = true;
 
     /// <summary>
     /// A list of glob patterns for locations where source maps should be resolved.

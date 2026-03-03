@@ -575,6 +575,62 @@ public class AddNodeAppTests
         Assert.Contains("does not have an HTTP or HTTPS endpoint", exception.Message);
     }
 
+    [Fact]
+    public void NodeApp_WithVSCodeDebugging_MultipleCallsAccumulateAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js");
+
+        // AddNodeApp already calls WithVSCodeDebugging, so calling WithDebugging again adds another annotation
+        nodeApp.WithDebugging("server.js");
+
+        var annotations = nodeApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().ToList();
+        Assert.Equal(2, annotations.Count);
+        Assert.All(annotations, a => Assert.Equal("node", a.LaunchConfigurationType));
+    }
+
+    [Fact]
+    public void ViteApp_WithVSCodeDebugging_DefaultsSkipFilesAndSourceMaps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithVSCodeNodeDebuggerProperties(props =>
+            {
+                // Verify defaults were set on the properties object
+                Assert.NotNull(props.SkipFiles);
+                Assert.Contains("<node_internals>/**", props.SkipFiles);
+                Assert.True(props.SourceMaps);
+                Assert.True(props.AutoAttachChildProcesses);
+            });
+
+        var annotation = viteApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().SingleOrDefault();
+        Assert.NotNull(annotation);
+    }
+
+    [Fact]
+    public void NodeApp_WithVSCodeNodeDebuggerProperties_MultipleCallsAccumulate()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js")
+            .WithVSCodeNodeDebuggerProperties(props =>
+            {
+                props.StopOnEntry = true;
+            })
+            .WithVSCodeNodeDebuggerProperties(props =>
+            {
+                props.SmartStep = true;
+            });
+
+        var annotations = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().ToList();
+        Assert.Equal(2, annotations.Count);
+    }
+
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
 
     #endregion

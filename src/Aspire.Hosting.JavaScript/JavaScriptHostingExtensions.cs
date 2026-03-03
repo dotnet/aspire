@@ -1034,9 +1034,6 @@ public static class JavaScriptHostingExtensions
                         WorkingDirectory = builder.Resource.WorkingDirectory,
                         RuntimeExecutable = runtimeExecutable,
                         RuntimeArgs = [],
-                        SkipFiles = ["<node_internals>/**"],
-                        SourceMaps = true,
-                        AutoAttachChildProcesses = true,
                         ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
                     };
                 }
@@ -1050,9 +1047,6 @@ public static class JavaScriptHostingExtensions
                         WorkingDirectory = builder.Resource.WorkingDirectory,
                         Program = Path.Combine(builder.Resource.WorkingDirectory, scriptPath),
                         RuntimeExecutable = runtimeExecutable,
-                        SkipFiles = ["<node_internals>/**"],
-                        SourceMaps = true,
-                        AutoAttachChildProcesses = true,
                         ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
                     };
                 }
@@ -1125,9 +1119,6 @@ public static class JavaScriptHostingExtensions
                     WorkingDirectory = builder.Resource.WorkingDirectory,
                     RuntimeExecutable = packageManager,
                     RuntimeArgs = [],
-                    SkipFiles = ["<node_internals>/**"],
-                    SourceMaps = true,
-                    AutoAttachChildProcesses = true,
                     ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
                 };
 

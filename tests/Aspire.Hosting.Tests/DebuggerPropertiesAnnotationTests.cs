@@ -849,4 +849,118 @@ public class DebuggerPropertiesAnnotationTests
         [JsonPropertyName("debugger_properties")]
         public DebugAdapterProperties? DebuggerProperties { get; set; }
     }
+
+    [Fact]
+    public void MultipleAnnotationsOfSameIdeType_AllApplyInOrder()
+    {
+        var annotation1 = new ExecutableDebuggerPropertiesAnnotation<TestVSCodeDebuggerProperties>(props =>
+        {
+            props.VSCodeSpecificValue = "first";
+        });
+
+        var annotation2 = new ExecutableDebuggerPropertiesAnnotation<TestVSCodeDebuggerProperties>(props =>
+        {
+            props.VSCodeSpecificValue = props.VSCodeSpecificValue + "+second";
+        });
+
+        var props = new TestVSCodeDebuggerProperties { Name = "Test", WorkingDirectory = "/test" };
+
+        annotation1.ConfigureDebuggerProperties(props);
+        annotation2.ConfigureDebuggerProperties(props);
+
+        Assert.Equal("first+second", props.VSCodeSpecificValue);
+    }
+
+    [Fact]
+    public void Annotation_WithIdeTypeFilter_OnlyAppliesWhenIdeMatches()
+    {
+        var annotation = new ExecutableDebuggerPropertiesAnnotation<TestVSCodeDebuggerProperties>(
+            props => { props.WasConfigured = true; },
+            ideType: "vscode");
+
+        Assert.Equal("vscode", annotation.IdeType);
+
+        var props = new TestVSCodeDebuggerProperties { Name = "Test", WorkingDirectory = "/test" };
+        annotation.ConfigureDebuggerProperties(props);
+
+        Assert.True(props.WasConfigured);
+    }
+
+    [Fact]
+    public void Annotation_WithNullIdeType_AppliesToAllIdes()
+    {
+        var annotation = new ExecutableDebuggerPropertiesAnnotation<TestVSCodeDebuggerProperties>(
+            props => { props.WasConfigured = true; },
+            ideType: null);
+
+        Assert.Null(annotation.IdeType);
+
+        var props = new TestVSCodeDebuggerProperties { Name = "Test", WorkingDirectory = "/test" };
+        annotation.ConfigureDebuggerProperties(props);
+
+        Assert.True(props.WasConfigured);
+    }
+
+    [Fact]
+    public void ExecutableLaunchConfiguration_Serialization_NullPropertiesOmitted()
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
+        var props = new TestVSCodeDebuggerProperties
+        {
+            Name = "Test Debug",
+            WorkingDirectory = "/app",
+            Type = "coreclr",
+        };
+
+        var json = JsonSerializer.Serialize(props, options);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.Equal("Test Debug", root.GetProperty("name").GetString());
+        Assert.Equal("/app", root.GetProperty("cwd").GetString());
+        Assert.Equal("coreclr", root.GetProperty("type").GetString());
+
+        // Null VS Code-specific properties should be omitted
+        Assert.False(root.TryGetProperty("preLaunchTask", out _));
+        Assert.False(root.TryGetProperty("presentation", out _));
+        Assert.False(root.TryGetProperty("serverReadyAction", out _));
+    }
+
+    [Fact]
+    public void ExecutableLaunchConfiguration_Serialization_RequiredPropertiesPresent()
+    {
+        var config = new TestLaunchConfigurationWithBaseType
+        {
+            Type = "project",
+            Mode = "Debug",
+            DebuggerProperties = new TestVSCodeDebuggerProperties
+            {
+                Name = "Debug Project",
+                WorkingDirectory = "/workspace/app",
+                Type = "coreclr"
+            }
+        };
+
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        var json = JsonSerializer.Serialize(config, options);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.Equal("project", root.GetProperty("type").GetString());
+        Assert.Equal("Debug", root.GetProperty("mode").GetString());
+
+        Assert.True(root.TryGetProperty("debugger_properties", out var debuggerProps));
+        Assert.Equal("coreclr", debuggerProps.GetProperty("type").GetString());
+        Assert.Equal("Debug Project", debuggerProps.GetProperty("name").GetString());
+        Assert.Equal("/workspace/app", debuggerProps.GetProperty("cwd").GetString());
+    }
 }

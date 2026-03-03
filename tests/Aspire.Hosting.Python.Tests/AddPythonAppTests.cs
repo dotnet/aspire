@@ -2480,6 +2480,68 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Equal("python", annotation.LaunchConfigurationType);
     }
 
+    [Fact]
+    public void PythonApp_WithVSCodePythonDebuggerProperties_MultipleCallsAccumulate()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
+            .WithVSCodePythonDebuggerProperties(props =>
+            {
+                props.Jinja = false;
+            })
+            .WithVSCodePythonDebuggerProperties(props =>
+            {
+                props.StopOnEntry = true;
+            });
+
+        var annotations = pythonApp.Resource.Annotations
+            .OfType<ExecutableDebuggerPropertiesAnnotation<VSCodePythonDebuggerProperties>>()
+            .ToList();
+        Assert.Equal(2, annotations.Count);
+    }
+
+    [Fact]
+    public void PythonApp_InPublishMode_WithDebugging_DoesNotAddAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
+            .WithDebugging();
+
+        var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        // WithDebugging in publish mode should not add annotation (early return in WithDebugSupport)
+        // The only annotation present is from AddPythonApp itself which also calls WithVSCodeDebugging
+        // which also returns early in publish mode
+        Assert.Null(annotation);
+    }
+
+    [Fact]
+    public void PythonModule_InRunMode_WithDebugging_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var pythonApp = builder.AddPythonModule("pythonapp", tempDir.Path, "flask")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
+            .WithDebugging();
+
+        var annotations = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().ToList();
+        // AddPythonModule + explicit WithDebugging = 2 annotations
+        Assert.Equal(2, annotations.Count);
+        Assert.All(annotations, a => Assert.Equal("python", a.LaunchConfigurationType));
+    }
+
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
 
     #endregion
