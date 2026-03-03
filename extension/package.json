@@ -29,7 +29,10 @@
     "onDebugDynamicConfigurations:aspire",
     "workspaceContains:**/*.csproj",
     "onView:workbench.view.debug",
-    "workspaceContains:**/apphost.cs"
+    "workspaceContains:**/apphost.cs",
+    "onCommand:aspire-vscode.installCliStable",
+    "onCommand:aspire-vscode.installCliDaily",
+    "onCommand:aspire-vscode.verifyCliInstalled"
   ],
   "main": "./dist/extension.js",
   "l10n": "./l10n",
@@ -234,6 +237,21 @@
         "title": "%command.executeResourceCommand%",
         "category": "Aspire",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "aspire-vscode.installCliStable",
+        "title": "%command.installCliStable%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.installCliDaily",
+        "title": "%command.installCliDaily%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.verifyCliInstalled",
+        "title": "%command.verifyCliInstalled%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [
@@ -410,7 +428,77 @@
           "scope": "window"
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "aspire-vscode.getStarted",
+        "title": "%walkthrough.getStarted.title%",
+        "description": "%walkthrough.getStarted.description%",
+        "steps": [
+          {
+            "id": "aspire-vscode.getStarted.welcome",
+            "title": "%walkthrough.getStarted.welcome.title%",
+            "description": "%walkthrough.getStarted.welcome.description%",
+            "media": {
+              "markdown": "walkthrough/welcome.md"
+            }
+          },
+          {
+            "id": "aspire-vscode.getStarted.installCli",
+            "title": "%walkthrough.getStarted.installCli.title%",
+            "description": "%walkthrough.getStarted.installCli.description%",
+            "media": {
+              "markdown": "walkthrough/installCli.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.verifyCliInstalled"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.createProject",
+            "title": "%walkthrough.getStarted.createProject.title%",
+            "description": "%walkthrough.getStarted.createProject.description%",
+            "media": {
+              "markdown": "walkthrough/createProject.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.new"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.runApp",
+            "title": "%walkthrough.getStarted.runApp.title%",
+            "description": "%walkthrough.getStarted.runApp.description%",
+            "media": {
+              "markdown": "walkthrough/runApp.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.runAppHost",
+              "onCommand:aspire-vscode.debugAppHost"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.dashboard",
+            "title": "%walkthrough.getStarted.dashboard.title%",
+            "description": "%walkthrough.getStarted.dashboard.description%",
+            "media": {
+              "markdown": "walkthrough/dashboard.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.openDashboard"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.nextSteps",
+            "title": "%walkthrough.getStarted.nextSteps.title%",
+            "description": "%walkthrough.getStarted.nextSteps.description%",
+            "media": {
+              "markdown": "walkthrough/nextSteps.md"
+            }
+          }
+        ]
+      }
+    ]
   },
   "repository": {
     "type": "git",
