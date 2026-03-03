@@ -7,6 +7,7 @@ namespace Aspire.Hosting.Orleans;
 /// Represents an Orleans client.
 /// </summary>
 /// <param name="service">The Orleans service which this client connects to.</param>
+[AspireExport]
 public sealed class OrleansServiceClient(OrleansService service)
 {
     /// <summary>
