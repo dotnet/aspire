@@ -13,7 +13,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will enable or suppress copying response headers to the client response.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformCopyResponseHeaders", Description = "Exports WithTransformCopyResponseHeaders for polyglot app hosts.")]
+    [AspireExport("withTransformCopyResponseHeaders", Description = "Adds the transform which will enable or suppress copying response headers to the client response.")]
     public static YarpRoute WithTransformCopyResponseHeaders(this YarpRoute route, bool copy = true)
     {
         route.Configure(r => r.WithTransformCopyResponseHeaders(copy));
@@ -23,7 +23,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will enable or suppress copying response trailers to the client response.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformCopyResponseTrailers", Description = "Exports WithTransformCopyResponseTrailers for polyglot app hosts.")]
+    [AspireExport("withTransformCopyResponseTrailers", Description = "Adds the transform which will enable or suppress copying response trailers to the client response.")]
     public static YarpRoute WithTransformCopyResponseTrailers(this YarpRoute route, bool copy = true)
     {
         route.Configure(r => r.WithTransformCopyResponseTrailers(copy));
@@ -33,7 +33,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will append or set the response header.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseHeader", Description = "Exports WithTransformResponseHeader for polyglot app hosts.")]
+    [AspireExport("withTransformResponseHeader", Description = "Adds the transform which will append or set the response header.")]
     public static YarpRoute WithTransformResponseHeader(this YarpRoute route, string headerName, string value, bool append = true, ResponseCondition condition = ResponseCondition.Success)
     {
         route.Configure(r => r.WithTransformResponseHeader(headerName, value, append, condition));
@@ -43,7 +43,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will remove the response header.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseHeaderRemove", Description = "Exports WithTransformResponseHeaderRemove for polyglot app hosts.")]
+    [AspireExport("withTransformResponseHeaderRemove", Description = "Adds the transform which will remove the response header.")]
     public static YarpRoute WithTransformResponseHeaderRemove(this YarpRoute route, string headerName, ResponseCondition condition = ResponseCondition.Success)
     {
         route.Configure(r => r.WithTransformResponseHeaderRemove(headerName, condition));
@@ -54,7 +54,7 @@ public static class ResponseTransformExtensions
     /// Adds the transform which will only copy the allowed response headers. Other transforms
     /// that modify or append to existing headers may be affected if not included in the allow list.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseHeadersAllowed", Description = "Exports WithTransformResponseHeadersAllowed for polyglot app hosts.")]
+    [AspireExport("withTransformResponseHeadersAllowed", Description = "Adds the transform which will only copy the allowed response headers. Other transforms")]
     public static YarpRoute WithTransformResponseHeadersAllowed(this YarpRoute route, params string[] allowedHeaders)
     {
         route.Configure(r => r.WithTransformResponseHeadersAllowed(allowedHeaders));
@@ -64,7 +64,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will append or set the response trailer.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseTrailer", Description = "Exports WithTransformResponseTrailer for polyglot app hosts.")]
+    [AspireExport("withTransformResponseTrailer", Description = "Adds the transform which will append or set the response trailer.")]
     public static YarpRoute WithTransformResponseTrailer(this YarpRoute route, string headerName, string value, bool append = true, ResponseCondition condition = ResponseCondition.Success)
     {
         route.Configure(r => r.WithTransformResponseTrailer(headerName, value, append, condition));
@@ -74,7 +74,7 @@ public static class ResponseTransformExtensions
     /// <summary>
     /// Adds the transform which will remove the response trailer.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseTrailerRemove", Description = "Exports WithTransformResponseTrailerRemove for polyglot app hosts.")]
+    [AspireExport("withTransformResponseTrailerRemove", Description = "Adds the transform which will remove the response trailer.")]
     public static YarpRoute WithTransformResponseTrailerRemove(this YarpRoute route, string headerName, ResponseCondition condition = ResponseCondition.Success)
     {
         route.Configure(r => r.WithTransformResponseTrailerRemove(headerName, condition));
@@ -85,7 +85,7 @@ public static class ResponseTransformExtensions
     /// Adds the transform which will only copy the allowed response trailers. Other transforms
     /// that modify or append to existing trailers may be affected if not included in the allow list.
     /// </summary>
-    [global::Aspire.Hosting.AspireExport("withTransformResponseTrailersAllowed", Description = "Exports WithTransformResponseTrailersAllowed for polyglot app hosts.")]
+    [AspireExport("withTransformResponseTrailersAllowed", Description = "Adds the transform which will only copy the allowed response trailers. Other transforms")]
     public static YarpRoute WithTransformResponseTrailersAllowed(this YarpRoute route, params string[] allowedHeaders)
     {
         route.Configure(r => r.WithTransformResponseTrailersAllowed(allowedHeaders));

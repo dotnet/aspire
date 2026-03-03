@@ -26,7 +26,7 @@ public static class YarpResourceExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [global::Aspire.Hosting.AspireExport("addYarp", Description = "Exports AddYarp for polyglot app hosts.")]
+    [AspireExport("addYarp", Description = "Adds a YARP container to the application model.")]
     public static IResourceBuilder<YarpResource> AddYarp(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -103,7 +103,7 @@ public static class YarpResourceExtensions
     /// </summary>
     /// <param name="builder">The YARP resource to configure.</param>
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
-    [global::Aspire.Hosting.AspireExport("withConfiguration", Description = "Exports WithConfiguration for polyglot app hosts.")]
+    [AspireExport("withConfiguration", Description = "Configure the YARP resource.")]
     public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
     {
         var configBuilder = new YarpConfigurationBuilder(builder);
@@ -116,7 +116,7 @@ public static class YarpResourceExtensions
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
-    [global::Aspire.Hosting.AspireExport("withHostPort", Description = "Exports WithHostPort for polyglot app hosts.")]
+    [AspireExport("withHostPort", Description = "Configures the host port that the YARP resource is exposed on instead of using randomly assigned port.")]
     public static IResourceBuilder<YarpResource> WithHostPort(this IResourceBuilder<YarpResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -134,7 +134,7 @@ public static class YarpResourceExtensions
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The updated resource builder.</returns>
-    [global::Aspire.Hosting.AspireExport("withHostHttpsPort", Description = "Exports WithHostHttpsPort for polyglot app hosts.")]
+    [AspireExport("withHostHttpsPort", Description = "Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port.")]
     public static IResourceBuilder<YarpResource> WithHostHttpsPort(this IResourceBuilder<YarpResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -149,7 +149,7 @@ public static class YarpResourceExtensions
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [global::Aspire.Hosting.AspireExport("withStaticFiles1", MethodName = "withStaticFiles", Description = "Exports WithStaticFiles for polyglot app hosts.")]
+    [AspireExport("withStaticFiles1", MethodName = "withStaticFiles", Description = "Enables static file serving in the YARP resource. Static files are served from the wwwroot folder.")]
     public static IResourceBuilder<YarpResource> WithStaticFiles(this IResourceBuilder<YarpResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -165,7 +165,7 @@ public static class YarpResourceExtensions
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="sourcePath">The source path containing static files to serve.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [global::Aspire.Hosting.AspireExport("withStaticFiles2", MethodName = "withStaticFiles", Description = "Exports WithStaticFiles for polyglot app hosts.")]
+    [AspireExport("withStaticFiles2", MethodName = "withStaticFiles", Description = "Enables static file serving. In run mode: bind mounts  to /wwwroot.")]
     public static IResourceBuilder<YarpResource> WithStaticFiles(this IResourceBuilder<YarpResource> builder, string sourcePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -200,7 +200,7 @@ public static class YarpResourceExtensions
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="resourceWithFiles">The resource with container files.</param>
     /// <returns>The updated resource builder.</returns>
-    [global::Aspire.Hosting.AspireExport("publishWithStaticFiles", Description = "Exports PublishWithStaticFiles for polyglot app hosts.")]
+    [AspireExport("publishWithStaticFiles", Description = "In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot.")]
     public static IResourceBuilder<YarpResource> PublishWithStaticFiles(this IResourceBuilder<YarpResource> builder, IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
