@@ -54,7 +54,10 @@ Set-StrictMode -Version Latest
 # Parse affected projects
 $affected = @()
 if ($AffectedProjects -and $AffectedProjects -ne "[]") {
-  $affected = @($AffectedProjects | ConvertFrom-Json)
+  $parsed = $AffectedProjects | ConvertFrom-Json
+  if ($null -ne $parsed) {
+    $affected = @($parsed)
+  }
 }
 
 # Normalize paths for comparison (forward slashes, case-insensitive)
@@ -62,6 +65,9 @@ $affectedSet = [System.Collections.Generic.HashSet[string]]::new(
   [StringComparer]::OrdinalIgnoreCase
 )
 foreach ($p in $affected) {
+  if ([string]::IsNullOrWhiteSpace($p)) {
+    continue
+  }
   $normalized = $p -replace '\\', '/'
   [void]$affectedSet.Add($normalized)
 }
@@ -104,6 +110,10 @@ foreach ($matrixName in $Matrices.Keys) {
   $removed = @()
 
   foreach ($entry in $entries) {
+    if (-not $entry.testProjectPath) {
+      $removed += $entry
+      continue
+    }
     $testPath = ($entry.testProjectPath -replace '\\', '/')
     if ($affectedSet.Contains($testPath)) {
       $kept += $entry

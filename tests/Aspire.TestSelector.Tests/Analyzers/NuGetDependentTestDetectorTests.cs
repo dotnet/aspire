@@ -424,7 +424,7 @@ public class NuGetDependentTestDetectorTests
             // Should find the real test project but skip the TestFixtures one
             Assert.Single(result);
             Assert.Contains("tests/RealNuGetTests/RealNuGetTests.csproj", result);
-            Assert.DoesNotContain(result, p => p.Contains("TestFixtures"));
+            Assert.DoesNotContain(result, p => p.Contains("/TestFixtures/"));
         }
         finally
         {

@@ -24,7 +24,8 @@ jobs:
       run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
       affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
       # True if all test categories are skipped and no affected projects
-      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
+      # Note: run_integrations and run_cli_e2e are excluded because they are hardcoded to true in audit mode
+      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
