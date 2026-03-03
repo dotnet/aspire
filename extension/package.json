@@ -37,6 +37,12 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "aspire-mcp-server",
+        "label": "Aspire"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
