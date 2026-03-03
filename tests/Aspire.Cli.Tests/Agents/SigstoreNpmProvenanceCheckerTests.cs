@@ -8,18 +8,23 @@ namespace Aspire.Cli.Tests.Agents;
 public class SigstoreNpmProvenanceCheckerTests
 {
     [Fact]
-    public void FindSlsaProvenanceBundle_WithValidSlsaAttestation_ReturnsBundle()
+    public void ParseAttestation_WithValidSlsaAttestation_ReturnsBundleAndProvenance()
     {
         var json = BuildAttestationJsonWithBundle("https://github.com/microsoft/playwright-cli");
 
-        var bundle = SigstoreNpmProvenanceChecker.FindSlsaProvenanceBundle(json);
+        var result = SigstoreNpmProvenanceChecker.ParseAttestation(json);
 
-        Assert.NotNull(bundle);
-        Assert.NotNull(bundle["dsseEnvelope"]);
+        Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Outcome);
+        Assert.NotNull(result.BundleNode);
+        Assert.NotNull(result.BundleNode["dsseEnvelope"]);
+        Assert.NotNull(result.Provenance);
+        Assert.Equal("https://github.com/microsoft/playwright-cli", result.Provenance.SourceRepository);
+        Assert.Equal(".github/workflows/publish.yml", result.Provenance.WorkflowPath);
+        Assert.Equal("refs/tags/v0.1.1", result.Provenance.WorkflowRef);
     }
 
     [Fact]
-    public void FindSlsaProvenanceBundle_WithNoSlsaPredicate_ReturnsNull()
+    public void ParseAttestation_WithNoSlsaPredicate_ReturnsSlsaProvenanceNotFound()
     {
         var json = """
         {
@@ -36,19 +41,178 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundle = SigstoreNpmProvenanceChecker.FindSlsaProvenanceBundle(json);
+        var result = SigstoreNpmProvenanceChecker.ParseAttestation(json);
 
-        Assert.Null(bundle);
+        Assert.Equal(ProvenanceVerificationOutcome.SlsaProvenanceNotFound, result.Outcome);
     }
 
     [Fact]
-    public void FindSlsaProvenanceBundle_WithEmptyAttestations_ReturnsNull()
+    public void ParseAttestation_WithEmptyAttestations_ReturnsSlsaProvenanceNotFound()
     {
         var json = """{"attestations": []}""";
 
-        var bundle = SigstoreNpmProvenanceChecker.FindSlsaProvenanceBundle(json);
+        var result = SigstoreNpmProvenanceChecker.ParseAttestation(json);
 
-        Assert.Null(bundle);
+        Assert.Equal(ProvenanceVerificationOutcome.SlsaProvenanceNotFound, result.Outcome);
+    }
+
+    [Fact]
+    public void ParseAttestation_WithInvalidJson_ReturnsAttestationParseFailed()
+    {
+        var result = SigstoreNpmProvenanceChecker.ParseAttestation("not valid json {{{");
+
+        Assert.Equal(ProvenanceVerificationOutcome.AttestationParseFailed, result.Outcome);
+    }
+
+    [Fact]
+    public void ParseAttestation_WithMissingPayload_ReturnsPayloadDecodeFailed()
+    {
+        var json = """
+        {
+            "attestations": [
+                {
+                    "predicateType": "https://slsa.dev/provenance/v1",
+                    "bundle": {
+                        "dsseEnvelope": {}
+                    }
+                }
+            ]
+        }
+        """;
+
+        var result = SigstoreNpmProvenanceChecker.ParseAttestation(json);
+
+        Assert.Equal(ProvenanceVerificationOutcome.PayloadDecodeFailed, result.Outcome);
+        Assert.NotNull(result.BundleNode);
+    }
+
+    [Fact]
+    public void ParseProvenanceFromStatement_WithValidStatement_ReturnsProvenance()
+    {
+        var payload = BuildProvenancePayload("https://github.com/microsoft/playwright-cli");
+        var bytes = System.Text.Encoding.UTF8.GetBytes(payload);
+
+        var provenance = SigstoreNpmProvenanceChecker.ParseProvenanceFromStatement(bytes);
+
+        Assert.NotNull(provenance);
+        Assert.Equal("https://github.com/microsoft/playwright-cli", provenance.SourceRepository);
+        Assert.Equal(".github/workflows/publish.yml", provenance.WorkflowPath);
+        Assert.Equal("refs/tags/v0.1.1", provenance.WorkflowRef);
+        Assert.Equal("https://github.com/actions/runner/github-hosted", provenance.BuilderId);
+        Assert.Equal("https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1", provenance.BuildType);
+    }
+
+    [Fact]
+    public void ParseProvenanceFromStatement_WithInvalidJson_ReturnsNull()
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes("not json");
+
+        var provenance = SigstoreNpmProvenanceChecker.ParseProvenanceFromStatement(bytes);
+
+        Assert.Null(provenance);
+    }
+
+    [Fact]
+    public void VerifyProvenanceFields_WithAllFieldsMatching_ReturnsVerified()
+    {
+        var provenance = new NpmProvenanceData
+        {
+            SourceRepository = "https://github.com/microsoft/playwright-cli",
+            WorkflowPath = ".github/workflows/publish.yml",
+            BuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            WorkflowRef = "refs/tags/v0.1.1",
+            BuilderId = "https://github.com/actions/runner/github-hosted"
+        };
+
+        var result = SigstoreNpmProvenanceChecker.VerifyProvenanceFields(
+            provenance,
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            refInfo => refInfo.Kind == "tags");
+
+        Assert.Equal(ProvenanceVerificationOutcome.Verified, result.Outcome);
+    }
+
+    [Fact]
+    public void VerifyProvenanceFields_WithSourceRepoMismatch_ReturnsSourceRepositoryMismatch()
+    {
+        var provenance = new NpmProvenanceData
+        {
+            SourceRepository = "https://github.com/evil/repo",
+            WorkflowPath = ".github/workflows/publish.yml",
+            BuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+        };
+
+        var result = SigstoreNpmProvenanceChecker.VerifyProvenanceFields(
+            provenance,
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            null);
+
+        Assert.Equal(ProvenanceVerificationOutcome.SourceRepositoryMismatch, result.Outcome);
+    }
+
+    [Fact]
+    public void VerifyProvenanceFields_WithWorkflowMismatch_ReturnsWorkflowMismatch()
+    {
+        var provenance = new NpmProvenanceData
+        {
+            SourceRepository = "https://github.com/microsoft/playwright-cli",
+            WorkflowPath = ".github/workflows/evil.yml",
+            BuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+        };
+
+        var result = SigstoreNpmProvenanceChecker.VerifyProvenanceFields(
+            provenance,
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            null);
+
+        Assert.Equal(ProvenanceVerificationOutcome.WorkflowMismatch, result.Outcome);
+    }
+
+    [Fact]
+    public void VerifyProvenanceFields_WithBuildTypeMismatch_ReturnsBuildTypeMismatch()
+    {
+        var provenance = new NpmProvenanceData
+        {
+            SourceRepository = "https://github.com/microsoft/playwright-cli",
+            WorkflowPath = ".github/workflows/publish.yml",
+            BuildType = "https://evil.example.com/build/v1",
+        };
+
+        var result = SigstoreNpmProvenanceChecker.VerifyProvenanceFields(
+            provenance,
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            null);
+
+        Assert.Equal(ProvenanceVerificationOutcome.BuildTypeMismatch, result.Outcome);
+    }
+
+    [Fact]
+    public void VerifyProvenanceFields_WithWorkflowRefValidationFailure_ReturnsWorkflowRefMismatch()
+    {
+        var provenance = new NpmProvenanceData
+        {
+            SourceRepository = "https://github.com/microsoft/playwright-cli",
+            WorkflowPath = ".github/workflows/publish.yml",
+            BuildType = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            WorkflowRef = "refs/heads/main"
+        };
+
+        var result = SigstoreNpmProvenanceChecker.VerifyProvenanceFields(
+            provenance,
+            "https://github.com/microsoft/playwright-cli",
+            ".github/workflows/publish.yml",
+            "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            refInfo => refInfo.Kind == "tags");
+
+        Assert.Equal(ProvenanceVerificationOutcome.WorkflowRefMismatch, result.Outcome);
     }
 
     [Theory]
