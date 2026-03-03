@@ -66,4 +66,18 @@ public class StartCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public async Task StartCommand_RejectsPositionalResourceArgument()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("start myresource");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.NotEqual(ExitCodeConstants.Success, exitCode);
+    }
 }
