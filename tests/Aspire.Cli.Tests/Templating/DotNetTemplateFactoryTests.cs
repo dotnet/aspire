@@ -463,6 +463,9 @@ public class DotNetTemplateFactoryTests
         public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
             => throw new NotImplementedException();
 
+        public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+            => throw new NotImplementedException();
+
         public Task<bool> ConfirmAsync(string prompt, bool defaultAnswer, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 

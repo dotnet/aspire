@@ -71,7 +71,7 @@ internal sealed class DescribeCommand : BaseCommand
 
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
-    private readonly ResourceColorMap _resourceColorMap = new();
+    private readonly ResourceColorMap _resourceColorMap;
 
     private static readonly Argument<string?> s_resourceArgument = new("resource")
     {
@@ -95,11 +95,13 @@ internal sealed class DescribeCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
+        ResourceColorMap resourceColorMap,
         ILogger<DescribeCommand> logger)
         : base("describe", DescribeCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         Aliases.Add("resources");
         _interactionService = interactionService;
+        _resourceColorMap = resourceColorMap;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
         Arguments.Add(s_resourceArgument);

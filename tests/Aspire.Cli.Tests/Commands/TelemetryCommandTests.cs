@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.Otlp;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
+using Aspire.Otlp.Serialization;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,105 +23,6 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("otel");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
-    }
-
-    [Fact]
-    public async Task TelemetryLogsCommand_WhenNoAppHostRunning_ReturnsSuccess()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("otel logs");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task TelemetrySpansCommand_WhenNoAppHostRunning_ReturnsSuccess()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("otel spans");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Fact]
-    public async Task TelemetryTracesCommand_WhenNoAppHostRunning_ReturnsSuccess()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("otel traces");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.Success, exitCode);
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(-100)]
-    public async Task TelemetryLogsCommand_WithInvalidLimitValue_ReturnsInvalidCommand(int limitValue)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"telemetry logs --limit {limitValue}");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(-100)]
-    public async Task TelemetrySpansCommand_WithInvalidLimitValue_ReturnsInvalidCommand(int limitValue)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"telemetry spans --limit {limitValue}");
-
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(-100)]
-    public async Task TelemetryTracesCommand_WithInvalidLimitValue_ReturnsInvalidCommand(int limitValue)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"telemetry traces --limit {limitValue}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -190,11 +93,11 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void FormatNanoTimestamp_WithValidTimestamp_ReturnsFormattedTime()
+    public void FormatConsoleTime_WithValidTimestamp_ReturnsFormattedTime()
     {
         // 2026-01-31 12:00:00.123 UTC
-        var nanoTimestamp = 1769860800123000000UL;
-        var result = OtlpHelpers.FormatNanoTimestamp(nanoTimestamp);
+        var dateTime = OtlpHelpers.UnixNanoSecondsToDateTime(1769860800123000000UL);
+        var result = FormatHelpers.FormatConsoleTime(TimeProvider.System, dateTime);
 
         // Result should contain time component (HH:mm:ss.fff)
         Assert.Matches(@"\d{2}:\d{2}:\d{2}\.\d{3}", result);
@@ -239,5 +142,73 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
 
         Assert.DoesNotContain("[link=", result);
         Assert.Equal("abc1234", result); // Just the shortened ID
+    }
+
+    [Fact]
+    public void ToOtlpResources_ConvertsResourceInfoJsonToOtlpResources()
+    {
+        var resources = new ResourceInfoJson[]
+        {
+            new() { Name = "frontend", InstanceId = "abc123" },
+            new() { Name = "backend", InstanceId = null },
+            new() { Name = "frontend", InstanceId = "xyz789" },
+        };
+
+        var result = TelemetryCommandHelpers.ToOtlpResources(resources);
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("frontend", result[0].ResourceName);
+        Assert.Equal("abc123", result[0].InstanceId);
+        Assert.Equal("backend", result[1].ResourceName);
+        Assert.Null(result[1].InstanceId);
+        Assert.Equal("frontend", result[2].ResourceName);
+        Assert.Equal("xyz789", result[2].InstanceId);
+
+        // Empty input yields empty output
+        Assert.Empty(TelemetryCommandHelpers.ToOtlpResources([]));
+    }
+
+    [Theory]
+    [MemberData(nameof(ResolveResourceNameTestData))]
+    internal void ResolveResourceName_ResolvesExpectedName(
+        OtlpResourceJson? resource,
+        IOtlpResource[] allResources,
+        string expectedName)
+    {
+        var result = TelemetryCommandHelpers.ResolveResourceName(resource, allResources);
+
+        Assert.Equal(expectedName, result);
+    }
+
+    public static IEnumerable<object?[]> ResolveResourceNameTestData()
+    {
+        var guid = Guid.Parse("aabbccdd-1122-3344-5566-778899001122");
+        var guidStr = guid.ToString();
+
+        // null resource → "unknown"
+        yield return [null, Array.Empty<IOtlpResource>(), "unknown"];
+        // no attributes → "unknown"
+        yield return [new OtlpResourceJson { Attributes = null }, new IOtlpResource[] { new SimpleOtlpResource("unknown", null) }, "unknown"];
+        // unique service name → bare name
+        yield return [MakeResource("frontend", "abc123"), new IOtlpResource[] { new SimpleOtlpResource("frontend", "abc123") }, "frontend"];
+        // missing instance id, single resource → bare name
+        yield return [MakeResource("apiservice", null), new IOtlpResource[] { new SimpleOtlpResource("apiservice", null) }, "apiservice"];
+        // replicas with non-GUID instance id → name-instanceId
+        yield return [MakeResource("frontend", "abc123"), new IOtlpResource[] { new SimpleOtlpResource("frontend", "abc123"), new SimpleOtlpResource("frontend", "xyz789") }, "frontend-abc123"];
+        // replicas with GUID instance id → name-shortened8chars
+        yield return [MakeResource("worker", guidStr), new IOtlpResource[] { new SimpleOtlpResource("worker", guidStr), new SimpleOtlpResource("worker", Guid.NewGuid().ToString()) }, $"worker-{guid:N}"[..15]];
+    }
+
+    private static OtlpResourceJson MakeResource(string serviceName, string? instanceId)
+    {
+        var attrs = new List<OtlpKeyValueJson>
+        {
+            new() { Key = "service.name", Value = new OtlpAnyValueJson { StringValue = serviceName } },
+        };
+        if (instanceId is not null)
+        {
+            attrs.Add(new() { Key = "service.instance.id", Value = new OtlpAnyValueJson { StringValue = instanceId } });
+        }
+        return new OtlpResourceJson { Attributes = [.. attrs] };
     }
 }

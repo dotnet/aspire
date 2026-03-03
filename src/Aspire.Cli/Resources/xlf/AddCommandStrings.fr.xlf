@@ -7,6 +7,11 @@
         <target state="translated">Ajout de l’intégration d’hébergement Aspire...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="new">Checking for running instances...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
         <target state="translated">Ajoutez une intégration d’hébergement à l’apphost.</target>

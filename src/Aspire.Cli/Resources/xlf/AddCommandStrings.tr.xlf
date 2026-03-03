@@ -7,6 +7,11 @@
         <target state="translated">Aspire barındırma tümleştirmesi ekleniyor...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="new">Checking for running instances...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
         <target state="new">Add a hosting integration to the apphost.</target>

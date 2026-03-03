@@ -101,7 +101,7 @@ internal sealed class LogsCommand : BaseCommand
         Description = LogsCommandStrings.TimestampsOptionDescription
     };
 
-    private readonly ResourceColorMap _resourceColorMap = new();
+    private readonly ResourceColorMap _resourceColorMap;
 
     public LogsCommand(
         IInteractionService interactionService,
@@ -110,9 +110,11 @@ internal sealed class LogsCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
+        ResourceColorMap resourceColorMap,
         ILogger<LogsCommand> logger)
         : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        _resourceColorMap = resourceColorMap;
         _interactionService = interactionService;
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);

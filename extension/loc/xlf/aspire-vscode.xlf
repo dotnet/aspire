@@ -7,6 +7,9 @@
     <trans-unit id="command.add">
       <source xml:lang="en">Add an integration</source>
     </trans-unit>
+    <trans-unit id="viewsContainers.aspirePanel.title">
+      <source xml:lang="en">Aspire</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireCliVersion">
       <source xml:lang="en">Aspire CLI Version: {0}.</source>
     </trans-unit>
@@ -130,6 +133,9 @@
     <trans-unit id="aspire-vscode.strings.error">
       <source xml:lang="en">Error: {0}</source>
     </trans-unit>
+    <trans-unit id="command.executeResourceCommand">
+      <source xml:lang="en">Execute resource command</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
       <source xml:lang="en">Extension context is not initialized.</source>
     </trans-unit>
@@ -214,6 +220,9 @@
     <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
       <source xml:lang="en">No output from msbuild.</source>
     </trans-unit>
+    <trans-unit id="views.runningAppHosts.welcome">
+      <source xml:lang="en">No running Aspire apphosts found.&#10;[Run an apphost](command:aspire-vscode.runAppHost)</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noWatchTask">
       <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
     </trans-unit>
@@ -228,6 +237,9 @@
     </trans-unit>
     <trans-unit id="command.openTerminal">
       <source xml:lang="en">Open Aspire terminal</source>
+    </trans-unit>
+    <trans-unit id="command.openDashboard">
+      <source xml:lang="en">Open Dashboard</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespacesLink">
       <source xml:lang="en">Open codespaces URL</source>
@@ -256,8 +268,14 @@
     <trans-unit id="aspire-vscode.strings.rpcServerNotInitialized">
       <source xml:lang="en">RPC server is not initialized.</source>
     </trans-unit>
+    <trans-unit id="command.refreshRunningAppHosts">
+      <source xml:lang="en">Refresh running apphosts</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.requiredCapability">
       <source xml:lang="en">Required capability: {0}.</source>
+    </trans-unit>
+    <trans-unit id="command.restartResource">
+      <source xml:lang="en">Restart</source>
     </trans-unit>
     <trans-unit id="command.runAppHost">
       <source xml:lang="en">Run Aspire apphost</source>
@@ -265,11 +283,26 @@
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
     </trans-unit>
+    <trans-unit id="views.runningAppHosts.name">
+      <source xml:lang="en">Running apphosts</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
       <source xml:lang="en">See CLI installation instructions</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
+    <trans-unit id="command.startResource">
+      <source xml:lang="en">Start</source>
+    </trans-unit>
+    <trans-unit id="command.stopResource">
+      <source xml:lang="en">Stop</source>
+    </trans-unit>
+    <trans-unit id="command.stopAppHost">
+      <source xml:lang="en">Stop</source>
+    </trans-unit>
+    <trans-unit id="views.runningAppHosts.errorWelcome">
+      <source xml:lang="en">The Aspire CLI is not installed or does not support this feature. Install or update the Aspire CLI to get started.&#10;[Update Aspire CLI](command:aspire-vscode.updateSelf)&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
@@ -280,8 +313,14 @@
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
     </trans-unit>
+    <trans-unit id="command.updateSelf">
+      <source xml:lang="en">Update Aspire CLI</source>
+    </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
+    </trans-unit>
+    <trans-unit id="command.viewResourceLogs">
+      <source xml:lang="en">View logs</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
@@ -291,6 +330,12 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDirectoryTitle">
+      <source xml:lang="en">Select directory</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectFileTitle">
+      <source xml:lang="en">Select file</source>
     </trans-unit>
   </body></file>
 </xliff>
