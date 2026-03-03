@@ -493,6 +493,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
         public void DisplayRenderable(IRenderable renderable) { }
+        public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
     }
 
     private sealed class TestDotNetCliRunner : IDotNetCliRunner

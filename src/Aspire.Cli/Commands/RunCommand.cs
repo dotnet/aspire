@@ -19,6 +19,7 @@ using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
@@ -58,7 +59,6 @@ internal sealed class RunCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
-    private readonly IAnsiConsole _ansiConsole;
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
@@ -85,7 +85,6 @@ internal sealed class RunCommand : BaseCommand
         IInteractionService interactionService,
         ICertificateService certificateService,
         IProjectLocator projectLocator,
-        IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
         IFeatures features,
@@ -102,7 +101,6 @@ internal sealed class RunCommand : BaseCommand
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
-        _ansiConsole = ansiConsole;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _features = features;
@@ -206,9 +204,7 @@ internal sealed class RunCommand : BaseCommand
                 // Even if we fail to stop we won't block the apphost starting
                 // to make sure we don't ever break flow. It should mostly stop
                 // just fine though.
-                var runningInstanceResult = await InteractionService.ShowStatusAsync(
-                    RunCommandStrings.CheckingForRunningInstances,
-                    async () => await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken));
+                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
 
                 // If in isolated mode and a running instance was stopped, warn the user
                 if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
@@ -276,7 +272,7 @@ internal sealed class RunCommand : BaseCommand
             // Display the UX
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             var longestLocalizedLengthWithColon = RenderAppHostSummary(
-                _ansiConsole,
+                InteractionService,
                 appHostRelativePath,
                 dashboardUrls.BaseUrlWithLoginToken,
                 dashboardUrls.CodespacesUrlWithLoginToken,
@@ -288,45 +284,69 @@ internal sealed class RunCommand : BaseCommand
             var isRemoteContainers = string.Equals(_configuration["REMOTE_CONTAINERS"], "true", StringComparison.OrdinalIgnoreCase);
             var isSshRemote = _configuration["VSCODE_IPC_HOOK_CLI"] is not null
                               && _configuration["SSH_CONNECTION"] is not null;
+            var isRemoteEnvironment = isCodespaces || isRemoteContainers || isSshRemote;
 
-            AppendCtrlCMessage(longestLocalizedLengthWithColon);
-
-            if (isCodespaces || isRemoteContainers || isSshRemote)
+            if (!isRemoteEnvironment)
             {
-                bool firstEndpoint = true;
+                AppendCtrlCMessage(longestLocalizedLengthWithColon);
+            }
+            else
+            {
+                // We want to display resource information in remote environments.
+                // Resources update over time so we'll use a live display.
+                // It is used to show discovered endpoints as they come in over the backchannel.
+                var discoveredEndpoints = new List<(string Resource, string Endpoint)>();
                 var endpointsLocalizedString = RunCommandStrings.Endpoints;
+                var showCtrlC = !ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+
+                IRenderable BuildLiveRenderable()
+                {
+                    var rows = new List<IRenderable>();
+
+                    if (discoveredEndpoints.Count > 0)
+                    {
+                        var endpointsGrid = new Grid();
+                        endpointsGrid.AddColumn();
+                        endpointsGrid.AddColumn();
+                        endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
+                        endpointsGrid.AddRow(Text.Empty, Text.Empty);
+
+                        for (var i = 0; i < discoveredEndpoints.Count; i++)
+                        {
+                            var (resource, endpoint) = discoveredEndpoints[i];
+                            endpointsGrid.AddRow(
+                                i == 0
+                                    ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right)
+                                    : Text.Empty,
+                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint.EscapeMarkup()}]{endpoint.EscapeMarkup()}[/]")
+                            );
+                        }
+
+                        rows.Add(new Padder(endpointsGrid, new Padding(3, 0)));
+                    }
+
+                    if (showCtrlC)
+                    {
+                        rows.Add(BuildCtrlCRenderable(longestLocalizedLengthWithColon));
+                    }
+
+                    return rows.Count > 0 ? new Rows(rows) : Text.Empty;
+                }
 
                 try
                 {
-                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                    await InteractionService.DisplayLiveAsync(BuildLiveRenderable(), async updateTarget =>
                     {
-                        ProcessResourceState(resourceState, (resource, endpoint) =>
+                        var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+                        await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                         {
-                            ClearLines(2);
-
-                            var endpointsGrid = new Grid();
-                            endpointsGrid.AddColumn();
-                            endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
-
-                            if (firstEndpoint)
+                            ProcessResourceState(resourceState, (resource, endpoint) =>
                             {
-                                endpointsGrid.AddRow(Text.Empty, Text.Empty);
-                            }
-
-                            endpointsGrid.AddRow(
-                                firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                                new Markup($"[bold]{resource.EscapeMarkup()}[/] [grey]has endpoint[/] [link={endpoint.EscapeMarkup()}]{endpoint.EscapeMarkup()}[/]")
-                            );
-
-                            var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
-                            _ansiConsole.Write(endpointsPadder);
-                            firstEndpoint = false;
-
-                            AppendCtrlCMessage(longestLocalizedLengthWithColon);
-                        });
-                    }
+                                discoveredEndpoints.Add((resource, endpoint));
+                                updateTarget(BuildLiveRenderable());
+                            });
+                        }
+                    });
                 }
                 catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -384,18 +404,16 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private void ClearLines(int lines)
+    private static IRenderable BuildCtrlCRenderable(int longestLocalizedLengthWithColon)
     {
-        if (lines <= 0)
-        {
-            return;
-        }
+        var ctrlCGrid = new Grid();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.Columns[0].Width = longestLocalizedLengthWithColon;
+        ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 
-        for (var i = 0; i < lines; i++)
-        {
-            _ansiConsole.Write("\u001b[1A");
-            _ansiConsole.Write("\u001b[2K"); // Clear the line
-        }
+        return new Padder(ctrlCGrid, new Padding(3, 0));
     }
 
     private void AppendCtrlCMessage(int longestLocalizedLengthWithColon)
@@ -405,15 +423,7 @@ internal sealed class RunCommand : BaseCommand
             return;
         }
 
-        var ctrlCGrid = new Grid();
-        ctrlCGrid.AddColumn();
-        ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLengthWithColon;
-        ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
-
-        var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
-        _ansiConsole.Write(ctrlCPadder);
+        InteractionService.DisplayRenderable(BuildCtrlCRenderable(longestLocalizedLengthWithColon));
     }
 
     /// <summary>
@@ -428,7 +438,7 @@ internal sealed class RunCommand : BaseCommand
     /// <param name="isExtensionHost">Whether the AppHost is running in the Aspire extension.</param>
     /// <returns>The column width used, for subsequent grid additions.</returns>
     internal static int RenderAppHostSummary(
-        IAnsiConsole console,
+        IInteractionService console,
         string appHostRelativePath,
         string? dashboardUrl,
         string? codespacesUrl,
@@ -436,7 +446,7 @@ internal sealed class RunCommand : BaseCommand
         bool isExtensionHost,
         int? pid = null)
     {
-        console.WriteLine();
+        console.DisplayEmptyLine();
         var grid = new Grid();
         grid.AddColumn();
         grid.AddColumn();
@@ -501,7 +511,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         var padder = new Padder(grid, new Padding(3, 0));
-        console.Write(padder);
+        console.DisplayRenderable(padder);
 
         return longestLabelLength;
     }

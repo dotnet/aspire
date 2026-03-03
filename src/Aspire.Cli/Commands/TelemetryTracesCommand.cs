@@ -115,6 +115,9 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
         var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
 
+        // Pre-resolve colors so assignment is deterministic regardless of data order
+        TelemetryCommandHelpers.ResolveResourceColors(_resourceColorMap, allOtlpResources);
+
         var url = DashboardUrls.TelemetryTraceDetailApiUrl(baseUrl, traceId);
 
         _logger.LogDebug("Fetching trace {TraceId} from {Url}", traceId, url);
@@ -181,6 +184,9 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
 
         var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
+
+        // Pre-resolve colors so assignment is deterministic regardless of data order
+        TelemetryCommandHelpers.ResolveResourceColors(_resourceColorMap, allOtlpResources);
 
         // Build query string with multiple resource parameters
         var additionalParams = new List<(string key, string? value)>();

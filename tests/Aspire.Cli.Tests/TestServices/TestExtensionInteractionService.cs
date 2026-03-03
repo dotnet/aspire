@@ -162,6 +162,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        return callback(_ => { });
+    }
+
     public Action<string>? OpenEditorCallback { get; set; }
 
     public void OpenEditor(string projectPath)

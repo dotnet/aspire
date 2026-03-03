@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Tests.Pipelines;
 
+[Trait("Partition", "4")]
 public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
