@@ -13,7 +13,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -22,7 +21,6 @@ internal class ExecCommand : BaseCommand
     private readonly IDotNetCliRunner _runner;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
-    private readonly IAnsiConsole _ansiConsole;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", ExecCommandStrings.ProjectArgumentDescription);
@@ -48,7 +46,6 @@ internal class ExecCommand : BaseCommand
         IInteractionService interactionService,
         ICertificateService certificateService,
         IProjectLocator projectLocator,
-        IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
@@ -59,7 +56,6 @@ internal class ExecCommand : BaseCommand
         _runner = runner;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
-        _ansiConsole = ansiConsole;
         _sdkInstaller = sdkInstaller;
 
         Options.Add(s_appHostOption);

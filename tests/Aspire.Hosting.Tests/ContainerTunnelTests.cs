@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "2")]
 public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]

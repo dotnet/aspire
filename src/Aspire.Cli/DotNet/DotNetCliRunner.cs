@@ -340,48 +340,76 @@ internal sealed class DotNetCliRunner(
 
         string[] cliArgs = [.. cliArgsList];
 
-        var stdoutBuilder = new StringBuilder();
-        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) => {
-            stdoutBuilder.AppendLine(line);
-            existingStandardOutputCallback?.Invoke(line);
-        };
+        var existingStandardOutputCallback = options.StandardOutputCallback;
+        var existingStandardErrorCallback = options.StandardErrorCallback;
 
-        var stderrBuilder = new StringBuilder();
-        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) => {
-            stderrBuilder.AppendLine(line);
-            existingStandardErrorCallback?.Invoke(line);
-        };
-
-        var exitCode = await ExecuteAsync(
-            args: cliArgs,
-            env: null,
-            projectFile: projectFile,
-            workingDirectory: projectFile.Directory!,
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-
-        var stdout = stdoutBuilder.ToString();
-        var stderr = stderrBuilder.ToString();
-
-        if (exitCode != 0)
+        // Retry when MSBuild returns success but produces no output, which can happen
+        // due to MSBuild server contention (e.g. when another AppHost build is running).
+        const int maxRetries = 3;
+        for (var attempt = 0; attempt < maxRetries; attempt++)
         {
-            logger.LogError(
-                "Failed to get items and properties from project. Exit code was: {ExitCode}. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
-                exitCode,
-                stderr,
-                stdout
-            );
+            var stdoutBuilder = new StringBuilder();
+            options.StandardOutputCallback = (line) => {
+                stdoutBuilder.AppendLine(line);
+                existingStandardOutputCallback?.Invoke(line);
+            };
 
-            return (exitCode, null);
-        }
-        else
-        {
-            var json = JsonDocument.Parse(stdout!);
+            var stderrBuilder = new StringBuilder();
+            options.StandardErrorCallback = (line) => {
+                stderrBuilder.AppendLine(line);
+                existingStandardErrorCallback?.Invoke(line);
+            };
+
+            var exitCode = await ExecuteAsync(
+                args: cliArgs,
+                env: null,
+                projectFile: projectFile,
+                workingDirectory: projectFile.Directory!,
+                backchannelCompletionSource: null,
+                options: options,
+                cancellationToken: cancellationToken);
+
+            var stdout = stdoutBuilder.ToString();
+            var stderr = stderrBuilder.ToString();
+
+            if (exitCode != 0)
+            {
+                logger.LogError(
+                    "Failed to get items and properties from project. Exit code was: {ExitCode}. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                    exitCode,
+                    stderr,
+                    stdout
+                );
+
+                return (exitCode, null);
+            }
+
+            if (string.IsNullOrWhiteSpace(stdout))
+            {
+                if (attempt < maxRetries - 1)
+                {
+                    logger.LogWarning(
+                        "dotnet msbuild returned exit code 0 but produced no output (attempt {Attempt}/{MaxRetries}). Retrying after delay. Stderr: {Stderr}",
+                        attempt + 1,
+                        maxRetries,
+                        stderr);
+                    await Task.Delay(TimeSpan.FromSeconds(attempt + 1), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                logger.LogWarning(
+                    "dotnet msbuild returned exit code 0 but produced no output after {MaxRetries} attempts. Stderr: {Stderr}",
+                    maxRetries,
+                    stderr);
+                return (exitCode, null);
+            }
+
+            var json = JsonDocument.Parse(stdout);
             return (exitCode, json);
         }
+
+        // Should not be reached, but return failure as a safety net
+        return (1, null);
     }
 
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

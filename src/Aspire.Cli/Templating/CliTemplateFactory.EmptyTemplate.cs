@@ -41,15 +41,13 @@ internal sealed partial class CliTemplateFactory
             var defaultOutputPath = $"./{projectName}";
             outputPath = await _prompter.PromptForOutputPath(defaultOutputPath, cancellationToken);
         }
-        if (!Path.IsPathRooted(outputPath))
-        {
-            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
-        }
+        outputPath = Path.GetFullPath(outputPath, _executionContext.WorkingDirectory.FullName);
 
         _logger.LogDebug("Applying empty AppHost template. LanguageId: {LanguageId}, Language: {LanguageDisplayName}, ProjectName: {ProjectName}, OutputPath: {OutputPath}.", languageId, language.DisplayName, projectName, outputPath);
 
         var useLocalhostTld = await ResolveUseLocalhostTldAsync(parseResult, cancellationToken);
 
+        TemplateResult templateResult;
         try
         {
             if (!Directory.Exists(outputPath))
@@ -57,22 +55,40 @@ internal sealed partial class CliTemplateFactory
                 Directory.CreateDirectory(outputPath);
             }
 
-            if (language.LanguageId.Value.Equals(Projects.KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+            var isCsharp = language.LanguageId.Value.Equals(Projects.KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+            if (isCsharp)
             {
-                _logger.LogDebug("Using embedded C# empty AppHost template for '{OutputPath}'.", outputPath);
-                await WriteCSharpEmptyAppHostAsync(inputs.Version, outputPath, projectName, useLocalhostTld, cancellationToken);
+                // Do this first so there is no prompt while status is displayed for creating project.
                 await _templateNuGetConfigService.PromptToCreateOrUpdateNuGetConfigAsync(inputs.Channel, outputPath, cancellationToken);
             }
-            else
-            {
-                _logger.LogDebug("Using scaffolding service for language '{LanguageDisplayName}' in '{OutputPath}'.", language.DisplayName, outputPath);
-                var context = new ScaffoldContext(language, new DirectoryInfo(outputPath), projectName);
-                await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
-                if (useLocalhostTld)
+            templateResult = await _interactionService.ShowStatusAsync(
+                TemplatingStrings.CreatingNewProject,
+                async () =>
                 {
-                    await ApplyLocalhostTldToScaffoldedRunProfileAsync(outputPath, projectName, cancellationToken);
-                }
+                    if (isCsharp)
+                    {
+                        _logger.LogDebug("Using embedded C# empty AppHost template for '{OutputPath}'.", outputPath);
+                        await WriteCSharpEmptyAppHostAsync(inputs.Version, outputPath, projectName, useLocalhostTld, cancellationToken);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Using scaffolding service for language '{LanguageDisplayName}' in '{OutputPath}'.", language.DisplayName, outputPath);
+                        var context = new ScaffoldContext(language, new DirectoryInfo(outputPath), projectName);
+                        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+                        if (useLocalhostTld)
+                        {
+                            await ApplyLocalhostTldToScaffoldedRunProfileAsync(outputPath, projectName, cancellationToken);
+                        }
+                    }
+
+                    return new TemplateResult(ExitCodeConstants.Success, outputPath);
+                }, emoji: KnownEmojis.Rocket);
+
+            if (templateResult.ExitCode != ExitCodeConstants.Success)
+            {
+                return templateResult;
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -84,7 +100,7 @@ internal sealed partial class CliTemplateFactory
         _interactionService.DisplaySuccess($"Created {language.DisplayName.EscapeMarkup()} project at {outputPath.EscapeMarkup()}");
         _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
 
-        return new TemplateResult(ExitCodeConstants.Success, outputPath);
+        return templateResult;
     }
 
     private async Task<bool> ResolveUseLocalhostTldAsync(System.CommandLine.ParseResult parseResult, CancellationToken cancellationToken)

@@ -148,4 +148,7 @@
   <data name="LanguageOptionDescription" xml:space="preserve">
     <value>The programming language for the AppHost.</value>
   </data>
+  <data name="ResolvingTemplateVersion" xml:space="preserve">
+    <value>Resolving template version...</value>
+  </data>
 </root>

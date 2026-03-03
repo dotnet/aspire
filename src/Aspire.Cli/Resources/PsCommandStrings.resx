@@ -138,4 +138,7 @@
   <data name="UnknownPath" xml:space="preserve">
     <value>Unknown</value>
   </data>
+  <data name="ResourcesOptionDescription" xml:space="preserve">
+    <value>Include resource details for each running app host. Only applies to JSON output.</value>
+  </data>
 </root>
