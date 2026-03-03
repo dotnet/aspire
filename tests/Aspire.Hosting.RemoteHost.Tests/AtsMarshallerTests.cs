@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
@@ -23,6 +24,9 @@ public class AtsMarshallerTests
                 new AtsDtoTypeInfo { TypeId = "test/SelfReferencingDto", Name = "SelfReferencingDto", ClrType = typeof(SelfReferencingDto), Properties = [] },
                 new AtsDtoTypeInfo { TypeId = "test/ParentDto", Name = "ParentDto", ClrType = typeof(ParentDto), Properties = [] },
                 new AtsDtoTypeInfo { TypeId = "test/ChildDto", Name = "ChildDto", ClrType = typeof(ChildDto), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/DtoWithJsonPropertyName", Name = "DtoWithJsonPropertyName", ClrType = typeof(DtoWithJsonPropertyName), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/DtoWithJsonIgnore", Name = "DtoWithJsonIgnore", ClrType = typeof(DtoWithJsonIgnore), Properties = [] },
+                new AtsDtoTypeInfo { TypeId = "test/DtoWithReadOnlyProperty", Name = "DtoWithReadOnlyProperty", ClrType = typeof(DtoWithReadOnlyProperty), Properties = [] },
             ],
             EnumTypes = []
         };
@@ -746,6 +750,72 @@ public class AtsMarshallerTests
     }
 
     [Fact]
+    public void ApplyDtoProperties_RespectsJsonPropertyName()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new DtoWithJsonPropertyName { DisplayName = "original", Value = 0 };
+        var source = new JsonObject { ["display_name"] = "updated", ["val"] = 99 };
+
+        marshaller.ApplyDtoProperties(source, dto, typeof(DtoWithJsonPropertyName));
+
+        Assert.Equal("updated", dto.DisplayName);
+        Assert.Equal(99, dto.Value);
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_RespectsJsonPropertyName_IgnoresCamelCaseKey()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new DtoWithJsonPropertyName { DisplayName = "original", Value = 5 };
+        // Use camelCase CLR name instead of the [JsonPropertyName] — should NOT match
+        var source = new JsonObject { ["displayName"] = "should-not-apply" };
+
+        marshaller.ApplyDtoProperties(source, dto, typeof(DtoWithJsonPropertyName));
+
+        Assert.Equal("original", dto.DisplayName);
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_RespectsJsonIgnore()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new DtoWithJsonIgnore { Name = "original", Secret = "keep-me" };
+        var source = new JsonObject { ["name"] = "updated", ["secret"] = "should-be-ignored" };
+
+        marshaller.ApplyDtoProperties(source, dto, typeof(DtoWithJsonIgnore));
+
+        Assert.Equal("updated", dto.Name);
+        Assert.Equal("keep-me", dto.Secret); // JsonIgnore property unchanged
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_SkipsReadOnlyProperties()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new DtoWithReadOnlyProperty { Name = "original" };
+        var source = new JsonObject { ["name"] = "updated", ["computed"] = "should-be-ignored" };
+
+        marshaller.ApplyDtoProperties(source, dto, typeof(DtoWithReadOnlyProperty));
+
+        Assert.Equal("updated", dto.Name);
+        Assert.Equal("read-only", dto.Computed); // Read-only property unchanged
+    }
+
+    [Fact]
+    public void ApplyDtoProperties_SkipsIncompatibleJsonValues()
+    {
+        var marshaller = CreateMarshaller();
+        var dto = new TestDto { Name = "original", Count = 10 };
+        // Send a string for an int property — should be silently skipped
+        var source = new JsonObject { ["count"] = "not-a-number" };
+
+        marshaller.ApplyDtoProperties(source, dto, typeof(TestDto));
+
+        Assert.Equal("original", dto.Name);
+        Assert.Equal(10, dto.Count); // Count unchanged due to incompatible value
+    }
+
+    [Fact]
     public void IsDtoType_ReturnsTrueForRegisteredDtoType()
     {
         var marshaller = CreateMarshaller();
@@ -824,5 +894,31 @@ public class AtsMarshallerTests
         public string Value { get; }
         public NonDeserializableType(string value) => Value = value;
         public NonDeserializableType(string value, int extra) => Value = value + extra;
+    }
+
+    [AspireDto]
+    private sealed class DtoWithJsonPropertyName
+    {
+        [JsonPropertyName("display_name")]
+        public string? DisplayName { get; set; }
+
+        [JsonPropertyName("val")]
+        public int Value { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class DtoWithJsonIgnore
+    {
+        public string? Name { get; set; }
+
+        [JsonIgnore]
+        public string? Secret { get; set; }
+    }
+
+    [AspireDto]
+    private sealed class DtoWithReadOnlyProperty
+    {
+        public string? Name { get; set; }
+        public string Computed { get; } = "read-only";
     }
 }

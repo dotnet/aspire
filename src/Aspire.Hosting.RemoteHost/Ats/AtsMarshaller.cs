@@ -5,6 +5,8 @@ using System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -57,7 +59,8 @@ internal sealed class AtsMarshaller
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
-        ReferenceHandler = ReferenceHandler.IgnoreCycles
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver()
     };
 
     /// <summary>
@@ -570,23 +573,26 @@ internal sealed class AtsMarshaller
     public void ApplyDtoProperties(JsonObject source, object target, Type targetType)
 #pragma warning restore CA1822
     {
-        foreach (var prop in targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        // Use JsonTypeInfo metadata instead of raw reflection so that
+        // [JsonPropertyName], [JsonIgnore], the naming policy, and field
+        // inclusion configuration are all respected automatically.
+        var typeInfo = s_jsonOptions.GetTypeInfo(targetType);
+
+        foreach (var prop in typeInfo.Properties)
         {
-            if (!prop.CanWrite)
+            if (prop.Set is null)
             {
                 continue;
             }
 
-            var jsonKey = s_jsonOptions.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name;
-            if (!source.TryGetPropertyValue(jsonKey, out var jsonValue))
+            if (!source.TryGetPropertyValue(prop.Name, out var jsonValue))
             {
                 continue;
             }
 
             try
             {
-                var value = jsonValue.Deserialize(prop.PropertyType, s_jsonOptions);
-                prop.SetValue(target, value);
+                prop.Set(target, jsonValue.Deserialize(prop.PropertyType, s_jsonOptions));
             }
             catch (NotSupportedException)
             {
@@ -600,34 +606,6 @@ internal sealed class AtsMarshaller
                 // Silently skip properties where the JSON value is incompatible
                 // with the CLR property type (e.g. string sent for an int field).
                 // This is a best-effort writeback — partial updates are acceptable.
-            }
-        }
-
-        foreach (var field in targetType.GetFields(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (field.IsInitOnly)
-            {
-                continue;
-            }
-
-            var jsonKey = s_jsonOptions.PropertyNamingPolicy?.ConvertName(field.Name) ?? field.Name;
-            if (!source.TryGetPropertyValue(jsonKey, out var jsonValue))
-            {
-                continue;
-            }
-
-            try
-            {
-                var value = jsonValue.Deserialize(field.FieldType, s_jsonOptions);
-                field.SetValue(target, value);
-            }
-            catch (NotSupportedException)
-            {
-                // Skip fields whose types can't be deserialized (same rationale as properties above).
-            }
-            catch (JsonException)
-            {
-                // Skip fields with incompatible JSON values (best-effort writeback).
             }
         }
     }
