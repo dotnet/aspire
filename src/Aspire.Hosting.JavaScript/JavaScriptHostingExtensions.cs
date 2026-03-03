@@ -1204,7 +1204,7 @@ public static class JavaScriptHostingExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeNodeDebuggerProperties<T>(
+    internal static IResourceBuilder<T> WithVSCodeNodeDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<VSCodeNodeDebuggerProperties> configureDebuggerProperties)
         where T : JavaScriptAppResource
@@ -1222,7 +1222,6 @@ public static class JavaScriptHostingExtensions
     /// <typeparam name="T">The type of the JavaScript resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="browser">The browser to use for debugging (e.g., "msedge", "chrome"). Defaults to "msedge".</param>
-    /// <param name="configureDebuggerProperties">An optional callback to configure additional debugger properties.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
@@ -1251,22 +1250,20 @@ public static class JavaScriptHostingExtensions
     ///     .WithBrowserDebugger(browser: "chrome");
     /// </code>
     /// </example>
-    /// <example>
-    /// Configure source map locations:
-    /// <code lang="csharp">
-    /// var frontend = builder.AddViteApp("frontend", "../frontend")
-    ///     .WithBrowserDebugger(configureDebuggerProperties: props =&gt;
-    ///     {
-    ///         props.SourceMaps = true;
-    ///         props.WebRoot = "${workspaceFolder}/src";
-    ///     });
-    /// </code>
-    /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithBrowserDebugger<T>(
         this IResourceBuilder<T> builder,
-        string browser = "msedge",
-        Action<VSCodeBrowserDebuggerProperties>? configureDebuggerProperties = null)
+        string browser = "msedge")
+        where T : JavaScriptAppResource
+    {
+        return builder.WithBrowserDebugger(browser, configureDebuggerProperties: null);
+    }
+
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithBrowserDebugger<T>(
+        this IResourceBuilder<T> builder,
+        string browser,
+        Action<VSCodeBrowserDebuggerProperties>? configureDebuggerProperties)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
