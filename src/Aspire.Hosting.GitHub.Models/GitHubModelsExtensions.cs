@@ -22,7 +22,7 @@ public static class GitHubModelsExtensions
     /// <param name="model">The model name to use with GitHub Models.</param>
     /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [global::Aspire.Hosting.AspireExport("addGitHubModel1", MethodName = "addGitHubModel", Description = "Exports AddGitHubModel for polyglot app hosts.")]
+    [global::Aspire.Hosting.AspireExport("addGitHubModel1", MethodName = "addGitHubModel", Description = "Adds a GitHub Model resource to the application model.")]
     public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, string model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
