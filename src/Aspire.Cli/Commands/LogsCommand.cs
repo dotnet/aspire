@@ -164,6 +164,10 @@ internal sealed class LogsCommand : BaseCommand
         // Fetch snapshots for resource name resolution
         var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
 
+        // Pre-resolve colors for all resource names so that assignment is
+        // deterministic regardless of which resources are displayed.
+        _resourceColorMap.ResolveAll(snapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, snapshots)));
+
         // Validate resource name exists (match by Name or DisplayName since users may pass either)
         if (resourceName is not null)
         {

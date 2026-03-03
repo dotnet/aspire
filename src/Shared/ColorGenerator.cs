@@ -3,26 +3,33 @@
 
 using System.Collections.Concurrent;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Aspire;
 
-public sealed class AccentColor
+internal sealed class AccentColor
 {
-    public AccentColor(string variableName)
+    internal AccentColor(string variableName)
     {
         VariableName = variableName;
         ReferencedVariableName = $"var({variableName})";
     }
 
-    public string VariableName { get; }
-    public string ReferencedVariableName { get; }
+    internal string VariableName { get; }
+    internal string ReferencedVariableName { get; }
 }
 
 /// <summary>
-/// Provides a stable color for a named element. When <see cref="GetColorVariableByKey(string)" /> is invoked a new color is returned if the key was not used previously. An instance of this class is thread-safe and multiple threads can query colors concurrently without collisions.
+/// Provides a stable color for a named element. When <see cref="GetColorVariableByKey(string)" />
+/// is invoked a new color is returned if the key was not used previously. An instance of this class
+/// is thread-safe and multiple threads can query colors concurrently without collisions.
+/// The palette of CSS variable names is shared between the dashboard and the CLI so that a given
+/// resource name always receives the same color regardless of where it is displayed.
 /// </summary>
-public class ColorGenerator
+internal class ColorGenerator
 {
-    private static readonly string[] s_variableNames =
+    /// <summary>
+    /// The ordered list of CSS accent variable names used as the color palette.
+    /// </summary>
+    internal static readonly string[] s_variableNames =
     [
         "--accent-teal",
         "--accent-marigold",
@@ -45,13 +52,14 @@ public class ColorGenerator
         "--accent-jade",
         "--accent-olive"
     ];
+
     public static readonly ColorGenerator Instance = new ColorGenerator();
 
     private readonly List<AccentColor> _colors;
     private readonly ConcurrentDictionary<string, Lazy<int>> _colorIndexByKey;
     private int _currentIndex;
 
-    private ColorGenerator()
+    internal ColorGenerator()
     {
         _colors = new List<AccentColor>();
         _colorIndexByKey = new ConcurrentDictionary<string, Lazy<int>>(StringComparer.OrdinalIgnoreCase);
@@ -63,7 +71,7 @@ public class ColorGenerator
         }
     }
 
-    private int GetColorIndex(string key)
+    internal int GetColorIndex(string key)
     {
         return _colorIndexByKey.GetOrAdd(key, k =>
         {
@@ -82,6 +90,18 @@ public class ColorGenerator
     {
         var i = GetColorIndex(key);
         return _colors[i].ReferencedVariableName;
+    }
+
+    /// <summary>
+    /// Pre-resolves colors for all provided keys in sorted order so that
+    /// color assignment is deterministic regardless of encounter order.
+    /// </summary>
+    public void ResolveAll(IEnumerable<string> keys)
+    {
+        foreach (var key in keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+        {
+            GetColorIndex(key);
+        }
     }
 
     public void Clear()

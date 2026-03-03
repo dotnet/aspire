@@ -401,6 +401,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayRenderable(renderable);
     }
 
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        return _consoleInteractionService.DisplayLiveAsync(initialRenderable, callback);
+    }
+
     public void LogMessage(LogLevel logLevel, string message)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken));

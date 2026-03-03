@@ -1416,6 +1416,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
     public void DisplayRenderable(IRenderable renderable) { }
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
 }
 
 internal sealed class NewCommandTestPackagingService : IPackagingService

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
+[Trait("Partition", "3")]
 public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]

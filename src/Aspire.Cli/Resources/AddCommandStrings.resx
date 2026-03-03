@@ -178,7 +178,4 @@
   <data name="UnableToStopRunningInstances" xml:space="preserve">
     <value>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</value>
   </data>
-  <data name="CheckingForRunningInstances" xml:space="preserve">
-    <value>Checking for running instances...</value>
-  </data>
 </root>
