@@ -1,13 +1,15 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
-      - 'release/**'
-
-  push:
-    branches:
+  workflow_dispatch: {}
+# Disabled for investigation branch — original triggers:
+#  pull_request:
+#    branches:
+#      - main
+#      - 'release/**'
+#
+#  push:
+#    branches:
       - main
       - 'release/**'
 
