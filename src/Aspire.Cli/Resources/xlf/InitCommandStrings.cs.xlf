@@ -47,6 +47,11 @@
         <target state="translated">Nenašel se žádný soubor řešení. Vytváří se AppHost s jedním souborem...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="new">Resolving template version...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Zjištěné řešení: {0}</target>
