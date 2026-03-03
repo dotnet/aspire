@@ -204,7 +204,7 @@ internal sealed class AddCommand : BaseCommand
                 AppHostFile = effectiveAppHostProjectFile,
                 PackageId = selectedNuGetPackage.Package.Id,
                 PackageVersion = selectedNuGetPackage.Package.Version,
-                Source = source
+                Source = source ?? selectedNuGetPackage.Package.Source
             };
 
             // Stop any running AppHost instance before adding the package.
