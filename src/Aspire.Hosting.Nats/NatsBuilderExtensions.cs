@@ -43,8 +43,8 @@ public static class NatsBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for NATS server.</param>
-    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
-    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <param name="userName">The parameter used to provide the user name for the NATS resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the NATS resource. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use <see cref="AddNatsForPolyglot"/> instead.</remarks>
     [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
