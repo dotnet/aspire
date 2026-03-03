@@ -407,6 +407,148 @@ public class EndToEndEvaluationTests
 
     #endregion
 
+    #region Source-to-Test Mapping Scenarios
+
+    [Fact]
+    public void Evaluate_PlaygroundChange_TriggeredViaMapping()
+    {
+        var configJson = """
+        {
+            "ignorePaths": ["**/*.md"],
+            "categories": {
+                "integrations": {
+                    "triggerPaths": ["src/**"]
+                }
+            },
+            "sourceToTestMappings": [
+                {"source": "playground/**", "test": "tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj"}
+            ]
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
+
+        var testProjects = resolver.ResolveAllTestProjects(["playground/TestShop/Foo.cs"]);
+
+        Assert.Single(testProjects);
+        Assert.Contains("tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj", testProjects);
+    }
+
+    [Fact]
+    public void Evaluate_TemplateContentChange_TriggeredViaMapping()
+    {
+        var configJson = """
+        {
+            "ignorePaths": ["**/*.md"],
+            "categories": {
+                "integrations": {
+                    "triggerPaths": ["src/**"],
+                    "excludePaths": ["src/Aspire.ProjectTemplates/**"]
+                }
+            },
+            "sourceToTestMappings": [
+                {"source": "src/Aspire.ProjectTemplates/**", "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"}
+            ]
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
+
+        var testProjects = resolver.ResolveAllTestProjects(["src/Aspire.ProjectTemplates/templates/Foo.json"]);
+
+        Assert.Single(testProjects);
+        Assert.Contains("tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", testProjects);
+    }
+
+    [Fact]
+    public void Evaluate_SourceToTestMapping_ResolvesToCsprojPath()
+    {
+        var configJson = """
+        {
+            "ignorePaths": [],
+            "categories": {},
+            "sourceToTestMappings": [
+                {"source": "playground/**", "test": "tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj"},
+                {"source": "src/Aspire.ProjectTemplates/**", "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"}
+            ]
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
+
+        var testProjects = resolver.ResolveAllTestProjects(["playground/TestShop/Foo.cs", "src/Aspire.ProjectTemplates/templates/Bar.json"]);
+
+        Assert.Equal(2, testProjects.Count);
+        Assert.All(testProjects, p => Assert.EndsWith(".csproj", p));
+    }
+
+    #endregion
+
+    #region Simplified Category Tests
+
+    [Fact]
+    public void Evaluate_ExtensionOnly_SetsRunExtensionTrue()
+    {
+        var configJson = """
+        {
+            "ignorePaths": ["**/*.md"],
+            "categories": {
+                "extension": {
+                    "triggerPaths": ["extension/**"]
+                },
+                "integrations": {
+                    "triggerPaths": ["src/**"]
+                }
+            },
+            "sourceToTestMappings": []
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
+        var categoryMapper = new CategoryMapper(config.Categories);
+
+        var changedFiles = new[] { "extension/package.json" };
+        var (_, activeFiles) = ignoreFilter.SplitFiles(changedFiles);
+        var (categories, _) = categoryMapper.GetCategoriesTriggeredByFiles(activeFiles);
+
+        Assert.True(categories["extension"]);
+        Assert.False(categories["integrations"]);
+    }
+
+    [Fact]
+    public void Evaluate_RemovedCategories_NotPresent()
+    {
+        // Config without templates, endtoend, playground categories
+        var configJson = """
+        {
+            "ignorePaths": [],
+            "categories": {
+                "cli_e2e": { "triggerPaths": ["src/Aspire.Cli/**"] },
+                "extension": { "triggerPaths": ["extension/**"] },
+                "polyglot": { "triggerPaths": [".github/workflows/polyglot-validation/**"] },
+                "integrations": { "triggerPaths": ["src/**"] }
+            },
+            "sourceToTestMappings": []
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var categoryMapper = new CategoryMapper(config.Categories);
+
+        var (categories, _) = categoryMapper.GetCategoriesTriggeredByFiles(["src/Aspire.Hosting.Redis/Foo.cs"]);
+
+        Assert.DoesNotContain("templates", categories.Keys);
+        Assert.DoesNotContain("endtoend", categories.Keys);
+        Assert.DoesNotContain("playground", categories.Keys);
+        Assert.True(categories["integrations"]);
+    }
+
+    #endregion
+
     #region Path Normalization Tests
 
     [Fact]

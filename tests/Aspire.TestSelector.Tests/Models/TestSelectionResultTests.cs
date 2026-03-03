@@ -148,14 +148,14 @@ public class TestSelectionResultTests
         {
             RunAllTests = false,
             Reason = "msbuild_analysis",
-            Categories = { ["templates"] = true },
-            IntegrationsProjects = ["tests/Aspire.Milvus.Client.Tests/"]
+            Categories = { ["extension"] = true },
+            AffectedTestProjects = ["tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj"]
         };
 
         var output = CaptureGitHubOutput(result);
 
         Assert.Contains("run_integrations=true", output);
-        Assert.Contains("run_templates=true", output);
+        Assert.Contains("run_extension=true", output);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class TestSelectionResultTests
             RunAllTests = false,
             Reason = "selective",
             Categories = { ["integrations"] = true },
-            IntegrationsProjects = ["tests/Aspire.Milvus.Client.Tests/"]
+            AffectedTestProjects = ["tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj"]
         };
 
         var output = CaptureGitHubOutput(result);
@@ -199,7 +199,7 @@ public class TestSelectionResultTests
         {
             RunAllTests = false,
             Reason = "all_ignored",
-            Categories = { ["templates"] = false }
+            Categories = { ["extension"] = false }
         };
 
         var output = CaptureGitHubOutput(result);
@@ -215,7 +215,7 @@ public class TestSelectionResultTests
             RunAllTests = false,
             Reason = "msbuild_analysis",
             Categories = { ["integrations"] = false, ["extension"] = true },
-            IntegrationsProjects = ["tests/Infrastructure.Tests/"]
+            AffectedTestProjects = ["tests/Infrastructure.Tests/Infrastructure.Tests.csproj"]
         };
 
         var output = CaptureGitHubOutput(result);
@@ -235,7 +235,7 @@ public class TestSelectionResultTests
             RunAllTests = false,
             Reason = "msbuild_analysis",
             Categories = { ["integrations"] = true },
-            IntegrationsProjects = ["tests/Aspire.Dashboard.Tests/", "tests/Aspire.Hosting.Azure.Tests/"]
+            AffectedTestProjects = ["tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj", "tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj"]
         };
 
         var output = CaptureGitHubOutput(result);
@@ -243,30 +243,28 @@ public class TestSelectionResultTests
         Assert.Contains("run_integrations=true", output);
         var count = output.Split('\n').Count(l => l.StartsWith("run_integrations="));
         Assert.Equal(1, count);
-        Assert.Contains("tests/Aspire.Dashboard.Tests/", output);
-        Assert.Contains("tests/Aspire.Hosting.Azure.Tests/", output);
+        Assert.Contains("Aspire.Dashboard.Tests.csproj", output);
+        Assert.Contains("Aspire.Hosting.Azure.Tests.csproj", output);
     }
 
     [Fact]
-    public void WriteGitHubOutput_IntegrationsProjectsList_IncludesAllDiscoveredProjects()
+    public void WriteGitHubOutput_AffectedTestProjectsList_IncludesAllDiscoveredProjects()
     {
-        // IntegrationsProjects may contain projects that overlap with other triggered categories.
-        // The list should be emitted as-is — filtering is done upstream if needed.
         var result = new TestSelectionResult
         {
             RunAllTests = false,
             Reason = "msbuild_analysis",
-            Categories = { ["integrations"] = false, ["templates"] = true },
-            IntegrationsProjects = ["tests/Aspire.Templates.Tests/", "tests/Infrastructure.Tests/"]
+            Categories = { ["integrations"] = false, ["extension"] = true },
+            AffectedTestProjects = ["tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", "tests/Infrastructure.Tests/Infrastructure.Tests.csproj"]
         };
 
         var output = CaptureGitHubOutput(result);
 
-        // run_integrations should be true because there are projects in the list
+        // run_integrations should be true because there are affected projects
         Assert.Contains("run_integrations=true", output);
-        // The projects list includes both, even though templates has its own category
-        Assert.Contains("tests/Aspire.Templates.Tests/", output);
-        Assert.Contains("tests/Infrastructure.Tests/", output);
+        Assert.Contains("affected_test_projects=", output);
+        Assert.Contains("Aspire.Templates.Tests.csproj", output);
+        Assert.Contains("Infrastructure.Tests.csproj", output);
     }
 
     [Fact]
@@ -283,6 +281,108 @@ public class TestSelectionResultTests
 
         Assert.Contains("run_integrations=false", output);
         Assert.Contains("run_extension=true", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_EmitsAffectedTestProjects()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            Categories = { ["integrations"] = true },
+            AffectedTestProjects = ["tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj", "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("affected_test_projects=", output);
+        Assert.Contains("Aspire.Dashboard.Tests.csproj", output);
+        Assert.Contains("Aspire.Hosting.Tests.csproj", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_NoRemovedCategories()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            Categories =
+            {
+                ["integrations"] = true,
+                ["cli_e2e"] = true,
+                ["extension"] = false,
+                ["polyglot"] = false
+            }
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        // Should NOT contain removed categories
+        Assert.DoesNotContain("run_templates=", output);
+        Assert.DoesNotContain("run_endtoend=", output);
+        Assert.DoesNotContain("run_playground=", output);
+
+        // Should contain kept categories
+        Assert.Contains("run_integrations=", output);
+        Assert.Contains("run_cli_e2e=", output);
+        Assert.Contains("run_extension=", output);
+        Assert.Contains("run_polyglot=", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_EmitsPolyglotAndExtension()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            Categories =
+            {
+                ["polyglot"] = true,
+                ["extension"] = true
+            }
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_polyglot=true", output);
+        Assert.Contains("run_extension=true", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_AffectedTestProjects_ContainsCsprojPaths()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            AffectedTestProjects = ["tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains(".csproj", output);
+        // Should NOT have trailing slash directory format
+        Assert.DoesNotContain("Tests/\"", output.Replace(".csproj\"", ""));
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_DoesNotEmitIntegrationsProjects()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            AffectedTestProjects = ["tests/Foo.Tests/Foo.Tests.csproj"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        // Should use affected_test_projects, not integrations_projects
+        Assert.DoesNotContain("integrations_projects=", output);
+        Assert.Contains("affected_test_projects=", output);
     }
 
     [Fact]

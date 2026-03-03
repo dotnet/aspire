@@ -101,19 +101,13 @@ Critical files that trigger ALL tests when changed. This is specified at the top
 
 ### `categories`
 
-Category definitions with trigger paths. Each category maps to a `run_<category>` output in CI.
+Category definitions with trigger paths. Categories serve two purposes:
+
+1. **Standalone job flags** (`polyglot`, `extension`): Skip/run independent CI jobs
+2. **Test discovery signals** (`integrations`, `cli_e2e`): Identify which .NET test projects to run
 
 ```json
 "categories": {
-  "templates": {
-    "description": "Template tests - runs on 3 platforms",
-    "triggerPaths": [
-      "src/Aspire.ProjectTemplates/**",
-      "tests/Aspire.Templates.Tests/**",
-      "tests/Shared/**"
-    ]
-  },
-
   "cli_e2e": {
     "description": "CLI end-to-end tests",
     "triggerPaths": [
@@ -123,24 +117,10 @@ Category definitions with trigger paths. Each category maps to a `run_<category>
     ]
   },
 
-  "endtoend": {
-    "description": "General E2E tests",
-    "triggerPaths": [
-      "tests/Aspire.EndToEnd.Tests/**"
-    ]
-  },
-
   "extension": {
     "description": "VS Code extension tests",
     "triggerPaths": [
       "extension/**"
-    ]
-  },
-
-  "playground": {
-    "description": "Playground tests",
-    "triggerPaths": [
-      "playground/**"
     ]
   },
 
@@ -190,33 +170,17 @@ Pattern-based mappings that resolve changed files to test project directories. U
 ```json
 "sourceToTestMappings": [
   {
-    "source": "src/Components/{name}/**",
-    "test": "tests/{name}.Tests/"
-  },
-  {
-    "source": "src/Aspire.Hosting.{name}/**",
-    "test": "tests/Aspire.Hosting.{name}.Tests/"
-  },
-  {
-    "source": "tests/{name}.Tests/**",
-    "test": "tests/{name}.Tests/"
-  },
-  {
-    "source": "tools/Aspire.TestSelector/**",
-    "test": "tests/Aspire.TestSelector.Tests/"
-  },
-  {
     "source": "playground/**",
-    "test": "tests/Aspire.Playground.Tests/"
+    "test": "tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj"
   },
   {
-    "source": "src/Tools/ConfigurationSchemaGenerator/**",
-    "test": "tests/ConfigurationSchemaGenerator.Tests/"
+    "source": "src/Aspire.ProjectTemplates/**",
+    "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
   }
 ]
 ```
 
-When a changed file matches a `source` pattern, the captured `{name}` is substituted into `test` to identify the test project directory. Test projects discovered this way are added to `integrations_projects` and trigger `run_integrations=true`.
+When a changed file matches a `source` pattern, the captured `{name}` (if present) is substituted into `test` to identify the test project. Test projects discovered this way are added to `affected_test_projects` and contribute to matrix filtering.
 
 ### `testProjectPatterns`
 
@@ -297,19 +261,16 @@ dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from 
   "runAllTests": false,
   "reason": "selective",
   "categories": {
-    "templates": false,
     "cli_e2e": false,
-    "endtoend": false,
     "extension": true,
-    "playground": false,
     "polyglot": false,
     "integrations": false
   },
   "affectedTestProjects": [
-    "tests/Aspire.Dashboard.Tests/"
+    "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj"
   ],
   "integrationsProjects": [
-    "tests/Aspire.Dashboard.Tests/"
+    "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj"
   ],
   "changedFiles": [
     "tests/Aspire.Dashboard.Tests/Model/ResourceViewModelTests.cs",
@@ -325,9 +286,11 @@ dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from 
 | Output | Description |
 |--------|-------------|
 | `run_all` | `true` if all tests should run |
-| `run_<category>` | `true`/`false` per category |
 | `run_integrations` | `true` if category triggered by paths OR test projects discovered |
-| `integrations_projects` | JSON array of test project paths |
+| `run_cli_e2e` | `true` if CLI E2E test category triggered |
+| `run_extension` | `true` if VS Code extension category triggered |
+| `run_polyglot` | `true` if polyglot validation category triggered |
+| `affected_test_projects` | JSON array of affected test project `.csproj` paths |
 
 ## Testing
 

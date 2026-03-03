@@ -32,6 +32,14 @@
   },
 
   "sourceToTestMappings": [
+    {
+      "source": "playground/**",
+      "test": "tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj"
+    },
+    {
+      "source": "src/Aspire.ProjectTemplates/**",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    }
   ],
 
   "packageOrArchiveProducingProjects": [
@@ -39,15 +47,6 @@
   ],
 
   "categories": {
-    "templates": {
-      "description": "Template tests - runs on 3 platforms",
-      "triggerPaths": [
-        "src/Aspire.ProjectTemplates/**",
-        "tests/Aspire.Templates.Tests/**",
-        "tests/Shared/**"
-      ]
-    },
-
     "cli_e2e": {
       "description": "CLI end-to-end tests",
       "triggerPaths": [
@@ -57,24 +56,10 @@
       ]
     },
 
-    "endtoend": {
-      "description": "General E2E tests",
-      "triggerPaths": [
-        "tests/Aspire.EndToEnd.Tests/**"
-      ]
-    },
-
     "extension": {
       "description": "VS Code extension tests",
       "triggerPaths": [
         "extension/**"
-      ]
-    },
-
-    "playground": {
-      "description": "Playground tests",
-      "triggerPaths": [
-        "playground/**"
       ]
     },
 

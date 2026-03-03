@@ -20,7 +20,6 @@
     <TestClassNamePrefixForCI>Aspire.Templates.Tests</TestClassNamePrefixForCI>
 
     <!-- Templates tests require packages and SDK -->
-    <RequiresNugets>true</RequiresNugets>
     <RequiresTestSdk>true</RequiresTestSdk>
     <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
 

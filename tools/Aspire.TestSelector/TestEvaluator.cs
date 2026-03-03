@@ -583,13 +583,11 @@ internal static class TestEvaluator
             }
         }
 
-        // Normalize dotnet-affected paths to directory format with trailing slash
-        // to match the pattern-based mapping format (e.g. "tests/Foo.Tests/")
+        // Keep .csproj paths from dotnet-affected for direct matching with
+        // matrix entry testProjectPath values (e.g. "tests/Foo.Tests/Foo.Tests.csproj")
         var testProjects = filterResult.TestProjects.Select(p =>
-        {
-            var dir = Path.GetDirectoryName(p.Path)?.Replace('\\', '/');
-            return dir != null && !dir.EndsWith('/') ? dir + "/" : dir ?? p.Path;
-        }).ToList();
+            p.Path.Replace('\\', '/')
+        ).ToList();
         logger.LogInfo($"Test projects from dotnet-affected: {testProjects.Count}");
 
         logger.LogStep("Combine Test Projects");

@@ -94,6 +94,7 @@ public sealed class NuGetDependentTestDetector
     /// <summary>
     /// Finds all test projects that require NuGet packages by scanning for
     /// &lt;RequiredNuGetsForTesting&gt;true&lt;/RequiredNuGetsForTesting&gt; in test csproj files.
+    /// Skips TestFixtures directories.
     /// </summary>
     internal static List<string> FindNuGetDependentTestProjects(string workingDir)
     {
@@ -106,15 +107,18 @@ public sealed class NuGetDependentTestDetector
         var result = new List<string>();
         foreach (var csproj in Directory.EnumerateFiles(testsDir, "*.csproj", SearchOption.AllDirectories))
         {
+            // Skip TestFixtures directories to avoid false positives
+            var normalizedCsproj = csproj.Replace('\\', '/');
+            if (normalizedCsproj.Contains("/TestFixtures/", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (HasRequiredNuGetsForTesting(csproj))
             {
-                // Convert to relative path with forward slashes, directory format
-                var relativePath = Path.GetRelativePath(workingDir, Path.GetDirectoryName(csproj)!)
+                // Convert to relative .csproj path with forward slashes
+                var relativePath = Path.GetRelativePath(workingDir, csproj)
                     .Replace('\\', '/');
-                if (!relativePath.EndsWith('/'))
-                {
-                    relativePath += "/";
-                }
                 result.Add(relativePath);
             }
         }

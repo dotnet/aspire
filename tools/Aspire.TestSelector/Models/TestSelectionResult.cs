@@ -171,7 +171,7 @@ public sealed class TestSelectionResult
 
         // Output run_integrations based on both the category trigger status AND whether
         // there are integration test projects discovered via dotnet-affected/sourceToTestMappings.
-        var runIntegrations = RunAllTests || IntegrationsProjects.Count > 0;
+        var runIntegrations = RunAllTests || AffectedTestProjects.Count > 0;
 
         foreach (var (category, enabled) in Categories)
         {
@@ -192,7 +192,8 @@ public sealed class TestSelectionResult
             lines.Add($"run_integrations={runIntegrations.ToString().ToLowerInvariant()}");
         }
 
-        lines.Add($"integrations_projects={JsonSerializer.Serialize(IntegrationsProjects)}");
+        // Output affected test projects as JSON array of .csproj paths for matrix filtering
+        lines.Add($"affected_test_projects={JsonSerializer.Serialize(AffectedTestProjects)}");
 
         // NuGet-dependent test outputs
         var nugetTriggered = NuGetDependentTests?.Triggered == true;

@@ -97,7 +97,7 @@ public class NuGetDependentTestDetectorTests
             Assert.NotNull(result);
             Assert.True(result.Triggered);
             Assert.Contains("eng/clipack/build.sh", result.AffectedPackableProjects);
-            Assert.Contains("tests/FakeNuGetTests/", result.Projects);
+            Assert.Contains("tests/FakeNuGetTests/FakeNuGetTests.csproj", result.Projects);
         }
         finally
         {
@@ -144,7 +144,7 @@ public class NuGetDependentTestDetectorTests
             Assert.NotNull(result);
             Assert.True(result.Triggered);
             Assert.Contains("src/MyLib/MyLib.csproj", result.AffectedPackableProjects);
-            Assert.Contains("tests/NuGetTests/", result.Projects);
+            Assert.Contains("tests/NuGetTests/NuGetTests.csproj", result.Projects);
         }
         finally
         {
@@ -283,9 +283,9 @@ public class NuGetDependentTestDetectorTests
 
             Assert.NotNull(result);
             Assert.Equal(2, result.Projects.Count);
-            Assert.Contains("tests/Templates.Tests/", result.Projects);
-            Assert.Contains("tests/EndToEnd.Tests/", result.Projects);
-            Assert.DoesNotContain("tests/Regular.Tests/", result.Projects);
+            Assert.Contains("tests/Templates.Tests/Templates.Tests.csproj", result.Projects);
+            Assert.Contains("tests/EndToEnd.Tests/EndToEnd.Tests.csproj", result.Projects);
+            Assert.DoesNotContain("tests/Regular.Tests/Regular.Tests.csproj", result.Projects);
         }
         finally
         {
@@ -382,6 +382,121 @@ public class NuGetDependentTestDetectorTests
                 workingDir: tempDir);
 
             Assert.Null(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FindNuGetDependentTestProjects_SkipsTestFixtures()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nuget-test-{Guid.NewGuid():N}");
+        try
+        {
+            // Create a real NuGet-dependent test project
+            var realTestDir = Path.Combine(tempDir, "tests", "RealNuGetTests");
+            Directory.CreateDirectory(realTestDir);
+            File.WriteAllText(Path.Combine(realTestDir, "RealNuGetTests.csproj"),
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            // Create a TestFixtures project that also has RequiredNuGetsForTesting
+            var fixtureDir = Path.Combine(tempDir, "tests", "SomeProject", "TestFixtures");
+            Directory.CreateDirectory(fixtureDir);
+            File.WriteAllText(Path.Combine(fixtureDir, "FixtureProject.csproj"),
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var result = NuGetDependentTestDetector.FindNuGetDependentTestProjects(tempDir);
+
+            // Should find the real test project but skip the TestFixtures one
+            Assert.Single(result);
+            Assert.Contains("tests/RealNuGetTests/RealNuGetTests.csproj", result);
+            Assert.DoesNotContain(result, p => p.Contains("TestFixtures"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FindNuGetDependentTestProjects_ReturnsCsprojPaths()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nuget-test-{Guid.NewGuid():N}");
+        try
+        {
+            var testsDir = Path.Combine(tempDir, "tests", "MyTests");
+            Directory.CreateDirectory(testsDir);
+            File.WriteAllText(Path.Combine(testsDir, "MyTests.csproj"),
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var result = NuGetDependentTestDetector.FindNuGetDependentTestProjects(tempDir);
+
+            Assert.Single(result);
+            // Should return .csproj path, not directory with trailing slash
+            Assert.EndsWith(".csproj", result[0]);
+            Assert.Equal("tests/MyTests/MyTests.csproj", result[0]);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FindNuGetDependentTestProjects_ReadsRequiredNuGetsForTesting()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nuget-test-{Guid.NewGuid():N}");
+        try
+        {
+            // Project with RequiredNuGetsForTesting - should be found
+            var newTestDir = Path.Combine(tempDir, "tests", "NewStyleTests");
+            Directory.CreateDirectory(newTestDir);
+            File.WriteAllText(Path.Combine(newTestDir, "NewStyleTests.csproj"),
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            // Project with old RequiresNugets only - should NOT be found
+            var oldTestDir = Path.Combine(tempDir, "tests", "OldStyleTests");
+            Directory.CreateDirectory(oldTestDir);
+            File.WriteAllText(Path.Combine(oldTestDir, "OldStyleTests.csproj"),
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <RequiresNugets>true</RequiresNugets>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var result = NuGetDependentTestDetector.FindNuGetDependentTestProjects(tempDir);
+
+            Assert.Single(result);
+            Assert.Contains("tests/NewStyleTests/NewStyleTests.csproj", result);
+            Assert.DoesNotContain(result, p => p.Contains("OldStyleTests"));
         }
         finally
         {

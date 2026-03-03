@@ -118,8 +118,11 @@ Use `testProjectPatterns` to configure how test projects are identified from dot
 The test selector outputs are used in `.github/workflows/tests.yml`:
 
 - `run_all` - Set to `true` when critical paths change or on non-PR events
-- `run_{category}` - Set to `true` when the category should run
-- `integrations_projects` - JSON array of specific test projects to run
+- `run_integrations`, `run_cli_e2e`, `run_extension`, `run_polyglot` - Category flags
+- `affected_test_projects` - JSON array of affected `.csproj` paths for matrix filtering
+
+Standalone jobs (`polyglot_validation`, `extension_tests_win`) use category flags as `if` guards.
+Matrix-based test jobs use `affected_test_projects` for per-project filtering (currently in audit mode).
 
 Example workflow usage:
 
@@ -130,8 +133,9 @@ jobs:
       run_all: ${{ steps.detect.outputs.run_all }}
       run_cli_e2e: ${{ steps.detect.outputs.run_cli_e2e }}
       run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
+      affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
 
-  my_tests:
+  my_standalone_job:
     needs: detect_scope
     if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_my_category == 'true' }}
 ```

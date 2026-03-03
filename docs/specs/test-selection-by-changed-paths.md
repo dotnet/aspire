@@ -1,5 +1,11 @@
 # Test Selection by Changed Paths
 
+> **Note:** This is the original design spec. The implementation has evolved:
+> - Categories `templates`, `endtoend`, and `playground` have been removed and replaced by `sourceToTestMappings`
+> - `integrations_projects` output has been renamed to `affected_test_projects` with `.csproj` paths
+> - A matrix filtering step (`filter-test-matrix-by-scope.ps1`) was added for per-project test filtering
+> - See `docs/conditional-tests-run.md` for the current documentation.
+
 ## Overview
 
 This document describes the MSBuild-based test selection system for determining which test projects to run based on git changes. The system uses `dotnet-affected` for dependency analysis combined with category-based rules and project mappings for edge cases.
