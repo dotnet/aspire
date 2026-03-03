@@ -30,6 +30,16 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     // The non-TLS endpoint if TLS is enabled, otherwise not allocated
     internal const string SecondaryEndpointName = "secondary";
 
+    /// <summary>
+    /// The standard URI scheme registered for Redis, similar to http. See: https://github.com/redis/redis-specifications/blob/1252427cdbc497f66a7f8550c6b5f2f35367dc92/uri/redis.txt
+    /// </summary>
+    internal const string StandardRedisScheme = "redis";
+
+    /// <summary>
+    /// The TLS URI scheme registered for Redis, similar to https. See: https://github.com/redis/redis-specifications/blob/1252427cdbc497f66a7f8550c6b5f2f35367dc92/uri/rediss.txt
+    /// </summary>
+    internal const string TlsRedisScheme = "rediss";
+
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>

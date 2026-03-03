@@ -91,7 +91,7 @@ public static class RedisBuilderExtensions
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         var redisBuilder = builder.AddResource(redis)
-            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName, scheme: "redis")
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName, scheme: RedisResource.StandardRedisScheme)
             .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(RedisContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey)
@@ -183,7 +183,7 @@ public static class RedisBuilderExtensions
                     .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
                     .WithEndpoint(RedisResource.PrimaryEndpointName, e =>
                     {
-                        e.UriScheme = "rediss";
+                        e.UriScheme = RedisResource.TlsRedisScheme;
                         e.TlsEnabled = true;
                     })
                     .WithArgs(argsCtx =>
