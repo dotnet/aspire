@@ -247,7 +247,16 @@ internal sealed class AppHostLauncher(
             var connection = backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
             if (connection is not null)
             {
-                var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+                DashboardUrlsState? dashboardUrls = null;
+                try
+                {
+                    dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Failed to retrieve dashboard URLs from backchannel connection. Continuing without dashboard URLs.");
+                }
+
                 return new LaunchResult(childProcess, connection, dashboardUrls, false, 0);
             }
 
