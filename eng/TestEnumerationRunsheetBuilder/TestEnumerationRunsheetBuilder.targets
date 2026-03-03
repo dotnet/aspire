@@ -19,10 +19,12 @@
   -->
 
   <PropertyGroup>
+    <!-- Normalize project directory path to use forward slashes for cross-platform matching -->
+    <_NormalizedProjectDirectory>$([System.String]::Copy('$(MSBuildProjectDirectory)').Replace('\','/'))</_NormalizedProjectDirectory>
     <!-- Skip projects that should be excluded -->
-    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(MSBuildProjectDirectory.Contains('tests\Shared'))">true</_ShouldSkipProject>
-    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(MSBuildProjectDirectory.Contains('tests\testproject'))">true</_ShouldSkipProject>
-    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(MSBuildProjectDirectory.Contains('tests\TestingAppHost1'))">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(_NormalizedProjectDirectory.Contains('tests/Shared'))">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(_NormalizedProjectDirectory.Contains('tests/testproject'))">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and $(_NormalizedProjectDirectory.Contains('tests/TestingAppHost1'))">true</_ShouldSkipProject>
 
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeTemplateTests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Templates.Tests'">true</_ShouldSkipProject>
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeCliE2ETests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Cli.EndToEnd.Tests'">true</_ShouldSkipProject>
