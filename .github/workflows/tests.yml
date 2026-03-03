@@ -128,6 +128,7 @@ jobs:
     name: Setup for tests
     runs-on: ubuntu-latest
     needs: detect_scope
+    if: ${{ needs.detect_scope.outputs.all_skipped != 'true' }}
     outputs:
       tests_matrix_no_nugets: ${{ steps.filter_matrix.outputs.tests_matrix_no_nugets }}
       tests_matrix_no_nugets_overflow: ${{ steps.filter_matrix.outputs.tests_matrix_no_nugets_overflow }}
@@ -170,6 +171,7 @@ jobs:
   build_packages:
     name: Build packages
     needs: detect_scope
+    if: ${{ needs.detect_scope.outputs.all_skipped != 'true' }}
     uses: ./.github/workflows/build-packages.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}

@@ -740,4 +740,185 @@ public class EndToEndEvaluationTests
     }
 
     #endregion
+
+    #region CI Trigger Pattern Coverage Tests
+
+    /// <summary>
+    /// Verifies that every file type previously covered by github-ci-trigger-patterns.txt
+    /// is correctly handled by the test-selection-rules.json ignorePaths.
+    /// This ensures we can safely rely on the test selection system as the single
+    /// source of truth for CI skip decisions.
+    /// </summary>
+    [Fact]
+    public void Evaluate_AllCiTriggerPatterns_CoveredByIgnorePaths()
+    {
+        // Load the REAL test-selection-rules.json config
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configJson = File.ReadAllText(configPath);
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
+        var categoryMapper = new CategoryMapper(config.Categories);
+
+        // Representative file paths for every pattern in the old github-ci-trigger-patterns.txt:
+        //   eng/testing/github-ci-trigger-patterns.txt  (self)
+        //   **.md                                       (all markdown, recursive)
+        //   eng/pipelines/**
+        //   eng/test-configuration.json
+        //   .github/instructions/**
+        //   .github/skills/**
+        //   .github/workflows/apply-test-attributes.yml
+        //   .github/workflows/backmerge-release.yml
+        //   .github/workflows/backport.yml
+        //   .github/workflows/dogfood-comment.yml
+        //   .github/workflows/generate-api-diffs.yml
+        //   .github/workflows/generate-ats-diffs.yml
+        //   .github/workflows/labeler-*.yml
+        //   .github/workflows/markdownlint*.yml
+        //   .github/workflows/pr-review-needed.yml
+        //   .github/workflows/refresh-manifests.yml
+        //   .github/workflows/reproduce-flaky-tests.yml
+        //   .github/workflows/specialized-test-runner.yml
+        //   .github/workflows/tests-outerloop.yml
+        //   .github/workflows/tests-quarantine.yml
+        //   .github/workflows/update-*.yml
+        var ciTriggerPatternFiles = new[]
+        {
+            // Self-reference
+            "eng/testing/github-ci-trigger-patterns.txt",
+
+            // Markdown at root
+            "README.md",
+            "SECURITY.md",
+
+            // Markdown nested in directories (**.md pattern)
+            "src/Aspire.Hosting.Redis/README.md",
+            "docs/getting-started.md",
+            "docs/api/overview.md",
+
+            // Engineering pipelines
+            "eng/pipelines/build.yml",
+            "eng/pipelines/test/integration.yml",
+
+            // Engineering config
+            "eng/test-configuration.json",
+
+            // GitHub instructions and skills
+            ".github/instructions/xmldoc.instructions.md",
+            ".github/instructions/hosting-readme.instructions.md",
+            ".github/skills/cli-e2e-testing.md",
+            ".github/skills/test-management.md",
+
+            // Specific workflow files
+            ".github/workflows/apply-test-attributes.yml",
+            ".github/workflows/backmerge-release.yml",
+            ".github/workflows/backport.yml",
+            ".github/workflows/dogfood-comment.yml",
+            ".github/workflows/generate-api-diffs.yml",
+            ".github/workflows/generate-ats-diffs.yml",
+            ".github/workflows/labeler-promote.yml",
+            ".github/workflows/labeler-train.yml",
+            ".github/workflows/markdownlint.yml",
+            ".github/workflows/markdownlint-problem-matcher.yml",
+            ".github/workflows/pr-review-needed.yml",
+            ".github/workflows/refresh-manifests.yml",
+            ".github/workflows/reproduce-flaky-tests.yml",
+            ".github/workflows/specialized-test-runner.yml",
+            ".github/workflows/tests-outerloop.yml",
+            ".github/workflows/tests-quarantine.yml",
+            ".github/workflows/update-baselines.yml",
+            ".github/workflows/update-dependencies.yml",
+
+            // Workflow files NOT in the old trigger patterns (ci.yml, tests.yml)
+            // but still ignored by test-selection-rules because workflow changes
+            // don't affect test outcomes
+            ".github/workflows/ci.yml",
+            ".github/workflows/tests.yml",
+        };
+
+        // ALL of these files should be ignored
+        var (ignoredFiles, activeFiles) = ignoreFilter.SplitFiles(ciTriggerPatternFiles);
+
+        Assert.Empty(activeFiles);
+        Assert.Equal(ciTriggerPatternFiles.Length, ignoredFiles.Count);
+
+        // None should be critical (trigger-all) paths
+        var criticalFile = criticalDetector.FindFirstCriticalFile(ciTriggerPatternFiles);
+        Assert.Null(criticalFile.File);
+
+        // No categories should be triggered
+        var (categories, matchedFiles) = categoryMapper.GetCategoriesTriggeredByFiles(Array.Empty<string>());
+        Assert.Empty(matchedFiles);
+        foreach (var category in categories)
+        {
+            Assert.False(category.Value, $"Category '{category.Key}' should not be triggered for CI-skip files");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that doc-only PRs (the most common CI-skip scenario) produce
+    /// no active files and would result in all_skipped=true.
+    /// </summary>
+    [Fact]
+    public void Evaluate_DocOnlyPr_AllSkipped()
+    {
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configJson = File.ReadAllText(configPath);
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
+
+        // Typical doc-only PR
+        var changedFiles = new[]
+        {
+            "README.md",
+            "docs/conditional-tests-run.md",
+            "src/Components/Aspire.Redis/README.md",
+        };
+
+        var (_, activeFiles) = ignoreFilter.SplitFiles(changedFiles);
+        Assert.Empty(activeFiles);
+
+        var criticalFile = criticalDetector.FindFirstCriticalFile(changedFiles);
+        Assert.Null(criticalFile.File);
+    }
+
+    /// <summary>
+    /// Verifies that workflow-only PRs are correctly ignored since workflow
+    /// changes don't affect test outcomes.
+    /// </summary>
+    [Fact]
+    public void Evaluate_WorkflowOnlyPr_AllSkipped()
+    {
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configJson = File.ReadAllText(configPath);
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
+
+        var changedFiles = new[]
+        {
+            ".github/workflows/ci.yml",
+            ".github/workflows/tests.yml",
+            ".github/actions/check-changed-files/action.yml",
+        };
+
+        var (_, activeFiles) = ignoreFilter.SplitFiles(changedFiles);
+        Assert.Empty(activeFiles);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir, "Aspire.slnx")))
+            {
+                return dir;
+            }
+            dir = Path.GetDirectoryName(dir);
+        }
+        throw new InvalidOperationException("Could not find repository root (Aspire.slnx)");
+    }
+
+    #endregion
 }

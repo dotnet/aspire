@@ -65,21 +65,22 @@ Files matching these glob patterns are completely ignored — they don't trigger
 "ignorePaths": [
   ".editorconfig",
   ".gitignore",
-  "*.md",
+  "**/*.md",
   "docs/**",
-  "eng/common/**",
   "eng/pipelines/**",
+  "eng/test-configuration.json",
+  "eng/testing/**",
   ".github/workflows/**",
   ".github/actions/**",
+  ".github/instructions/**",
+  ".github/skills/**",
   "tests/agent-scenarios/**",
   "eng/scripts/test-selection-rules.json",
-  "eng/scripts/test-selection-rules.schema.json",
-  "tests/Aspire.Infrastructure.Tests/**",
-  "Aspire.slnx",
-  "src/Grafana/**",
-  "src/Schema/**"
+  "eng/scripts/test-selection-rules.schema.json"
 ]
 ```
+
+When **all** changed files in a pull request match `ignorePaths`, the system sets `all_skipped=true`, which causes the build and test jobs to be skipped entirely. This replaces the previous `github-ci-trigger-patterns.txt` mechanism with a single, unified configuration.
 
 ### `triggerAllPaths`
 
@@ -301,8 +302,8 @@ dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from 
 dotnet test tests/Aspire.TestSelector.Tests
 
 # Run specific test categories
-dotnet test tests/Aspire.TestSelector.Tests --filter "FullyQualifiedName~IgnorePathFilter"
-dotnet test tests/Aspire.TestSelector.Tests --filter "FullyQualifiedName~CriticalFileDetector"
+dotnet test tests/Aspire.TestSelector.Tests -- --filter-class "*.IgnorePathFilterTests"
+dotnet test tests/Aspire.TestSelector.Tests -- --filter-class "*.EndToEndEvaluationTests"
 ```
 
 ### Test Coverage

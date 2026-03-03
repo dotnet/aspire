@@ -4,11 +4,15 @@
   "ignorePaths": [
     ".editorconfig",
     ".gitignore",
-    "*.md",
+    "**/*.md",
     "docs/**",
     "eng/pipelines/**",
+    "eng/test-configuration.json",
+    "eng/testing/**",
     ".github/workflows/**",
     ".github/actions/**",
+    ".github/instructions/**",
+    ".github/skills/**",
     "tests/agent-scenarios/**",
     "eng/scripts/test-selection-rules.json",
     "eng/scripts/test-selection-rules.schema.json"
