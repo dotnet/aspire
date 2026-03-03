@@ -1,13 +1,14 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
-      - 'release/**'
-
-  push:
-    branches:
+  workflow_dispatch: {}
+#  pull_request:
+#    branches:
+#      - main
+#      - 'release/**'
+#
+#  push:
+#    branches:
       - main
       - 'release/**'
 
