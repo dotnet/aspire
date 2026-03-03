@@ -37,20 +37,10 @@
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(SkipTests)' == 'true'">true</_ShouldSkipProject>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <!-- Build comma-separated list of supported OSes -->
-    <_SupportedOSes></_SupportedOSes>
-    <_SupportedOSes Condition="'$(RunOnGithubActionsWindows)' == 'true'">$(_SupportedOSes)"windows",</_SupportedOSes>
-    <_SupportedOSes Condition="'$(RunOnGithubActionsLinux)' == 'true'">$(_SupportedOSes)"linux",</_SupportedOSes>
-    <_SupportedOSes Condition="'$(RunOnGithubActionsMacOS)' == 'true'">$(_SupportedOSes)"macos",</_SupportedOSes>
-    <!-- Remove trailing comma -->
-    <_SupportedOSes Condition="'$(_SupportedOSes)' != ''">$(_SupportedOSes.TrimEnd(','))</_SupportedOSes>
-  </PropertyGroup>
 
   <Target Name="RunTests"
           Outputs="%(TestToRun.ResultsStdOutPath)"
           Condition="'$(_ShouldSkipProject)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true'">
-
     <!-- Build and generate test partitions for split test projects -->
     <MSBuild Projects="$(MSBuildProjectFullPath)"
              Properties="GenerateCIPartitions=true;BuildOs=$(BuildOs)"
