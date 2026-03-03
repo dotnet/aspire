@@ -31,6 +31,8 @@ public static class AzureSignalRExtensions
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureSignalRResource}, SignalRBuiltInRole[])"/>.
     /// </remarks>
+    /// <remarks>This overload is not available in polyglot app hosts. Use <see cref="AddAzureSignalRForPolyglot"/> instead.</remarks>
+    [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         => AddAzureSignalR(builder, name, AzureSignalRServiceMode.Default);
 
@@ -52,6 +54,8 @@ public static class AzureSignalRExtensions
     /// 
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureSignalRResource}, SignalRBuiltInRole[])"/>.
     /// </remarks>
+    /// <remarks>This overload is not available in polyglot app hosts. Use <see cref="AddAzureSignalRForPolyglot"/> instead.</remarks>
+    [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, AzureSignalRServiceMode serviceMode)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -125,6 +129,10 @@ public static class AzureSignalRExtensions
             .WithDefaultRoleAssignments(SignalRBuiltInRole.GetBuiltInRoleName, defaultRoles.ToArray());
     }
 
+    [AspireExport("addAzureSignalR", Description = "Adds an Azure SignalR resource to the application model.")]
+    internal static IResourceBuilder<AzureSignalRResource> AddAzureSignalRForPolyglot(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+        => AddAzureSignalR(builder, name);
+
     /// <summary>
     /// Configures an Azure SignalR resource to be emulated. This resource requires an <see cref="AzureSignalRResource"/> to be added to the application model. Please note that the resource will be emulated in <b>Serverless mode</b>.
     /// </summary>
@@ -134,6 +142,7 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The Azure SignalR resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("runAsEmulator", Description = "Exports RunAsEmulator for polyglot app hosts.")]
     public static IResourceBuilder<AzureSignalRResource> RunAsEmulator(this IResourceBuilder<AzureSignalRResource> builder, Action<IResourceBuilder<AzureSignalREmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
