@@ -97,7 +97,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayConsoleWriteLineMessage?.Invoke(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
         StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
         return Task.CompletedTask;
