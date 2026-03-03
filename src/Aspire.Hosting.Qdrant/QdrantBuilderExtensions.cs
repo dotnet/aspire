@@ -34,6 +34,7 @@ public static class QdrantBuilderExtensions
     /// <param name="grpcPort">The host port of gRPC endpoint of Qdrant database.</param>
     /// <param name="httpPort">The host port of HTTP endpoint of Qdrant database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{QdrantServerResource}"/>.</returns>
+    [AspireExport("addQdrant", Description = "Exports AddQdrant for polyglot app hosts.")]
     public static IResourceBuilder<QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder,
         string name,
         IResourceBuilder<ParameterResource>? apiKey = null,
@@ -104,6 +105,7 @@ public static class QdrantBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataVolume", Description = "Exports WithDataVolume for polyglot app hosts.")]
     public static IResourceBuilder<QdrantServerResource> WithDataVolume(this IResourceBuilder<QdrantServerResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -119,6 +121,7 @@ public static class QdrantBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataBindMount", Description = "Exports WithDataBindMount for polyglot app hosts.")]
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
