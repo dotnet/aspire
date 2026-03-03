@@ -4,7 +4,7 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Represents ATS-compatible Azure App Configuration roles.
+/// Represents Azure App Configuration roles that are compatible with the Aspire Type System (ATS).
 /// </summary>
 internal enum AzureAppConfigurationRole
 {

@@ -227,7 +227,7 @@ public static class AzureAppConfigurationExtensions
             {
                 AzureAppConfigurationRole.AppConfigurationDataOwner => AppConfigurationBuiltInRole.AppConfigurationDataOwner,
                 AzureAppConfigurationRole.AppConfigurationDataReader => AppConfigurationBuiltInRole.AppConfigurationDataReader,
-                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureAppConfigurationRole)} value.", nameof(roles))
+                _ => throw new ArgumentException($"Role '{roles[i]}' at index {i} is not a valid {nameof(AzureAppConfigurationRole)} value.", nameof(roles))
             };
         }
 
