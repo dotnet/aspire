@@ -1310,6 +1310,25 @@ export class AzureApplicationInsightsResource extends ResourceBuilderBase<AzureA
         return new AzureApplicationInsightsResourcePromise(this._withParentRelationshipInternal(parent));
     }
 
+    /** @internal */
+    private async _configureInfrastructureInternal(configureJson: (arg: string) => Promise<string>): Promise<AzureApplicationInsightsResource> {
+        const configureJsonId = registerCallback(async (argData: unknown) => {
+            const arg = argData as string;
+            return await configureJson(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configureJson: configureJsonId };
+        const result = await this._client.invokeCapability<AzureApplicationInsightsResourceHandle>(
+            'Aspire.Hosting.Azure/configureInfrastructureJson',
+            rpcArgs
+        );
+        return new AzureApplicationInsightsResource(result, this._client);
+    }
+
+    /** Configures top-level Azure provisioning resources using an integration-specific JSON payload */
+    configureInfrastructure(configureJson: (arg: string) => Promise<string>): AzureApplicationInsightsResourcePromise {
+        return new AzureApplicationInsightsResourcePromise(this._configureInfrastructureInternal(configureJson));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -1394,6 +1413,11 @@ export class AzureApplicationInsightsResourcePromise implements PromiseLike<Azur
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): AzureApplicationInsightsResourcePromise {
         return new AzureApplicationInsightsResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Configures top-level Azure provisioning resources using an integration-specific JSON payload */
+    configureInfrastructure(configureJson: (arg: string) => Promise<string>): AzureApplicationInsightsResourcePromise {
+        return new AzureApplicationInsightsResourcePromise(this._promise.then(obj => obj.configureInfrastructure(configureJson)));
     }
 
     /** Gets the resource name */
@@ -5265,4 +5289,3 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceW
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport', (handle, client) => new ResourceWithWaitSupport(handle as IResourceWithWaitSupportHandle, client));
-

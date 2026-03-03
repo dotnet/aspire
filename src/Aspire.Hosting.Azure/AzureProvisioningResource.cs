@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.Authorization;
@@ -18,10 +20,14 @@ namespace Aspire.Hosting.Azure;
 public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new(JsonSerializerDefaults.Web);
+
     /// <summary>
     /// Callback for configuring the Azure resources.
     /// </summary>
     public Action<AzureResourceInfrastructure> ConfigureInfrastructure { get; internal set; } = configureInfrastructure ?? throw new ArgumentNullException(nameof(configureInfrastructure));
+
+    internal List<Func<string, string>> ConfigureInfrastructureJsonCallbacks { get; } = [];
 
     /// <summary>
     /// Gets or sets the <see cref="global::Azure.Provisioning.ProvisioningBuildOptions"/> which contains common settings and
@@ -81,6 +87,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         var infrastructure = new AzureResourceInfrastructure(this, Name);
 
         ConfigureInfrastructure(infrastructure);
+        ApplyJsonInfrastructureMutations(infrastructure);
 
         EnsureParametersAlign(infrastructure);
 
@@ -220,6 +227,270 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         }
 
         return true;
+    }
+
+    private void ApplyJsonInfrastructureMutations(AzureResourceInfrastructure infrastructure)
+    {
+        if (ConfigureInfrastructureJsonCallbacks.Count == 0)
+        {
+            return;
+        }
+
+        var topLevelResources = GetTopLevelProvisionableResources(infrastructure);
+        var jsonPayload = CreateTopLevelResourcesPayload(topLevelResources).ToJsonString(s_jsonSerializerOptions);
+
+        foreach (var callback in ConfigureInfrastructureJsonCallbacks)
+        {
+            var updatedPayload = callback(jsonPayload);
+            if (string.IsNullOrWhiteSpace(updatedPayload))
+            {
+                throw new InvalidOperationException($"Infrastructure JSON callback for resource '{Name}' returned empty JSON.");
+            }
+
+            jsonPayload = updatedPayload;
+        }
+
+        ApplyTopLevelResourcePayload(topLevelResources, jsonPayload);
+    }
+
+    private static List<ProvisionableResource> GetTopLevelProvisionableResources(AzureResourceInfrastructure infrastructure)
+    {
+        return infrastructure.GetProvisionableResources()
+            .OfType<ProvisionableResource>()
+            .Where(static resource =>
+            {
+                if (resource.ProvisionableProperties.TryGetValue("Parent", out var parentValue) ||
+                    resource.ProvisionableProperties.TryGetValue("parent", out parentValue))
+                {
+                    return parentValue.IsEmpty;
+                }
+
+                return true;
+            })
+            .ToList();
+    }
+
+    private static JsonArray CreateTopLevelResourcesPayload(IReadOnlyList<ProvisionableResource> resources)
+    {
+        var resourcesArray = new JsonArray();
+
+        foreach (var resource in resources.OrderBy(r => r.BicepIdentifier, StringComparer.Ordinal))
+        {
+            var propertiesObject = new JsonObject();
+
+            foreach (var property in resource.ProvisionableProperties.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                var propertyPayload = new JsonObject();
+
+                if (property.Value.IsEmpty)
+                {
+                    propertyPayload["kind"] = "unset";
+                }
+                else if (property.Value.Kind == BicepValueKind.Literal)
+                {
+                    if (TryCreateLiteralJsonNode(property.Value, out var literalNode))
+                    {
+                        propertyPayload["kind"] = "literal";
+                        propertyPayload["value"] = literalNode;
+                    }
+                    else
+                    {
+                        propertyPayload["kind"] = "unsupported";
+                        propertyPayload["value"] = property.Value.Compile().ToString();
+                    }
+                }
+                else if (property.Value.Kind == BicepValueKind.Expression)
+                {
+                    propertyPayload["kind"] = "expression";
+                    propertyPayload["value"] = property.Value.Compile().ToString();
+                }
+                else
+                {
+                    propertyPayload["kind"] = property.Value.Kind.ToString();
+                }
+
+                propertiesObject[property.Key] = propertyPayload;
+            }
+
+            resourcesArray.Add(new JsonObject
+            {
+                ["bicepIdentifier"] = resource.BicepIdentifier,
+                ["resourceType"] = resource.ResourceType.ToString(),
+                ["resourceVersion"] = resource.ResourceVersion,
+                ["properties"] = propertiesObject
+            });
+        }
+
+        return resourcesArray;
+    }
+
+    private static void ApplyTopLevelResourcePayload(IReadOnlyList<ProvisionableResource> resources, string payload)
+    {
+        JsonNode? parsedNode;
+        try
+        {
+            parsedNode = JsonNode.Parse(payload);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Infrastructure JSON payload is invalid: {ex.Message}", ex);
+        }
+
+        if (parsedNode is not JsonArray resourcesArray)
+        {
+            throw new InvalidOperationException("Infrastructure JSON payload must be a JSON array of top-level resources.");
+        }
+
+        var resourceLookup = resources.ToDictionary(r => r.BicepIdentifier, StringComparer.Ordinal);
+
+        foreach (var resourceNode in resourcesArray)
+        {
+            if (resourceNode is not JsonObject resourceObject)
+            {
+                throw new InvalidOperationException("Each infrastructure resource entry must be a JSON object.");
+            }
+
+            var bicepIdentifier = GetRequiredString(resourceObject, "bicepIdentifier");
+            if (!resourceLookup.TryGetValue(bicepIdentifier, out var resource))
+            {
+                throw new InvalidOperationException($"Top-level resource '{bicepIdentifier}' does not exist in infrastructure.");
+            }
+
+            if (resourceObject["properties"] is not JsonObject propertiesObject)
+            {
+                continue;
+            }
+
+            foreach (var property in propertiesObject)
+            {
+                if (!resource.ProvisionableProperties.TryGetValue(property.Key, out var targetValue))
+                {
+                    throw new InvalidOperationException($"Property '{property.Key}' does not exist on top-level resource '{bicepIdentifier}'.");
+                }
+
+                if (property.Value is not JsonObject propertyObject)
+                {
+                    throw new InvalidOperationException($"Property '{property.Key}' on resource '{bicepIdentifier}' must be a JSON object.");
+                }
+
+                var kind = propertyObject["kind"]?.GetValue<string>() ?? "literal";
+                if (kind.Equals("unset", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!kind.Equals("literal", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                ApplyLiteralValue(propertyObject["value"], targetValue, bicepIdentifier, property.Key);
+            }
+        }
+    }
+
+    private static void ApplyLiteralValue(JsonNode? valueNode, IBicepValue targetValue, string bicepIdentifier, string propertyName)
+    {
+        if (!TryGetBicepLiteralType(targetValue, out var literalType))
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' on resource '{bicepIdentifier}' cannot be updated because its type is not supported.");
+        }
+
+        object? literalValue;
+        try
+        {
+            literalValue = valueNode is null ? null : JsonSerializer.Deserialize(valueNode, literalType, s_jsonSerializerOptions);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' on resource '{bicepIdentifier}' contains a value that cannot be converted to '{literalType.Name}'.", ex);
+        }
+
+        if (literalValue is null && literalType.IsValueType && Nullable.GetUnderlyingType(literalType) is null)
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' on resource '{bicepIdentifier}' cannot be set to null.");
+        }
+
+        var bicepValueType = typeof(BicepValue<>).MakeGenericType(literalType);
+        var replacement = (IBicepValue?)Activator.CreateInstance(bicepValueType, literalValue);
+        if (replacement is null)
+        {
+            throw new InvalidOperationException($"Failed to create BicepValue for property '{propertyName}' on resource '{bicepIdentifier}'.");
+        }
+
+        targetValue.Assign(replacement);
+    }
+
+    private static bool TryGetBicepLiteralType(IBicepValue value, out Type literalType)
+    {
+        var currentType = value.GetType();
+        while (currentType is not null)
+        {
+            if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BicepValue<>))
+            {
+                literalType = currentType.GetGenericArguments()[0];
+                return true;
+            }
+
+            currentType = currentType.BaseType;
+        }
+
+        literalType = typeof(object);
+        return false;
+    }
+
+    private static bool TryCreateLiteralJsonNode(IBicepValue value, out JsonNode? literalNode)
+    {
+        if (!TryGetBicepLiteralType(value, out var literalType) || !IsSupportedLiteralType(literalType))
+        {
+            literalNode = null;
+            return false;
+        }
+
+        try
+        {
+            literalNode = JsonSerializer.SerializeToNode(value.LiteralValue, literalType, s_jsonSerializerOptions);
+            return true;
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            literalNode = null;
+            return false;
+        }
+    }
+
+    private static bool IsSupportedLiteralType(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        return underlyingType.IsEnum
+            || underlyingType == typeof(string)
+            || underlyingType == typeof(bool)
+            || underlyingType == typeof(byte)
+            || underlyingType == typeof(sbyte)
+            || underlyingType == typeof(short)
+            || underlyingType == typeof(ushort)
+            || underlyingType == typeof(int)
+            || underlyingType == typeof(uint)
+            || underlyingType == typeof(long)
+            || underlyingType == typeof(ulong)
+            || underlyingType == typeof(float)
+            || underlyingType == typeof(double)
+            || underlyingType == typeof(decimal)
+            || underlyingType == typeof(Guid)
+            || underlyingType == typeof(DateTime)
+            || underlyingType == typeof(DateTimeOffset)
+            || underlyingType == typeof(TimeSpan)
+            || underlyingType == typeof(Uri);
+    }
+
+    private static string GetRequiredString(JsonObject obj, string name)
+    {
+        if (obj[name] is not JsonValue value || !value.TryGetValue<string>(out var result) || string.IsNullOrWhiteSpace(result))
+        {
+            throw new InvalidOperationException($"Infrastructure JSON resource entry is missing required '{name}' value.");
+        }
+
+        return result;
     }
 
     private void EnsureParametersAlign(AzureResourceInfrastructure infrastructure)

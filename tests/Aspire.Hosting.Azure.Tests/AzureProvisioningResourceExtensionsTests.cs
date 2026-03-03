@@ -1,14 +1,101 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureProvisioningResourceExtensionsTests
 {
+    [Fact]
+    public async Task ConfigureInfrastructureJson_InvokesCallbackAndBuildsBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callbackInvoked = false;
+
+        var infrastructureResource = builder.AddAzureInfrastructure("resource", infrastructure =>
+            {
+                infrastructure.Add(new ProvisioningParameter("myValue", typeof(string))
+                {
+                    Value = "before"
+                });
+            })
+            .ConfigureInfrastructureJson(payload =>
+            {
+                callbackInvoked = true;
+                Assert.NotEmpty(payload);
+                return payload;
+            });
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(infrastructureResource.Resource);
+
+        Assert.True(callbackInvoked);
+        Assert.Contains("param myValue string", manifest.BicepText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConfigureInfrastructureJson_ThrowsForUnknownProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var infrastructureResource = builder.AddAzureInfrastructure("resource", infrastructure =>
+            {
+                infrastructure.Add(new ProvisioningParameter("myValue", typeof(string))
+                {
+                    Value = "before"
+                });
+            })
+            .ConfigureInfrastructureJson(payload =>
+            {
+                var resources = JsonNode.Parse(payload)?.AsArray() ?? [];
+                resources.Add(new JsonObject
+                {
+                    ["bicepIdentifier"] = "missing-resource",
+                    ["properties"] = new JsonObject()
+                });
+
+                return resources.ToJsonString();
+            });
+
+        var exception = Assert.Throws<InvalidOperationException>(infrastructureResource.Resource.GetBicepTemplateString);
+
+        Assert.Contains("missing-resource", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConfigureInfrastructure_HasAspireExportIgnoreAttribute()
+    {
+        var method = typeof(AzureProvisioningResourceExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Single(m => m.Name == nameof(AzureProvisioningResourceExtensions.ConfigureInfrastructure)
+                && m.GetParameters().Length == 2
+                && m.GetParameters()[1].ParameterType == typeof(Action<global::Aspire.Hosting.Azure.AzureResourceInfrastructure>));
+
+        var ignoreAttribute = method.GetCustomAttribute<AspireExportIgnoreAttribute>();
+
+        Assert.NotNull(ignoreAttribute);
+    }
+
+    [Fact]
+    public void ConfigureInfrastructureJson_HasAspireExportAttribute()
+    {
+        var method = typeof(AzureProvisioningResourceExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(m => m.Name == nameof(AzureProvisioningResourceExtensions.ConfigureInfrastructureJson)
+                && m.GetParameters().Length == 2
+                && m.GetParameters()[1].ParameterType == typeof(Func<string, string>));
+
+        var exportAttribute = method.GetCustomAttribute<AspireExportAttribute>();
+
+        Assert.NotNull(exportAttribute);
+        Assert.Equal("configureInfrastructure", exportAttribute.MethodName);
+    }
+
     [Fact]
     public async Task AsProvisioningParameterTests()
     {

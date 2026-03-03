@@ -36,6 +36,10 @@ public static class AzureProvisioningResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="configure">The configuration callback.</param>
     /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// This method is not available in polyglot app hosts. Use <see cref="ConfigureInfrastructureJson{T}"/> instead.
+    /// </remarks>
+    [AspireExportIgnore(Reason = "Action<AzureResourceInfrastructure> depends on .NET Azure.Provisioning types not ATS-compatible. Use ConfigureInfrastructureJson instead.")]
     public static IResourceBuilder<T> ConfigureInfrastructure<T>(this IResourceBuilder<T> builder, Action<AzureResourceInfrastructure> configure)
         where T : AzureProvisioningResource
     {
@@ -43,6 +47,28 @@ public static class AzureProvisioningResourceExtensions
         ArgumentNullException.ThrowIfNull(configure);
 
         builder.Resource.ConfigureInfrastructure += configure;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures top-level Azure provisioning resources using an integration-specific JSON payload.
+    /// </summary>
+    /// <typeparam name="T">Type of the <see cref="AzureProvisioningResource"/> resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureJson">A callback that receives JSON describing top-level resources and returns updated JSON.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// This method is designed for polyglot app hosts where direct <see cref="AzureResourceInfrastructure"/> mutation is not available.
+    /// The JSON contract is integration-specific and only includes top-level CDK resources.
+    /// </remarks>
+    [AspireExport("configureInfrastructureJson", MethodName = "configureInfrastructure", Description = "Configures top-level Azure provisioning resources using JSON")]
+    public static IResourceBuilder<T> ConfigureInfrastructureJson<T>(this IResourceBuilder<T> builder, Func<string, string> configureJson)
+        where T : AzureProvisioningResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureJson);
+
+        builder.Resource.ConfigureInfrastructureJsonCallbacks.Add(configureJson);
         return builder;
     }
 
@@ -287,4 +313,3 @@ public static class AzureProvisioningResourceExtensions
         return Infrastructure.NormalizeBicepIdentifier(parameterName);
     }
 }
-
