@@ -9,6 +9,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -20,8 +21,8 @@ internal sealed class DoCommand : PipelineCommandBase
 
     private readonly Argument<string> _stepArgument;
 
-    public DoCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DoCommand> logger, IAnsiConsole ansiConsole)
-        : base("do", DoCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
+    public DoCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, IConfiguration configuration, ILogger<DoCommand> logger, IAnsiConsole ansiConsole)
+        : base("do", DoCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier, executionContext, hostEnvironment, projectFactory, configuration, logger, ansiConsole)
     {
         _stepArgument = new Argument<string>("step")
         {
@@ -33,6 +34,12 @@ internal sealed class DoCommand : PipelineCommandBase
     protected override string OperationCompletedPrefix => DoCommandStrings.OperationCompletedPrefix;
     protected override string OperationFailedPrefix => DoCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => DoCommandStrings.OutputPathArgumentDescription;
+
+    protected override string[] GetCommandArgs(ParseResult parseResult)
+    {
+        var step = parseResult.GetValue(_stepArgument);
+        return !string.IsNullOrEmpty(step) ? [step] : [];
+    }
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
