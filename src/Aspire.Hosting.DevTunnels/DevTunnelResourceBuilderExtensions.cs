@@ -44,6 +44,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [global::Aspire.Hosting.AspireExport("addDevTunnel", Description = "Exports AddDevTunnel for polyglot app hosts.")]
     public static IResourceBuilder<DevTunnelResource> AddDevTunnel(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -285,6 +286,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <returns>The resource builder.</returns>
+    [global::Aspire.Hosting.AspireExport("withReference1", MethodName = "withReference", Description = "Exports WithReference for polyglot app hosts.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint)
@@ -297,6 +299,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
     /// <returns>The resource builder.</returns>
+    [global::Aspire.Hosting.AspireExport("withReference2", MethodName = "withReference", Description = "Exports WithReference for polyglot app hosts.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -310,6 +313,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <param name="portOptions">Options for the dev tunnel port.</param>
     /// <returns>The resource builder.</returns>
+    [global::Aspire.Hosting.AspireExport("withReference3", MethodName = "withReference", Description = "Exports WithReference for polyglot app hosts.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -331,6 +335,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// </remarks>
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <returns>The resource builder.</returns>
+    [global::Aspire.Hosting.AspireExport("withAnonymousAccess", Description = "Exports WithAnonymousAccess for polyglot app hosts.")]
     public static IResourceBuilder<DevTunnelResource> WithAnonymousAccess(this IResourceBuilder<DevTunnelResource> tunnelBuilder)
     {
         tunnelBuilder.Resource.Options.AllowAnonymous = true;
@@ -363,6 +368,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="resource">The target resource.</param>
     /// <param name="endpointName">The name of the endpoint on the target resource.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    [global::Aspire.Hosting.AspireExport("getEndpoint1", MethodName = "getEndpoint", Description = "Exports GetEndpoint for polyglot app hosts.")]
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResource resource, string endpointName)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
@@ -386,6 +392,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="targetEndpointReference">The target endpoint reference.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    [global::Aspire.Hosting.AspireExport("getEndpoint2", MethodName = "getEndpoint", Description = "Exports GetEndpoint for polyglot app hosts.")]
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, EndpointReference targetEndpointReference)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
