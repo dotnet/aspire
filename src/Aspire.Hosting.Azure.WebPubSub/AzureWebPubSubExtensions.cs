@@ -31,6 +31,7 @@ public static class AzureWebPubSubExtensions
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureWebPubSubResource}, WebPubSubBuiltInRole[])"/>.
     /// </remarks>
+    [global::Aspire.Hosting.AspireExport("addAzureWebPubSub", Description = "Exports AddAzureWebPubSub for polyglot app hosts.")]
     public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -156,6 +157,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="hubName">The hub name. Hub name is case-insensitive.</param>
     /// <returns></returns>
+    [global::Aspire.Hosting.AspireExport("addHub1", MethodName = "addHub", Description = "Exports AddHub for polyglot app hosts.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
         return AddHub(builder, hubName, hubName);
@@ -168,6 +170,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="name">The name of the Azure WebPubSub Hub resource.</param>
     /// <param name="hubName">The name of the Azure WebPubSub Hub. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [global::Aspire.Hosting.AspireExport("addHub2", MethodName = "addHub", Description = "Exports AddHub for polyglot app hosts.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string name, string? hubName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -196,6 +199,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    [global::Aspire.Hosting.AspireExport("addEventHandler1", MethodName = "addEventHandler", Description = "Exports AddEventHandler for polyglot app hosts.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
         this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
@@ -221,6 +225,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    [global::Aspire.Hosting.AspireExport("addEventHandler2", MethodName = "addEventHandler", Description = "Exports AddEventHandler for polyglot app hosts.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
         this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
