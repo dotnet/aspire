@@ -142,7 +142,7 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The Azure SignalR resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("runAsEmulator", Description = "Exports RunAsEmulator for polyglot app hosts.")]
+    [AspireExport("runAsEmulator", Description = "Configures an Azure SignalR resource to be emulated. This resource requires an  to be added to the application model. Please note that the resource will be emulated in Serverless mode.")]
     public static IResourceBuilder<AzureSignalRResource> RunAsEmulator(this IResourceBuilder<AzureSignalRResource> builder, Action<IResourceBuilder<AzureSignalREmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
