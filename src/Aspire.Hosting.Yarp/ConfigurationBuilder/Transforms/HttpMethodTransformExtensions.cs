@@ -14,6 +14,7 @@ public static class HttpMethodTransformExtensions
     /// <summary>
     /// Adds the transform that will replace the HTTP method if it matches.
     /// </summary>
+    [global::Aspire.Hosting.AspireExport("withTransformHttpMethodChange", Description = "Exports WithTransformHttpMethodChange for polyglot app hosts.")]
     public static YarpRoute WithTransformHttpMethodChange(this YarpRoute route, string fromHttpMethod, string toHttpMethod)
     {
         route.Configure(r => r.WithTransformHttpMethodChange(fromHttpMethod, toHttpMethod));

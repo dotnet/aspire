@@ -14,6 +14,7 @@ public static class QueryTransformExtensions
     /// <summary>
     /// Adds the transform that will append or set the query parameter from the given value.
     /// </summary>
+    [global::Aspire.Hosting.AspireExport("withTransformQueryValue", Description = "Exports WithTransformQueryValue for polyglot app hosts.")]
     public static YarpRoute WithTransformQueryValue(this YarpRoute route, string queryKey, string value, bool append = true)
     {
         route.Configure(r => r.WithTransformQueryValue(queryKey, value, append));
@@ -23,6 +24,7 @@ public static class QueryTransformExtensions
     /// <summary>
     /// Adds the transform that will append or set the query parameter from a route value.
     /// </summary>
+    [global::Aspire.Hosting.AspireExport("withTransformQueryRouteValue", Description = "Exports WithTransformQueryRouteValue for polyglot app hosts.")]
     public static YarpRoute WithTransformQueryRouteValue(this YarpRoute route, string queryKey, string routeValueKey, bool append = true)
     {
         route.Configure(r => r.WithTransformQueryRouteValue(queryKey, routeValueKey, append));
@@ -32,6 +34,7 @@ public static class QueryTransformExtensions
     /// <summary>
     /// Adds the transform that will remove the given query key.
     /// </summary>
+    [global::Aspire.Hosting.AspireExport("withTransformQueryRemoveKey", Description = "Exports WithTransformQueryRemoveKey for polyglot app hosts.")]
     public static YarpRoute WithTransformQueryRemoveKey(this YarpRoute route, string queryKey)
     {
         route.Configure(r => r.WithTransformQueryRemoveKey(queryKey));
