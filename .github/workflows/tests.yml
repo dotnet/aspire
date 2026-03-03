@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dotnet-affected
         if: github.event_name == 'pull_request'
-        run: dotnet tool install --global dotnet-affected --prerelease
+        run: dotnet tool install --global dotnet-affected --version 6.2.0
 
       - name: Evaluate changed paths
         id: detect_raw
