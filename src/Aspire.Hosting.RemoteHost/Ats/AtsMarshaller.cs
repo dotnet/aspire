@@ -5,6 +5,8 @@ using System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -46,10 +48,19 @@ internal sealed class AtsMarshaller
         public string? ParameterName { get; init; }
     }
 
+    // NOTE: ReferenceHandler.IgnoreCycles prevents JsonException when serializing DTOs
+    // with circular references (e.g. parent/child back-references). Cycles are broken by
+    // writing null for back-edges. This means the TypeScript side will receive null for
+    // cycle-broken properties. During DTO writeback, those null values will overwrite the
+    // original non-null references on the C# side — this is intentional, since TypeScript
+    // cannot represent object cycles and the writeback reflects what TypeScript observed.
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver()
     };
 
     /// <summary>
@@ -525,5 +536,77 @@ internal sealed class AtsMarshaller
         }
 
         return JsonSerializer.Deserialize(value.ToJsonString(), targetType, s_jsonOptions);
+    }
+
+    /// <summary>
+    /// Checks if a type is a DTO type (marked with [AspireDto] and registered in the context).
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns><c>true</c> if the type is a DTO type; otherwise, <c>false</c>.</returns>
+    public bool IsDtoType(Type type)
+    {
+        return _context.GetCategory(type) == Hosting.Ats.AtsTypeCategory.Dto;
+    }
+
+    /// <summary>
+    /// Applies property values from a JSON object to an existing DTO instance.
+    /// Used for applying mutations made in callbacks back to the original objects.
+    /// Only writable properties and public fields whose types can be deserialized
+    /// from the JSON are updated. Properties with complex types that lack a
+    /// parameterless constructor (e.g. <c>EndpointReference</c>) are silently skipped.
+    /// </summary>
+    /// <param name="source">The JSON object containing the updated values.</param>
+    /// <param name="target">The existing DTO instance to update.</param>
+    /// <param name="targetType">The CLR type of the target object.</param>
+    /// <remarks>
+    /// <para>
+    /// Nested DTO properties are deserialized as new instances, not patched in-place.
+    /// External references to the original nested object will not see the mutations.
+    /// </para>
+    /// <para>
+    /// When <c>ReferenceHandler.IgnoreCycles</c> is active, cycle-broken properties
+    /// arrive as <c>null</c> and will overwrite the original non-null reference.
+    /// </para>
+    /// </remarks>
+    // Instance method for consistency with IsDtoType and future extensibility.
+#pragma warning disable CA1822 // Member does not access instance data
+    public void ApplyDtoProperties(JsonObject source, object target, Type targetType)
+#pragma warning restore CA1822
+    {
+        // Use JsonTypeInfo metadata instead of raw reflection so that
+        // [JsonPropertyName], [JsonIgnore], the naming policy, and field
+        // inclusion configuration are all respected automatically.
+        var typeInfo = s_jsonOptions.GetTypeInfo(targetType);
+
+        foreach (var prop in typeInfo.Properties)
+        {
+            if (prop.Set is null)
+            {
+                continue;
+            }
+
+            if (!source.TryGetPropertyValue(prop.Name, out var jsonValue))
+            {
+                continue;
+            }
+
+            try
+            {
+                prop.Set(target, jsonValue.Deserialize(prop.PropertyType, s_jsonOptions));
+            }
+            catch (NotSupportedException)
+            {
+                // Silently skip properties whose types can't be deserialized by
+                // System.Text.Json (e.g. EndpointReference with no parameterless
+                // constructor). This is expected for DTO types that carry complex
+                // navigation properties alongside simple writable data.
+            }
+            catch (JsonException)
+            {
+                // Silently skip properties where the JSON value is incompatible
+                // with the CLR property type (e.g. string sent for an int field).
+                // This is a best-effort writeback — partial updates are acceptable.
+            }
+        }
     }
 }
