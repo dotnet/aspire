@@ -32,6 +32,11 @@
         <target state="translated">Çıktı biçimi (Tablo veya Json).</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="new">Include resource details for each running app host. Only applies to JSON output.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">Bilinmiyor</target>

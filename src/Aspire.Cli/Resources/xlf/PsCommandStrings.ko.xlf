@@ -32,6 +32,11 @@
         <target state="translated">출력 형식(테이블 또는 JSON)입니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="new">Include resource details for each running app host. Only applies to JSON output.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">알 수 없음</target>

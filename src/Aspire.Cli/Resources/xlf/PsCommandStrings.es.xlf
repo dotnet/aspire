@@ -32,6 +32,11 @@
         <target state="translated">Formato de salida (tabla o JSON).</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="new">Include resource details for each running app host. Only applies to JSON output.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
         <target state="translated">Desconocido</target>
