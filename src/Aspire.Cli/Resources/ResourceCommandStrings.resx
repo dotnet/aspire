@@ -73,7 +73,4 @@
   <data name="CommandNameArgumentDescription" xml:space="preserve">
     <value>The name of the command to execute (e.g. start, stop, restart).</value>
   </data>
-  <data name="StartUnmatchedResourceHint" xml:space="preserve">
-    <value>Unrecognized argument '{0}'. To start a resource, use: aspire resource {0} start</value>
-  </data>
 </root>

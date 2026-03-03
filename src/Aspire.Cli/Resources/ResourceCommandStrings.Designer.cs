@@ -75,11 +75,5 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string StartUnmatchedResourceHint {
-            get {
-                return ResourceManager.GetString("StartUnmatchedResourceHint", resourceCulture);
-            }
-        }
-
     }
 }
