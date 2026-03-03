@@ -11,6 +11,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ using Polly.Retry;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
-public class DcpExecutorTests
+public class DcpExecutorTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task ContainersArePassedOtelServiceName()
@@ -260,6 +261,107 @@ public class DcpExecutorTests
         Assert.Single(exe2.Spec.Args!, a => a == "--test");
         Assert.True(exe2.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations2));
         Assert.Single(argAnnotations2, a => a.Argument == "--test");
+    }
+
+    [Fact]
+    public async Task ResourceRestarted_OnResourceStartingContextFiredOnce()
+    {
+        // This test verifies that OnResourceStartingContext is only fired once when an executable is restarted.
+        // Executables follow a pattern where OnResourceStartingContext is published by StartResourceAsync
+        // before calling CreateExecutableAsync (which does not publish the event).
+        
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+        builder.WithTestAndResourceLogging(testOutputHelper);
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA").Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var onResourceStartingCount = 0;
+        events.Subscribe<OnResourceStartingContext>((ctx) =>
+        {
+            if (ctx.Resource == resource)
+            {
+                Interlocked.Increment(ref onResourceStartingCount);
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        
+        // Act - Initial start
+        await appExecutor.RunApplicationAsync();
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        var exe1 = Assert.Single(executables);
+        
+        // Assert - Initial start should fire event exactly once
+        Assert.Equal(1, onResourceStartingCount);
+
+        // Act - Restart
+        var reference = appExecutor.GetResource(exe1.Metadata.Name);
+        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
+        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
+
+        // Assert - Restart should fire event exactly once more (total 2, not 3)
+        Assert.Equal(2, onResourceStartingCount);
+    }
+
+    [Fact]
+    public async Task ContainerRestarted_OnResourceStartingContextFiredOnce()
+    {
+        // This test verifies that OnResourceStartingContext is only fired once when a container is restarted,
+        // not twice. This was the bug reported in the issue - DcpExecutor.StartResourceAsync was firing
+        // OnResourceStartingContext and then CreateContainerAsync was firing it again, leading to duplicate
+        // BeforeResourceStartedEvent events in ApplicationOrchestrator. The fix ensures StartResourceAsync
+        // does not fire the event for containers, as CreateContainerAsync already does this.
+        
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+        builder.WithTestAndResourceLogging(testOutputHelper);
+        var container = builder.AddContainer("test-nginx", "nginx").Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var onResourceStartingCount = 0;
+        events.Subscribe<OnResourceStartingContext>((ctx) =>
+        {
+            if (ctx.Resource == container)
+            {
+                Interlocked.Increment(ref onResourceStartingCount);
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        
+        // Act - Initial start
+        await appExecutor.RunApplicationAsync();
+        var containers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        var ctr1 = Assert.Single(containers);
+        
+        // Assert - Initial start should fire event exactly once
+        Assert.Equal(1, onResourceStartingCount);
+
+        // Act - Restart
+        var reference = appExecutor.GetResource(ctr1.Metadata.Name);
+        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
+        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
+
+        // Assert - Restart should fire event exactly once more (total 2, not 3)
+        Assert.Equal(2, onResourceStartingCount);
     }
 
     [Fact]
