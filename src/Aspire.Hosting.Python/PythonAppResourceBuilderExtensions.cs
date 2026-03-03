@@ -1346,7 +1346,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodePythonDebuggerProperties<T>(
+    internal static IResourceBuilder<T> WithVSCodePythonDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<VSCodePythonDebuggerProperties> configureDebuggerProperties)
         where T : PythonAppResource

@@ -949,7 +949,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeCSharpDebuggerProperties<T>(
+    internal static IResourceBuilder<T> WithVSCodeCSharpDebuggerProperties<T>(
         this IResourceBuilder<T> builder,
         Action<VSCodeCSharpDebuggerProperties> configureDebuggerProperties)
         where T : ProjectResource
