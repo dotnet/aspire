@@ -111,7 +111,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
+    protected abstract Task<string[]> GetRunArgumentsAsync(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult, CancellationToken cancellationToken);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage(ParseResult parseResult);
 
@@ -203,7 +203,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 AppHostFile = effectiveAppHostFile,
                 OutputPath = fullyQualifiedOutputPath,
                 EnvironmentVariables = env,
-                Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
+                Arguments = await GetRunArgumentsAsync(fullyQualifiedOutputPath, unmatchedTokens, parseResult, cancellationToken),
                 BackchannelCompletionSource = backchannelCompletionSource,
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
                 Debug = debugMode,

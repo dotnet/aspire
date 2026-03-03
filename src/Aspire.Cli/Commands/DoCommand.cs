@@ -24,9 +24,11 @@ internal sealed class DoCommand : PipelineCommandBase
     public DoCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, IConfiguration configuration, ILogger<DoCommand> logger, IAnsiConsole ansiConsole)
         : base("do", DoCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier, executionContext, hostEnvironment, projectFactory, configuration, logger, ansiConsole)
     {
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(interactionService, out _, out _);
         _stepArgument = new Argument<string>("step")
         {
-            Description = DoCommandStrings.StepArgumentDescription
+            Description = DoCommandStrings.StepArgumentDescription,
+            Arity = isExtensionHost ? ArgumentArity.ZeroOrOne : ArgumentArity.ExactlyOne
         };
         Arguments.Add(_stepArgument);
     }
@@ -41,11 +43,19 @@ internal sealed class DoCommand : PipelineCommandBase
         return !string.IsNullOrEmpty(step) ? [step] : [];
     }
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
+    protected override async Task<string[]> GetRunArgumentsAsync(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var baseArgs = new List<string> { "--operation", "publish" };
 
         var step = parseResult.GetValue(_stepArgument);
+        if (string.IsNullOrEmpty(step) && ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
+        {
+            step = await InteractionService.PromptForStringAsync(
+                DoCommandStrings.StepArgumentDescription,
+                required: true,
+                cancellationToken: cancellationToken);
+        }
+
         if (!string.IsNullOrEmpty(step))
         {
             baseArgs.AddRange(["--step", step]);

@@ -49,7 +49,7 @@ internal sealed class PublishCommand : PipelineCommandBase
     protected override string OperationFailedPrefix => PublishCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
+    protected override Task<string[]> GetRunArgumentsAsync(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var baseArgs = new List<string> { "--operation", "publish", "--step", "publish" };
 
@@ -80,7 +80,7 @@ internal sealed class PublishCommand : PipelineCommandBase
 
         baseArgs.AddRange(unmatchedTokens);
 
-        return [.. baseArgs];
+        return Task.FromResult<string[]>([.. baseArgs]);
     }
 
     protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;

@@ -35,7 +35,7 @@ internal sealed class DeployCommand : PipelineCommandBase
     protected override string OperationFailedPrefix => DeployCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
+    protected override Task<string[]> GetRunArgumentsAsync(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var baseArgs = new List<string> { "--operation", "publish", "--step", "deploy" };
 
@@ -72,7 +72,7 @@ internal sealed class DeployCommand : PipelineCommandBase
 
         baseArgs.AddRange(unmatchedTokens);
 
-        return [.. baseArgs];
+        return Task.FromResult<string[]>([.. baseArgs]);
     }
 
     protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
