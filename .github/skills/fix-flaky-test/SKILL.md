@@ -12,10 +12,10 @@ You are a specialized agent for reproducing and fixing flaky tests in the dotnet
 1. **Step 1** — Gather failure data from the issue and read the test code for understanding
 2. **Step 1.5** — Analyze existing quarantine failure logs (may reveal root cause, informs reproduction strategy)
 3. **Step 2** — Try to reproduce locally using `run-test-repeatedly.sh`/`.ps1` (fast path) ← try this FIRST
-4. **Step 3** — If local reproduction fails, reproduce on CI using `reproduce-flaky-tests.yml` (graduated: single-test → quarantine-project → log-based)
+4. **Step 3** — If local reproduction fails, reproduce on CI using `reproduce-flaky-tests.yml` (graduated: single-test → quarantine-project → log-based). **Phase 1: push workflow changes ONLY, no code fix.**
 5. **Step 4** — Analyze failure logs to confirm root cause
-6. **Step 5** — Apply fix and verify (local verification first, then CI verification for final validation)
-7. **Step 6** — Clean up investigation branch and create final PR
+6. **Step 5** — Apply fix and verify. **Phase 2: push fix as a SECOND commit to the investigation branch. Wait for CI to complete and validate ALL results before proceeding.**
+7. **Step 6** — Clean up investigation branch and create final PR **only after verification CI is confirmed passing**
 
 Each step has a **checkpoint** at the end. Do not proceed to the next step until the checkpoint is satisfied. Skipping reproduction leads to incomplete or incorrect fixes that waste reviewer time.
 
@@ -26,7 +26,8 @@ This skill uses two branches to keep investigation artifacts separate from the f
 ### Investigation Branch (draft PR)
 - Created from the working branch (or `main`)
 - Named: `<base-branch>-investigate` (e.g., `flaky-test0-investigate`)
-- Contains: disabled `ci.yml`, configured `reproduce-flaky-tests.yml`, code fix
+- **Phase 1 commit**: disabled `ci.yml`, configured `reproduce-flaky-tests.yml` — NO code fix. Used to reproduce the failure (prove the test fails without the fix).
+- **Phase 2 commit**: code fix applied on top of Phase 1. Used to verify the fix (prove the test passes with the fix).
 - Opened as a **draft PR** with prominent WIP marking
 - Purpose: CI verification of the fix using the reproduce workflow without triggering full CI
 
@@ -121,10 +122,10 @@ The steps below are sequential and gated. Complete each step fully before moving
 1. Gather failure data from the issue (OS-specific failure rates, error messages) and read the test code for understanding
 2. Analyze existing quarantine failure logs — informs reproduction strategy and may reveal root cause
 3. **Try to reproduce locally** using `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) — this is the fast path (~minutes vs ~30 min for CI). Works when the current OS matches a failing OS.
-4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **reproduce on CI** using `reproduce-flaky-tests.yml` with graduated escalation: single-test → quarantine-project → log-based analysis
+4. If local reproduction fails (wrong OS, contention-sensitive, or low failure rate), **reproduce on CI** using `reproduce-flaky-tests.yml` with graduated escalation: single-test → quarantine-project → log-based analysis. **Push workflow changes ONLY (no code fix) — this is Phase 1 of the investigation branch.**
 5. Analyze failure logs to identify root cause
-6. Apply a fix. Try local verification first with `run-test-repeatedly.sh`/`.ps1`, then **always validate on CI** as final verification.
-7. Clean up: close investigation branch, create clean fix PR
+6. Apply a fix. **Push the fix as a SECOND commit (Phase 2) to the investigation branch.** Try local verification first with `run-test-repeatedly.sh`/`.ps1`, then **always validate on CI** as final verification. **Wait for CI verification to complete and validate results before proceeding.**
+7. Clean up: close investigation branch, create clean fix PR **only after CI verification is confirmed passing**
 
 **Prefer analyzing existing data first.** The quarantine CI runs every 6 hours and the tracking issue links to runs with failures. These logs are often sufficient to diagnose the root cause, but CI reproduction should still be attempted to establish a baseline failure rate.
 
@@ -421,6 +422,7 @@ env:
 - **High rate on multiple OSes**: Target all failing OSes
 - **Low rate or can't reproduce**: Focus on the OS with the highest failure rate, increase iterations
 - **Unknown rates**: Target `ubuntu-latest,windows-latest` with moderate iterations
+- **Docker-dependent tests** (`[RequiresFeature(TestFeature.Docker)]`): Standard Windows CI runners do NOT have Docker. Target only `ubuntu-latest` (and `macos-latest` if needed). Including `windows-latest` will produce zero-test-ran failures, not useful signal.
 
 **Test project shortname mapping**: The workflow resolves `TEST_PROJECT` to a path:
 - Tries `tests/{name}.Tests/{name}.Tests.csproj` first
@@ -441,12 +443,17 @@ TEST_FILTER: '--filter-method "*.Test1" --filter-method "*.Test2"'
 
 **Zero-test detection**: The workflow detects when zero tests execute (e.g., due to a misconfigured filter) and treats it as a failure. If you see "Zero tests executed" errors, verify that `TEST_FILTER` matches the actual test name and that quarantine settings are correct.
 
-### 3.2: Push and Open Draft PR
+### 3.2: Push and Open Draft PR (Workflow Changes ONLY)
+
+**⛔ CRITICAL: This commit must contain ONLY workflow configuration changes.** Do NOT include any code fixes, test changes, or other modifications. The purpose of this push is to establish a reproduction baseline — proving the test fails WITHOUT your fix. If you include a fix in this commit, the reproduction is invalid and the entire investigation must be restarted.
 
 Commit the workflow changes and open a **draft PR** with the investigation template:
 
 ```bash
+# Verify you are ONLY committing workflow files
 git add .github/workflows/ci.yml .github/workflows/reproduce-flaky-tests.yml
+git diff --cached --stat  # MUST show only .github/workflows/ files
+
 git commit -m "🔍 Investigation: configure CI for flaky test reproduction
 
 ⚠️ DO NOT MERGE — This is a temporary investigation branch.
@@ -469,12 +476,12 @@ This is a temporary branch for reproducing and verifying a fix for a flaky test.
 ### What's changed on this branch
 - \`ci.yml\` disabled (prevents full CI on investigation pushes)
 - \`reproduce-flaky-tests.yml\` configured for the target test
-- Code fix (will be applied after reproduction)
+- Code fix will be applied AFTER reproduction is confirmed
 
 ### Status
-- [ ] Reproduction confirmed
-- [ ] Fix applied
-- [ ] Fix verified on CI
+- [ ] Reproduction confirmed (Phase 1)
+- [ ] Fix applied (Phase 2)
+- [ ] Fix verified on CI (Phase 2)
 - [ ] Clean fix PR created
 
 This branch will be deleted after the fix is verified and a clean PR is created."
@@ -540,6 +547,44 @@ gh run download <run-id> --repo dotnet/aspire --dir /tmp/failure-logs
 # Or get logs directly via the GitHub API / MCP tools
 gh api "repos/dotnet/aspire/actions/jobs/<job_id>/logs" > /tmp/failure.log
 ```
+
+### Validating CI Results (MANDATORY)
+
+**Before interpreting results, validate every job in the run.** Do not selectively count only successful jobs. Use this query to get a complete picture:
+
+```bash
+# Get ALL job results — do not skip any
+gh run view <run-id> --repo dotnet/aspire --json jobs \
+  --jq '.jobs[] | select(.name != "Generate matrix" and .name != "Reproduce Results") | {name: .name, conclusion: .conclusion}'
+```
+
+**Categorize each job into one of these buckets:**
+
+| Category | How to identify | Counts as |
+|----------|----------------|-----------|
+| ✅ Test passed | `conclusion: success`, logs show `Passed:` with count ≥ 1 | Valid pass |
+| ❌ Test failed (expected error) | `conclusion: failure`, logs show the expected assertion/exception from the tracking issue | Valid reproduction |
+| ⚠️ Zero tests ran | `conclusion: failure` (or success with zero-test detection), logs show `Total: 0` or "Zero tests executed" | **Invalid — does not count as pass OR failure** |
+| 🔧 Infrastructure failure | `conclusion: failure`, logs show runner/SDK/network errors (not test errors) | **Invalid — does not count** |
+
+**⛔ Zero-test runs are NOT passes.** A common mistake is to ignore jobs where zero tests executed and count only the jobs that ran tests. This silently inflates the "pass" count. If a test has `[RequiresFeature(TestFeature.Docker)]` and Docker is unavailable on a runner OS (e.g., standard Windows runners), ALL jobs on that OS will show zero tests. You must:
+
+1. **Acknowledge the zero-test jobs** in your analysis and PR description
+2. **Exclude those OSes** from pass/fail counts — they provide no signal
+3. **Consider removing those OSes from `TARGET_OSES`** if Docker (or another feature) is unavailable on them
+
+**Example of correct vs incorrect interpretation:**
+
+```
+Jobs: 5× ubuntu-latest (all passed, 1 test each) + 5× windows-latest (all failed, 0 tests each)
+
+❌ WRONG: "All 25 passed" (counting only ubuntu, ignoring windows)
+❌ WRONG: "5 passed, 5 failed" (counting zero-test as failures)
+✅ CORRECT: "5/5 passed on ubuntu-latest. 5/5 windows-latest jobs ran zero tests
+   (Docker unavailable). Windows results excluded — no signal."
+```
+
+**If you need to retry with corrected `TARGET_OSES`:** Update the workflow to exclude OSes where tests cannot run, push, cancel the old run, and trigger a new one.
 
 **Distinguishing test failures from infrastructure failures:**
 
@@ -744,12 +789,18 @@ For tests with very low failure rates (<5%), consider whether the verification i
 
 **For contention-sensitive tests** (where quarantine-project mode was needed for reproduction): Use the **same quarantine-project `TEST_FILTER`** for verification. This ensures the fix is validated under the same contention conditions where the failure was observed. If reproduction fell back to log-based analysis, use the low-confidence column and note in the PR that definitive confirmation relies on the 21-day quarantine monitoring.
 
-### 5.4: Push and Verify on CI
+### 5.4: Push Fix and Verify on CI (Phase 2 of Investigation Branch)
 
-Push the fix to the **investigation branch** (where reproduce workflow is already configured):
+**⛔ PREREQUISITE: Step 3 (reproduction) must be complete BEFORE pushing the fix.** The investigation branch should already have a reproduction run (Phase 1) that demonstrated the test fails without the fix. If you skipped Step 3 or the reproduction run has not completed, go back and complete it first. Pushing the fix without a reproduction baseline makes the verification meaningless.
+
+Push the fix to the **investigation branch** as a SEPARATE commit (Phase 2):
 
 ```bash
 git add -A
+
+# Verify the commit contains ONLY code changes, not workflow files
+git diff --cached --stat  # Should NOT contain .github/workflows/ files
+
 git commit -m "Fix flaky test: <description of fix>"
 git push
 ```
@@ -770,9 +821,25 @@ INSERT OR REPLACE INTO session_state (key, value) VALUES ('fix_attempt', '1');
 
 Wait for CI to complete. Monitor with polling (`gh run view --json status,conclusion`), not `gh run watch`.
 
-### 5.5: Handle Verification Results
+### 5.5: Validate Verification Results
 
-**If all iterations pass across all OSes**: The fix is validated ✅. Proceed to Step 6.
+**⛔ GATE: Do not proceed to Step 6 until the verification CI run has completed AND you have validated the results.**
+
+Apply the same CI result validation rules from Step 3.5:
+
+1. **Query ALL jobs** — do not selectively count:
+   ```bash
+   gh run view <run-id> --repo dotnet/aspire --json jobs \
+     --jq '.jobs[] | select(.name != "Generate matrix" and .name != "Reproduce Results") | {name: .name, conclusion: .conclusion}'
+   ```
+
+2. **Categorize every job** (pass / test failure / zero tests / infrastructure failure)
+
+3. **Cross-check your summary**: If you claim "N tests passed on OS X", verify by checking the actual job logs show `Passed:` with count ≥ 1. Do not count zero-test-ran jobs as passes.
+
+4. **Compare against the reproduction baseline**: The verification run should have significantly better results than the Phase 1 reproduction run. If both runs show 100% passes, the reproduction may not have been valid — re-examine the Phase 1 results.
+
+**If all test-executing iterations pass**: The fix is validated ✅. Proceed to Step 6.
 
 **If some iterations still fail**: The fix is incomplete or incorrect. Iterate:
 
@@ -842,6 +909,8 @@ git diff main -- .github/workflows/  # Should be empty
 
 ### 6.2: Push and Open Final PR
 
+**⛔ PREREQUISITE: The verification CI run (Step 5.5) must have completed successfully AND been validated before opening this PR.** Do not open the PR while CI is still running or before you have confirmed the results. A PR opened before verification is complete is not dependable.
+
 ```bash
 git push
 ```
@@ -855,7 +924,7 @@ SELECT value FROM session_state WHERE key = 'user_interaction';
 - If `user_interaction` is `'false'`: prefix the PR title with `[automated] `
 - If `user_interaction` is `'true'`: no prefix
 
-Open a non-draft PR with the fix. The PR body **must** include a note that it was created using the fix-flaky-test skill:
+Open a non-draft PR with the fix. The PR body **must** include accurate CI results that have been validated per the rules in Steps 3.5 and 5.5. **Every claim in the PR body must be verifiable** — link to the actual CI run and ensure the stated pass/fail counts match the real job outcomes.
 
 ```bash
 gh pr create --repo dotnet/aspire \
@@ -873,12 +942,20 @@ gh pr create --repo dotnet/aspire \
 <1-2 sentence description of what was changed>
 
 ### Verification
-| Run | Config | Result |
-|-----|--------|--------|
-| Pre-fix (local) | <iterations>, <OS> | **<pass/fail>** |
-| Post-fix (local) | <iterations>, <OS> | **<pass/fail>** |
-| Post-fix (CI) | <runners × iters × OSes> | **<link to run>** |
+| Phase | Run | Config | Result |
+|-------|-----|--------|--------|
+| Reproduction (pre-fix) | [link to Phase 1 CI run] | <runners × iters × OSes> | **N/M failed on <OS>** ❌ |
+| Verification (post-fix) | [link to Phase 2 CI run] | <runners × iters × OSes> | **All N passed on <OS>** ✅ |
 
+**Local runs** (if applicable):
+- Pre-fix: <iterations> on <OS> — <pass/fail>
+- Post-fix: <iterations> on <OS> — <pass/fail>
+
+> **Result accuracy requirements:**
+> - Pass/fail counts must reflect only jobs where tests actually executed (not zero-test-ran jobs)
+> - If any OS had zero tests (e.g., Docker unavailable on Windows), state this explicitly: 'X jobs on <OS> ran zero tests (feature unavailable) — excluded from counts'
+> - Link to the actual CI run so reviewers can verify the claims
+>
 > **If any verification step was skipped or failed** (e.g. workflow dispatch permission error), replace the CI row with a clear explanation:
 > - What step failed and the exact error (e.g. \\\`HTTP 403: Resource not accessible by integration\\\`)
 > - Why it could not be completed (e.g. agent token lacks \\\`actions:write\\\` permission)
@@ -937,7 +1014,11 @@ UPDATE todos SET status = 'done' WHERE id = 'verify-ci';
 
 Before opening the final PR, verify **every item**. This is a hard gate — do not skip any item.
 
-- [ ] Fix is verified on CI via the reproduce workflow (all iterations pass), **OR** if CI could not be triggered (e.g. permissions error), the PR description documents the failure, the exact error, and provides the manual trigger command for a reviewer
+- [ ] **Reproduction was performed WITHOUT the fix** (Phase 1 of investigation branch had only workflow changes, no code fix)
+- [ ] **Reproduction CI run completed** and showed the expected test failure on at least one OS
+- [ ] Fix is verified on CI via the reproduce workflow (Phase 2, all test-executing iterations pass), **OR** if CI could not be triggered (e.g. permissions error), the PR description documents the failure, the exact error, and provides the manual trigger command for a reviewer
+- [ ] **CI results were validated per Step 3.5 rules**: every job categorized, zero-test-ran jobs explicitly noted and excluded from counts, no silent dropping of failed/zero-test jobs
+- [ ] **PR body claims match actual CI results**: pass/fail counts verified against real job outcomes, CI run linked for reviewer verification
 - [ ] **`[QuarantinedTest]` attribute is still present** on the test method (not removed)
 - [ ] **Tracking issue is still open** (not closed)
 - [ ] Clean fix PR is open with only code changes (no workflow modifications)
@@ -1007,10 +1088,13 @@ Brief description of what caused the flaky behavior.
 Description of the code change.
 
 ### Verification
-| Run | Config | Result |
-|-----|--------|--------|
-| Pre-fix | X runners × Y iters × Z OSes | N failures ❌ |
-| Post-fix | X runners × Y iters × Z OSes | All passed ✅ |
+| Phase | Run | Config | Result |
+|-------|-----|--------|--------|
+| Reproduction (pre-fix) | [link] | X runners × Y iters × Z OSes | N/M failed on <OS> ❌ |
+| Verification (post-fix) | [link] | X runners × Y iters × Z OSes | All N passed on <OS> ✅ |
+
+> Note: If any OS had zero tests executed (e.g., Docker unavailable), state explicitly:
+> "K jobs on <OS> ran zero tests — excluded from counts."
 
 ### Files Changed
 - `path/to/file.cs` — description
@@ -1023,6 +1107,11 @@ Description of the code change.
 ## Important Constraints
 
 - **Reproduce before fixing**: Always confirm the failure is reproducible before attempting a fix — try locally first, then CI. Use graduated escalation: single-test → quarantine-project → log-based (see Steps 3.5 and 3.6)
+- **Two-phase investigation branch**: Phase 1 = workflow-only push + reproduce run (proves test fails). Phase 2 = fix push + verify run (proves fix works). Never combine the fix with the workflow changes in a single push — this invalidates the reproduction.
+- **Validate ALL CI job results**: Do not selectively count jobs. Categorize every job as: pass, test failure, zero-test-ran, or infrastructure failure. Zero-test-ran jobs are NOT passes. See Step 3.5 for the full validation rules.
+- **PR body must be accurate**: Every pass/fail claim in the PR must match actual CI job outcomes. Link to CI runs so reviewers can verify. Never inflate pass counts by silently dropping zero-test or failed jobs.
+- **Gate PR creation on CI completion**: Do not open the final PR until the verification CI run has completed AND been validated. A PR opened before verification is complete is not dependable.
+- **Docker-dependent test OS targeting**: Tests with `[RequiresFeature(TestFeature.Docker)]` will produce zero-test-ran on standard Windows runners. Target only `ubuntu-latest` (and `macos-latest` if needed) for Docker-dependent tests.
 - **Try local first**: Use `run-test-repeatedly.sh` (Linux/macOS) or `run-test-repeatedly.ps1` (Windows) for fast feedback (~minutes). Fall back to CI when local reproduction fails (wrong OS, contention-sensitive, very low failure rate)
 - **Detect your OS**: Check with `uname -s` to decide if local reproduction is viable for the failing OS
 - **Quarantined tests need /p:RunQuarantinedTests=true**: The build system filters them out by default. Pass this property to both `dotnet build` and `dotnet test` commands for local reproduction. The CI reproduce workflow handles this automatically.
