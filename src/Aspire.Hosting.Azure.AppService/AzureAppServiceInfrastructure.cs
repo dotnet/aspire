@@ -65,19 +65,6 @@ internal sealed class AzureAppServiceInfrastructure(
 
                 var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
-                if (resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships))
-                {
-                    foreach (var relationship in relationships)
-                    {
-                        if (relationship.Type == "Reference" &&
-                            relationship.Resource is IAzureResource azureReference &&
-                            !ReferenceEquals(azureReference, website))
-                        {
-                            website.References.Add(azureReference);
-                        }
-                    }
-                }
-
                 resource.Annotations.Add(new DeploymentTargetAnnotation(website)
                 {
                     ContainerRegistry = appServiceEnvironment,

@@ -54,19 +54,6 @@ internal sealed class AzureContainerAppsInfrastructure(
 
                 var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, options.Value, cancellationToken).ConfigureAwait(false);
 
-                if (r.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships))
-                {
-                    foreach (var relationship in relationships)
-                    {
-                        if (relationship.Type == "Reference" &&
-                            relationship.Resource is IAzureResource azureReference &&
-                            !ReferenceEquals(azureReference, containerApp))
-                        {
-                            containerApp.References.Add(azureReference);
-                        }
-                    }
-                }
-
                 // Capture information about the container registry used by the
                 // container app environment in the deployment target information
                 // associated with each compute resource that needs an image

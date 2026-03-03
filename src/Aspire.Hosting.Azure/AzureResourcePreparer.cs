@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003
+
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
@@ -132,6 +134,7 @@ internal sealed class AzureResourcePreparer(
                 .ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
+                var prerequisiteResources = new HashSet<AzureBicepResource>();
                 var azureReferences = await GetAzureReferences(resource, cancellationToken).ConfigureAwait(false);
 
                 var azureReferencesWithRoleAssignments =
@@ -171,14 +174,22 @@ internal sealed class AzureResourcePreparer(
                             resource.Annotations.Add(new RoleAssignmentAnnotation(azureReference, defaults.Roles));
                         }
                     }
+
+                    // Find private endpoints that target Azure resources referenced by this compute resource.
+                    // These must be provisioned before the compute resource is deployed.
+                    if (azureReference.TryGetAnnotationsOfType<PrivateEndpointTargetAnnotation>(out var peAnnotations))
+                    {
+                        foreach (var peAnnotation in peAnnotations)
+                        {
+                            prerequisiteResources.Add(peAnnotation.PrivateEndpointResource);
+                        }
+                    }
                 }
 
                 // in PublishMode with SupportsTargetedRoleAssignments, we need to create the identity and role assignment resources
                 // if the resource references any Azure resources, or has role assignments to Azure resources
                 if (executionContext.IsPublishMode)
                 {
-                    var prerequisiteResources = new HashSet<AzureBicepResource>();
-
                     var roleAssignments = GetAllRoleAssignments(resource);
                     if (roleAssignments.Count > 0)
                     {
@@ -207,46 +218,14 @@ internal sealed class AzureResourcePreparer(
                             prerequisiteResources.Add(roleAssignmentResource);
                         }
                     }
+                }
 
-                    // Find private endpoints that target Azure resources referenced by this compute resource.
-                    // These must be provisioned before the compute resource is deployed.
-                    foreach (var azureRef in azureReferences.OfType<IResource>())
-                    {
-                        var rootRef = GetRootResource(azureRef);
-
-#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates.
-                        if (rootRef.TryGetAnnotationsOfType<PrivateEndpointTargetAnnotation>(out var peAnnotations))
-#pragma warning restore ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates.
-                        {
-                            foreach (var peAnnotation in peAnnotations)
-                            {
-                                if (peAnnotation.PrivateEndpointResource is { } privateEndpointResource)
-                                {
-                                    prerequisiteResources.Add(privateEndpointResource);
-                                }
-                            }
-                        }
-                    }
-
-                    // Add prerequisite infrastructure resources as reference relationships on the compute resource.
-                    // Deployment infrastructure subscribers will transfer these to deployment target References
-                    // so AzureBicepResource dependency wiring can apply provision ordering.
-                    if (prerequisiteResources.Count > 0)
-                    {
-                        var existingReferenceRelationships = resource.Annotations
-                            .OfType<ResourceRelationshipAnnotation>()
-                            .Where(a => a.Type == KnownRelationshipTypes.Reference)
-                            .Select(a => a.Resource)
-                            .ToHashSet();
-
-                        foreach (var prerequisiteResource in prerequisiteResources)
-                        {
-                            if (existingReferenceRelationships.Add(prerequisiteResource))
-                            {
-                                resource.Annotations.Add(new ResourceRelationshipAnnotation(prerequisiteResource, KnownRelationshipTypes.Reference));
-                            }
-                        }
-                    }
+                // Add prerequisite infrastructure resources on the compute resource.
+                // Deployment infrastructure subscribers will transfer these to deployment target References
+                // so AzureBicepResource dependency wiring can apply provision ordering.
+                if (prerequisiteResources.Count > 0)
+                {
+                    resource.Annotations.Add(new DeploymentPrerequisitesAnnotation(prerequisiteResources));
                 }
             }
 
@@ -468,14 +447,5 @@ internal sealed class AzureResourcePreparer(
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         return Task.CompletedTask;
-    }
-
-    private static IResource GetRootResource(IResource resource)
-    {
-        while (resource is IResourceWithParent parentedResource)
-        {
-            resource = parentedResource.Parent;
-        }
-        return resource;
     }
 }

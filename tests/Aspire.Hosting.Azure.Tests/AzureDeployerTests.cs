@@ -124,7 +124,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     /// the containers and does not attempt to push them.
     /// </summary>
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
@@ -244,7 +243,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -305,7 +303,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -372,7 +369,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -569,7 +565,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
         // Add a parameter that will be unresolved
-        var param = builder.AddParameter("test-param");
+        var param = builder.AddParameter("unresolved-test-param");
         builder.AddAzureEnvironment();
 
         // Act
@@ -584,20 +580,20 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
-                Assert.Equal("test-param", input.Label);
+                Assert.Equal("unresolved-test-param", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
-                Assert.Equal("Enter value for test-param", input.Placeholder);
+                Assert.Equal("Enter value for unresolved-test-param", input.Placeholder);
             });
 
         // Complete the parameter inputs interaction
-        parameterInputs.Inputs[0].Value = "test-value";
+        parameterInputs.Inputs[0].Value = "resolved-test-value";
         parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
 
         var setValue = await param.Resource.GetValueAsync(default);
-        Assert.Equal("test-value", setValue);
+        Assert.Equal("resolved-test-value", setValue);
     }
 
     [Fact]
@@ -740,7 +736,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -910,7 +905,6 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -1235,6 +1229,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         {
             builder.Services.AddSingleton(bicepProvisioner);
         }
+        builder.Services.AddSingleton(_ => ProvisioningTestHelpers.CreateBicepCompiler());
         builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());

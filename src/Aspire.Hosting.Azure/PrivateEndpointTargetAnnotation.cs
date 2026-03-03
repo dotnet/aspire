@@ -14,10 +14,10 @@ namespace Aspire.Hosting.Azure;
 /// </remarks>
 /// <param name="privateEndpointResource">The private endpoint resource associated with the annotated Azure resource.</param>
 [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class PrivateEndpointTargetAnnotation(AzureBicepResource privateEndpointResource) : IResourceAnnotation
+public sealed class PrivateEndpointTargetAnnotation(AzureProvisioningResource privateEndpointResource) : IResourceAnnotation
 {
     /// <summary>
     /// Gets the private endpoint resource associated with the annotated Azure resource.
     /// </summary>
-    public AzureBicepResource PrivateEndpointResource { get; } = privateEndpointResource ?? throw new ArgumentNullException(nameof(privateEndpointResource));
+    public AzureProvisioningResource PrivateEndpointResource { get; } = privateEndpointResource ?? throw new ArgumentNullException(nameof(privateEndpointResource));
 }
