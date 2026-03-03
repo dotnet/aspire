@@ -9,6 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -33,6 +34,16 @@ internal sealed class ResourceCommand : BaseCommand
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
+    /// <summary>
+    /// Maps friendly command names to their backchannel equivalents with display metadata.
+    /// </summary>
+    private static readonly Dictionary<string, (string BackchannelCommand, string ProgressVerb, string BaseVerb, string PastTenseVerb)> s_wellKnownCommands = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["start"] = (KnownResourceCommands.StartCommand, "Starting", "start", "started"),
+        ["stop"] = (KnownResourceCommands.StopCommand, "Stopping", "stop", "stopped"),
+        ["restart"] = (KnownResourceCommands.RestartCommand, "Restarting", "restart", "restarted"),
+    };
+
     public ResourceCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -41,7 +52,7 @@ internal sealed class ResourceCommand : BaseCommand
         CliExecutionContext executionContext,
         ILogger<ResourceCommand> logger,
         AspireCliTelemetry telemetry)
-        : base("command", ResourceCommandStrings.CommandDescription, features, updateNotifier, executionContext, interactionService, telemetry)
+        : base("resource", ResourceCommandStrings.CommandDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
@@ -69,6 +80,21 @@ internal sealed class ResourceCommand : BaseCommand
         {
             _interactionService.DisplayError(result.ErrorMessage);
             return ExitCodeConstants.FailedToFindProject;
+        }
+
+        // Map well-known friendly names (start/stop/restart) to their backchannel equivalents
+        if (s_wellKnownCommands.TryGetValue(commandName, out var knownCommand))
+        {
+            return await ResourceCommandHelper.ExecuteResourceCommandAsync(
+                result.Connection!,
+                _interactionService,
+                _logger,
+                resourceName,
+                knownCommand.BackchannelCommand,
+                knownCommand.ProgressVerb,
+                knownCommand.BaseVerb,
+                knownCommand.PastTenseVerb,
+                cancellationToken);
         }
 
         return await ResourceCommandHelper.ExecuteGenericCommandAsync(

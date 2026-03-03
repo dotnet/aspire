@@ -57,24 +57,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string StartResourceArgumentDescription {
-            get {
-                return ResourceManager.GetString("StartResourceArgumentDescription", resourceCulture);
-            }
-        }
-
-        internal static string RestartDescription {
-            get {
-                return ResourceManager.GetString("RestartDescription", resourceCulture);
-            }
-        }
-
-        internal static string RestartResourceArgumentDescription {
-            get {
-                return ResourceManager.GetString("RestartResourceArgumentDescription", resourceCulture);
-            }
-        }
-
         internal static string CommandDescription {
             get {
                 return ResourceManager.GetString("CommandDescription", resourceCulture);
@@ -93,10 +75,5 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string OptionNotValidWithResource {
-            get {
-                return ResourceManager.GetString("OptionNotValidWithResource", resourceCulture);
-            }
-        }
     }
 }
