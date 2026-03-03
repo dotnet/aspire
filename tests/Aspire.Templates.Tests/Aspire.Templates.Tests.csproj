@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
+    <!-- This test project requires built NuGet packages to run -->
+    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
