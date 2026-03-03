@@ -86,6 +86,7 @@ public sealed class WaitCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Navigate to the AppHost directory

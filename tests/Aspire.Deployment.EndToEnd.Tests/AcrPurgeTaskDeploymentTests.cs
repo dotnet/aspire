@@ -131,6 +131,7 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
                 // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Enter() // Select "No" for Redis Cache
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory

@@ -70,6 +70,7 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // cd into the project

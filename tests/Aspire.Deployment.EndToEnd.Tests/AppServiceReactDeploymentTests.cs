@@ -139,6 +139,7 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Enter() // Select "No" for Redis Cache
                 // Note: React template does NOT have a test project prompt (unlike Blazor starter)
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory

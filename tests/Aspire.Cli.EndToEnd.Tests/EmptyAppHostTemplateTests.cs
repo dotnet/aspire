@@ -79,6 +79,7 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // select "No" for localhost URLs (default)
             // Empty AppHost template doesn't have Redis or test project prompts
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter)
             // Note: We don't run 'aspire run' for Empty AppHost since there's nothing to run
             .Type("exit")

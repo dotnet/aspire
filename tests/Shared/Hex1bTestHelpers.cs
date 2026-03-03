@@ -236,4 +236,21 @@ internal static class Hex1bTestHelpers
             return true;
         }, TimeSpan.FromSeconds(1));
     }
+
+    /// <summary>
+    /// Handles the agent init confirmation prompt that appears after <c>aspire init</c> or <c>aspire new</c>.
+    /// Declines the prompt so the command exits cleanly.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder DeclineAgentInitPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder)
+    {
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
+        return builder
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500)
+            .Type("n")
+            .Enter();
+    }
 }

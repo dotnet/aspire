@@ -154,6 +154,7 @@ public sealed class AcaExistingRegistryDeploymentTests(ITestOutputHelper output)
                 .Enter() // Select "No" for Redis Cache
                 .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
                 .Enter() // Select "No" for test project (default)
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 5: Navigate to project directory

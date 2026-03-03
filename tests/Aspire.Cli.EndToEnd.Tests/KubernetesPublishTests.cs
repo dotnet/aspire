@@ -160,6 +160,7 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             // For test project prompt, default is "No" so just press Enter to accept it
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Navigate into the project directory
