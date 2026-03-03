@@ -710,6 +710,11 @@ class EndpointReference(HandleWrapperBase):
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.isHttps", args)
 
+    def tls_enabled(self) -> bool:
+        """Gets the TlsEnabled property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", args)
+
     def port(self) -> float:
         """Gets the Port property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
