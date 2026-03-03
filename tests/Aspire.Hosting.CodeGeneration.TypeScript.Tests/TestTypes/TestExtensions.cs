@@ -635,6 +635,19 @@ public static class TestExtensions
         return Task.FromResult(true);
     }
 
+    // ===== Multi-Parameter Callback Tests =====
+
+    /// <summary>
+    /// Tests multi-parameter callback with handle types for destructuring codegen.
+    /// </summary>
+    [AspireExport("withMultiParamHandleCallback", Description = "Tests multi-param callback destructuring")]
+    public static IResourceBuilder<TestRedisResource> WithMultiParamHandleCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<TestCallbackContext, TestEnvironmentContext, Task> callback)
+    {
+        return builder;
+    }
+
     // ===== Duplicate Class Name Tests =====
 
     /// <summary>
