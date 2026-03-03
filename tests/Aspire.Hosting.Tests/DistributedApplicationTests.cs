@@ -1495,7 +1495,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8728")]
     public async Task ProxylessEndpointWorks()
     {
         const string testName = "proxyless-endpoint-works";
@@ -1518,16 +1517,10 @@ public class DistributedApplicationTests
         var result = await client.GetStringAsync("pid").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         Assert.NotNull(result);
 
-        // Check that endpoint from launchsettings doesn't work
-        await Assert.ThrowsAnyAsync<Exception>(async () =>
-        {
-            using var client2 = new HttpClient(new SocketsHttpHandler
-            {
-                // Provide a timeout to avoid long timeout while trying to connect.
-                ConnectTimeout = TimeSpan.FromSeconds(2)
-            });
-            await client2.GetStringAsync("http://localhost:5156/pid");
-        }).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        // Verify the service is listening on the dynamically assigned port, not the launch profile port (5156).
+        var urls = await client.GetStringAsync("urls").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        Assert.Contains($":{port}", urls);
+        Assert.DoesNotContain(":5156", urls);
     }
 
     [Fact]
