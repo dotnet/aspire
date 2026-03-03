@@ -108,7 +108,7 @@ Değer şu anda [kullanıcı gizli dizinleri](https://aka.ms/aspire/user-secrets
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
-        <target state="new">Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</target>
+        <target state="translated">AppHost proje dosyasında bir `UserSecretsId` yapılandırılması gerekir. Kullanıcı gizli dizilerini başlatmak için `aspire secret set &lt;key&gt; &lt;value&gt;` komutunu çalıştırın veya daha fazla bilgi için [kullanıcı gizli dizileri](https://aka.ms/aspire/user-secrets) sayfasına bakın.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
