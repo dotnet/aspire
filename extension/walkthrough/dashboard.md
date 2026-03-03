@@ -1,6 +1,6 @@
 # The Aspire Dashboard
 
-The Aspire Dashboard gives you real-time visibility into your running application.
+The Aspire Dashboard gives you real-time visibility into your running application. It's also a lightweight [OpenTelemetry](https://opentelemetry.io/) viewer for any structured logs, metrics, or traces you have instrumented in your app.
 
 ### What you'll see
 
