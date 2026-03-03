@@ -16,7 +16,7 @@ namespace Aspire.Hosting.JavaScript;
 /// It launches a controlled browser instance that can be debugged using the IDE's browser debugging extension.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class BrowserDebuggerResource<T> : ExecutableResource
+internal class BrowserDebuggerResource<T> : ExecutableResource
     where T : DebugAdapterProperties
 {
     /// <summary>
@@ -49,7 +49,7 @@ public class BrowserDebuggerResource<T> : ExecutableResource
 /// It launches a controlled browser instance that can be debugged using VS Code's js-debug extension.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class VSCodeBrowserDebuggerResource : BrowserDebuggerResource<VSCodeBrowserDebuggerProperties>
+internal class VSCodeBrowserDebuggerResource : BrowserDebuggerResource<VSCodeBrowserDebuggerProperties>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="VSCodeBrowserDebuggerResource"/> class.
@@ -104,7 +104,7 @@ public class VSCodeBrowserDebuggerResource : BrowserDebuggerResource<VSCodeBrows
 /// Models a runnable debug configuration for browser-based JavaScript debugging.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public sealed class BrowserLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("browser")
+internal sealed class BrowserLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("browser")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
 }
@@ -117,7 +117,7 @@ public sealed class BrowserLaunchConfiguration() : ExecutableLaunchConfiguration
 /// See https://code.visualstudio.com/docs/nodejs/browser-debugging for more information.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class VSCodeBrowserDebuggerProperties : VSCodeDebuggerPropertiesBase
+internal class VSCodeBrowserDebuggerProperties : VSCodeDebuggerPropertiesBase
 {
     /// <summary>
     /// Identifies the type of debugger to use. Defaults to "msedge" for Edge browser debugging.

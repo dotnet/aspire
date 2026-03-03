@@ -10,7 +10,7 @@ namespace Aspire.Hosting.JavaScript;
 /// Models a runnable debug configuration for a Node.js/TypeScript application.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public sealed class NodeLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("node")
+internal sealed class NodeLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("node")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
@@ -34,7 +34,7 @@ public sealed class NodeLaunchConfiguration() : ExecutableLaunchConfigurationWit
 /// See https://code.visualstudio.com/docs/nodejs/nodejs-debugging for more information.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class VSCodeNodeDebuggerProperties : VSCodeDebuggerPropertiesBase
+internal class VSCodeNodeDebuggerProperties : VSCodeDebuggerPropertiesBase
 {
     /// <summary>
     /// Identifies the type of debugger to use. Defaults to "node" which uses the built-in js-debug.

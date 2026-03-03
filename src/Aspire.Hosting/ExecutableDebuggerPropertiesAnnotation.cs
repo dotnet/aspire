@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// Non-generic interface for debugger properties annotations, enabling IDE-agnostic annotation lookup.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IDebuggerPropertiesAnnotation : IResourceAnnotation
+internal interface IDebuggerPropertiesAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Gets the IDE type this annotation is for (e.g., "vscode"). If <see langword="null"/>, applies to all IDEs.
@@ -34,7 +34,7 @@ public interface IDebuggerPropertiesAnnotation : IResourceAnnotation
 /// </para>
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class ExecutableDebuggerPropertiesAnnotation<T>(Action<T> configureDebugProperties, string? ideType = null) : IDebuggerPropertiesAnnotation
+internal sealed class ExecutableDebuggerPropertiesAnnotation<T>(Action<T> configureDebugProperties, string? ideType = null) : IDebuggerPropertiesAnnotation
     where T : DebugAdapterProperties
 {
     /// <inheritdoc />

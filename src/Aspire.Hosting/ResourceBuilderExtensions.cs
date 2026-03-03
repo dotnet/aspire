@@ -3359,7 +3359,7 @@ public static class ResourceBuilderExtensions
     /// <param name="launchConfigurationType">The capability (such as extension) that this configuration supports.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<LaunchConfigurationProducerOptions, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    internal static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<LaunchConfigurationProducerOptions, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
         where TLaunchConfiguration : ExecutableLaunchConfiguration
     {
@@ -3402,7 +3402,7 @@ public static class ResourceBuilderExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
+    internal static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
         where T : IResource
         where TDebuggerProperties : DebugAdapterProperties
@@ -3452,7 +3452,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugOptions<T, TDebuggerProperties>(
+    internal static IResourceBuilder<T> WithVSCodeDebugOptions<T, TDebuggerProperties>(
         this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureVSCodeOptions)
         where T : IResource
         where TDebuggerProperties : VSCodeDebuggerPropertiesBase

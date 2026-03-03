@@ -17,7 +17,7 @@ namespace Aspire.Hosting;
 /// debug configuration options are only used when the appropriate IDE is connected.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class AspireIde
+internal static class AspireIde
 {
     /// <summary>
     /// The environment variable name that IDEs should set to identify themselves.
@@ -53,7 +53,7 @@ public static class AspireIde
 /// Constants for executable launch modes.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class ExecutableLaunchMode
+internal static class ExecutableLaunchMode
 {
     /// <summary>
     /// Run the project under the debugger.
@@ -72,7 +72,7 @@ public static class ExecutableLaunchMode
 /// <param name="type">Launch configuration type indicator.</param>
 [IgnoreNullsOnSerialization]
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public abstract class ExecutableLaunchConfiguration(string type)
+internal abstract class ExecutableLaunchConfiguration(string type)
 {
     /// <summary>
     /// The launch configuration type indicator.
@@ -98,7 +98,7 @@ public abstract class ExecutableLaunchConfiguration(string type)
 /// </remarks>
 [JsonConverter(typeof(DebugAdapterPropertiesJsonConverter))]
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public abstract class DebugAdapterProperties
+internal abstract class DebugAdapterProperties
 {
     /// <summary>
     /// The type of debugger to use for this launch configuration.
@@ -143,7 +143,7 @@ public abstract class DebugAdapterProperties
 /// All VS Code debugger property classes should inherit from this class.
 /// </remarks>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public abstract class VSCodeDebuggerPropertiesBase : DebugAdapterProperties
+internal abstract class VSCodeDebuggerPropertiesBase : DebugAdapterProperties
 {
     /// <summary>
     /// Controls how the debug configuration is displayed in the UI.
@@ -187,7 +187,7 @@ public abstract class VSCodeDebuggerPropertiesBase : DebugAdapterProperties
 /// Controls the presentation of the debug configuration in the UI.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class PresentationOptions
+internal class PresentationOptions
 {
     /// <summary>
     /// The order of this item in the debug configuration dropdown.
@@ -212,7 +212,7 @@ public class PresentationOptions
 /// Specifies an action to take when the server is ready.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class ServerReadyAction
+internal class ServerReadyAction
 {
     /// <summary>
     /// The kind of action to take. Currently only "openExternally" is supported.
@@ -239,7 +239,7 @@ public class ServerReadyAction
 /// <typeparam name="T">The type of debugger properties to include.</typeparam>
 /// <param name="type">Launch configuration type indicator.</param>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public abstract class ExecutableLaunchConfigurationWithDebuggerProperties<T>(string type) : ExecutableLaunchConfiguration(type)
+internal abstract class ExecutableLaunchConfigurationWithDebuggerProperties<T>(string type) : ExecutableLaunchConfiguration(type)
     where T : DebugAdapterProperties
 {
     /// <summary>

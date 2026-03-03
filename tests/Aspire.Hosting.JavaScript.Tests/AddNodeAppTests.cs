@@ -544,7 +544,7 @@ public class AddNodeAppTests
         using var tempDir = new TestTempDirectory();
 
         var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
-            .WithBrowserDebugger(configureDebuggerProperties: props =>
+            .WithBrowserDebugger("msedge", configureDebuggerProperties: props =>
             {
                 props.SmartStep = true;
                 props.Timeout = 30000;

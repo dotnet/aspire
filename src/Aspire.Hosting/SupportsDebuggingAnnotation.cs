@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, RequiredExtensionId = {LaunchConfigurationType,nq}")]
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
+internal sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 {
     private SupportsDebuggingAnnotation(string launchConfigurationType, Action<Executable, LaunchConfigurationProducerOptions> launchConfigurationAnnotator)
     {
@@ -52,7 +52,7 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 /// Provides options for producing launch configurations for debugging resources.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class LaunchConfigurationProducerOptions
+internal sealed class LaunchConfigurationProducerOptions
 {
     /// <summary>
     /// The mode for the launch configuration. Possible values include Debug or NoDebug.

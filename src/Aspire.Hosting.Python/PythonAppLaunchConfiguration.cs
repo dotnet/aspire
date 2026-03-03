@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Python;
 /// Models a runnable debug configuration for a python application.
 /// </summary>
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("python")
+internal sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationWithDebuggerProperties<DebugAdapterProperties>("python")
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     /// <summary>
@@ -42,7 +42,7 @@ public sealed class PythonLaunchConfiguration() : ExecutableLaunchConfigurationW
 /// Models VS Code-specific debugger properties for a python application made available by the debugpy debug adapter.
 /// </summary>
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class VSCodePythonDebuggerProperties : VSCodeDebuggerPropertiesBase
+internal class VSCodePythonDebuggerProperties : VSCodeDebuggerPropertiesBase
 {
     /// <summary>
     /// Identifies the type of debugger to use.
@@ -149,7 +149,7 @@ public class VSCodePythonDebuggerProperties : VSCodeDebuggerPropertiesBase
 /// <summary>
 /// Models options for automatic reloading of the debugger in a python application.
 /// </summary>
-public sealed class PythonAutoReloadOptions
+internal sealed class PythonAutoReloadOptions
 {
     /// <summary>
     /// When set to true, enables automatic reloading of the debugger when changes are made to code after the debugger execution has hit a breakpoint.
