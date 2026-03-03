@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "2")]
 public class ExecutionConfigurationGathererTests
 {
     #region ArgumentsExecutionConfigurationGatherer Tests
