@@ -114,6 +114,10 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
         // Resolve resource name to specific instances (handles replicas)
         var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
+        var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
+
+        // Pre-resolve colors so assignment is deterministic regardless of data order
+        TelemetryCommandHelpers.ResolveResourceColors(_resourceColorMap, allOtlpResources);
 
         // If a resource was specified but not found, return error
         if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
@@ -121,8 +125,6 @@ internal sealed class TelemetrySpansCommand : BaseCommand
             _interactionService.DisplayError($"Resource '{resource}' not found.");
             return ExitCodeConstants.InvalidCommand;
         }
-
-        var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
 
         // Build query string with multiple resource parameters
         var additionalParams = new List<(string key, string? value)>

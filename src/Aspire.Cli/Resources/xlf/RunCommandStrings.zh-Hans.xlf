@@ -52,11 +52,6 @@
         <target state="translated">请查看日志了解详细信息: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">正在检查正在运行的实例...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">正在连接到应用主机...</target>

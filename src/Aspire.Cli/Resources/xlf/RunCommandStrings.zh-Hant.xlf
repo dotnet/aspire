@@ -52,11 +52,6 @@
         <target state="translated">檢查記錄以取得詳細資料: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">正在檢查是否有正在執行的執行個體...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">正線連線到 AppHost...</target>

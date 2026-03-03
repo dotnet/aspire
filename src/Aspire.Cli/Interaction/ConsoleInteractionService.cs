@@ -309,6 +309,16 @@ internal class ConsoleInteractionService : IInteractionService
         MessageConsole.Write(renderable);
     }
 
+    public async Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        await MessageConsole.Live(initialRenderable)
+            .AutoClear(false)
+            .StartAsync(async ctx =>
+            {
+                await callback(renderable => ctx.UpdateTarget(renderable));
+            });
+    }
+
     public void DisplayCancellationMessage()
     {
         MessageConsole.WriteLine();

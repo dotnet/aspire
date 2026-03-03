@@ -1077,6 +1077,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) 
         => _innerService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
     public void DisplayRenderable(IRenderable renderable) => _innerService.DisplayRenderable(renderable);
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => _innerService.DisplayLiveAsync(initialRenderable, callback);
 }
 
 // Test implementation of IProjectUpdater

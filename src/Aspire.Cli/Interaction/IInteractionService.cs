@@ -27,6 +27,7 @@ internal interface IInteractionService
     void DisplaySubtleMessage(string message, bool allowMarkup = false);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayRenderable(IRenderable renderable);
+    Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 

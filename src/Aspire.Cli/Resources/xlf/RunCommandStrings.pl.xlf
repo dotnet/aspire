@@ -52,11 +52,6 @@
         <target state="translated">Sprawdź dzienniki, aby uzyskać szczegółowe informacje: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Sprawdzanie uruchomionych wystąpień...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Trwa łączenie z hostem AppHost...</target>

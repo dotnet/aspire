@@ -52,11 +52,6 @@
         <target state="translated">Podrobnosti najdete v protokolech: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Kontrolují se spuštěné instance...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Připojování k hostiteli aplikací...</target>

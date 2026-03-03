@@ -52,11 +52,6 @@
         <target state="translated">Controllare i log per i dettagli: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Verifica delle istanze in esecuzione in corso...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Connessione all'AppHost Aspire in corso...</target>
