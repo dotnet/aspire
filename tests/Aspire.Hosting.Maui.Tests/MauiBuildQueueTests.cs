@@ -631,7 +631,7 @@ public class MauiBuildQueueTests
         /// <summary>
         /// In tests there is no DCP launch phase, so release the semaphore immediately.
         /// </summary>
-        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, ILogger logger, CancellationToken cancellationToken)
+        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, string? stateAtCallTime, ILogger logger, CancellationToken cancellationToken)
         {
             semaphore.Release();
             return Task.CompletedTask;
@@ -652,7 +652,7 @@ public class MauiBuildQueueTests
         ResourceNotificationService notificationService,
         ResourceLoggerService loggerService) : MauiBuildQueueEventSubscriber(notificationService, loggerService)
     {
-        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, ILogger logger, CancellationToken cancellationToken)
+        internal override Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, string? stateAtCallTime, ILogger logger, CancellationToken cancellationToken)
         {
             semaphore.Release();
             return Task.CompletedTask;

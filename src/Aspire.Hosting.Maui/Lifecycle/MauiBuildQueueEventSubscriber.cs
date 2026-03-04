@@ -105,7 +105,7 @@ internal class MauiBuildQueueEventSubscriber(
             // DCP's MSBuild is still touching shared dependency outputs (e.g., MauiServiceDefaults),
             // causing intermittent XamlC assembly resolution failures.
             releaseInFinally = false;
-            _ = ReleaseSemaphoreAfterLaunchAsync(resource, semaphore, logger, cancellationToken);
+            _ = ReleaseSemaphoreAfterLaunchAsync(resource, semaphore, s_buildingState.Text, logger, cancellationToken);
         }
         catch (OperationCanceledException) when (resourceCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -255,7 +255,23 @@ internal class MauiBuildQueueEventSubscriber(
     /// Holding the semaphore until the resource reaches a stable state prevents concurrent
     /// MSBuild operations on shared dependency outputs.
     /// </summary>
-    internal virtual async Task ReleaseSemaphoreAfterLaunchAsync(IResource resource, SemaphoreSlim semaphore, ILogger logger, CancellationToken cancellationToken)
+    /// <remarks>
+    /// <para>
+    /// The predicate requires the state to differ from <paramref name="stateAtCallTime"/>
+    /// (typically "Building") so that the replayed snapshot from
+    /// <see cref="ResourceNotificationService.WatchAsync"/> does not immediately satisfy it.
+    /// Without this guard a restart could match on a stale snapshot.
+    /// </para>
+    /// <para>
+    /// Including "Running" in the predicate is intentional: the pre-build step already compiled
+    /// the project, so DCP's <c>dotnet build /t:Run</c> performs only a fast incremental (no-op)
+    /// check before launching the app. Waiting for a terminal state would hold the semaphore for
+    /// the entire app lifetime, blocking other platforms from starting.
+    /// </para>
+    /// </remarks>
+    internal virtual async Task ReleaseSemaphoreAfterLaunchAsync(
+        IResource resource, SemaphoreSlim semaphore, string? stateAtCallTime,
+        ILogger logger, CancellationToken cancellationToken)
     {
         try
         {
@@ -263,7 +279,17 @@ internal class MauiBuildQueueEventSubscriber(
             cts.CancelAfter(TimeSpan.FromMinutes(5));
             await notificationService.WaitForResourceAsync(
                 resource.Name,
-                e => e.Snapshot.State?.Text is "Running" or "FailedToStart" or "Exited" or "Finished",
+                e =>
+                {
+                    var text = e.Snapshot.State?.Text;
+                    // Skip the replayed snapshot that matches the state when we were called.
+                    if (string.Equals(text, stateAtCallTime, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+
+                    return text is "Running" or "FailedToStart" or "Exited" or "Finished";
+                },
                 cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex)

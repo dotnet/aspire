@@ -10,12 +10,18 @@ namespace Aspire.Hosting.Maui.Annotations;
 /// Annotation added to <see cref="MauiProjectResource"/> to serialize builds across
 /// platform resources that share the same project.
 /// </summary>
-internal sealed class MauiBuildQueueAnnotation : IResourceAnnotation
+internal sealed class MauiBuildQueueAnnotation : IResourceAnnotation, IDisposable
 {
     /// <summary>
     /// Gets the semaphore used to serialize builds for this project.
     /// </summary>
     public SemaphoreSlim BuildSemaphore { get; } = new(1, 1);
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        BuildSemaphore.Dispose();
+    }
 
     /// <summary>
     /// Per-resource CTS that allows the stop command to cancel a queued or building resource.
