@@ -257,9 +257,7 @@ internal sealed class RunCommand : BaseCommand
                 InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            // Wait for the backchannel. The debugger wait in the AppHost happens inside
-            // CreateBuilder(...) before the backchannel is created, so the backchannel
-            // completing is a good signal that the debugger was attached (or timed out).
+            // Now wait for the backchannel to be established
             var backchannel = await InteractionService.ShowStatusAsync(
                 isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost,
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));
