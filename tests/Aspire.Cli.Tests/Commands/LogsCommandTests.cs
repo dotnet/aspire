@@ -402,10 +402,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var outputWriter = new TestOutputTextWriter(outputHelper);
-        var provider = CreateLogsTestServices(workspace, outputWriter, configureOptions: config =>
-        {
-            config["NO_COLOR"] = "1";
-        });
+        var provider = CreateLogsTestServices(workspace, outputWriter, disableAnsi: true);
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs");
@@ -531,10 +528,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var outputWriter = new TestOutputTextWriter(outputHelper);
-        var provider = CreateLogsTestServices(workspace, outputWriter, configureOptions: config =>
-        {
-            config["NO_COLOR"] = "1";
-        });
+        var provider = CreateLogsTestServices(workspace, outputWriter, disableAnsi: true);
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs --timestamps");
@@ -556,10 +550,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var outputWriter = new TestOutputTextWriter(outputHelper);
-        var provider = CreateLogsTestServices(workspace, outputWriter, configureOptions: config =>
-        {
-            config["NO_COLOR"] = "1";
-        });
+        var provider = CreateLogsTestServices(workspace, outputWriter, disableAnsi: true);
 
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("logs");
@@ -580,7 +571,8 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
     private ServiceProvider CreateLogsTestServices(
         TemporaryWorkspace workspace,
         TestOutputTextWriter outputWriter,
-        Action<Dictionary<string, string?>>? configureOptions = null)
+        Action<Dictionary<string, string?>>? configureOptions = null,
+        bool disableAnsi = false)
     {
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel
@@ -649,6 +641,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         {
             options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
             options.OutputTextWriter = outputWriter;
+            options.DisableAnsi = disableAnsi;
 
             if (configureOptions is not null)
             {

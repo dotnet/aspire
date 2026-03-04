@@ -191,7 +191,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Signal build failure so RunCommand doesn't wait forever
             context.BuildCompletionSource?.TrySetResult(false);
@@ -362,7 +362,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Throw an exception that will be caught by the command and result in SdkNotInstalled exit code
             // This is cleaner than trying to signal through the backchannel pattern
@@ -370,7 +370,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         var effectiveAppHostFile = context.AppHostFile;
-        var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+        var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj" && IsValidSingleFileAppHost(effectiveAppHostFile);
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
 
         // Check compatibility for project-based apphosts
@@ -436,7 +436,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             StandardOutputCallback = runOutputCollector.AppendOutput,
             StandardErrorCallback = runOutputCollector.AppendError,
             NoLaunchProfile = true,
-            NoExtensionLaunch = true
+            StartDebugSession = context.StartDebugSession,
+            // When not starting a debug session, prevent DotNetCliRunner from delegating the
+            // apphost launch to the extension — pipeline commands should run the apphost directly.
+            NoExtensionLaunch = !context.StartDebugSession,
         };
 
         if (isSingleFileAppHost)
@@ -497,7 +500,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         // Stop all running instances
-        var stopTasks = matchingSockets.Select(socketPath => 
+        var stopTasks = matchingSockets.Select(socketPath =>
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
@@ -523,7 +526,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
-        _interactionService.DisplayMessage("key", $"Initializing user secrets for {projectFile.Name}...");
+        _interactionService.DisplayMessage(KnownEmojis.Key, $"Initializing user secrets for {projectFile.Name}...");
 
         await _runner.InitUserSecretsAsync(
             projectFile,
@@ -586,7 +589,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         var userSecretsId = await QueryUserSecretsIdAsync(appHostFile, cancellationToken);
         if (!string.IsNullOrEmpty(userSecretsId))
         {
-            _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+            _interactionService.DisplayMessage(KnownEmojis.Key, RunCommandStrings.CopyingUserSecrets);
             var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
             if (!string.IsNullOrEmpty(isolatedUserSecretsId))
             {

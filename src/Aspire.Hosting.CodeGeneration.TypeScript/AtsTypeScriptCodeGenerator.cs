@@ -1320,9 +1320,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             // Multi-parameter callback - .NET sends as { p0, p1, ... }
             var paramNames = callbackParameters.Select((p, i) => $"p{i}").ToList();
-            var destructure = string.Join(", ", paramNames);
+            var destructureWithTypes = string.Join(", ", paramNames.Select(p => $"{p}: unknown"));
 
-            WriteLine($"            const args = argsData as {{ {destructure}: unknown }};");
+            WriteLine($"            const args = argsData as {{ {destructureWithTypes} }};");
 
             var callArgs = new List<string>();
             for (var i = 0; i < callbackParameters.Count; i++)
@@ -2462,10 +2462,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             builders.Add(builder);
         }
 
+        // Deduplicate builders by class name, preferring concrete types over interfaces.
+        // This handles cases where both a concrete type (e.g. AzureKeyVaultResource) and
+        // its interface (IAzureKeyVaultResource → AzureKeyVaultResource) produce the same class name.
         // Sort: concrete types first, then interfaces
         return builders
             .OrderBy(b => b.IsInterface)
             .ThenBy(b => b.BuilderClassName)
+            .GroupBy(b => b.BuilderClassName)
+            .Select(g => g.First())
             .ToList();
     }
 

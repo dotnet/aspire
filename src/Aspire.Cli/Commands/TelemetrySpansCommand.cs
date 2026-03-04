@@ -28,6 +28,8 @@ internal sealed class TelemetrySpansCommand : BaseCommand
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<TelemetrySpansCommand> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ResourceColorMap _resourceColorMap;
+    private readonly TimeProvider _timeProvider;
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
@@ -46,11 +48,15 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
         IHttpClientFactory httpClientFactory,
+        ResourceColorMap resourceColorMap,
+        TimeProvider timeProvider,
         ILogger<TelemetrySpansCommand> logger)
         : base("spans", TelemetryCommandStrings.SpansDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _httpClientFactory = httpClientFactory;
+        _resourceColorMap = resourceColorMap;
+        _timeProvider = timeProvider;
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
@@ -108,6 +114,10 @@ internal sealed class TelemetrySpansCommand : BaseCommand
 
         // Resolve resource name to specific instances (handles replicas)
         var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
+        var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
+
+        // Pre-resolve colors so assignment is deterministic regardless of data order
+        TelemetryCommandHelpers.ResolveResourceColors(_resourceColorMap, allOtlpResources);
 
         // If a resource was specified but not found, return error
         if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
@@ -142,11 +152,11 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         {
             if (follow)
             {
-                return await StreamSpansAsync(client, url, format, cancellationToken);
+                return await StreamSpansAsync(client, url, format, allOtlpResources, cancellationToken);
             }
             else
             {
-                return await GetSpansSnapshotAsync(client, url, format, cancellationToken);
+                return await GetSpansSnapshotAsync(client, url, format, allOtlpResources, cancellationToken);
             }
         }
         catch (HttpRequestException ex)
@@ -157,7 +167,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         }
     }
 
-    private async Task<int> GetSpansSnapshotAsync(HttpClient client, string url, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> GetSpansSnapshotAsync(HttpClient client, string url, OutputFormat format, IReadOnlyList<IOtlpResource> allResources, CancellationToken cancellationToken)
     {
         var response = await client.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -177,14 +187,13 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         }
         else
         {
-            // Parse OTLP JSON and display in table format
-            DisplaySpansSnapshot(json);
+            DisplaySpansSnapshot(json, allResources);
         }
 
         return ExitCodeConstants.Success;
     }
 
-    private async Task<int> StreamSpansAsync(HttpClient client, string url, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> StreamSpansAsync(HttpClient client, string url, OutputFormat format, IReadOnlyList<IOtlpResource> allResources, CancellationToken cancellationToken)
     {
         using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -207,52 +216,59 @@ internal sealed class TelemetrySpansCommand : BaseCommand
             }
             else
             {
-                DisplaySpansStreamLine(line);
+                DisplaySpansStreamLine(line, allResources);
             }
         }
 
         return ExitCodeConstants.Success;
     }
 
-    private static void DisplaySpansSnapshot(string json)
+    private void DisplaySpansSnapshot(string json, IReadOnlyList<IOtlpResource> allResources)
     {
         var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceSpans = response?.Data?.ResourceSpans;
 
         if (resourceSpans is null or { Length: 0 })
         {
-            TelemetryCommandHelpers.DisplayNoData("spans");
+            TelemetryCommandHelpers.DisplayNoData(_interactionService, "spans");
             return;
         }
 
-        DisplayResourceSpans(resourceSpans);
+        DisplayResourceSpans(resourceSpans, allResources);
     }
 
-    private static void DisplaySpansStreamLine(string json)
+    private void DisplaySpansStreamLine(string json, IReadOnlyList<IOtlpResource> allResources)
     {
         var request = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.OtlpExportTraceServiceRequestJson);
-        DisplayResourceSpans(request?.ResourceSpans ?? []);
+        DisplayResourceSpans(request?.ResourceSpans ?? [], allResources);
     }
 
-    private static void DisplayResourceSpans(IEnumerable<OtlpResourceSpansJson> resourceSpans)
+    private void DisplayResourceSpans(IEnumerable<OtlpResourceSpansJson> resourceSpans, IReadOnlyList<IOtlpResource> allResources)
     {
+        var allSpans = new List<(string ResourceName, OtlpSpanJson Span)>();
+
         foreach (var resourceSpan in resourceSpans)
         {
-            var resourceName = resourceSpan.Resource?.GetServiceName() ?? "unknown";
+            var resourceName = TelemetryCommandHelpers.ResolveResourceName(resourceSpan.Resource, allResources);
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
             {
                 foreach (var span in scopeSpan.Spans ?? [])
                 {
-                    DisplaySpanEntry(resourceName, span);
+                    allSpans.Add((resourceName, span));
                 }
             }
+        }
+
+        foreach (var (resourceName, span) in allSpans.OrderBy(s => s.Span.StartTimeUnixNano ?? 0))
+        {
+            DisplaySpanEntry(resourceName, span);
         }
     }
 
     // Using simple text lines instead of Spectre.Console Table for streaming support.
     // Tables require knowing all data upfront, but streaming mode displays spans as they arrive.
-    private static void DisplaySpanEntry(string resourceName, OtlpSpanJson span)
+    private void DisplaySpanEntry(string resourceName, OtlpSpanJson span)
     {
         var name = span.Name ?? "";
         var spanId = span.SpanId ?? "";
@@ -260,12 +276,16 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         var hasError = span.Status?.Code == 2; // ERROR status
 
         var statusColor = hasError ? Color.Red : Color.Green;
-        var statusText = hasError ? "ERR" : "OK";
+        var statusText = hasError ? "ERR" : "OK ";
 
+        var timestamp = span.StartTimeUnixNano.HasValue
+            ? FormatHelpers.FormatConsoleTime(_timeProvider, OtlpHelpers.UnixNanoSecondsToDateTime(span.StartTimeUnixNano.Value))
+            : "";
         var shortSpanId = OtlpHelpers.ToShortenedId(spanId);
         var durationStr = TelemetryCommandHelpers.FormatDuration(duration);
+        var resourceColor = _resourceColorMap.GetColor(resourceName);
 
         var escapedName = name.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{shortSpanId}[/] [cyan]{resourceName.EscapeMarkup(),-15}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] {escapedName}");
+        _interactionService.DisplayMarkupLine($"[grey]{timestamp}[/] [{statusColor}]{statusText}[/] [white]{durationStr,8}[/] [{resourceColor}]{resourceName.EscapeMarkup()}[/]: {escapedName} [grey]{shortSpanId}[/]");
     }
 }

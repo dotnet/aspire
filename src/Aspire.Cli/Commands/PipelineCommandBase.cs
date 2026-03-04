@@ -12,6 +12,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -28,6 +29,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     protected readonly IProjectLocator _projectLocator;
     protected readonly IAppHostProjectFactory _projectFactory;
 
+    private readonly IConfiguration _configuration;
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly ILogger _logger;
@@ -36,6 +38,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     protected static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", PublishCommandStrings.ProjectArgumentDescription);
 
     private readonly Option<string?> _outputPathOption;
+    private readonly Option<bool>? _startDebugSessionOption;
 
     protected static readonly Option<string?> s_logLevelOption = new("--log-level")
     {
@@ -69,12 +72,13 @@ internal abstract class PipelineCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, IConfiguration configuration, ILogger logger, IAnsiConsole ansiConsole)
         : base(name, description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
         _projectLocator = projectLocator;
         _hostEnvironment = hostEnvironment;
+        _configuration = configuration;
         _features = features;
         _projectFactory = projectFactory;
         _logger = logger;
@@ -92,21 +96,64 @@ internal abstract class PipelineCommandBase : BaseCommand
         Options.Add(s_includeExceptionDetailsOption);
         Options.Add(s_noBuildOption);
 
+        if (ExtensionHelper.IsExtensionHost(interactionService, out _, out _))
+        {
+            _startDebugSessionOption = new Option<bool>("--start-debug-session")
+            {
+                Description = RunCommandStrings.StartDebugSessionArgumentDescription
+            };
+            Options.Add(_startDebugSessionOption);
+        }
+
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
         TreatUnmatchedTokensAsErrors = false;
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
+    protected abstract Task<string[]> GetRunArgumentsAsync(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult, CancellationToken cancellationToken);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage(ParseResult parseResult);
 
+    /// <summary>
+    /// Gets command-specific arguments to forward when starting a debug session from the extension context.
+    /// Subclasses should override to include their specific positional arguments.
+    /// Unmatched tokens are always included automatically.
+    /// </summary>
+    protected virtual string[] GetCommandArgs(ParseResult parseResult) => [];
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // If running in the extension context (Aspire terminal) without a debug session,
+        // intercept and tell VS Code to start a proper debug session for this command.
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _)
+            && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
+        {
+            // Resolve the apphost project interactively before starting the debug session,
+            // so the user is prompted if needed and we can pass it along.
+            if (passedAppHostProjectFile is null)
+            {
+                var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
+                passedAppHostProjectFile = searchResult.SelectedProjectFile;
+
+                if (passedAppHostProjectFile is null)
+                {
+                    return ExitCodeConstants.FailedToFindProject;
+                }
+            }
+
+            var commandArgs = GetCommandArgs(parseResult).Concat(parseResult.UnmatchedTokens).ToArray();
+
+            extensionInteractionService.DisplayConsolePlainText($"Detected aspire {Name} inside the Aspire extension, starting a debug session in VS Code...");
+            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, debug: true, new DebugSessionOptions { Command = Name, Args = commandArgs.Length > 0 ? commandArgs : null });
+            return ExitCodeConstants.Success;
+        }
+
         var debugMode = parseResult.GetValue(RootCommand.DebugOption);
         var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
+        var startDebugSession = _startDebugSessionOption is not null && parseResult.GetValue(_startDebugSessionOption);
 
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;
@@ -118,7 +165,6 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
@@ -157,10 +203,11 @@ internal abstract class PipelineCommandBase : BaseCommand
                 AppHostFile = effectiveAppHostFile,
                 OutputPath = fullyQualifiedOutputPath,
                 EnvironmentVariables = env,
-                Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
+                Arguments = await GetRunArgumentsAsync(fullyQualifiedOutputPath, unmatchedTokens, parseResult, cancellationToken),
                 BackchannelCompletionSource = backchannelCompletionSource,
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
                 Debug = debugMode,
+                StartDebugSession = startDebugSession,
                 NoBuild = noBuild
             };
 
@@ -170,10 +217,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync(GetProgressMessage(parseResult), async () =>
             {
                 var completedTask = await Task.WhenAny(backchannelCompletionSource.Task, pendingRun);
                 if (completedTask == backchannelCompletionSource.Task)
@@ -187,11 +234,21 @@ internal abstract class PipelineCommandBase : BaseCommand
                     throw sdkException;
                 }
 
+                // When running in extension context, the extension takes over apphost management.
+                // DotNetCliRunner returns Success immediately after delegating to LaunchAppHostAsync,
+                // so pendingRun completes before the backchannel is established. In this case,
+                // continue waiting for the backchannel rather than throwing.
+                if (!completedTask.IsFaulted && await pendingRun == ExitCodeConstants.Success
+                    && ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
+                {
+                    return await backchannelCompletionSource.Task;
+                }
+
                 // Throw an error if the run completed without returning a backchannel.
                 // Include possible error if the run task faulted.
                 var innerException = completedTask.IsFaulted ? completedTask.Exception : null;
                 throw new InvalidOperationException("Run completed without returning a backchannel.", innerException);
-            });
+            }, emoji: KnownEmojis.HammerAndWrench);
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
@@ -335,7 +392,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 {
                     // New step - log it
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", allowMarkup: true);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -344,7 +401,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", allowMarkup: true);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -358,7 +415,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 var logLevel = activity.Data.LogLevel ?? "Information";
                 var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                 var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTimeOffset.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-                
+
                 // Use 3-letter prefixes for log levels
                 var logPrefix = logLevel.ToUpperInvariant() switch
                 {
@@ -370,7 +427,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                     "CRITICAL" => "CRT",
                     _ => "INF"
                 };
-                
+
                 // Make debug and trace logs more subtle
                 var formattedMessage = logLevel.ToUpperInvariant() switch
                 {
@@ -378,8 +435,8 @@ internal abstract class PipelineCommandBase : BaseCommand
                     "TRACE" => $"[[{timestamp}]] [dim][[{logPrefix}]] {message}[/]",
                     _ => $"[[{timestamp}]] [[{logPrefix}]] {message}"
                 };
-                
-                InteractionService.DisplaySubtleMessage(formattedMessage, escapeMarkup: false);
+
+                InteractionService.DisplaySubtleMessage(formattedMessage, allowMarkup: true);
             }
             else
             {
@@ -390,17 +447,17 @@ internal abstract class PipelineCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", allowMarkup: true);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
                         var completionMessage = ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data);
-                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", escapeMarkup: false);
+                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", allowMarkup: true);
                     }
                 }
                 else
                 {
                     var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", allowMarkup: true);
                 }
             }
         }
@@ -412,7 +469,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
             var statusText = ConvertTextWithMarkdownFlag(publishingActivity.Data.StatusText, publishingActivity.Data);
-            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
+            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", allowMarkup: true);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");
@@ -491,21 +548,21 @@ internal abstract class PipelineCommandBase : BaseCommand
                     {
                         var logLevel = activity.Data.LogLevel ?? "Information";
                         var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-                        
+
                         // Add 3-letter prefix to message for consistency
                         var logPrefix = logLevel.ToUpperInvariant() switch
                         {
                             "DEBUG" => "DBG",
-                            "TRACE" => "TRC", 
+                            "TRACE" => "TRC",
                             "INFORMATION" => "INF",
                             "WARNING" => "WRN",
                             "ERROR" => "ERR",
                             "CRITICAL" => "CRT",
                             _ => "INF"
                         };
-                        
+
                         var prefixedMessage = $"[[{logPrefix}]] {message}";
-                        
+
                         // Map log levels to appropriate console logger methods
                         switch (logLevel.ToUpperInvariant())
                         {

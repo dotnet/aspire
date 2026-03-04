@@ -24,6 +24,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -93,6 +94,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
     private readonly SemaphoreSlim _serverCertificateCacheSemaphore = new(1, 1);
+    private readonly IBackchannelLoggerProvider _backchannelLoggerProvider;
 
     private readonly string _normalizedApplicationName;
 
@@ -124,7 +126,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
-                       IDeveloperCertificateService developerCertificateService)
+                       IDeveloperCertificateService developerCertificateService,
+                       IBackchannelLoggerProvider backchannelLoggerProvider)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -144,6 +147,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _backchannelLoggerProvider = backchannelLoggerProvider;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
@@ -1335,13 +1339,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            var isProcessExecution = true;
+            if (executable.SupportsDebugging(_configuration, out _))
             {
+                // Just mark as IDE execution here - the actual callback will be invoked
+                // in CreateExecutableAsync after endpoints are allocated
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
+                exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
+                isProcessExecution = false;
             }
-            else
+
+            if (isProcessExecution)
             {
                 exe.Spec.ExecutionType = ExecutionType.Process;
             }
@@ -1383,24 +1391,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exe);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                 var projectArgs = new List<string>();
 
+                var isProcessExecution = true;
                 if (project.SupportsDebugging(_configuration, out _))
                 {
+                    // Just mark as IDE execution here - the actual callback will be invoked
+                    // in CreateExecutableAsync after endpoints are allocated
                     exe.Spec.ExecutionType = ExecutionType.IDE;
-                    exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
-
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    // Use the effective launch profile which has fallback logic
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
-                    {
-                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
-                    }
+                    exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
+                    isProcessExecution = false;
                 }
-                else
+
+                if (isProcessExecution)
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
@@ -1441,10 +1444,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
+
+                    var projectLaunchConfiguration = new ProjectLaunchConfiguration
+                    {
+                        ProjectPath = projectMetadata.ProjectPath
+                    };
+
+                    exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exe.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exe);
@@ -1778,6 +1786,53 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
+            }
+
+            // Invoke the debug configuration callback now that endpoints are allocated.
+            // This allows launch configurations to access endpoint URLs that were not available during PrepareExecutables().
+            if (er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            {
+                var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
+                {
+                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(er.ModelResource.Name),
+                    Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
+                };
+
+                // For project resources, add additional configuration for launch profile settings
+                if (er.ModelResource is ProjectResource project)
+                {
+                    launchConfigurationProducerOptions.AdditionalConfiguration = launchConfiguration =>
+                    {
+                        if (launchConfiguration is not ProjectLaunchConfiguration projectLaunchConfiguration)
+                        {
+                            throw new InvalidOperationException("Expected a ProjectLaunchConfiguration. The SupportsDebuggingAnnotation launch configuration producer must produce a ProjectLaunchConfiguration for project resources.");
+                        }
+
+                        projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+
+                        // Use the effective launch profile which has fallback logic
+                        if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                        {
+                            projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        }
+                    };
+                }
+
+                try
+                {
+                    // Clear existing launch configurations before re-annotating.
+                    // On restart, AnnotateAsObjectList deserializes the existing list, but DebugAdapterProperties
+                    // (abstract) deserializes as null, causing old configs to lose their debugger_properties.
+                    // Clearing first ensures only the fresh configuration with correct debugger_properties is used.
+                    exe.Annotate(Executable.LaunchConfigurationsAnnotation, string.Empty);
+
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to configure debugging for resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
+                    spec.ExecutionType = ExecutionType.Process;
+                }
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

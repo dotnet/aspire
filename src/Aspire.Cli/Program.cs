@@ -34,6 +34,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using StreamJsonRpc;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Hosting;
@@ -246,6 +247,7 @@ public class Program
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<ITemplateVersionPrompter>(sp => (ITemplateVersionPrompter)sp.GetRequiredService<INewCommandPrompter>());
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
@@ -289,6 +291,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddSingleton<IBannerService, BannerService>();
+        builder.Services.AddSingleton<ResourceColorMap>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
@@ -315,6 +318,12 @@ public class Program
         builder.Services.AddSingleton<IVsCodeCliRunner, VsCodeCliRunner>();
         builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
 
+        // Npm and Playwright CLI operations.
+        builder.Services.AddSingleton<Aspire.Cli.Npm.INpmRunner, Aspire.Cli.Npm.NpmRunner>();
+        builder.Services.AddHttpClient<Aspire.Cli.Npm.INpmProvenanceChecker, Aspire.Cli.Npm.SigstoreNpmProvenanceChecker>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.IPlaywrightCliRunner, Aspire.Cli.Agents.Playwright.PlaywrightCliRunner>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.PlaywrightCliInstaller>();
+
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
@@ -324,8 +333,10 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Template factories.
+        builder.Services.AddSingleton<TemplateNuGetConfigService>();
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
@@ -361,7 +372,6 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
-        builder.Services.AddTransient<RestartCommand>();
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
@@ -400,6 +410,9 @@ public class Program
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<SetupCommand>();
+#if DEBUG
+        builder.Services.AddTransient<RenderCommand>();
+#endif
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
@@ -481,8 +494,10 @@ public class Program
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
-        if (showBanner || (isFirstRun && !noLogo))
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo or non-interactive output)
+        if (showBanner || (isFirstRun && !noLogo && hostEnvironment.SupportsInteractiveOutput))
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);
@@ -599,6 +614,9 @@ public class Program
 
         try
         {
+            cliLogger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
+            cliLogger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
+
             // Log command invocation details for debugging
             var commandLine = args.Length > 0 ? $"aspire {string.Join(" ", args)}" : "aspire";
             var workingDir = Environment.CurrentDirectory;
@@ -629,17 +647,28 @@ public class Program
             // Catch block is used instead of System.Commandline's default handler behavior.
             // Allows logging of exceptions to telemetry.
 
-            // Don't log or display cancellation exceptions.
+            // Don't log or display cancellation exceptions or connection lost exceptions (which occur during debug session restart).
             // Check both Ctrl+C cancellation (cts.IsCancellationRequested) and
             // extension prompt cancellation (ExtensionOperationCanceledException).
-            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && ex is not ExtensionOperationCanceledException)
+            var isConnectionLost = ex is ConnectionLostException
+                || ex is ObjectDisposedException
+                || (ex is OperationCanceledException && ex.InnerException is ConnectionLostException);
+
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && !isConnectionLost && ex is not ExtensionOperationCanceledException)
             {
                 logger.LogError(ex, "An unexpected error occurred.");
 
                 telemetry.RecordError("An unexpected error occurred.", ex);
 
-                var interactionService = app.Services.GetRequiredService<IInteractionService>();
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+                try
+                {
+                    var interactionService = app.Services.GetRequiredService<IInteractionService>();
+                    interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+                }
+                catch (Exception displayEx) when (displayEx is ConnectionLostException || displayEx is ObjectDisposedException)
+                {
+                    // Swallow exceptions when trying to display an error during connection shutdown
+                }
             }
 
             // Log exit code for debugging

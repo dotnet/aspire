@@ -27,15 +27,6 @@ jobs:
           ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release -- --nologo"
           FAILURES=0
 
-          # Ensure sdk command is available in this workflow.
-          echo "::group::Enable polyglot support feature"
-          if ! $ASPIRE_CLI config set features.polyglotSupportEnabled true --global; then
-            echo "::error::Failed to enable features.polyglotSupportEnabled"
-            echo "::endgroup::"
-            exit 1
-          fi
-          echo "::endgroup::"
-
           # Dump core Aspire.Hosting capabilities (no integration argument)
           echo "::group::Aspire.Hosting (core)"
           if ! $ASPIRE_CLI sdk dump --ci -o src/Aspire.Hosting/api/Aspire.Hosting.ats.txt; then

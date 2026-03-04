@@ -112,7 +112,6 @@ internal sealed class RootCommand : BaseRootCommand
         RunCommand runCommand,
         StopCommand stopCommand,
         StartCommand startCommand,
-        RestartCommand restartCommand,
         WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
@@ -134,6 +133,9 @@ internal sealed class RootCommand : BaseRootCommand
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
         SetupCommand setupCommand,
+#if DEBUG
+        RenderCommand renderCommand,
+#endif
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
         IFeatures featureFlags,
@@ -153,7 +155,7 @@ internal sealed class RootCommand : BaseRootCommand
             if (waitForDebugger)
             {
                 _interactionService.ShowStatus(
-                    $":bug:  {string.Format(CultureInfo.CurrentCulture, RootCommandStrings.WaitingForDebugger, Environment.ProcessId)}",
+                    string.Format(CultureInfo.CurrentCulture, RootCommandStrings.WaitingForDebugger, Environment.ProcessId),
                     () =>
                     {
                         while (!Debugger.IsAttached)
@@ -162,7 +164,7 @@ internal sealed class RootCommand : BaseRootCommand
                         }
 
                         Debugger.Break();
-                    });
+                    }, emoji: KnownEmojis.Bug);
             }
         });
 #endif
@@ -197,7 +199,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
         Subcommands.Add(startCommand);
-        Subcommands.Add(restartCommand);
         Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
@@ -218,6 +219,10 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(docsCommand);
         Subcommands.Add(secretCommand);
 
+#if DEBUG
+        Subcommands.Add(renderCommand);
+#endif
+
         if (bundleService.IsBundle)
         {
             Subcommands.Add(setupCommand);
@@ -228,10 +233,7 @@ internal sealed class RootCommand : BaseRootCommand
             Subcommands.Add(execCommand);
         }
 
-        if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
-        {
-            Subcommands.Add(sdkCommand);
-        }
+        Subcommands.Add(sdkCommand);
 
         // Replace the default --help action with grouped help output.
         // Add -v as a short alias for --version.

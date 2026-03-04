@@ -32,6 +32,11 @@
         <target state="translated">Nombre de proyecto no válido.</target>
         <note />
       </trans-unit>
+      <trans-unit id="LanguageOptionDescription">
+        <source>The programming language for the AppHost.</source>
+        <target state="new">The programming language for the AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create.</source>
         <target state="translated">El nombre del proyecto que se va a crear.</target>
@@ -40,6 +45,11 @@
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">La ruta de salida del proyecto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="new">Resolving template version...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

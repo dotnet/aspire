@@ -226,7 +226,7 @@ internal sealed class ConfigCommand : BaseCommand
             // Check if we have any configuration at all
             if (localConfig.Count == 0 && globalConfig.Count == 0)
             {
-                InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
+                InteractionService.DisplayMessage(KnownEmojis.Information, ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
@@ -446,7 +446,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (useJson)
             {
-                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema);
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema, KnownCapabilities.GetAdvertisedCapabilities());
                 var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)
@@ -477,7 +477,7 @@ internal sealed class ConfigCommand : BaseCommand
                 foreach (var property in localSchema.Properties)
                 {
                     var requiredText = property.Required ? "[red]*[/]" : "";
-                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type}[/]) - {property.Description.EscapeMarkup()}");
+                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type.EscapeMarkup()}[/]) - {property.Description.EscapeMarkup()}");
                 }
             }
 

@@ -59,8 +59,10 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .WaitUntil(s => waitingForEmptySelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter()
+            .Enter() // select Empty AppHost
+            .Enter() // select C#
             .WaitUntil(s => waitingForNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("TestSecrets")
             .Enter()

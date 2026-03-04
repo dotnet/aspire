@@ -71,7 +71,7 @@ internal sealed class AspireResourceMcpTools
     }
 
     [McpServerTool(Name = "list_console_logs")]
-    [Description("List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'resource-start', 'resource-stop' and 'resource-restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.")]
+    [Description("List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'start', 'stop' and 'restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.")]
     public async Task<string> ListConsoleLogsAsync(
         [Description("The resource name.")]
         string resourceName,
@@ -167,9 +167,9 @@ internal sealed class AspireResourceMcpTools
 
         if (command.State == CommandViewModelState.Disabled)
         {
-            if (command.Name == "resource-restart" && resource.Commands.Any(c => c.Name == "resource-start" && c.State == CommandViewModelState.Enabled))
+            if (command.Name == CommandViewModel.RestartCommand && resource.Commands.Any(c => c.Name == CommandViewModel.StartCommand && c.State == CommandViewModelState.Enabled))
             {
-                throw new McpProtocolException($"Resource '{resourceName}' is stopped. Use the 'resource-start' command instead of 'resource-restart'.", McpErrorCode.InvalidParams);
+                throw new McpProtocolException($"Resource '{resourceName}' is stopped. Use the '{CommandViewModel.StartCommand}' command instead of '{CommandViewModel.RestartCommand}'.", McpErrorCode.InvalidParams);
             }
 
             throw new McpProtocolException($"Command '{commandName}' is currently disabled for resource '{resourceName}'.", McpErrorCode.InvalidParams);

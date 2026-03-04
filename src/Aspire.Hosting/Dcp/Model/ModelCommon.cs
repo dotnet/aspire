@@ -10,6 +10,13 @@ using System.Text.RegularExpressions;
 using k8s;
 using k8s.Models;
 
+/// <summary>
+/// Attribute to mark types that should have null values omitted during JSON serialization.
+/// This is used to avoid sending nulls to debuggers that can't deserialize them.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+internal sealed class IgnoreNullsOnSerializationAttribute : Attribute { }
+
 internal interface IAnnotationHolder
 {
     void Annotate(string annotationName, string value);
@@ -132,7 +139,12 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
             values = [value];
         }
 
-        var newAnnotationVal = JsonSerializer.Serialize<List<TValue>>(values);
+        // Use ignore-null options for types marked with IgnoreNullsOnSerializationAttribute
+        // to avoid sending nulls to debuggers that can't deserialize them
+        var options = typeof(TValue).GetCustomAttributes(typeof(IgnoreNullsOnSerializationAttribute), inherit: true).Length > 0
+            ? new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }
+            : null;
+        var newAnnotationVal = JsonSerializer.Serialize<List<TValue>>(values, options!);
         annotations[annotationName] = newAnnotationVal;
     }
 }

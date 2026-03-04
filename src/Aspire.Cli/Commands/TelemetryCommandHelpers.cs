@@ -8,8 +8,10 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Otlp;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
+using Aspire.Otlp.Serialization;
 using Aspire.Shared;
 using Spectre.Console;
 
@@ -110,13 +112,12 @@ internal static class TelemetryCommandHelpers
             projectFile,
             SharedCommandStrings.ScanningForRunningAppHosts,
             string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, TelemetryCommandStrings.SelectAppHostAction),
-            SharedCommandStrings.NoInScopeAppHostsShowingAll,
             SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
-            interactionService.DisplayMessage("information", result.ErrorMessage);
+            interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return (false, null, null, null, ExitCodeConstants.Success);
         }
 
@@ -209,17 +210,26 @@ internal static class TelemetryCommandHelpers
         var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var resources = await response.Content.ReadFromJsonAsync(OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false);
-        return resources!;
+        var resources = await response.Content.ReadFromJsonAsync(OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false) ?? [];
+
+        // Sort resources by name for consistent ordering.
+        Array.Sort(resources, (a, b) =>
+        {
+            var cmp = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            return cmp != 0 ? cmp : string.Compare(a.InstanceId, b.InstanceId, StringComparison.OrdinalIgnoreCase);
+        });
+
+        return resources;
     }
 
     /// <summary>
     /// Displays a "no data found" message with consistent styling.
     /// </summary>
+    /// <param name="interactionService">The interaction service for output.</param>
     /// <param name="dataType">The type of data (e.g., "logs", "spans", "traces").</param>
-    public static void DisplayNoData(string dataType)
+    public static void DisplayNoData(IInteractionService interactionService, string dataType)
     {
-        AnsiConsole.MarkupLine($"[yellow]No {dataType} found[/]");
+        interactionService.DisplayMarkupLine($"[yellow]No {dataType} found[/]");
     }
 
     /// <summary>
@@ -248,6 +258,24 @@ internal static class TelemetryCommandHelpers
     public static string FormatDuration(TimeSpan duration)
     {
         return DurationFormatter.FormatDuration(duration, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Gets abbreviated severity text for an OTLP severity number.
+    /// OTLP severity numbers: 1-4=TRACE, 5-8=DEBUG, 9-12=INFO, 13-16=WARN, 17-20=ERROR, 21-24=FATAL
+    /// </summary>
+    public static string GetSeverityText(int? severityNumber)
+    {
+        return severityNumber switch
+        {
+            >= 21 => "CRIT",
+            >= 17 => "FAIL",
+            >= 13 => "WARN",
+            >= 9 => "INFO",
+            >= 5 => "DBUG",
+            >= 1 => "TRCE",
+            _ => "-"
+        };
     }
 
     /// <summary>
@@ -287,5 +315,42 @@ internal static class TelemetryCommandHelpers
                 yield return line;
             }
         }
+    }
+
+    /// <summary>
+    /// Converts an array of <see cref="ResourceInfoJson"/> to a list of <see cref="IOtlpResource"/> for use with <see cref="OtlpHelpers.GetResourceName"/>.
+    /// </summary>
+    public static IReadOnlyList<IOtlpResource> ToOtlpResources(ResourceInfoJson[] resources)
+    {
+        var result = new IOtlpResource[resources.Length];
+        for (var i = 0; i < resources.Length; i++)
+        {
+            result[i] = new SimpleOtlpResource(resources[i].Name, resources[i].InstanceId);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Pre-resolves resource colors for all resources in sorted order so that
+    /// color assignment is deterministic regardless of encounter order in telemetry data.
+    /// </summary>
+    public static void ResolveResourceColors(ResourceColorMap colorMap, IReadOnlyList<IOtlpResource> allResources)
+    {
+        colorMap.ResolveAll(allResources.Select(r => OtlpHelpers.GetResourceName(r, allResources)));
+    }
+
+    /// <summary>
+    /// Resolves the display name for an OTLP resource using <see cref="OtlpHelpers.GetResourceName"/>,
+    /// appending a shortened instance ID when there are replicas with the same base name.
+    /// </summary>
+    public static string ResolveResourceName(OtlpResourceJson? resource, IReadOnlyList<IOtlpResource> allResources)
+    {
+        if (resource is null)
+        {
+            return "unknown";
+        }
+
+        var otlpResource = new SimpleOtlpResource(resource.GetServiceName(), resource.GetServiceInstanceId());
+        return OtlpHelpers.GetResourceName(otlpResource, allResources);
     }
 }

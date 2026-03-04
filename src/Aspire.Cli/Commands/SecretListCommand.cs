@@ -70,7 +70,7 @@ internal sealed class SecretListCommand : BaseCommand
         {
             if (secrets.Count == 0)
             {
-                InteractionService.DisplayMessage("information", SecretCommandStrings.NoSecretsConfigured);
+                InteractionService.DisplayMessage(KnownEmojis.Information, SecretCommandStrings.NoSecretsConfigured);
             }
             else
             {

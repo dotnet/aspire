@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using Aspire.Cli.Utils;
 
+using Aspire.Cli.Configuration;
+
 namespace Aspire.Cli.Projects;
 
 /// <summary>
@@ -43,7 +45,7 @@ internal interface IAppHostServerSessionFactory
     /// </summary>
     /// <param name="appHostPath">The path to the AppHost project directory.</param>
     /// <param name="sdkVersion">The Aspire SDK version to use.</param>
-    /// <param name="packages">The package references to include.</param>
+    /// <param name="integrations">The integration references to include.</param>
     /// <param name="launchSettingsEnvVars">Optional environment variables from launch settings.</param>
     /// <param name="debug">Whether to enable debug logging.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -51,7 +53,7 @@ internal interface IAppHostServerSessionFactory
     Task<AppHostServerSessionResult> CreateAsync(
         string appHostPath,
         string sdkVersion,
-        IEnumerable<(string PackageId, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         Dictionary<string, string>? launchSettingsEnvVars,
         bool debug,
         CancellationToken cancellationToken);

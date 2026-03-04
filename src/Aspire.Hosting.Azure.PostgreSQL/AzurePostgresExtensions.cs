@@ -137,6 +137,7 @@ public static class AzurePostgresExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addAzurePostgresFlexibleServer", Description = "Adds an Azure PostgreSQL Flexible Server resource")]
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> AddAzurePostgresFlexibleServer(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -157,6 +158,7 @@ public static class AzurePostgresExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addDatabase", Description = "Adds an Azure PostgreSQL database")]
     public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> AddDatabase(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -209,6 +211,7 @@ public static class AzurePostgresExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("runAsContainer", Description = "Configures the Azure PostgreSQL Flexible Server resource to run locally in a container")]
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -288,6 +291,7 @@ public static class AzurePostgresExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withPasswordAuthentication", Description = "Configures password authentication for Azure PostgreSQL Flexible Server")]
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -324,6 +328,7 @@ public static class AzurePostgresExtensions
     /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
     /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    [AspireExport("withPasswordAuthenticationWithKeyVault", Description = "Configures password authentication using a specified Azure Key Vault resource")]
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
         IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder,
@@ -380,6 +385,7 @@ public static class AzurePostgresExtensions
     /// </para>
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withPostgresMcp", Description = "Adds a Postgres MCP server container")]
     [Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> WithPostgresMcp(
         this IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> builder,

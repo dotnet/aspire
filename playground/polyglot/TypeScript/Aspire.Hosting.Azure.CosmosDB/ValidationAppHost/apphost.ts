@@ -12,11 +12,10 @@ await cosmos.withDefaultAzureSku();
 const db = await cosmos.addCosmosDatabase("app-db", { databaseName: "appdb" });
 
 // 4) addContainer (single partition key path)
-await db.addContainer("orders", { partitionKeyPath: "/orderId", containerName: "orders-container" });
+await db.addContainer("orders", "/orderId", { containerName: "orders-container" });
 
 // 5) addContainerWithPartitionKeyPaths (IEnumerable<string> export)
-await db.addContainerWithPartitionKeyPaths("events", {
-    partitionKeyPaths: ["/tenantId", "/eventId"],
+await db.addContainerWithPartitionKeyPaths("events", ["/tenantId", "/eventId"], {
     containerName: "events-container",
 });
 
@@ -33,7 +32,7 @@ await cosmosEmulator.runAsEmulator({
     configureContainer: async (emulator) => {
         await emulator.withDataVolume({ name: "cosmos-emulator-data" }); // 9) withDataVolume
         await emulator.withGatewayPort({ port: 18081 }); // 10) withGatewayPort
-        await emulator.withPartitionCount({ count: 25 }); // 11) withPartitionCount
+        await emulator.withPartitionCount(25); // 11) withPartitionCount
     },
 });
 

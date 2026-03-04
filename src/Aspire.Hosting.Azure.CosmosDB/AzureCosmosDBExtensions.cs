@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001 // HTTPS certificate APIs are experimental
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -85,6 +86,8 @@ public static class AzureCosmosExtensions
             return builder;
         }
 
+        builder.Resource.IsPreviewEmulator = useVNextPreview;
+
         // Mark this resource as an emulator for consistent resource identification and tooling support
         builder.WithAnnotation(new EmulatorResourceAnnotation());
 
@@ -136,6 +139,52 @@ public static class AzureCosmosExtensions
             builder.WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 8080)
                 .WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/ready")
                 .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+
+            // Configure the preview emulator to use an Aspire-managed HTTPS certificate.
+            // Use a surrogate builder since AzureCosmosDBResource doesn't implement IResourceWithEnvironment/IResourceWithArgs
+            // but AzureCosmosDBEmulatorResource (which extends ContainerResource) does. The surrogate's Annotations
+            // delegate to the inner resource, so the annotation ends up on the correct resource.
+            var emulatorSurrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
+            var emulatorSurrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(emulatorSurrogate);
+
+            // VNext cosmosdb sets a default CERT_SECRET environment variable for the default emulator certificate and we can't
+            // remove it, so we need to provide "some" secret value to avoid issues with our provided certificate. This simply sets the
+            // dev cert used by cosmos to have a stable passphrase. Users can override by calling `WithHttpsDeveloperCertificate` again
+            // with a custom passphrase (or with a passphrase omitted).
+            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-certificate-passphrase");
+            emulatorSurrogateBuilder.WithHttpsDeveloperCertificate(password: builder.ApplicationBuilder.CreateResourceBuilder(password));
+
+            emulatorSurrogateBuilder.WithHttpsCertificateConfiguration(ctx =>
+            {
+                // Enable HTTPS for both the emulator endpoint and the data explorer endpoint (if enabled) by setting environment variables used by the emulator to configure its certificate.
+                ctx.EnvironmentVariables["PROTOCOL"] = "https";
+                ctx.EnvironmentVariables["EXPLORER_PROTOCOL"] = "https";
+                ctx.EnvironmentVariables["CERT_PATH"] = ctx.PfxPath;
+                if (ctx.Password is not null)
+                {
+                    ctx.EnvironmentVariables["CERT_SECRET"] = ctx.Password;
+                }
+
+                return Task.CompletedTask;
+            });
+
+            emulatorSurrogateBuilder.WithCertificateTrustConfiguration(ctx =>
+            {
+                ctx.EnvironmentVariables["NODE_EXTRA_CA_CERTS"] = ctx.CertificateBundlePath;
+
+                return Task.CompletedTask;
+            });
+
+            // Switch the emulator endpoint from HTTP to HTTPS when a certificate is available.
+            // The connection string and URI expressions use EndpointProperty.Url which will
+            // automatically reflect the updated scheme.
+            builder.SubscribeHttpsEndpointsUpdate(ctx =>
+            {
+                builder.WithEndpoint("emulator", ep =>
+                {
+                    ep.UriScheme = "https";
+                });
+            });
         }
         else
         {
@@ -372,8 +421,7 @@ public static class AzureCosmosExtensions
             throw new NotSupportedException($"The Data Explorer endpoint is only available when using the preview version of the Azure Cosmos DB emulator. Call '{nameof(RunAsPreviewEmulator)}' instead.");
         }
 
-        return
-            builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
+        var result = builder.WithEndpoint(endpointName: KnownUrls.DataExplorer.EndpointName, endpoint =>
             {
                 endpoint.UriScheme = "http";
                 endpoint.TargetPort = 1234;
@@ -389,6 +437,19 @@ public static class AzureCosmosExtensions
                     url.DisplayText = KnownUrls.DataExplorer.DisplayText;
                 }
             });
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.SubscribeHttpsEndpointsUpdate(ctx =>
+            {
+                builder.WithEndpoint(KnownUrls.DataExplorer.EndpointName, ep =>
+                {
+                    ep.UriScheme = "https";
+                });
+            });
+        }
+
+        return result;
     }
 
     /// <summary>

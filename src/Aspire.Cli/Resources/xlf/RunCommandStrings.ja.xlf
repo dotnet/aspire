@@ -52,11 +52,6 @@
         <target state="translated">詳細については、ログを確認してください: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">実行中のインスタンスを確認しています...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">AppHost に接続しています...</target>
