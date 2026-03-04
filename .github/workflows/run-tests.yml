@@ -410,8 +410,9 @@ jobs:
             --report-trx \
             --crashdump \
             --results-directory ${{ github.workspace }}/testresults \
-            --blame-hang \
-            --blame-hang-timeout ${{ inputs.testHangTimeout }} \
+            --hangdump \
+            --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump \
+            --hangdump-timeout ${{ inputs.testHangTimeout }} \
             --timeout ${{ inputs.testSessionTimeout }} \
             ${{ inputs.extraTestArgs }} \
             ${{ inputs.ignoreTestFailures && '|| true' || '' }}
@@ -456,6 +457,9 @@ jobs:
               --report-trx `
               --crashdump `
               --results-directory ${{ github.workspace }}/testresults `
+              --hangdump `
+              --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump `
+              --hangdump-timeout ${{ inputs.testHangTimeout }} `
               --timeout ${{ inputs.testSessionTimeout }} `
               ${{ inputs.extraTestArgs }}
             $testExitCode = $LASTEXITCODE
