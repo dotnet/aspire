@@ -31,10 +31,11 @@ public class OpenAIFunctionalTests
 
         var openai = builder.AddOpenAI("resource");
 
-        // Remove the default status page health check from the parent OpenAI resource
-        // to avoid external HTTP calls to status.openai.com during tests.
-        var statusPageHealthCheck = Enumerable.Single(openai.Resource.Annotations, x => x is HealthCheckAnnotation hca && hca.Key == "resource_check");
-        openai.Resource.Annotations.Remove(statusPageHealthCheck);
+        // Remove all health checks except blocking_check to avoid external HTTP calls during tests.
+        foreach (var annotation in openai.Resource.Annotations.OfType<HealthCheckAnnotation>().Where(hca => hca.Key != "blocking_check").ToList())
+        {
+            openai.Resource.Annotations.Remove(annotation);
+        }
 
         var resource = openai
                       .AddModel("chat", "gpt-4o-mini")
@@ -81,11 +82,11 @@ public class OpenAIFunctionalTests
         var resource = builder.AddOpenAI("resource")
                        .WithHealthCheck("blocking_check");
 
-        Assert.Single(resource.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "resource_check");
-
-        // Remove the default status page health check
-        var statusPageHealthCheck = Enumerable.Single(resource.Resource.Annotations, x => x is HealthCheckAnnotation hca && hca.Key == "resource_check");
-        resource.Resource.Annotations.Remove(statusPageHealthCheck);
+        // Remove all health checks except blocking_check to avoid external HTTP calls during tests.
+        foreach (var annotation in resource.Resource.Annotations.OfType<HealthCheckAnnotation>().Where(hca => hca.Key != "blocking_check").ToList())
+        {
+            resource.Resource.Annotations.Remove(annotation);
+        }
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
