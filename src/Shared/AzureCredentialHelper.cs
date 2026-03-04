@@ -20,6 +20,10 @@ internal static class AzureCredentialHelper
 
         if (Environment.GetEnvironmentVariable("AZURE_CLIENT_ID") is not null)
         {
+            // When we don't see DefaultEnvironmentVariableName, but we do see AZURE_CLIENT_ID,
+            // we just use ManagedIdentityCredential because that's the only credential type that
+            // Aspire Hosting enables by default.
+            // If this doesn't work for applications, they can override the TokenCredential in their settings.
             return new ManagedIdentityCredential();
         }
 
