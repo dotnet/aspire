@@ -110,19 +110,20 @@ jobs:
           RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
           RAW_AFFECTED="${{ steps.detect_raw.outputs.affected_test_projects }}"
 
-          # Polyglot and extension: honor real values (standalone jobs).
+          # Extension: honor real values (standalone job).
+          # Polyglot: always run for now (feature is still stabilizing).
           # Matrix filtering: audit mode (log but don't filter).
           echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
           echo "run_integrations=true" >> $GITHUB_OUTPUT
           echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
           echo "run_extension=${RAW_RUN_EXTENSION}" >> $GITHUB_OUTPUT
-          echo "run_polyglot=${RAW_RUN_POLYGLOT}" >> $GITHUB_OUTPUT
+          echo "run_polyglot=true" >> $GITHUB_OUTPUT
           echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
 
           # Audit: log what prepare_for_tests computed vs what we're actually using
           echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Polyglot** and **extension** honor real detection. Matrix filtering is in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
+          echo "**Extension** honors real detection. **Polyglot** always runs. Matrix filtering is in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
@@ -130,7 +131,7 @@ jobs:
           echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
           echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
           echo "| extension | ${RAW_RUN_EXTENSION:-false} | ${RAW_RUN_EXTENSION:-false} | **Active** |" >> $GITHUB_STEP_SUMMARY
-          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | ${RAW_RUN_POLYGLOT:-false} | **Active** |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | **Always on** |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
 

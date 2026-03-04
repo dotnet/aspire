@@ -9,10 +9,16 @@ internal static class GitHelper
 {
     public static async Task<List<string>> GetGitChangedFilesAsync(string fromRef, string? toRef, string workingDir)
     {
-        var args = new List<string> { "diff", "--name-only", fromRef };
+        var args = new List<string> { "diff", "--name-only" };
         if (!string.IsNullOrEmpty(toRef))
         {
-            args.Add(toRef);
+            // Use three-dot diff to compare against the merge base,
+            // so only the PR's actual changes are shown.
+            args.Add($"{fromRef}...{toRef}");
+        }
+        else
+        {
+            args.Add(fromRef);
         }
 
         var startInfo = new ProcessStartInfo
