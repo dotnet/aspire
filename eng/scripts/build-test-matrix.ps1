@@ -112,6 +112,11 @@ function New-RegularTestEntry {
   # Add supported OSes
   $entry['supportedOSes'] = @($Metadata.supportedOSes)
 
+  # Pass through custom runners if specified
+  if ($Metadata.PSObject.Properties['runners'] -and $Metadata.runners) {
+    $entry['runners'] = $Metadata.runners
+  }
+
   return Complete-EntryWithDefaults $entry
 }
 
@@ -174,6 +179,11 @@ function New-CollectionTestEntry {
     $entry['supportedOSes'] = @($Metadata.supportedOSes)
   }
 
+  # Pass through custom runners if specified
+  if ($Metadata.PSObject.Properties['runners'] -and $Metadata.runners) {
+    $entry['runners'] = $Metadata.runners
+  }
+
   return Complete-EntryWithDefaults $entry
 }
 
@@ -213,6 +223,11 @@ function New-ClassTestEntry {
   # Add supported OSes from metadata
   if ($Metadata.PSObject.Properties['supportedOSes']) {
     $entry['supportedOSes'] = @($Metadata.supportedOSes)
+  }
+
+  # Pass through custom runners if specified
+  if ($Metadata.PSObject.Properties['runners'] -and $Metadata.runners) {
+    $entry['runners'] = $Metadata.runners
   }
 
   return Complete-EntryWithDefaults $entry

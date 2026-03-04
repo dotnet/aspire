@@ -61,6 +61,7 @@ This invokes `eng/TestEnumerationRunsheetBuilder/TestEnumerationRunsheetBuilder.
   - `testSessionTimeout`, `testHangTimeout` values
   - `uncollectedTestsSessionTimeout`, `uncollectedTestsHangTimeout` values
   - `splitTests` flag
+  - `runners` object (optional, only present when custom runners are configured)
 
 ### Phase 2: Test Partition Discovery
 
@@ -108,7 +109,8 @@ After all projects build, `eng/AfterSolutionBuild.targets` runs `eng/scripts/bui
       "supportedOSes": ["linux"],
       "requiresNugets": false,
       "testSessionTimeout": "30m",
-      "extraTestArgs": "--filter-trait \"Partition=Docker\""
+      "extraTestArgs": "--filter-trait \"Partition=Docker\"",
+      "runners": { "macos": "macos-latest-xlarge" }
     }
   ]
 }
@@ -246,6 +248,25 @@ For tests that require Playwright browser automation:
 ```
 
 This flag is tracked in the test metadata and controls whether Playwright browsers are installed during the test build step.
+
+## Custom GitHub Actions Runners
+
+By default, tests run on `ubuntu-latest`, `windows-latest`, and `macos-latest`. To override the runner for a specific OS (e.g., to use larger runners or specific OS versions), set the corresponding property in the test project's `.csproj`:
+
+```xml
+<PropertyGroup>
+  <!-- Use a larger macOS runner for this test project -->
+  <GithubActionsRunnerMacOS>macos-latest-xlarge</GithubActionsRunnerMacOS>
+
+  <!-- Use a specific Ubuntu version -->
+  <GithubActionsRunnerLinux>ubuntu-24.04</GithubActionsRunnerLinux>
+
+  <!-- Use a specific Windows version -->
+  <GithubActionsRunnerWindows>windows-2022</GithubActionsRunnerWindows>
+</PropertyGroup>
+```
+
+Only set the properties you need to override — unset properties use the default runners. The overrides are emitted as a `runners` object in the test metadata JSON and flow through the canonical matrix to the GitHub Actions expansion, where they replace the default `runs-on` value for the corresponding OS.
 
 ## Deployment Tests
 

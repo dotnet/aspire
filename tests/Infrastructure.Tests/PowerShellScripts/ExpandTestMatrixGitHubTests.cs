@@ -401,6 +401,110 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task UsesCustomRunnerForSpecificOS()
+    {
+        // Arrange: custom runner for macos only
+        var entry = TestDataBuilder.CreateMatrixEntry(
+            name: "CustomRunnerProject",
+            projectName: "CustomRunnerProject",
+            testProjectPath: "tests/CustomRunnerProject/CustomRunnerProject.csproj",
+            supportedOSes: ["windows", "linux", "macos"],
+            runners: new Dictionary<string, string> { ["macos"] = "macos-latest-xlarge" });
+
+        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
+
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
+
+        // Act
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var expanded = ParseGitHubMatrix(outputFile);
+        Assert.Equal(3, expanded.Include.Length);
+
+        // macos should use custom runner
+        var macEntry = expanded.Include.First(e => e.RunsOn == "macos-latest-xlarge");
+        Assert.NotNull(macEntry);
+
+        // windows and linux should use defaults
+        Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
+        Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-latest");
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task UsesCustomRunnerForMultipleOSes()
+    {
+        // Arrange: custom runners for all three OSes
+        var entry = TestDataBuilder.CreateMatrixEntry(
+            name: "AllCustomRunners",
+            projectName: "AllCustomRunners",
+            testProjectPath: "tests/AllCustomRunners/AllCustomRunners.csproj",
+            supportedOSes: ["windows", "linux", "macos"],
+            runners: new Dictionary<string, string>
+            {
+                ["windows"] = "windows-2022",
+                ["linux"] = "ubuntu-24.04",
+                ["macos"] = "macos-latest-xlarge"
+            });
+
+        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
+
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
+
+        // Act
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var expanded = ParseGitHubMatrix(outputFile);
+        Assert.Equal(3, expanded.Include.Length);
+        Assert.Contains(expanded.Include, e => e.RunsOn == "windows-2022");
+        Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-24.04");
+        Assert.Contains(expanded.Include, e => e.RunsOn == "macos-latest-xlarge");
+
+        // Verify no default runners are used
+        Assert.DoesNotContain(expanded.Include, e => e.RunsOn == "windows-latest");
+        Assert.DoesNotContain(expanded.Include, e => e.RunsOn == "ubuntu-latest");
+        Assert.DoesNotContain(expanded.Include, e => e.RunsOn == "macos-latest");
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task UsesDefaultRunnersWhenNoCustomRunnersSet()
+    {
+        // Arrange: no runners property
+        var entry = TestDataBuilder.CreateMatrixEntry(
+            name: "DefaultRunners",
+            projectName: "DefaultRunners",
+            testProjectPath: "tests/DefaultRunners/DefaultRunners.csproj",
+            supportedOSes: ["windows", "linux", "macos"]);
+
+        var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
+
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
+
+        // Act
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var expanded = ParseGitHubMatrix(outputFile);
+        Assert.Equal(3, expanded.Include.Length);
+        Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
+        Assert.Contains(expanded.Include, e => e.RunsOn == "ubuntu-latest");
+        Assert.Contains(expanded.Include, e => e.RunsOn == "macos-latest");
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task FullPipeline_SplitTestsExpandPerOS()
     {
         // Validates the full pipeline: build-test-matrix → expand-test-matrix-github → split-test-matrix-by-deps

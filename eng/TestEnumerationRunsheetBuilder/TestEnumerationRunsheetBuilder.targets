@@ -88,6 +88,15 @@
       <_UncollectedTestsHangTimeout Condition="'$(UncollectedTestsHangTimeout)' != ''">$(UncollectedTestsHangTimeout)</_UncollectedTestsHangTimeout>
       <_UncollectedTestsHangTimeout Condition="'$(UncollectedTestsHangTimeout)' == ''">10m</_UncollectedTestsHangTimeout>
 
+      <!-- Build custom runners JSON (only include keys that are explicitly set) -->
+      <_RunnersJsonParts />
+      <_RunnersJsonParts Condition="'$(GithubActionsRunnerWindows)' != ''">$(_RunnersJsonParts)"windows": "$(GithubActionsRunnerWindows)",</_RunnersJsonParts>
+      <_RunnersJsonParts Condition="'$(GithubActionsRunnerLinux)' != ''">$(_RunnersJsonParts)"linux": "$(GithubActionsRunnerLinux)",</_RunnersJsonParts>
+      <_RunnersJsonParts Condition="'$(GithubActionsRunnerMacOS)' != ''">$(_RunnersJsonParts)"macos": "$(GithubActionsRunnerMacOS)",</_RunnersJsonParts>
+      <_RunnersJsonParts Condition="'$(_RunnersJsonParts)' != ''">$(_RunnersJsonParts.TrimEnd(','))</_RunnersJsonParts>
+      <_RunnersJsonLine Condition="'$(_RunnersJsonParts)' != ''">,
+  "runners": {$(_RunnersJsonParts)}</_RunnersJsonLine>
+
       <!-- Build metadata JSON -->
       <_MetadataJson>{
   "projectName": "$(MSBuildProjectName)",
@@ -103,7 +112,7 @@
   "testSessionTimeout": "$(_TestSessionTimeout)",
   "testHangTimeout": "$(_TestHangTimeout)",
   "uncollectedTestsSessionTimeout": "$(_UncollectedTestsSessionTimeout)",
-  "uncollectedTestsHangTimeout": "$(_UncollectedTestsHangTimeout)"
+  "uncollectedTestsHangTimeout": "$(_UncollectedTestsHangTimeout)"$(_RunnersJsonLine)
 }</_MetadataJson>
 
       <!-- Use TestArchiveTestsDir if set (for Templates/EndToEnd tests), otherwise use default helix dir -->
