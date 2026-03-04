@@ -76,8 +76,9 @@ internal class MauiBuildQueueEventSubscriber(
 
         try
         {
-            // If the semaphore is already held, show "Queued" state while waiting.
-            if (semaphore.CurrentCount == 0)
+            // Try to acquire the semaphore without blocking. If it's already held,
+            // show "Queued" state and then do the real wait.
+            if (!semaphore.Wait(TimeSpan.Zero, CancellationToken.None))
             {
                 logger.LogInformation("Queued — waiting for another build of project '{ProjectName}' to complete.", parent.Name);
 
@@ -85,9 +86,10 @@ internal class MauiBuildQueueEventSubscriber(
                 {
                     State = s_queuedState
                 }).ConfigureAwait(false);
+
+                await semaphore.WaitAsync(resourceCts.Token).ConfigureAwait(false);
             }
 
-            await semaphore.WaitAsync(resourceCts.Token).ConfigureAwait(false);
             semaphoreAcquired = true;
 
             logger.LogInformation("Building project '{ProjectName}' for {ResourceName}.", parent.Name, resource.Name);
@@ -316,8 +318,6 @@ internal class MauiBuildQueueEventSubscriber(
             return;
         }
 
-        resource.Annotations.Add(new MauiStopCommandReplacedAnnotation());
-
         var originalStop = resource.Annotations
             .OfType<ResourceCommandAnnotation>()
             .SingleOrDefault(a => a.Name == KnownResourceCommands.StopCommand);
@@ -326,6 +326,10 @@ internal class MauiBuildQueueEventSubscriber(
         {
             return;
         }
+
+        // Mark as replaced only after confirming the stop command exists,
+        // so a retry on restart can succeed if it was missing initially.
+        resource.Annotations.Add(new MauiStopCommandReplacedAnnotation());
 
         // Remove the original and add our replacement.
         resource.Annotations.Remove(originalStop);
