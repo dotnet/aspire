@@ -183,6 +183,38 @@ public class AzureResourcePreparerTests
     }
 
     [Fact]
+    public async Task PublishDeploymentTargetIncludesComputedPrerequisitesInReferences()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var vnet = builder.AddAzureVirtualNetwork("vnet");
+        var peSubnet = vnet.AddSubnet("pe-subnet", "10.0.1.0/24");
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+        var queues = storage.AddBlobs("queues");
+
+        var blobPE = peSubnet.AddPrivateEndpoint(blobs);
+        var queuesPE = peSubnet.AddPrivateEndpoint(queues);
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithReference(blobs)
+            .WithReference(queues);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var roleAssignmentResource = Assert.Single(model.Resources.OfType<AzureBicepResource>(), r => r.Name == "api-roles-storage");
+        var deploymentTarget = Assert.IsAssignableFrom<AzureBicepResource>(api.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
+
+        Assert.Contains(roleAssignmentResource, deploymentTarget.References);
+        Assert.Contains(blobPE.Resource, deploymentTarget.References);
+        Assert.Contains(queuesPE.Resource, deploymentTarget.References);
+    }
+
+    [Fact]
     public async Task NullEnvironmentVariableIsIgnored()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
