@@ -410,6 +410,8 @@ jobs:
             --report-trx \
             --crashdump \
             --results-directory ${{ github.workspace }}/testresults \
+            --blame-hang \
+            --blame-hang-timeout ${{ inputs.testHangTimeout }} \
             --timeout ${{ inputs.testSessionTimeout }} \
             ${{ inputs.extraTestArgs }} \
             ${{ inputs.ignoreTestFailures && '|| true' || '' }}
