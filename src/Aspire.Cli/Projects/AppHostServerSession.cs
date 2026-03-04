@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -100,7 +101,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
     public async Task<AppHostServerSessionResult> CreateAsync(
         string appHostPath,
         string sdkVersion,
-        IEnumerable<(string PackageId, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         Dictionary<string, string>? launchSettingsEnvVars,
         bool debug,
         CancellationToken cancellationToken)
@@ -108,7 +109,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
         var appHostServerProject = await _projectFactory.CreateAsync(appHostPath, cancellationToken);
 
         // Prepare the server (create files + build for dev mode, restore packages for prebuilt mode)
-        var prepareResult = await appHostServerProject.PrepareAsync(sdkVersion, packages, cancellationToken);
+        var prepareResult = await appHostServerProject.PrepareAsync(sdkVersion, integrations, cancellationToken);
         if (!prepareResult.Success)
         {
             return new AppHostServerSessionResult(

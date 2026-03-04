@@ -44,6 +44,7 @@
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
+    <Compile Include="$(SharedDir)ResourceDebugSupportExtensions.cs" Link="Utils\ResourceDebugSupportExtensions.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
     <Compile Include="$(SharedDir)BackchannelConstants.cs" Link="Backchannel\BackchannelConstants.cs" />
     <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="UserSecrets\UserSecretsPathHelper.cs" />
@@ -112,6 +113,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.JavaScript" />
+    <InternalsVisibleTo Include="Aspire.Hosting.JavaScript.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Python" />
     <InternalsVisibleTo Include="Aspire.Hosting.Yarp.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Python.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing.Tests" />

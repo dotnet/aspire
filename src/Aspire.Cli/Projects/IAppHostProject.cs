@@ -122,6 +122,11 @@ internal sealed class PublishContext
     public bool Debug { get; init; }
 
     /// <summary>
+    /// Gets whether to start a debug session in the extension for the AppHost.
+    /// </summary>
+    public bool StartDebugSession { get; init; }
+
+    /// <summary>
     /// Gets whether to skip building before running.
     /// </summary>
     public bool NoBuild { get; init; }

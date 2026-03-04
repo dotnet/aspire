@@ -20,7 +20,7 @@ internal static class ResourceCommandHelper
     /// <param name="interactionService">The interaction service for user feedback.</param>
     /// <param name="logger">The logger for debug output.</param>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="commandName">The command to execute (e.g., "resource-start").</param>
+    /// <param name="commandName">The command to execute (e.g., "start").</param>
     /// <param name="progressVerb">The verb to display during progress (e.g., "Starting", "Stopping").</param>
     /// <param name="baseVerb">The base verb for error messages (e.g., "start", "stop").</param>
     /// <param name="pastTenseVerb">The past tense verb for success messages (e.g., "started", "stopped").</param>

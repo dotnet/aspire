@@ -230,8 +230,13 @@ internal sealed class ProjectLocator(
                 var handler = projectFactory.TryGetProject(projectFile);
                 if (handler is not null)
                 {
-                    logger.LogDebug("Using {Language} apphost {ProjectFile}", handler.DisplayName, projectFile.FullName);
-                    return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                    // The handler still may have matched an invalid single file apphost, so validate it before accepting as the selected project file
+                    var validationResult = await handler.ValidateAppHostAsync(projectFile, cancellationToken);
+                    if (validationResult.IsValid)
+                    {
+                        logger.LogDebug("Using {Language} apphost {ProjectFile}", handler.DisplayName, projectFile.FullName);
+                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                    }
                 }
 
                 // If no handler matched, for .cs files check if we should search the parent directory

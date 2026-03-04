@@ -87,6 +87,21 @@ internal static class TelemetryConstants
         /// Tag indicating the result of the SDK check operation.
         /// </summary>
         public const string SdkCheckResult = "aspire.cli.sdk.check_result";
+
+        /// <summary>
+        /// Tag for the operating system name.
+        /// </summary>
+        public const string OsName = "os.name";
+
+        /// <summary>
+        /// Tag for the operating system type.
+        /// </summary>
+        public const string OsType = "os.type";
+
+        /// <summary>
+        /// Tag for the operating system version.
+        /// </summary>
+        public const string OsVersion = "os.version";
     }
 
     /// <summary>
