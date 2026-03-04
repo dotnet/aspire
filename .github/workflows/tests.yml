@@ -24,7 +24,8 @@ jobs:
       run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
       affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
       # True if all test categories are skipped and no affected projects
-      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
+      # Note: run_integrations and run_cli_e2e are excluded because they are hardcoded to true in audit mode
+      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
       versionOverrideArg: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE || inputs.versionOverrideArg }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -81,7 +82,7 @@ jobs:
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
           fi
 
-      - name: Apply conditional scope
+      - name: Apply conditional scope (polyglot/extension active, matrix audit)
         id: detect
         shell: bash
         run: |
@@ -101,31 +102,43 @@ jobs:
             exit 0
           fi
 
-          # Read raw detection results and pass through
-          echo "run_all=${{ steps.detect_raw.outputs.run_all }}" >> $GITHUB_OUTPUT
-          echo "run_integrations=${{ steps.detect_raw.outputs.run_integrations }}" >> $GITHUB_OUTPUT
-          echo "run_cli_e2e=${{ steps.detect_raw.outputs.run_cli_e2e }}" >> $GITHUB_OUTPUT
-          echo "run_extension=${{ steps.detect_raw.outputs.run_extension }}" >> $GITHUB_OUTPUT
-          echo "run_polyglot=${{ steps.detect_raw.outputs.run_polyglot }}" >> $GITHUB_OUTPUT
-          echo "affected_test_projects=${{ steps.detect_raw.outputs.affected_test_projects || '[]' }}" >> $GITHUB_OUTPUT
+          # Read raw detection results
+          RAW_RUN_ALL="${{ steps.detect_raw.outputs.run_all }}"
+          RAW_RUN_INTEGRATIONS="${{ steps.detect_raw.outputs.run_integrations }}"
+          RAW_RUN_CLI_E2E="${{ steps.detect_raw.outputs.run_cli_e2e }}"
+          RAW_RUN_EXTENSION="${{ steps.detect_raw.outputs.run_extension }}"
+          RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
+          RAW_AFFECTED="${{ steps.detect_raw.outputs.affected_test_projects }}"
 
-          # Summary
-          echo "## Test Scope" >> $GITHUB_STEP_SUMMARY
+          # Extension: honor real values (standalone job).
+          # Polyglot: always run for now (feature is still stabilizing).
+          # Matrix filtering: audit mode (log but don't filter).
+          echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
+          echo "run_integrations=true" >> $GITHUB_OUTPUT
+          echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+          echo "run_extension=${RAW_RUN_EXTENSION}" >> $GITHUB_OUTPUT
+          echo "run_polyglot=true" >> $GITHUB_OUTPUT
+          echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
+
+          # Audit: log what prepare_for_tests computed vs what we're actually using
+          echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Category | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| run_all | ${{ steps.detect_raw.outputs.run_all || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| integrations | ${{ steps.detect_raw.outputs.run_integrations || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| cli_e2e | ${{ steps.detect_raw.outputs.run_cli_e2e || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| extension | ${{ steps.detect_raw.outputs.run_extension || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| polyglot | ${{ steps.detect_raw.outputs.run_polyglot || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "**Extension** honors real detection. **Polyglot** always runs. Matrix filtering is in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Affected test projects:** ${{ steps.detect_raw.outputs.affected_test_projects || '[]' }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| run_all | ${RAW_RUN_ALL:-false} | ${RAW_RUN_ALL:-false} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| extension | ${RAW_RUN_EXTENSION:-false} | ${RAW_RUN_EXTENSION:-false} | **Active** |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | **Always on** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
 
       - name: Show test selection results
         shell: bash
         run: |
-          echo "::group::Test Selection Results"
+          echo "::group::Test Selection Results (final, after audit overrides)"
           echo "run_all=${{ steps.detect.outputs.run_all }}"
           echo "run_integrations=${{ steps.detect.outputs.run_integrations }}"
           echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
@@ -159,7 +172,7 @@ jobs:
           $splitScript = "${{ github.workspace }}/eng/scripts/split-test-matrix-by-deps.ps1"
           & $splitScript -AllTestsMatrix '${{ steps.generate_tests_matrix.outputs.all_tests }}' -OutputToGitHubEnv
 
-      - name: Filter matrices by test scope
+      - name: Filter matrices by test scope (audit mode)
         id: filter_matrix
         shell: pwsh
         run: |
@@ -175,6 +188,7 @@ jobs:
             -Matrices $matrices `
             -AffectedProjects '${{ needs.prepare_for_tests.outputs.affected_test_projects }}' `
             -RunAll:$runAll `
+            -AuditOnly `
             -OutputToGitHubEnv
 
   build_packages:
@@ -314,9 +328,6 @@ jobs:
     name: Final Test Results
     needs: [
       prepare_for_tests,
-      setup_for_tests,
-      build_packages,
-      build_cli_archives,
       extension_tests_win,
       tests_no_nugets,
       tests_no_nugets_overflow,
@@ -353,111 +364,15 @@ jobs:
           name: All-TestResults
           path: ${{ github.workspace }}/testresults/**/*.trx
 
-      - name: Compute infra timing and dependency map
-        id: infra_timing
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          MATRICES_NO_NUGETS: ${{ needs.setup_for_tests.outputs.tests_matrix_no_nugets }}
-          MATRICES_NO_NUGETS_OVERFLOW: ${{ needs.setup_for_tests.outputs.tests_matrix_no_nugets_overflow }}
-          MATRICES_REQUIRES_NUGETS: ${{ needs.setup_for_tests.outputs.tests_matrix_requires_nugets }}
-          MATRICES_REQUIRES_CLI_ARCHIVE: ${{ needs.setup_for_tests.outputs.tests_matrix_requires_cli_archive }}
-        run: |
-          set -euo pipefail
-
-          DEP_MAP_FILE="${{ github.workspace }}/testresults/dep-map.json"
-
-          # Generate dependency map from matrix outputs
-          python3 - <<'PYTHON_SCRIPT' "$DEP_MAP_FILE"
-          import json, os, sys
-
-          dep_map = {}
-          matrices = [
-              ("no_nugets", "MATRICES_NO_NUGETS"),
-              ("no_nugets", "MATRICES_NO_NUGETS_OVERFLOW"),
-              ("requires_nugets", "MATRICES_REQUIRES_NUGETS"),
-              ("requires_cli_archive", "MATRICES_REQUIRES_CLI_ARCHIVE"),
-          ]
-
-          for bucket, env_var in matrices:
-              matrix_json = os.environ.get(env_var, "{}")
-              try:
-                  matrix = json.loads(matrix_json) if matrix_json else {}
-              except json.JSONDecodeError:
-                  continue
-              for entry in matrix.get("include", []):
-                  shortname = entry.get("shortname", "")
-                  if shortname:
-                      dep_map[shortname] = bucket
-
-          output_path = sys.argv[1]
-          with open(output_path, "w") as f:
-              json.dump(dep_map, f, indent=2)
-          print(f"Dependency map: {len(dep_map)} entries written to {output_path}")
-          PYTHON_SCRIPT
-
-          # Query GitHub API for build job timings
-          NUGET_MINUTES=0
-          CLI_MINUTES=0
-
-          JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100" --paginate --jq '.jobs[] | {name, started_at, completed_at}')
-
-          # Extract build_packages timing (the main Build packages job)
-          BUILD_PKG_START=$(echo "$JOBS_JSON" | jq -r 'select(.name | test("Build packages / Build packages$")) | .started_at' | head -1)
-          # End time = latest upload_arch_specific_nugets completion
-          BUILD_PKG_END=$(echo "$JOBS_JSON" | jq -r 'select(.name | test("Upload arch-specific")) | .completed_at' | sort | tail -1)
-
-          if [ -z "$BUILD_PKG_END" ] || [ "$BUILD_PKG_END" = "null" ]; then
-            BUILD_PKG_END=$(echo "$JOBS_JSON" | jq -r 'select(.name | test("Build packages / Build packages$")) | .completed_at' | head -1)
-          fi
-
-          if [ -n "$BUILD_PKG_START" ] && [ "$BUILD_PKG_START" != "null" ] && [ -n "$BUILD_PKG_END" ] && [ "$BUILD_PKG_END" != "null" ]; then
-            START_EPOCH=$(date -d "$BUILD_PKG_START" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$BUILD_PKG_START" +%s 2>/dev/null || echo 0)
-            END_EPOCH=$(date -d "$BUILD_PKG_END" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$BUILD_PKG_END" +%s 2>/dev/null || echo 0)
-            if [ "$START_EPOCH" -gt 0 ] && [ "$END_EPOCH" -gt 0 ]; then
-              NUGET_MINUTES=$(python3 -c "print(round(($END_EPOCH - $START_EPOCH) / 60, 1))")
-            fi
-          fi
-
-          # Extract CLI archive timing (max across all Build CLI jobs)
-          CLI_START=$(echo "$JOBS_JSON" | jq -r 'select(.name | test("Build CLI")) | .started_at' | sort | head -1)
-          CLI_END=$(echo "$JOBS_JSON" | jq -r 'select(.name | test("Build CLI")) | .completed_at' | sort | tail -1)
-
-          if [ -n "$CLI_START" ] && [ "$CLI_START" != "null" ] && [ -n "$CLI_END" ] && [ "$CLI_END" != "null" ]; then
-            START_EPOCH=$(date -d "$CLI_START" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$CLI_START" +%s 2>/dev/null || echo 0)
-            END_EPOCH=$(date -d "$CLI_END" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$CLI_END" +%s 2>/dev/null || echo 0)
-            if [ "$START_EPOCH" -gt 0 ] && [ "$END_EPOCH" -gt 0 ]; then
-              CLI_MINUTES=$(python3 -c "print(round(($END_EPOCH - $START_EPOCH) / 60, 1))")
-            fi
-          fi
-
-          echo "nuget_build_minutes=$NUGET_MINUTES" >> $GITHUB_OUTPUT
-          echo "cli_build_minutes=$CLI_MINUTES" >> $GITHUB_OUTPUT
-          echo "dep_map_file=$DEP_MAP_FILE" >> $GITHUB_OUTPUT
-
-          echo "Infrastructure timing: NuGet=${NUGET_MINUTES}m, CLI=${CLI_MINUTES}m"
-
       - name: Generate test results summary
         if: always()
-        shell: bash
-        run: |
-          EXTRA_ARGS=""
-          NUGET_MINS="${{ steps.infra_timing.outputs.nuget_build_minutes }}"
-          CLI_MINS="${{ steps.infra_timing.outputs.cli_build_minutes }}"
-          DEP_MAP="${{ steps.infra_timing.outputs.dep_map_file }}"
-
-          if [ -n "$DEP_MAP" ] && [ -f "$DEP_MAP" ]; then
-            EXTRA_ARGS="--nuget-build-minutes ${NUGET_MINS:-0} --cli-build-minutes ${CLI_MINS:-0} --test-dep-map $DEP_MAP"
-          fi
-
-          ${{ github.workspace }}/dotnet.sh \
-            run \
-            --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj \
-            -- \
-            ${{ github.workspace }}/testresults \
-            --combined \
-            $EXTRA_ARGS
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+          --combined
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
