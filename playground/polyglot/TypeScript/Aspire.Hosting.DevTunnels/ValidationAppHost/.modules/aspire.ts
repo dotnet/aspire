@@ -330,6 +330,11 @@ export interface WithImageOptions {
     tag?: string;
 }
 
+export interface WithReferenceOptions {
+    connectionName?: string;
+    optional?: boolean;
+}
+
 export interface WithUrlExpressionOptions {
     displayText?: string;
 }
@@ -1000,7 +1005,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddDevTunnel for polyglot app hosts. */
+    /** Adds a Dev Tunnel resource to the distributed application model. */
     /** @internal */
     async _addDevTunnelInternal(name: string, tunnelId?: string): Promise<DevTunnelResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1062,7 +1067,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddDevTunnel for polyglot app hosts. */
+    /** Adds a Dev Tunnel resource to the distributed application model. */
     addDevTunnel(name: string, options?: AddDevTunnelOptions): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._promise.then(obj => obj.addDevTunnel(name, options)));
     }
@@ -1393,6 +1398,25 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ContainerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1501,6 +1525,15 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withExternalHttpEndpointsInternal());
+    }
+
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -1876,6 +1909,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -1899,6 +1937,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Configures resource for HTTP/2 */
@@ -2148,6 +2191,25 @@ export class DevTunnelResource extends ResourceBuilderBase<DevTunnelResourceHand
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): DevTunnelResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new DevTunnelResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<DevTunnelResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
@@ -2256,6 +2318,15 @@ export class DevTunnelResource extends ResourceBuilderBase<DevTunnelResourceHand
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._withExternalHttpEndpointsInternal());
+    }
+
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -2516,6 +2587,51 @@ export class DevTunnelResource extends ResourceBuilderBase<DevTunnelResourceHand
     }
 
     /** @internal */
+    private async _withTunnelReferenceAllInternal(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, resourceBuilder, allowAnonymous };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceResourceAnonymous',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose all endpoints on the referenced resource. */
+    withTunnelReferenceAll(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceAllInternal(resourceBuilder, allowAnonymous));
+    }
+
+    /** @internal */
+    private async _withTunnelReferenceInternal(targetEndpoint: EndpointReference): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpoint };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint. */
+    withTunnelReference(targetEndpoint: EndpointReference): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceInternal(targetEndpoint));
+    }
+
+    /** @internal */
+    private async _withTunnelReferenceAnonymousInternal(targetEndpoint: EndpointReference, allowAnonymous: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpoint, allowAnonymous };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceEndpointAnonymous',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint with access control. */
+    withTunnelReferenceAnonymous(targetEndpoint: EndpointReference, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceAnonymousInternal(targetEndpoint, allowAnonymous));
+    }
+
+    /** @internal */
     private async _withAnonymousAccessInternal(): Promise<DevTunnelResource> {
         const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle };
         const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
@@ -2525,9 +2641,18 @@ export class DevTunnelResource extends ResourceBuilderBase<DevTunnelResourceHand
         return new DevTunnelResource(result, this._client);
     }
 
-    /** Exports WithAnonymousAccess for polyglot app hosts. */
+    /** Configures the dev tunnel to allow anonymous access. */
     withAnonymousAccess(): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._withAnonymousAccessInternal());
+    }
+
+    /** Gets the public endpoint exposed by the dev tunnel. */
+    async getTunnelEndpoint(targetEndpointReference: EndpointReference): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpointReference };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting.DevTunnels/getEndpointByEndpointReference',
+            rpcArgs
+        );
     }
 
 }
@@ -2592,6 +2717,11 @@ export class DevTunnelResourcePromise implements PromiseLike<DevTunnelResource> 
         return new DevTunnelResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -2615,6 +2745,11 @@ export class DevTunnelResourcePromise implements PromiseLike<DevTunnelResource> 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Configures resource for HTTP/2 */
@@ -2692,9 +2827,29 @@ export class DevTunnelResourcePromise implements PromiseLike<DevTunnelResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithAnonymousAccess for polyglot app hosts. */
+    /** Configures the dev tunnel to expose all endpoints on the referenced resource. */
+    withTunnelReferenceAll(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReferenceAll(resourceBuilder, allowAnonymous)));
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint. */
+    withTunnelReference(targetEndpoint: EndpointReference): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReference(targetEndpoint)));
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint with access control. */
+    withTunnelReferenceAnonymous(targetEndpoint: EndpointReference, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReferenceAnonymous(targetEndpoint, allowAnonymous)));
+    }
+
+    /** Configures the dev tunnel to allow anonymous access. */
     withAnonymousAccess(): DevTunnelResourcePromise {
         return new DevTunnelResourcePromise(this._promise.then(obj => obj.withAnonymousAccess()));
+    }
+
+    /** Gets the public endpoint exposed by the dev tunnel. */
+    getTunnelEndpoint(targetEndpointReference: EndpointReference): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getTunnelEndpoint(targetEndpointReference));
     }
 
 }
@@ -2834,6 +2989,25 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ExecutableResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -2942,6 +3116,15 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withExternalHttpEndpointsInternal());
+    }
+
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -3253,6 +3436,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -3276,6 +3464,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Configures resource for HTTP/2 */
@@ -3774,6 +3967,25 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ProjectResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3882,6 +4094,15 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withExternalHttpEndpointsInternal());
+    }
+
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -4198,6 +4419,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -4221,6 +4447,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Configures resource for HTTP/2 */
@@ -4778,6 +5009,15 @@ export class ResourceWithEndpoints extends ResourceBuilderBase<IResourceWithEndp
         return new ResourceWithEndpointsPromise(this._withExternalHttpEndpointsInternal());
     }
 
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
+    }
+
     /** @internal */
     private async _asHttp2ServiceInternal(): Promise<ResourceWithEndpoints> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
@@ -4869,6 +5109,11 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ResourceWithEndpointsPromise {
         return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Configures resource for HTTP/2 */
@@ -4968,6 +5213,25 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ResourceWithEnvironment> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ResourceWithEnvironmentPromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
@@ -5017,6 +5281,11 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
     /** Sets environment variables via async callback */
     withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */

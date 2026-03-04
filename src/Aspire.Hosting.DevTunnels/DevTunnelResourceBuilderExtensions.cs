@@ -240,6 +240,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="resourceBuilder">The resource builder for the referenced resource.</param>
     /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
     /// <returns>The resource builder.</returns>
+    [AspireExport("withReferenceResourceAnonymous", MethodName = "withTunnelReferenceAll", Description = "Configures the dev tunnel to expose all endpoints on the referenced resource.")]
     public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         IResourceBuilder<TResource> resourceBuilder,
@@ -256,12 +257,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// Adds ports on the dev tunnel for all endpoints found on the referenced resource.
     /// </summary>
     /// <remarks>
+    /// This overload is not available in polyglot app hosts. Use the overload that accepts a <see langword="bool"/> <c>allowAnonymous</c> parameter instead.
     /// To expose only specific endpoints on the referenced resource, use <see cref="WithReference(IResourceBuilder{DevTunnelResource}, EndpointReference, DevTunnelPortOptions?)"/>.
     /// </remarks>
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <param name="resourceBuilder">The resource builder for the referenced resource.</param>
     /// <param name="portOptions">Options for the dev tunnel ports.</param>
     /// <returns>The resource builder.</returns>
+    [AspireExportIgnore(Reason = "DevTunnelPortOptions is not ATS-compatible. Use the overload with bool allowAnonymous parameter instead.")]
     public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         IResourceBuilder<TResource> resourceBuilder,
@@ -286,7 +289,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReference1", MethodName = "withReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
+    [AspireExport("withReferenceEndpoint", MethodName = "withTunnelReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint)
@@ -299,7 +302,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReference2", MethodName = "withReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
+    [AspireExport("withReferenceEndpointAnonymous", MethodName = "withTunnelReferenceAnonymous", Description = "Configures the dev tunnel to expose a target endpoint with access control.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -309,11 +312,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Exposes the specified endpoint via the dev tunnel.
     /// </summary>
+    /// <remarks>
+    /// This overload is not available in polyglot app hosts. Use <see cref="WithReference(IResourceBuilder{DevTunnelResource}, EndpointReference)"/> or <see cref="WithReference(IResourceBuilder{DevTunnelResource}, EndpointReference, bool)"/> instead.
+    /// </remarks>
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <param name="portOptions">Options for the dev tunnel port.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReference3", MethodName = "withReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
+    [AspireExportIgnore(Reason = "DevTunnelPortOptions is not ATS-compatible. Use the overload with EndpointReference or EndpointReference + bool instead.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -345,12 +351,16 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
     /// </summary>
+    /// <remarks>
+    /// This method is not available in polyglot app hosts. Use <see cref="GetEndpoint(IResourceBuilder{DevTunnelResource}, IResource, string)"/> instead.
+    /// </remarks>
     /// <typeparam name="TResource">The type of the target resource.</typeparam>
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="resourceBuilder">The target resource builder.</param>
     /// <param name="endpointName">The name of the endpoint on the target resource.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
+    [AspireExportIgnore(Reason = "Delegates to the IResource-based overload which is already exported.")]
     public static EndpointReference GetEndpoint<TResource>(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResourceBuilder<TResource> resourceBuilder, string endpointName)
         where TResource : IResourceWithEndpoints
     {
@@ -364,11 +374,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
     /// </summary>
+    /// <remarks>
+    /// This method is not available in polyglot app hosts. Use <see cref="GetEndpoint(IResourceBuilder{DevTunnelResource}, EndpointReference)"/> instead.
+    /// </remarks>
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="resource">The target resource.</param>
     /// <param name="endpointName">The name of the endpoint on the target resource.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
-    [AspireExport("getEndpoint1", MethodName = "getEndpoint", Description = "Gets the public endpoint exposed by the dev tunnel.")]
+    [AspireExportIgnore(Reason = "IResource parameter type is not ATS-compatible. Use the EndpointReference-based overload instead.")]
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResource resource, string endpointName)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
@@ -392,7 +405,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="targetEndpointReference">The target endpoint reference.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
-    [AspireExport("getEndpoint2", MethodName = "getEndpoint", Description = "Gets the public endpoint exposed by the dev tunnel.")]
+    [AspireExport("getEndpointByEndpointReference", MethodName = "getTunnelEndpoint", Description = "Gets the public endpoint exposed by the dev tunnel.")]
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, EndpointReference targetEndpointReference)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
@@ -425,11 +438,13 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Referencing a dev tunnel will delay the start of the resource until the referenced dev tunnel's endpoint is allocated.
+    /// This method is not available in polyglot app hosts.
     /// </remarks>
     /// <param name="builder">The builder.</param>
     /// <param name="targetResource">The resource to inject service discovery information for.</param>
     /// <param name="tunnelResource">The dev tunnel resource to resolve the tunnel address from.</param>
     /// <returns>The builder.</returns>
+    [AspireExportIgnore(Reason = "This method extends generic IResourceBuilder<TResource> and injects dev tunnel service discovery. It requires two IResourceBuilder parameters which makes the polyglot API confusing. Use WithReference on the DevTunnelResource builder instead.")]
     public static IResourceBuilder<TResource> WithReference<TResource>(this IResourceBuilder<TResource> builder,
         IResourceBuilder<IResourceWithEndpoints> targetResource, IResourceBuilder<DevTunnelResource> tunnelResource)
         where TResource : IResourceWithEnvironment
