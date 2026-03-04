@@ -14,21 +14,21 @@ namespace Aspire.Cli.Resources {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ResourceCommandStrings {
+    internal class StartCommandStrings {
 
         private static System.Resources.ResourceManager resourceMan;
 
         private static System.Globalization.CultureInfo resourceCulture;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ResourceCommandStrings() {
+        internal StartCommandStrings() {
         }
 
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.ResourceCommandStrings", typeof(ResourceCommandStrings).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.StartCommandStrings", typeof(StartCommandStrings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -45,27 +45,9 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string SelectAppHostAction {
+        internal static string Description {
             get {
-                return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
-            }
-        }
-
-        internal static string CommandDescription {
-            get {
-                return ResourceManager.GetString("CommandDescription", resourceCulture);
-            }
-        }
-
-        internal static string CommandResourceArgumentDescription {
-            get {
-                return ResourceManager.GetString("CommandResourceArgumentDescription", resourceCulture);
-            }
-        }
-
-        internal static string CommandNameArgumentDescription {
-            get {
-                return ResourceManager.GetString("CommandNameArgumentDescription", resourceCulture);
+                return ResourceManager.GetString("Description", resourceCulture);
             }
         }
 

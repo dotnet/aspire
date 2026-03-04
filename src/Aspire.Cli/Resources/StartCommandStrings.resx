@@ -58,16 +58,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="SelectAppHostAction" xml:space="preserve">
-    <value>connect to</value>
-  </data>
-  <data name="CommandDescription" xml:space="preserve">
-    <value>Execute a command on a resource (e.g. start, stop, restart).</value>
-  </data>
-  <data name="CommandResourceArgumentDescription" xml:space="preserve">
-    <value>The name of the resource to execute the command on.</value>
-  </data>
-  <data name="CommandNameArgumentDescription" xml:space="preserve">
-    <value>The name of the command to execute (e.g. start, stop, restart).</value>
+  <data name="Description" xml:space="preserve">
+    <value>Start an apphost in the background.</value>
   </data>
 </root>

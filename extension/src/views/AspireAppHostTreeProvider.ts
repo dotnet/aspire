@@ -314,7 +314,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         });
 
         if (selected) {
-            this._terminalProvider.sendAspireCommandToAspireTerminal(`command "${element.resource.name}" "${selected.label}" --apphost "${appHost.appHostPath}"`);
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" "${selected.label}" --apphost "${appHost.appHostPath}"`);
         }
     }
 
@@ -324,7 +324,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
             return;
         }
         const suffix = extraArgs.length > 0 ? ` ${extraArgs.join(' ')}` : '';
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`${command} "${element.resource.name}" --apphost "${appHost.appHostPath}"${suffix}`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" ${command} --apphost "${appHost.appHostPath}"${suffix}`);
     }
 
     private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {
