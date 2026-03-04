@@ -3268,7 +3268,7 @@ export class GarnetResource extends ResourceBuilderBase<GarnetResourceHandle> {
         return new GarnetResource(result, this._client);
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a persistent data volume to the Garnet resource. */
     withDataVolume(options?: WithDataVolumeOptions): GarnetResourcePromise {
         const name = options?.name;
         const isReadOnly = options?.isReadOnly;
@@ -3286,7 +3286,7 @@ export class GarnetResource extends ResourceBuilderBase<GarnetResourceHandle> {
         return new GarnetResource(result, this._client);
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Mounts a host directory as the Garnet data directory. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): GarnetResourcePromise {
         const isReadOnly = options?.isReadOnly;
         return new GarnetResourcePromise(this._withDataBindMountInternal(source, isReadOnly));
@@ -3303,7 +3303,7 @@ export class GarnetResource extends ResourceBuilderBase<GarnetResourceHandle> {
         return new GarnetResource(result, this._client);
     }
 
-    /** Exports WithPersistence for polyglot app hosts. */
+    /** Configures snapshot persistence for the Garnet resource. */
     withPersistence(options?: WithPersistenceOptions): GarnetResourcePromise {
         const interval = options?.interval;
         return new GarnetResourcePromise(this._withPersistenceInternal(interval));
@@ -3521,17 +3521,17 @@ export class GarnetResourcePromise implements PromiseLike<GarnetResource> {
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a persistent data volume to the Garnet resource. */
     withDataVolume(options?: WithDataVolumeOptions): GarnetResourcePromise {
         return new GarnetResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Mounts a host directory as the Garnet data directory. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): GarnetResourcePromise {
         return new GarnetResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
     }
 
-    /** Exports WithPersistence for polyglot app hosts. */
+    /** Configures snapshot persistence for the Garnet resource. */
     withPersistence(options?: WithPersistenceOptions): GarnetResourcePromise {
         return new GarnetResourcePromise(this._promise.then(obj => obj.withPersistence(options)));
     }

@@ -1285,6 +1285,34 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("{ p0: unknown, p1: unknown }", code);
     }
 
+    // ===== Options Interface Merging Tests =====
+
+    [Fact]
+    public void Generate_SameMethodNameOnDifferentTypes_MergesOptionsInterface()
+    {
+        // Regression test: When the same method name (e.g., withDataVolume) appears on
+        // multiple resource types with different optional parameters, the generated options
+        // interface must be the union of all parameters across all overloads.
+        // Previously, RegisterOptionsInterface used first-write-wins, so the interface
+        // only included parameters from whichever overload was registered first.
+        var code = GenerateTwoPassCode();
+
+        // There should be exactly one WithDataVolumeOptions interface
+        var interfaceCount = CountOccurrences(code, "export interface WithDataVolumeOptions");
+        Assert.Equal(1, interfaceCount);
+
+        // The interface must contain both 'name' (from both overloads) and 'isReadOnly'
+        // (only from the TestRedisResource overload)
+        var interfaceStart = code.IndexOf("export interface WithDataVolumeOptions", StringComparison.Ordinal);
+        Assert.True(interfaceStart >= 0, "WithDataVolumeOptions interface not found");
+
+        var interfaceEnd = code.IndexOf("}", interfaceStart, StringComparison.Ordinal);
+        var interfaceBody = code[interfaceStart..interfaceEnd];
+
+        Assert.Contains("name?:", interfaceBody);
+        Assert.Contains("isReadOnly?:", interfaceBody);
+    }
+
     private static int CountOccurrences(string text, string pattern)
     {
         var count = 0;

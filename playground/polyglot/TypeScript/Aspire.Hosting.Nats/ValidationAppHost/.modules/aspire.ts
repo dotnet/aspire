@@ -3265,7 +3265,7 @@ export class NatsServerResource extends ResourceBuilderBase<NatsServerResourceHa
         return new NatsServerResource(result, this._client);
     }
 
-    /** Exports WithJetStream for polyglot app hosts. */
+    /** Configures the NATS resource to enable JetStream. */
     withJetStream(): NatsServerResourcePromise {
         return new NatsServerResourcePromise(this._withJetStreamInternal());
     }
@@ -3282,7 +3282,7 @@ export class NatsServerResource extends ResourceBuilderBase<NatsServerResourceHa
         return new NatsServerResource(result, this._client);
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a persistent data volume to the NATS resource. */
     withDataVolume(options?: WithDataVolumeOptions): NatsServerResourcePromise {
         const name = options?.name;
         const isReadOnly = options?.isReadOnly;
@@ -3300,7 +3300,7 @@ export class NatsServerResource extends ResourceBuilderBase<NatsServerResourceHa
         return new NatsServerResource(result, this._client);
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Mounts a host directory as the NATS data directory. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): NatsServerResourcePromise {
         const isReadOnly = options?.isReadOnly;
         return new NatsServerResourcePromise(this._withDataBindMountInternal(source, isReadOnly));
@@ -3518,17 +3518,17 @@ export class NatsServerResourcePromise implements PromiseLike<NatsServerResource
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithJetStream for polyglot app hosts. */
+    /** Configures the NATS resource to enable JetStream. */
     withJetStream(): NatsServerResourcePromise {
         return new NatsServerResourcePromise(this._promise.then(obj => obj.withJetStream()));
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a persistent data volume to the NATS resource. */
     withDataVolume(options?: WithDataVolumeOptions): NatsServerResourcePromise {
         return new NatsServerResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Mounts a host directory as the NATS data directory. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): NatsServerResourcePromise {
         return new NatsServerResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
     }
