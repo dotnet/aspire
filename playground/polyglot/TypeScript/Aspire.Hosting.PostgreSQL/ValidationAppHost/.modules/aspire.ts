@@ -4728,6 +4728,17 @@ export class PostgresDatabaseResource extends ResourceBuilderBase<PostgresDataba
         super(handle, client);
     }
 
+    /** Gets the Parent property */
+    parent = {
+        get: async (): Promise<PostgresServerResource> => {
+            const handle = await this._client.invokeCapability<PostgresServerResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/PostgresDatabaseResource.parent',
+                { context: this._handle }
+            );
+            return new PostgresServerResource(handle, this._client);
+        },
+    };
+
     /** Gets the DatabaseName property */
     databaseName = {
         get: async (): Promise<string> => {

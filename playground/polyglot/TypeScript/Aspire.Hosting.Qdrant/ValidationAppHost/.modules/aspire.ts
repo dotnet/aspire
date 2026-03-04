@@ -1016,7 +1016,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddQdrant for polyglot app hosts. */
+    /** Adds a Qdrant resource to the application. A container is used for local development. */
     /** @internal */
     async _addQdrantInternal(name: string, apiKey?: ParameterResource, grpcPort?: number, httpPort?: number): Promise<QdrantServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1082,7 +1082,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddQdrant for polyglot app hosts. */
+    /** Adds a Qdrant resource to the application. A container is used for local development. */
     addQdrant(name: string, options?: AddQdrantOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.addQdrant(name, options)));
     }
@@ -4250,7 +4250,7 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         return new QdrantServerResource(result, this._client);
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a named volume for the data folder to a Qdrant container resource. */
     withDataVolume(options?: WithDataVolumeOptions): QdrantServerResourcePromise {
         const name = options?.name;
         const isReadOnly = options?.isReadOnly;
@@ -4268,7 +4268,7 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         return new QdrantServerResource(result, this._client);
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         const isReadOnly = options?.isReadOnly;
         return new QdrantServerResourcePromise(this._withDataBindMountInternal(source, isReadOnly));
@@ -4486,12 +4486,12 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a named volume for the data folder to a Qdrant container resource. */
     withDataVolume(options?: WithDataVolumeOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
     }

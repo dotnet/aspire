@@ -1008,7 +1008,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddAzureContainerRegistry for polyglot app hosts. */
+    /** Adds an Azure Container Registry resource to the distributed application model. */
     /** @internal */
     async _addAzureContainerRegistryInternal(name: string): Promise<AzureContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1068,7 +1068,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddAzureContainerRegistry for polyglot app hosts. */
+    /** Adds an Azure Container Registry resource to the distributed application model. */
     addAzureContainerRegistry(name: string): AzureContainerRegistryResourcePromise {
         return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.addAzureContainerRegistry(name)));
     }
@@ -1317,7 +1317,7 @@ export class AzureContainerRegistryResource extends ResourceBuilderBase<AzureCon
         return new AzureContainerRegistryResource(result, this._client);
     }
 
-    /** Exports WithPurgeTask for polyglot app hosts. */
+    /** Configures a purge task for the Azure Container Registry resource. */
     withPurgeTask(schedule: string, options?: WithPurgeTaskOptions): AzureContainerRegistryResourcePromise {
         const filter = options?.filter;
         const ago = options?.ago;
@@ -1393,7 +1393,7 @@ export class AzureContainerRegistryResourcePromise implements PromiseLike<AzureC
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithPurgeTask for polyglot app hosts. */
+    /** Configures a purge task for the Azure Container Registry resource. */
     withPurgeTask(schedule: string, options?: WithPurgeTaskOptions): AzureContainerRegistryResourcePromise {
         return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withPurgeTask(schedule, options)));
     }
