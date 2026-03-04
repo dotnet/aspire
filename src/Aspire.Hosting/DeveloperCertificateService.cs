@@ -64,7 +64,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 var trustedCerts = new List<X509Certificate2>();
                 foreach (var cert in bestCerts)
                 {
-                    trustedCerts.Add(cert);
+                    if (chain.Build(cert))
+                    {
+                        trustedCerts.Add(cert);
+                    }
 
                     // Reset the chain for the next certificate
                     chain.Reset();
@@ -129,8 +132,12 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    /// <inheritdoc />
-    public bool LatestCertificateIsUntrusted
+    /// <summary>
+    /// Gets a value indicating whether a newer ASP.NET Core development certificate was detected
+    /// that is not in the trusted set. This is true when the highest-version/most-recent dev cert
+    /// is not trusted, even though older trusted certs may exist.
+    /// </summary>
+    internal bool LatestCertificateIsUntrusted
     {
         get
         {
