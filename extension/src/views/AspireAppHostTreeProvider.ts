@@ -93,13 +93,13 @@ class ResourceItem extends vscode.TreeItem {
 function getResourceContextValue(resource: ResourceJson): string {
     const commands = resource.commands ? Object.keys(resource.commands) : [];
     const parts = ['resource'];
-    if (commands.includes('resource-start')) {
+    if (commands.includes('start') || commands.includes('resource-start')) {
         parts.push('canStart');
     }
-    if (commands.includes('resource-stop')) {
+    if (commands.includes('stop') || commands.includes('resource-stop')) {
         parts.push('canStop');
     }
-    if (commands.includes('resource-restart')) {
+    if (commands.includes('restart') || commands.includes('resource-restart')) {
         parts.push('canRestart');
     }
     return parts.join(':');
