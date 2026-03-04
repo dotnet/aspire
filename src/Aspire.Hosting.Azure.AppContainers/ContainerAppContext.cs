@@ -145,12 +145,13 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             return;
         }
 
-        // Only http, https, and tcp are supported
-        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.UriScheme is not ("tcp" or "http" or "https")).ToArray();
+        // Validate transport layer: only http-based and tcp transports are supported by Container Apps.
+        // The URI scheme (e.g. "redis", "rediss", "foo") is independent of transport.
+        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.Transport is not ("http" or "http2" or "tcp")).ToArray();
 
         if (unsupportedEndpoints.Length > 0)
         {
-            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.");
+            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} specify an unsupported transport. The supported transports are 'http', 'http2', and 'tcp'.");
         }
 
         // Group resolved endpoints by target port (aka destinations), this gives us the logical bindings or destinations
@@ -162,9 +163,9 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 Port = g.Key,
                 ResolvedEndpoints = g.Select(x => x.resolved).ToArray(),
                 External = g.Any(x => x.resolved.Endpoint.IsExternal),
-                IsHttpOnly = g.All(x => x.resolved.Endpoint.UriScheme is "http" or "https"),
+                IsHttpOnly = g.All(x => x.resolved.Endpoint.Transport is "http" or "http2"),
                 AnyH2 = g.Any(x => x.resolved.Endpoint.Transport is "http2"),
-                UniqueSchemes = g.Select(x => x.resolved.Endpoint.UriScheme).Distinct().ToArray(),
+                UniqueTransports = g.Select(x => x.resolved.Endpoint.Transport).Distinct().ToArray(),
                 Index = g.Min(x => x.index)
             })
             .ToList();
@@ -183,12 +184,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             throw new NotSupportedException("External non-HTTP(s) endpoints are not supported");
         }
 
-        // Don't allow mixing http and tcp endpoints
-        // This means we want to fail if we see a group with http/https and tcp endpoints
-        static bool Compatible(string[] schemes) =>
-            schemes.All(s => s is "http" or "https") || schemes.All(s => s is "tcp");
+        // Don't allow mixing http and tcp transports on the same target port
+        static bool Compatible(string[] transports) =>
+            transports.All(t => t is "http" or "http2") || transports.All(t => t is "tcp");
 
-        if (endpointsByTargetPort.Any(g => !Compatible(g.UniqueSchemes)))
+        if (endpointsByTargetPort.Any(g => !Compatible(g.UniqueTransports)))
         {
             throw new NotSupportedException("HTTP(s) and TCP endpoints cannot be mixed");
         }

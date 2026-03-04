@@ -1104,22 +1104,37 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task NonTcpHttpOrUdpSchemeThrows()
+    public async Task NonHttpSchemeWithTcpTransportIsAllowed()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddContainer("api", "myimage")
-            .WithEndpoint(scheme: "foo");
+            .WithEndpoint(scheme: "redis", targetPort: 6379);
 
         using var app = builder.Build();
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        // Custom schemes that use TCP transport should not throw
+        await ExecuteBeforeStartHooksAsync(app, default);
+    }
+
+    [Fact]
+    public async Task UnsupportedTransportThrows()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddContainer("api", "myimage")
+            .WithEndpoint(scheme: "foo", targetPort: 443, name: "foo")
+            .WithEndpoint("foo", e => e.Transport = "quic");
+
+        using var app = builder.Build();
 
         var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
 
-        Assert.Equal("The endpoint(s) 'foo' specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.", ex.Message);
+        Assert.Equal("The endpoint(s) 'foo' specify an unsupported transport. The supported transports are 'http', 'http2', and 'tcp'.", ex.Message);
     }
 
     [Fact]
