@@ -467,6 +467,12 @@
           "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
           "scope": "window"
+        },
+        "aspire.registerMcpServerInWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.registerMcpServerInWorkspace%",
+          "scope": "window"
         }
       }
     },
