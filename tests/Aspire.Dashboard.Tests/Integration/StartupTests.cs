@@ -416,7 +416,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             {
                 BaseAddress = new Uri($"https://{app.McpEndPointAccessor().EndPoint}")
             };
-            var mcpRequest = McpServiceTests.CreateListToolsRequest();
+            var mcpSessionId = await McpServiceTests.InitializeSessionAsync(mcpHttpClient);
+            var mcpRequest = McpServiceTests.CreateListToolsRequest(mcpSessionId);
 
             var responseMessage = await mcpHttpClient.SendAsync(mcpRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
             responseMessage.EnsureSuccessStatusCode();
@@ -765,6 +766,28 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
+    }
+
+    [Fact]
+    public async Task LogOutput_McpDisabled_NoMcpWarningLog()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardMcpDisableName.ConfigKey] = "true";
+            },
+            testSink: testSink);
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Warning).ToList();
+
+        // Should have no MCP unsecured warning when MCP is disabled
+        Assert.DoesNotContain(l, w => LogTestHelpers.GetValue(w, "{OriginalFormat}")?.ToString()?.Contains("MCP server is unsecured") == true);
     }
 
     [Fact]

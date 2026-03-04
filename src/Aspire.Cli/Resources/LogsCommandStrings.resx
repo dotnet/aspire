@@ -123,26 +123,11 @@
   <data name="ResourceArgumentDescription" xml:space="preserve">
     <value>The name of the resource to get logs for. If not specified, logs from all resources are shown.</value>
   </data>
-  <data name="ProjectOptionDescription" xml:space="preserve">
-    <value>The path to the Aspire AppHost project file.</value>
-  </data>
   <data name="FollowOptionDescription" xml:space="preserve">
     <value>Stream logs in real-time as they are written.</value>
   </data>
   <data name="JsonOptionDescription" xml:space="preserve">
     <value>Output format (Table or Json).</value>
-  </data>
-  <data name="AppHostNotRunning" xml:space="preserve">
-    <value>No running AppHost found. Use 'aspire run' to start one first.</value>
-  </data>
-  <data name="ScanningForRunningAppHosts" xml:space="preserve">
-    <value>Scanning for running AppHosts...</value>
-  </data>
-  <data name="SelectAppHost" xml:space="preserve">
-    <value>Select an AppHost:</value>
-  </data>
-  <data name="NoInScopeAppHostsShowingAll" xml:space="preserve">
-    <value>No AppHosts found in current directory. Showing all running AppHosts.</value>
   </data>
   <data name="ResourceRequiredWithoutFollow" xml:space="preserve">
     <value>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</value>
@@ -164,5 +149,11 @@
   </data>
   <data name="TimestampsOptionDescription" xml:space="preserve">
     <value>Show timestamps for each log line.</value>
+  </data>
+  <data name="SelectAppHostAction" xml:space="preserve">
+    <value>stream logs from</value>
+  </data>
+  <data name="GettingLogs" xml:space="preserve">
+    <value>Getting logs...</value>
   </data>
 </root>

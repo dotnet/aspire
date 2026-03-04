@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Projects;
@@ -38,12 +39,12 @@ internal interface IAppHostServerProject
     /// For bundle mode: restores integration packages from NuGet.
     /// </summary>
     /// <param name="sdkVersion">The Aspire SDK version to use.</param>
-    /// <param name="packages">The integration packages required by the app host.</param>
+    /// <param name="integrations">The integration references (NuGet packages and/or project references) required by the app host.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The preparation result indicating success/failure and any output.</returns>
     Task<AppHostServerPrepareResult> PrepareAsync(
         string sdkVersion,
-        IEnumerable<(string Name, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken = default);
 
     /// <summary>

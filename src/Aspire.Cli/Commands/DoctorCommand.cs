@@ -44,12 +44,9 @@ internal sealed class DoctorCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var statusMessage = format == OutputFormat.Json ? string.Empty : DoctorCommandStrings.CheckingPrerequisites;
-
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(
-            statusMessage,
+            DoctorCommandStrings.CheckingPrerequisites,
             async () => await _environmentChecker.CheckAllAsync(cancellationToken));
 
         if (format == OutputFormat.Json)

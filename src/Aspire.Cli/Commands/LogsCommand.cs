@@ -77,17 +77,13 @@ internal sealed class LogsCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<LogsCommand> _logger;
-    private readonly ICliHostEnvironment _hostEnvironment;
 
     private static readonly Argument<string?> s_resourceArgument = new("resource")
     {
         Description = LogsCommandStrings.ResourceArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = LogsCommandStrings.ProjectOptionDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
     private static readonly Option<bool> s_followOption = new("--follow", "-f")
     {
         Description = LogsCommandStrings.FollowOptionDescription
@@ -105,22 +101,7 @@ internal sealed class LogsCommand : BaseCommand
         Description = LogsCommandStrings.TimestampsOptionDescription
     };
 
-    // Colors to cycle through for different resources (similar to docker-compose)
-    private static readonly Color[] s_resourceColors =
-    [
-        Color.Cyan1,
-        Color.Green,
-        Color.Yellow,
-        Color.Blue,
-        Color.Magenta1,
-        Color.Orange1,
-        Color.DeepPink1,
-        Color.SpringGreen1,
-        Color.Aqua,
-        Color.Violet
-    ];
-    private readonly Dictionary<string, Color> _resourceColorMap = new(StringComparer.OrdinalIgnoreCase);
-    private int _nextColorIndex;
+    private readonly ResourceColorMap _resourceColorMap;
 
     public LogsCommand(
         IInteractionService interactionService,
@@ -128,18 +109,18 @@ internal sealed class LogsCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment,
         AspireCliTelemetry telemetry,
+        ResourceColorMap resourceColorMap,
         ILogger<LogsCommand> logger)
         : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        _resourceColorMap = resourceColorMap;
         _interactionService = interactionService;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
         Arguments.Add(s_resourceArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_followOption);
         Options.Add(s_formatOption);
         Options.Add(s_tailOption);
@@ -151,7 +132,7 @@ internal sealed class LogsCommand : BaseCommand
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
         var resourceName = parseResult.GetValue(s_resourceArgument);
-        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
         var follow = parseResult.GetValue(s_followOption);
         var format = parseResult.GetValue(s_formatOption);
         var tail = parseResult.GetValue(s_tailOption);
@@ -164,20 +145,17 @@ internal sealed class LogsCommand : BaseCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
-        // When outputting JSON, suppress status messages to keep output machine-readable
-        var scanningMessage = format == OutputFormat.Json ? string.Empty : LogsCommandStrings.ScanningForRunningAppHosts;
-
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
-            scanningMessage,
-            LogsCommandStrings.SelectAppHost,
-            LogsCommandStrings.NoInScopeAppHostsShowingAll,
-            LogsCommandStrings.AppHostNotRunning,
+            SharedCommandStrings.ScanningForRunningAppHosts,
+            string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.SelectAppHost, LogsCommandStrings.SelectAppHostAction),
+            SharedCommandStrings.AppHostNotRunning,
             cancellationToken);
 
         if (!result.Success)
         {
             // No running AppHosts is not an error - similar to Unix 'ps' returning empty
+            _interactionService.DisplayMessage(KnownEmojis.Information, result.ErrorMessage);
             return ExitCodeConstants.Success;
         }
 
@@ -185,6 +163,10 @@ internal sealed class LogsCommand : BaseCommand
 
         // Fetch snapshots for resource name resolution
         var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Pre-resolve colors for all resource names so that assignment is
+        // deterministic regardless of which resources are displayed.
+        _resourceColorMap.ResolveAll(snapshots.Select(s => ResourceSnapshotMapper.GetResourceName(s, snapshots)));
 
         // Validate resource name exists (match by Name or DisplayName since users may pass either)
         if (resourceName is not null)
@@ -200,7 +182,7 @@ internal sealed class LogsCommand : BaseCommand
         {
             if (snapshots.Count == 0)
             {
-                _interactionService.DisplayMessage("information", LogsCommandStrings.NoResourcesFound);
+                _interactionService.DisplayMessage(KnownEmojis.Information, LogsCommandStrings.NoResourcesFound);
                 return ExitCodeConstants.Success;
             }
         }
@@ -225,7 +207,9 @@ internal sealed class LogsCommand : BaseCommand
         CancellationToken cancellationToken)
     {
         // Collect all logs, parsing into LogEntry with resolved resource names sorted by timestamp
-        var entries = await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false);
+        var entries = await _interactionService.ShowStatusAsync(
+            LogsCommandStrings.GettingLogs,
+            async () => await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false));
 
         // Apply tail filter (tail.Value is guaranteed >= 1 by earlier validation)
         if (tail.HasValue && entries.Count > tail.Value)
@@ -276,7 +260,9 @@ internal sealed class LogsCommand : BaseCommand
         // If tail is specified, show last N lines first before streaming
         if (tail.HasValue)
         {
-            var entries = await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false);
+            var entries = await _interactionService.ShowStatusAsync(
+                LogsCommandStrings.GettingLogs,
+                async () => await CollectLogsAsync(connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false));
 
             // Output last N lines
             var tailedEntries = entries.Count > tail.Value
@@ -349,29 +335,13 @@ internal sealed class LogsCommand : BaseCommand
             // Structured output always goes to stdout.
             _interactionService.DisplayRawText(output, ConsoleOutput.Standard);
         }
-        else if (_hostEnvironment.SupportsAnsi)
-        {
-            // Colorized output: assign a consistent color to each resource
-            var color = GetResourceColor(displayName);
-            var escapedContent = content.EscapeMarkup();
-            AnsiConsole.MarkupLine($"{timestampPrefix.EscapeMarkup()}[{color}][[{displayName.EscapeMarkup()}]][/] {escapedContent}");
-        }
         else
         {
-            // Plain text fallback when colors not supported
-            _interactionService.DisplayPlainText($"{timestampPrefix}[{displayName}] {content}");
+            // Colorized output: assign a consistent color to each resource
+            var color = _resourceColorMap.GetColor(displayName);
+            var escapedContent = content.EscapeMarkup();
+            _interactionService.DisplayMarkupLine($"{timestampPrefix.EscapeMarkup()}[{color}][[{displayName.EscapeMarkup()}]][/] {escapedContent}");
         }
-    }
-
-    private Color GetResourceColor(string resourceName)
-    {
-        if (!_resourceColorMap.TryGetValue(resourceName, out var color))
-        {
-            color = s_resourceColors[_nextColorIndex % s_resourceColors.Length];
-            _resourceColorMap[resourceName] = color;
-            _nextColorIndex++;
-        }
-        return color;
     }
 
     private static string FormatTimestamp(DateTime timestamp)

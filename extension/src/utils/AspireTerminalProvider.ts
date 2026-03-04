@@ -5,6 +5,7 @@ import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 import { EnvironmentVariables } from './environment';
+import { resolveCliPath } from './cliPath';
 import path from 'path';
 
 export const enum AnsiColors {
@@ -57,8 +58,8 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
-        const cliPath = this.getAspireCliExecutablePath();
+    async sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true, additionalArgs?: string[]) {
+        const cliPath = await this.getAspireCliExecutablePath();
 
         // On Windows, use & to execute paths, especially those with special characters
         // On Unix, just use the path directly
@@ -70,6 +71,19 @@ export class AspireTerminalProvider implements vscode.Disposable {
             // For Unix-like systems, quote only if needed
             const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\"'\"'`)}'` : cliPath;
             command = `${quotedPath} ${subcommand}`;
+        }
+
+        if (additionalArgs && additionalArgs.length > 0) {
+            const quotedArgs = additionalArgs.map(arg => {
+                if (process.platform === 'win32') {
+                    // On Windows PowerShell, wrap in double quotes and escape inner double quotes
+                    return `"${arg.replace(/"/g, '`"')}"`;
+                } else {
+                    // On Unix, wrap in single quotes and escape inner single quotes
+                    return `'${arg.replace(/'/g, "'\"'\"'")}'`;
+                }
+            });
+            command += ' ' + quotedArgs.join(' ');
         }
 
         if (this.isCliDebugLoggingEnabled()) {
@@ -128,6 +142,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
         const env: any = {
             ...process.env,
 
+            // IDE identification for Aspire debug features
+            ASPIRE_IDE: 'vscode',
+
             // Extension connection information
             ASPIRE_EXTENSION_ENDPOINT: this.rpcServerConnectionInfo.address,
             ASPIRE_EXTENSION_TOKEN: this.rpcServerConnectionInfo.token,
@@ -150,6 +167,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             env.ASPIRE_EXTENSION_DEBUG_RUN_MODE = noDebug === false ? "Debug" : "NoDebug";
             env.DEBUG_SESSION_INFO = JSON.stringify(getRunSessionInfo());
             env.ASPIRE_EXTENSION_CAPABILITIES = getSupportedCapabilities().join(',');
+            env.ASPIRE_EXTENSION_WORKSPACE_ROOT = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
             // if DCP debug logging is enabled, set DCP-specific logging environment variables
             const dcpDebugLoggingEnabled = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDcpDebugLogging', false);
@@ -200,15 +218,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
     }
 
 
-    getAspireCliExecutablePath(): string {
-        const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
-        if (aspireCliPath && aspireCliPath.trim().length > 0) {
-            extensionLogOutputChannel.debug(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
-            return aspireCliPath.trim();
-        }
-
-        extensionLogOutputChannel.debug('No user-configured Aspire CLI path found');
-        return "aspire";
+    async getAspireCliExecutablePath(): Promise<string> {
+        const result = await resolveCliPath();
+        return result.cliPath;
     }
 
     isCliDebugLoggingEnabled(): boolean {

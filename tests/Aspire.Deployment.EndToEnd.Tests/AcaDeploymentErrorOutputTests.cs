@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Tests.Utils;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -56,7 +55,6 @@ public sealed class AcaDeploymentErrorOutputTests(ITestOutputHelper output)
         }
 
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployWithInvalidLocation_ErrorOutputIsClean));
         var startTime = DateTime.UtcNow;
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("errout");
         var deployOutputFile = Path.Combine(workspace.WorkspaceRoot.FullName, "deploy-output.txt");
@@ -68,13 +66,7 @@ public sealed class AcaDeploymentErrorOutputTests(ITestOutputHelper output)
 
         try
         {
-            var builder = Hex1bTerminal.CreateBuilder()
-                .WithHeadless()
-                .WithDimensions(160, 48)
-                .WithAsciinemaRecording(recordingPath)
-                .WithPtyProcess("/bin/bash", ["--norc"]);
-
-            using var terminal = builder.Build();
+            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
             var waitingForInitComplete = new CellPatternSearcher()

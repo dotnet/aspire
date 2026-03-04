@@ -32,6 +32,31 @@
         <target state="translated">슬러그로 설명서 페이지의 전체 내용을 가져옵니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderScore">
+        <source>Score</source>
+        <target state="new">Score</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSection">
+        <source>Section</source>
+        <target state="new">Section</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSlug">
+        <source>Slug</source>
+        <target state="new">Slug</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSummary">
+        <source>Summary</source>
+        <target state="new">Summary</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderTitle">
+        <source>Title</source>
+        <target state="new">Title</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of search results to return (default: 5, max: 10).</source>
         <target state="translated">반환할 최대 검색 결과 수입니다(기본값: 5, 최대: 10).</target>

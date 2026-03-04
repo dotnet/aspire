@@ -16,6 +16,7 @@ namespace Aspire.Hosting.Tests.Dashboard;
 
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only
 
+[Trait("Partition", "3")]
 public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]

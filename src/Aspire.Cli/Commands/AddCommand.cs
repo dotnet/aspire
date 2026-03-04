@@ -34,10 +34,7 @@ internal sealed class AddCommand : BaseCommand
         Description = AddCommandStrings.IntegrationArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private static readonly Option<FileInfo?> s_projectOption = new("--project")
-    {
-        Description = AddCommandStrings.ProjectArgumentDescription
-    };
+    private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", AddCommandStrings.ProjectArgumentDescription);
     private static readonly Option<string> s_versionOption = new("--version")
     {
         Description = AddCommandStrings.VersionArgumentDescription
@@ -59,7 +56,7 @@ internal sealed class AddCommand : BaseCommand
         _projectFactory = projectFactory;
 
         Arguments.Add(s_integrationArgument);
-        Options.Add(s_projectOption);
+        Options.Add(s_appHostOption);
         Options.Add(s_versionOption);
         Options.Add(s_sourceOption);
     }
@@ -74,7 +71,7 @@ internal sealed class AddCommand : BaseCommand
         {
             var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -89,7 +86,7 @@ internal sealed class AddCommand : BaseCommand
             // Check if the .NET SDK is available (only needed for .NET projects)
             if (project.LanguageId == KnownLanguageId.CSharp)
             {
-                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
                 {
                     return ExitCodeConstants.SdkNotInstalled;
                 }
@@ -222,7 +219,7 @@ internal sealed class AddCommand : BaseCommand
 
                 if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
                 {
-                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
+                    InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
                 }
                 else if (runningInstanceResult == RunningInstanceResult.StopFailed)
                 {

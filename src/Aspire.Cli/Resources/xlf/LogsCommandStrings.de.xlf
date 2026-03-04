@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../LogsCommandStrings.resx">
     <body>
-      <trans-unit id="AppHostNotRunning">
-        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="translated">Es wurde kein aktiver AppHost gefunden. Verwenden Sie zuerst „aspire run“, um einen zu starten.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
         <target state="needs-review-translation">Protokolle von Ressourcen in einem laufenden Aspire-AppHost anzeigen.</target>
@@ -22,19 +17,9 @@
         <target state="needs-review-translation">Protokolle im JSON-Format (NDJSON) ausgeben.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="translated">Im aktuellen Verzeichnis wurden keine AppHosts gefunden. Es werden alle aktiven AppHosts angezeigt.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
         <target state="translated">Keine Ressourcen gefunden.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -52,14 +37,9 @@
         <target state="translated">Ein Ressourcenname ist erforderlich, wenn --follow nicht verwendet wird. Verwenden Sie --follow, um Protokolle aller Ressourcen zu streamen.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">Suche nach aktiven AppHosts …</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="translated">AppHost auswählen:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>stream logs from</source>
+        <target state="new">stream logs from</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -80,6 +60,11 @@
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
         <target state="new">Show timestamps for each log line.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GettingLogs">
+        <source>Getting logs...</source>
+        <target state="new">Getting logs...</target>
         <note />
       </trans-unit>
     </body>

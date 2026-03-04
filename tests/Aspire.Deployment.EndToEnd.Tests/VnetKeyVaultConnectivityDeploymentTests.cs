@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Tests.Utils;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -49,7 +48,6 @@ public sealed class VnetKeyVaultConnectivityDeploymentTests(ITestOutputHelper ou
         }
 
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateWithKeyVaultPrivateEndpoint));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("vnet-kv-l23");
@@ -63,13 +61,7 @@ public sealed class VnetKeyVaultConnectivityDeploymentTests(ITestOutputHelper ou
 
         try
         {
-            var builder = Hex1bTerminal.CreateBuilder()
-                .WithHeadless()
-                .WithDimensions(160, 48)
-                .WithAsciinemaRecording(recordingPath)
-                .WithPtyProcess("/bin/bash", ["--norc"]);
-
-            using var terminal = builder.Build();
+            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
             var waitingForTemplateSelectionPrompt = new CellPatternSearcher()

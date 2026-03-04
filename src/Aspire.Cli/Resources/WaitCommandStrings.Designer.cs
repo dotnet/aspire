@@ -69,36 +69,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string ProjectOptionDescription {
-            get {
-                return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
-            }
-        }
-
-        public static string ScanningForRunningAppHosts {
-            get {
-                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
-            }
-        }
-
-        public static string SelectAppHost {
-            get {
-                return ResourceManager.GetString("SelectAppHost", resourceCulture);
-            }
-        }
-
-        public static string NoInScopeAppHostsShowingAll {
-            get {
-                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
-            }
-        }
-
-        public static string NoRunningAppHostsFound {
-            get {
-                return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
-            }
-        }
-
         public static string WaitingForResource {
             get {
                 return ResourceManager.GetString("WaitingForResource", resourceCulture);
@@ -138,6 +108,12 @@ namespace Aspire.Cli.Resources {
         public static string TimeoutMustBePositive {
             get {
                 return ResourceManager.GetString("TimeoutMustBePositive", resourceCulture);
+            }
+        }
+
+        public static string SelectAppHostAction {
+            get {
+                return ResourceManager.GetString("SelectAppHostAction", resourceCulture);
             }
         }
     }

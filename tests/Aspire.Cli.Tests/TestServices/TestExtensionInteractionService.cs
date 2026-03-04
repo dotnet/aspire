@@ -6,6 +6,7 @@ using Aspire.Cli.Interaction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -23,12 +24,12 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         return action();
     }
 
-    public void ShowStatus(string statusText, Action action)
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         action();
     }
@@ -36,6 +37,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(defaultValue ?? string.Empty);
+    }
+
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        return PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken);
     }
 
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
@@ -68,11 +74,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
-    public void DisplayMessage(string emojiName, string message)
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
     }
 
-    public void DisplaySuccess(string message)
+    public void DisplaySuccess(string message, bool allowMarkup = false)
     {
     }
 
@@ -91,7 +97,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayConsoleWriteLineMessage?.Invoke(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
         StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
         return Task.CompletedTask;
@@ -114,7 +120,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(true);
     }
 
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
@@ -152,6 +158,15 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
+    public void DisplayRenderable(IRenderable renderable)
+    {
+    }
+
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback)
+    {
+        return callback(_ => { });
+    }
+
     public Action<string>? OpenEditorCallback { get; set; }
 
     public void OpenEditor(string projectPath)
@@ -180,8 +195,8 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.CompletedTask;
     }
 
-    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    public void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false)
     {
-        ConsoleDisplaySubtleMessageCallback?.Invoke(message, escapeMarkup);
+        ConsoleDisplaySubtleMessageCallback?.Invoke(message, allowMarkup);
     }
 }

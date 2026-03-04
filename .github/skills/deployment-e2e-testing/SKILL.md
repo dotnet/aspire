@@ -83,18 +83,12 @@ public sealed class MyDeploymentTests(ITestOutputHelper output)
         // 2. Setup
         var resourceGroupName = AzureAuthenticationHelpers.GenerateResourceGroupName("my-scenario");
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployMyScenario));
         var startTime = DateTime.UtcNow;
 
         try
         {
             // 3. Build terminal and run deployment
-            var builder = Hex1bTerminal.CreateBuilder()
-                .WithHeadless()
-                .WithAsciinemaRecording(recordingPath)
-                .WithPtyProcess("/bin/bash", ["--norc"]);
-
-            using var terminal = builder.Build();
+            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
             var counter = new SequenceCounter();

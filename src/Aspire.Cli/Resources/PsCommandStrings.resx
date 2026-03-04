@@ -123,25 +123,22 @@
   <data name="JsonOptionDescription" xml:space="preserve">
     <value>Output format (Table or Json).</value>
   </data>
-  <data name="ScanningForRunningAppHosts" xml:space="preserve">
-    <value>Scanning for running AppHosts...</value>
-  </data>
-  <data name="NoRunningAppHostsFound" xml:space="preserve">
-    <value>No running AppHosts found.</value>
-  </data>
   <data name="HeaderPath" xml:space="preserve">
-    <value>PATH</value>
+    <value>Path</value>
   </data>
   <data name="HeaderPid" xml:space="preserve">
     <value>PID</value>
   </data>
   <data name="HeaderCliPid" xml:space="preserve">
-    <value>CLI_PID</value>
+    <value>CLI PID</value>
   </data>
   <data name="HeaderDashboard" xml:space="preserve">
-    <value>DASHBOARD</value>
+    <value>Dashboard</value>
   </data>
   <data name="UnknownPath" xml:space="preserve">
     <value>Unknown</value>
+  </data>
+  <data name="ResourcesOptionDescription" xml:space="preserve">
+    <value>Include resource details for each running app host. Only applies to JSON output.</value>
   </data>
 </root>

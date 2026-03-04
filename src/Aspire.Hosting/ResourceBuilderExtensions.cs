@@ -2642,6 +2642,77 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
+    /// <summary>
+    /// Subscribes to the <see cref="BeforeStartEvent"/> and invokes the specified callback when an HTTPS certificate
+    /// is determined to be available for the resource. This is used to conditionally update endpoint URI schemes or
+    /// perform other HTTPS-related configuration at startup.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when HTTPS is enabled. Receives an <see cref="HttpsEndpointUpdateCallbackContext"/>
+    /// providing access to the service provider, resource, and application model.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// The callback is invoked when either:
+    /// <list type="bullet">
+    /// <item>No <see cref="HttpsCertificateAnnotation"/> is present and the <see cref="IDeveloperCertificateService"/> indicates
+    /// that HTTPS should be used by default.</item>
+    /// <item>An <see cref="HttpsCertificateAnnotation"/> is present that requests a developer certificate or provides a custom certificate.</item>
+    /// </list>
+    /// <example>
+    /// Switch an endpoint to HTTPS when a certificate is available:
+    /// <code lang="csharp">
+    /// builder.SubscribeHttpsEndpointsUpdate(ctx =>
+    /// {
+    ///     builder.WithEndpoint("http", ep => ep.UriScheme = "https");
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> SubscribeHttpsEndpointsUpdate<TResource>(this IResourceBuilder<TResource> builder, Action<HttpsEndpointUpdateCallbackContext> callback)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var resource = builder.Resource;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        {
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.UseForHttps)
+                {
+                    addHttps = true;
+                }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
+
+            if (addHttps)
+            {
+                var context = new HttpsEndpointUpdateCallbackContext
+                {
+                    Services = @event.Services,
+                    Resource = resource,
+                    Model = @event.Model,
+                    CancellationToken = cancellationToken,
+                };
+
+                callback(context);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return builder;
+    }
+
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
     // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
     // if found.
@@ -3002,39 +3073,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds support for debugging the resource in VS Code when running in an extension host.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="launchConfigurationType">The type of the resource.</param>
-    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
-        where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
-
-        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            return builder;
-        }
-
-        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
-        {
-            resourceWithArgs.WithArgs(async ctx =>
-            {
-                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
-                {
-                    argsCallback(ctx);
-                }
-            });
-        }
-
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
-    }
-
-    /// <summary>
     /// Adds a HTTP probe to the resource.
     /// </summary>
     /// <typeparam name="T">Type of resource.</typeparam>
@@ -3311,5 +3349,119 @@ public static class ResourceBuilderExtensions
         {
             context.Options.RemoteImageTag = remoteImageTag;
         });
+    }
+
+    /// <summary>
+    /// Adds support for debugging the resource in VS Code when running in an extension host.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
+    /// <param name="launchConfigurationType">The capability (such as extension) that this configuration supports.</param>
+    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<LaunchConfigurationProducerOptions, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+        where T : IResource
+        where TLaunchConfiguration : ExecutableLaunchConfiguration
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs && argsCallback is not null)
+        {
+            resourceWithArgs.WithArgs(ctx =>
+            {
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _))
+                {
+                    argsCallback(ctx);
+                }
+            });
+        }
+
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <typeparam name="TDebuggerProperties">The type of the debugger properties.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code or Visual Studio. The callback receives an object
+    /// that is pre-populated with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithDebuggerProperties<T, TDebuggerProperties>(
+        this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureDebuggerProperties)
+        where T : IResource
+        where TDebuggerProperties : DebugAdapterProperties
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureDebuggerProperties));
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures VS Code-specific debug options for a resource, validating that the current IDE is VS Code.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <typeparam name="TDebuggerProperties">The type of the debugger properties.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureVSCodeOptions">A callback action to configure VS Code-specific debug options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the current IDE is not VS Code (i.e., the <see cref="AspireIde.EnvironmentVariableName"/>
+    /// environment variable is not set to <see cref="AspireIde.VSCode"/>).
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// This method allows configuration of VS Code-specific debug options such as <see cref="VSCodeDebuggerPropertiesBase.PreLaunchTask"/>,
+    /// <see cref="VSCodeDebuggerPropertiesBase.Presentation"/>, and <see cref="VSCodeDebuggerPropertiesBase.ServerReadyAction"/>.
+    /// </para>
+    /// <para>
+    /// The configuration callback receives the VS Code debugger properties directly, allowing you to set any
+    /// VS Code-specific options on the debugger configuration.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure VS Code-specific options for a project:
+    /// <code lang="csharp">
+    /// builder.AddProject&lt;Projects.MyApi&gt;("api")
+    ///     .WithVSCodeDebugOptions&lt;ProjectResource, VSCodeCSharpDebuggerProperties&gt;(props =&gt;
+    ///     {
+    ///         props.PreLaunchTask = "${defaultBuildTask}";
+    ///         props.ServerReadyAction = new ServerReadyAction
+    ///         {
+    ///             Action = "openExternally",
+    ///             Pattern = "Now listening on: (https?://\\S+)"
+    ///         };
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithVSCodeDebugOptions<T, TDebuggerProperties>(
+        this IResourceBuilder<T> builder, Action<TDebuggerProperties> configureVSCodeOptions)
+        where T : IResource
+        where TDebuggerProperties : VSCodeDebuggerPropertiesBase
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureVSCodeOptions);
+
+        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<TDebuggerProperties>(configureVSCodeOptions, AspireIde.VSCode));
+
+        return builder;
     }
 }

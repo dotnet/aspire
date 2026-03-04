@@ -52,7 +52,7 @@ internal sealed class ProjectLocator(
                 IgnoreInaccessible = true
             };
 
-            interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
+            interactionService.DisplayMessage(KnownEmojis.MagnifyingGlassTiltedLeft, InteractionServiceStrings.FindingAppHosts);
 
             var parallelOptions = new ParallelOptions
             {
@@ -100,7 +100,7 @@ internal sealed class ProjectLocator(
                     else if (validationResult.IsPossiblyUnbuildable)
                     {
                         var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                        interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                        interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
                         lock (lockObject)
                         {
                             unbuildableSuspectedAppHostProjects.Add(candidateFile);
@@ -147,7 +147,7 @@ internal sealed class ProjectLocator(
                     else
                     {
                         // AppHost file was specified but doesn't exist, return null to trigger fallback logic
-                        interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
+                        interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
                         return null;
                     }
                 }
@@ -230,8 +230,13 @@ internal sealed class ProjectLocator(
                 var handler = projectFactory.TryGetProject(projectFile);
                 if (handler is not null)
                 {
-                    logger.LogDebug("Using {Language} apphost {ProjectFile}", handler.DisplayName, projectFile.FullName);
-                    return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                    // The handler still may have matched an invalid single file apphost, so validate it before accepting as the selected project file
+                    var validationResult = await handler.ValidateAppHostAsync(projectFile, cancellationToken);
+                    if (validationResult.IsValid)
+                    {
+                        logger.LogDebug("Using {Language} apphost {ProjectFile}", handler.DisplayName, projectFile.FullName);
+                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                    }
                 }
 
                 // If no handler matched, for .cs files check if we should search the parent directory
@@ -255,7 +260,6 @@ internal sealed class ProjectLocator(
 
         logger.LogDebug("No project file specified, searching for apphost projects in {CurrentDirectory}", executionContext.WorkingDirectory);
         var results = await FindAppHostProjectFilesAsync(executionContext.WorkingDirectory, cancellationToken);
-        interactionService.DisplayEmptyLine();
 
         logger.LogDebug("Found {ProjectFileCount} project files.", results.BuildableAppHost.Count);
 
@@ -326,7 +330,7 @@ internal sealed class ProjectLocator(
         }
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
+        interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
     }
 
 }

@@ -12,21 +12,6 @@
         <target state="new">Invalid status value '{0}'. Valid values are: healthy, up, down.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoInScopeAppHostsShowingAll">
-        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
-        <target state="new">No running AppHosts found in the current directory. Showing all running AppHosts:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="new">No running AppHosts found.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectOptionDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to wait for.</source>
         <target state="new">The name of the resource to wait for.</target>
@@ -47,14 +32,9 @@
         <target state="new">Resource '{0}' is {1}. ({2:F1}s)</target>
         <note />
       </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SelectAppHost">
-        <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+      <trans-unit id="SelectAppHostAction">
+        <source>connect to</source>
+        <target state="new">connect to</target>
         <note />
       </trans-unit>
       <trans-unit id="StatusOptionDescription">

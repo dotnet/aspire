@@ -293,9 +293,12 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
             var snapshots = await rpc.InvokeWithCancellationAsync<List<ResourceSnapshot>>(
                 "GetResourceSnapshotsAsync",
                 [],
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false) ?? [];
 
-            return snapshots ?? [];
+            // Sort resources by name for consistent ordering.
+            snapshots.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+
+            return snapshots;
         }
         catch (RemoteMethodNotFoundException ex)
         {
