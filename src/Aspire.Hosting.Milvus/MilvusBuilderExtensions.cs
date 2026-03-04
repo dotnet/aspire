@@ -130,6 +130,7 @@ public static class MilvusBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Attu container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withAttu", Description = "Adds the Attu administration tool for Milvus.")]
     public static IResourceBuilder<T> WithAttu<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<AttuResource>>? configureContainer = null, string? containerName = null) where T : MilvusServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
