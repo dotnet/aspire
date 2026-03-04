@@ -598,5 +598,4 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         return null;
     }
-
 }
