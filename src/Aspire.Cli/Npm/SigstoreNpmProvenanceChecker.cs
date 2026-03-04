@@ -36,10 +36,15 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         }
 
         // Extract the SLSA provenance bundle JSON from the npm attestation response.
-        var bundleJson = ExtractSlsaBundleJson(json);
+        var bundleJson = ExtractSlsaBundleJson(json, out var parseFailed);
         if (bundleJson is null)
         {
-            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.SlsaProvenanceNotFound };
+            return new ProvenanceVerificationResult
+            {
+                Outcome = parseFailed
+                    ? ProvenanceVerificationOutcome.AttestationParseFailed
+                    : ProvenanceVerificationOutcome.SlsaProvenanceNotFound
+            };
         }
 
         SigstoreBundle bundle;
@@ -53,9 +58,9 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
         }
 
-        // Verify the bundle with a policy that includes source repository assertion
-        // via CertificateExtensionPolicy — the source repo is checked cryptographically
-        // against the Fulcio certificate extensions, not just the JSON payload.
+        // Verify the bundle with a policy that uses CertificateIdentity.ForGitHubActions
+        // to check the SAN (Subject Alternative Name) and issuer in the Fulcio certificate.
+        // This verifies the signing identity originates from the expected GitHub repository.
         var (sigstoreFailure, verificationResult) = await VerifySigstoreBundleAsync(
             bundle, expectedSourceRepository, sriIntegrity,
             packageName, version, cancellationToken).ConfigureAwait(false);
@@ -108,9 +113,14 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
     /// <summary>
     /// Extracts the Sigstore bundle JSON string for the SLSA provenance attestation
     /// from the npm registry attestations API response.
+    /// Returns the bundle JSON on success, or <c>null</c> if the JSON is malformed or
+    /// no SLSA provenance attestation is found.
     /// </summary>
-    internal static string? ExtractSlsaBundleJson(string attestationJson)
+    /// <param name="attestationJson">The raw JSON from the npm attestations API.</param>
+    /// <param name="parseFailed">Set to <c>true</c> when the input is not valid JSON; <c>false</c> otherwise.</param>
+    internal static string? ExtractSlsaBundleJson(string attestationJson, out bool parseFailed)
     {
+        parseFailed = false;
         JsonNode? doc;
         try
         {
@@ -118,6 +128,7 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         }
         catch (JsonException)
         {
+            parseFailed = true;
             return null;
         }
 
@@ -129,13 +140,33 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
 
         foreach (var attestation in attestations)
         {
-            var predicateType = attestation?["predicateType"]?.GetValue<string>();
+            if (attestation is not JsonObject attestationObj)
+            {
+                continue;
+            }
+
+            var predicateTypeNode = attestationObj["predicateType"];
+            if (predicateTypeNode is not JsonValue predicateTypeValue)
+            {
+                continue;
+            }
+
+            string? predicateType;
+            try
+            {
+                predicateType = predicateTypeValue.GetValue<string>();
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+
             if (!string.Equals(predicateType, SlsaProvenancePredicateType, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var bundleNode = attestation?["bundle"];
+            var bundleNode = attestationObj["bundle"];
             return bundleNode?.ToJsonString();
         }
 
@@ -232,28 +263,53 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
 
         if (statement?.PredicateType == SlsaProvenancePredicateType && statement.Predicate is { } predicate)
         {
-            try
+            if (predicate.ValueKind == JsonValueKind.Object)
             {
-                var buildDefinition = predicate.GetProperty("buildDefinition");
-                buildType = buildDefinition.GetProperty("buildType").GetString();
-
-                if (buildDefinition.TryGetProperty("externalParameters", out var extParams) &&
-                    extParams.TryGetProperty("workflow", out var workflow))
+                if (predicate.TryGetProperty("buildDefinition", out var buildDefinition) &&
+                    buildDefinition.ValueKind == JsonValueKind.Object)
                 {
-                    sourceRepository = workflow.TryGetProperty("repository", out var repoEl) ? repoEl.GetString() : null;
-                    workflowPath = workflow.TryGetProperty("path", out var pathEl) ? pathEl.GetString() : null;
-                    workflowRef = workflow.TryGetProperty("ref", out var refEl) ? refEl.GetString() : null;
+                    if (buildDefinition.TryGetProperty("buildType", out var buildTypeElement) &&
+                        buildTypeElement.ValueKind == JsonValueKind.String)
+                    {
+                        buildType = buildTypeElement.GetString();
+                    }
+
+                    if (buildDefinition.TryGetProperty("externalParameters", out var extParams) &&
+                        extParams.ValueKind == JsonValueKind.Object &&
+                        extParams.TryGetProperty("workflow", out var workflow) &&
+                        workflow.ValueKind == JsonValueKind.Object)
+                    {
+                        if (workflow.TryGetProperty("repository", out var repoEl) &&
+                            repoEl.ValueKind == JsonValueKind.String)
+                        {
+                            sourceRepository = repoEl.GetString();
+                        }
+
+                        if (workflow.TryGetProperty("path", out var pathEl) &&
+                            pathEl.ValueKind == JsonValueKind.String)
+                        {
+                            workflowPath = pathEl.GetString();
+                        }
+
+                        if (workflow.TryGetProperty("ref", out var refEl) &&
+                            refEl.ValueKind == JsonValueKind.String)
+                        {
+                            workflowRef = refEl.GetString();
+                        }
+                    }
                 }
 
                 if (predicate.TryGetProperty("runDetails", out var runDetails) &&
-                    runDetails.TryGetProperty("builder", out var builder))
+                    runDetails.ValueKind == JsonValueKind.Object &&
+                    runDetails.TryGetProperty("builder", out var builder) &&
+                    builder.ValueKind == JsonValueKind.Object)
                 {
-                    builderId = builder.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+                    if (builder.TryGetProperty("id", out var idEl) &&
+                        idEl.ValueKind == JsonValueKind.String)
+                    {
+                        builderId = idEl.GetString();
+                    }
                 }
-            }
-            catch (KeyNotFoundException)
-            {
-                // Missing SLSA predicate fields — fall through with nulls.
             }
         }
 

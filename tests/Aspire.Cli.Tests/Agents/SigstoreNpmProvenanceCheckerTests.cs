@@ -16,7 +16,7 @@ public class SigstoreNpmProvenanceCheckerTests
     {
         var json = BuildAttestationJsonWithBundle("https://github.com/microsoft/playwright-cli");
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.NotNull(bundleJson);
         var bundleDoc = JsonDocument.Parse(bundleJson);
@@ -41,7 +41,7 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
@@ -49,17 +49,18 @@ public class SigstoreNpmProvenanceCheckerTests
     [Fact]
     public void ExtractSlsaBundleJson_WithEmptyAttestations_ReturnsNull()
     {
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("""{"attestations": []}""");
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("""{"attestations": []}""", out _);
 
         Assert.Null(bundleJson);
     }
 
     [Fact]
-    public void ExtractSlsaBundleJson_WithInvalidJson_ReturnsNull()
+    public void ExtractSlsaBundleJson_WithInvalidJson_ReturnsNullAndSetsParseFailed()
     {
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("not valid json {{{");
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("not valid json {{{", out var parseFailed);
 
         Assert.Null(bundleJson);
+        Assert.True(parseFailed);
     }
 
     [Fact]
@@ -82,7 +83,7 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.NotNull(bundleJson);
         var doc = JsonDocument.Parse(bundleJson);
@@ -102,7 +103,7 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
@@ -374,15 +375,19 @@ public class SigstoreNpmProvenanceCheckerTests
     [Fact]
     public void ExtractSlsaBundleJson_WithDeeplyNestedJson_ReturnsNull()
     {
-        // Deeply nested JSON should not cause stack overflow
-        var depth = 1000;
-        var json = new string('{', depth) + "\"attestations\":[]" + new string('}', depth);
+        // Build a valid deeply-nested JSON object to test stack safety.
+        // Each level wraps the previous in {"key": ...}.
+        var depth = 200;
+        var inner = """{"attestations":[]}""";
+        for (var i = 0; i < depth; i++)
+        {
+            inner = $$"""{"level{{i}}":{{inner}}}""";
+        }
 
         // Should either return null or handle gracefully (no exception)
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(inner, out _);
 
-        // The deeply nested JSON either parses (with attestations: []) or fails to parse
-        // Either way, no SLSA provenance should be found
+        // The deeply nested JSON has "attestations" buried inside — not at root level
         Assert.Null(bundleJson);
     }
 
@@ -391,7 +396,7 @@ public class SigstoreNpmProvenanceCheckerTests
     {
         var json = """{"attestations": [{"predicateType": "https://slsa.dev/provenance/v1", "bundle": {"dsse""";
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
@@ -402,7 +407,7 @@ public class SigstoreNpmProvenanceCheckerTests
         // attestations is a string instead of array
         var json = """{"attestations": "not an array"}""";
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
@@ -412,25 +417,72 @@ public class SigstoreNpmProvenanceCheckerTests
     {
         var json = """{"attestations": null}""";
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
 
     [Fact]
-    public void ExtractSlsaBundleJson_WithEmptyObject_ReturnsNull()
+    public void ExtractSlsaBundleJson_WithEmptyObject_ReturnsNullWithoutParseFailed()
     {
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("{}");
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("{}", out var parseFailed);
 
         Assert.Null(bundleJson);
+        Assert.False(parseFailed);
     }
 
     [Fact]
-    public void ExtractSlsaBundleJson_WithEmptyString_ReturnsNull()
+    public void ExtractSlsaBundleJson_WithNonObjectArrayElements_SkipsThem()
     {
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("");
+        // Array contains string, number, and null elements instead of objects
+        var json = """
+        {
+            "attestations": [
+                "not an object",
+                42,
+                null,
+                {
+                    "predicateType": "https://slsa.dev/provenance/v1",
+                    "bundle": { "dsseEnvelope": {} }
+                }
+            ]
+        }
+        """;
+
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out var parseFailed);
+
+        Assert.NotNull(bundleJson);
+        Assert.False(parseFailed);
+    }
+
+    [Fact]
+    public void ExtractSlsaBundleJson_WithNonStringPredicateType_SkipsElement()
+    {
+        // predicateType is a number instead of a string
+        var json = """
+        {
+            "attestations": [
+                {
+                    "predicateType": 42,
+                    "bundle": { "dsseEnvelope": {} }
+                }
+            ]
+        }
+        """;
+
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out var parseFailed);
 
         Assert.Null(bundleJson);
+        Assert.False(parseFailed);
+    }
+
+    [Fact]
+    public void ExtractSlsaBundleJson_WithEmptyString_ReturnsNullAndSetsParseFailed()
+    {
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson("", out var parseFailed);
+
+        Assert.Null(bundleJson);
+        Assert.True(parseFailed);
     }
 
     #endregion
@@ -727,6 +779,61 @@ public class SigstoreNpmProvenanceCheckerTests
 
     #endregion
 
+    #region Adversarial Tests - Predicate Type Safety
+
+    [Fact]
+    public void ExtractProvenanceFromResult_WithWrongTypedPredicateValues_ReturnsNullFields()
+    {
+        // buildType is a number, workflow fields are arrays/booleans — all wrong types
+        var predicateJson = """
+        {
+            "_type": "https://in-toto.io/Statement/v1",
+            "predicateType": "https://slsa.dev/provenance/v1",
+            "subject": [],
+            "predicate": {
+                "buildDefinition": {
+                    "buildType": 42,
+                    "externalParameters": {
+                        "workflow": {
+                            "repository": true,
+                            "path": [],
+                            "ref": {}
+                        }
+                    }
+                },
+                "runDetails": {
+                    "builder": {
+                        "id": 999
+                    }
+                }
+            }
+        }
+        """;
+
+        var statement = InTotoStatement.Parse(predicateJson);
+        var result = new VerificationResult
+        {
+            SignerIdentity = new VerifiedIdentity
+            {
+                SubjectAlternativeName = "test",
+                Issuer = "test",
+                Extensions = new FulcioCertificateExtensions()
+            },
+            Statement = statement
+        };
+
+        var provenance = SigstoreNpmProvenanceChecker.ExtractProvenanceFromResult(result);
+
+        Assert.NotNull(provenance);
+        Assert.Null(provenance.BuildType);
+        Assert.Null(provenance.SourceRepository);
+        Assert.Null(provenance.WorkflowPath);
+        Assert.Null(provenance.WorkflowRef);
+        Assert.Null(provenance.BuilderId);
+    }
+
+    #endregion
+
     #region Adversarial Tests - Attestation Structure
 
     [Fact]
@@ -742,7 +849,7 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
@@ -762,7 +869,7 @@ public class SigstoreNpmProvenanceCheckerTests
         }
         """;
 
-        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json);
+        var bundleJson = SigstoreNpmProvenanceChecker.ExtractSlsaBundleJson(json, out _);
 
         Assert.Null(bundleJson);
     }
