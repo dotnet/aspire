@@ -25,6 +25,9 @@
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
 
+    <!-- Template tests don't need macOS coverage - they test dotnet new/build which is OS-agnostic -->
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+
     <!-- Timeout configuration -->
     <TestSessionTimeout>20m</TestSessionTimeout>
     <TestHangTimeout>15m</TestHangTimeout>
