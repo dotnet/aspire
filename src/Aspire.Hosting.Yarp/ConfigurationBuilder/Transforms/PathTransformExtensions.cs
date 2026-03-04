@@ -16,6 +16,7 @@ public static class PathTransformExtensions
     /// <summary>
     /// Adds the transform which sets the request path with the given value.
     /// </summary>
+    [AspireExport("withTransformPathSet", Description = "Adds the transform which sets the request path with the given value.")]
     public static YarpRoute WithTransformPathSet(this YarpRoute route, PathString path)
     {
         if (path.Value is null)
@@ -31,6 +32,7 @@ public static class PathTransformExtensions
     /// <summary>
     /// Adds the transform which will prefix the request path with the given value.
     /// </summary>
+    [AspireExport("withTransformPathPrefix", Description = "Adds the transform which will prefix the request path with the given value.")]
     public static YarpRoute WithTransformPathPrefix(this YarpRoute route, PathString prefix)
     {
         if (prefix.Value is null)
@@ -46,6 +48,7 @@ public static class PathTransformExtensions
     /// <summary>
     /// Adds the transform which will remove the matching prefix from the request path.
     /// </summary>
+    [AspireExport("withTransformPathRemovePrefix", Description = "Adds the transform which will remove the matching prefix from the request path.")]
     public static YarpRoute WithTransformPathRemovePrefix(this YarpRoute route, PathString prefix)
     {
         if (prefix.Value is null)
@@ -61,6 +64,7 @@ public static class PathTransformExtensions
     /// <summary>
     /// Adds the transform which will set the request path with the given value.
     /// </summary>
+    [AspireExport("withTransformPathRouteValues", Description = "Adds the transform which will set the request path with the given value.")]
     public static YarpRoute WithTransformPathRouteValues(this YarpRoute route, [StringSyntax("Route")] PathString pattern)
     {
         if (pattern.Value is null)

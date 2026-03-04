@@ -22,6 +22,7 @@ public static class GitHubModelsExtensions
     /// <param name="model">The model name to use with GitHub Models.</param>
     /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addGitHubModel1", MethodName = "addGitHubModel", Description = "Adds a GitHub Model resource to the distributed application model.")]
     public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, string model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -97,6 +98,7 @@ public static class GitHubModelsExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addGitHubModel2", MethodName = "addGitHubModel", Description = "Adds a GitHub Model resource to the distributed application model.")]
     public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, GitHubModel model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -111,6 +113,7 @@ public static class GitHubModelsExtensions
     /// <param name="apiKey">The API key parameter.</param>
     /// <returns>The resource builder.</returns>
     /// <exception cref="ArgumentException">Thrown when the provided parameter is not marked as secret.</exception>
+    [AspireExport("withApiKey", Description = "Configures the API key for the GitHub Model resource.")]
     public static IResourceBuilder<GitHubModelResource> WithApiKey(this IResourceBuilder<GitHubModelResource> builder, IResourceBuilder<ParameterResource> apiKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -153,6 +156,7 @@ public static class GitHubModelsExtensions
     /// the model is not working as expected. Furthermore, the health check will run a single time per application instance.
     /// </para>
     /// </remarks>
+    [AspireExport("withHealthCheck", Description = "Adds a health check for the GitHub Model resource.")]
     public static IResourceBuilder<GitHubModelResource> WithHealthCheck(this IResourceBuilder<GitHubModelResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
