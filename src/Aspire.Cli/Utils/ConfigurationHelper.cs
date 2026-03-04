@@ -133,18 +133,46 @@ internal static class ConfigurationHelper
                 // Convert "a:b:c" to nested {"a": {"b": {"c": value}}}
                 var parts = key.Split(':');
                 var currentObject = settings;
+                var pathConflict = false;
 
+                // Walk all but the last segment, creating objects as needed.
                 for (int i = 0; i < parts.Length - 1; i++)
                 {
-                    if (!currentObject.ContainsKey(parts[i]) || currentObject[parts[i]] is not JsonObject)
+                    var part = parts[i];
+
+                    if (!currentObject.ContainsKey(part) || currentObject[part] is null)
                     {
-                        currentObject[parts[i]] = new JsonObject();
+                        currentObject[part] = new JsonObject();
+                    }
+                    else if (currentObject[part] is JsonObject)
+                    {
+                        currentObject = currentObject[part]!.AsObject();
+                        continue;
+                    }
+                    else
+                    {
+                        // Existing non-object value conflicts with the desired nested structure.
+                        // Prefer the existing nested value and drop the flat key.
+                        pathConflict = true;
+                        break;
                     }
 
-                    currentObject = currentObject[parts[i]]!.AsObject();
+                    currentObject = currentObject[part]!.AsObject();
+                }
+
+                if (pathConflict)
+                {
+                    continue;
                 }
 
                 var finalKey = parts[parts.Length - 1];
+
+                // If the final key already exists, keep its value and drop the flat key.
+                if (currentObject.ContainsKey(finalKey) && currentObject[finalKey] is not null)
+                {
+                    continue;
+                }
+
                 currentObject[finalKey] = value;
             }
 

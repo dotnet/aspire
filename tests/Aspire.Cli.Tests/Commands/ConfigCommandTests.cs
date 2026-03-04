@@ -558,12 +558,46 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        // Verify the file was normalized - flat key should be gone
+        // Verify the file was normalized - flat key should be gone, existing nested value preserved
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
         Assert.False(settings.ContainsKey("features:polyglotSupportEnabled"));
         Assert.True(settings["features"] is JsonObject);
+        var featuresObject = settings["features"]!.AsObject();
+        Assert.Equal("false", featuresObject["polyglotSupportEnabled"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigSetCommand_WithCorruptedFile_PreservesExistingNestedValueOverFlatKey()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a settings file where both a nested value and a flat colon key exist
+        // for the same path but with different values.
+        var settingsDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire");
+        Directory.CreateDirectory(settingsDir);
+        var settingsPath = Path.Combine(settingsDir, "settings.json");
+        await File.WriteAllTextAsync(settingsPath, """
+            {
+              "features": {
+                "polyglotSupportEnabled": "nested-value"
+              },
+              "features:polyglotSupportEnabled": "flat-value"
+            }
+            """);
+
+        // Loading configuration triggers normalization
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // The existing nested value should be preserved; the flat key value should be dropped
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
+        Assert.False(settings.ContainsKey("features:polyglotSupportEnabled"));
+        var featuresObject = settings["features"]!.AsObject();
+        Assert.Equal("nested-value", featuresObject["polyglotSupportEnabled"]?.ToString());
     }
 }
 
