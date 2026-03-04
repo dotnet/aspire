@@ -138,7 +138,6 @@ public sealed class BannerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/14307")]
     public async Task Banner_NotDisplayedWithNoLogoFlag()
     {
         var workspace = TemporaryWorkspace.Create(output);
@@ -156,10 +155,6 @@ public sealed class BannerTests(ITestOutputHelper output)
         var bannerPattern = new CellPatternSearcher()
             .Find("Welcome to the");
 
-        // Pattern to detect the help text (confirms command completed)
-        var helpPattern = new CellPatternSearcher()
-            .Find("Commands:");
-
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -173,17 +168,22 @@ public sealed class BannerTests(ITestOutputHelper output)
         }
 
         // Delete the first-time use sentinel file to simulate first run,
-        // but use --nologo to suppress the banner
+        // but use --nologo to suppress the banner.
+        // Use 'cache clear' instead of '--help' to keep output short enough
+        // to verify banner absence in the visible terminal area.
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
             .ClearScreen(counter)
-            .Type("aspire --nologo --help")
+            .Type("aspire --nologo cache clear")
             .Enter()
             .WaitUntil(s =>
             {
-                // Wait for help output to confirm command completed
-                var hasHelp = helpPattern.Search(s).Count > 0;
-                if (!hasHelp)
+                // Wait for success prompt to confirm command completed
+                var successPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                if (successPromptSearcher.Search(s).Count == 0)
                 {
                     return false;
                 }
@@ -198,7 +198,7 @@ public sealed class BannerTests(ITestOutputHelper output)
 
                 return true;
             }, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
+            .IncrementSequence(counter)
             .Type("exit")
             .Enter();
 
