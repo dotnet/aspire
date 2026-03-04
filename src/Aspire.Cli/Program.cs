@@ -613,6 +613,9 @@ public class Program
 
         try
         {
+            cliLogger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
+            cliLogger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
+
             // Log command invocation details for debugging
             var commandLine = args.Length > 0 ? $"aspire {string.Join(" ", args)}" : "aspire";
             var workingDir = Environment.CurrentDirectory;
