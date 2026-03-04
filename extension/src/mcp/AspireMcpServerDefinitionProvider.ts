@@ -58,7 +58,6 @@ export class AspireMcpServerDefinitionProvider implements vscode.McpServerDefini
             return [];
         }
 
-        extensionLogOutputChannel.info(`Providing Aspire MCP server definition using CLI at: ${this._cliPath}`);
         return [new vscode.McpStdioServerDefinition('Aspire', this._cliPath, ['agent', 'mcp'])];
     }
 
