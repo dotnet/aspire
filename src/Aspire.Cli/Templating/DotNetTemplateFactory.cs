@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
@@ -56,6 +57,11 @@ internal class DotNetTemplateFactory(
 
     public IEnumerable<ITemplate> GetTemplates()
     {
+        if (!IsDotNetOnPath())
+        {
+            return [];
+        }
+
         var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
         var nonInteractive = !hostEnvironment.SupportsInteractiveInput;
         return GetTemplatesCore(showAllTemplates, nonInteractive);
@@ -94,6 +100,37 @@ internal class DotNetTemplateFactory(
         {
             return false;
         }
+    }
+
+    private bool IsDotNetOnPath()
+    {
+        // Check the private SDK installation first.
+        var sdkInstallPath = Path.Combine(executionContext.SdksDirectory.FullName, "dotnet", DotNetSdkInstaller.MinimumSdkVersion);
+        if (Directory.Exists(sdkInstallPath))
+        {
+            return true;
+        }
+
+        // Fall back to checking for dotnet on the system PATH.
+        var dotnetFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet";
+        var pathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+
+        foreach (var directory in pathVariable.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            try
+            {
+                if (File.Exists(Path.Combine(directory, dotnetFileName)))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Skip directories that can't be accessed.
+            }
+        }
+
+        return false;
     }
 
     private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates, bool nonInteractive = false)
