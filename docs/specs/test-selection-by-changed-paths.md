@@ -115,33 +115,33 @@ Changed Files
 | Test file changes not caught by dotnet-affected | `sourceToTestMappings` resolves to test project |
 | Any `IsPackable=true` project affected | NuGet-dependent tests triggered (planned) |
 
-## Tool: Aspire.TestSelector
+## Tool: TestSelector
 
 ### Location
 
-`tools/Aspire.TestSelector/`
+`tools/TestSelector/`
 
 ### CLI Usage
 
 ```bash
 # Basic usage (compares to origin/main)
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main
 
 # With explicit changed files (for testing)
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx \
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx \
   --changed-files "src/Aspire.Hosting/Foo.cs,tests/Aspire.TestUtilities/Bar.cs"
 
 # Output to file
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx \
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx \
   --from origin/main \
   --output test-selection.json
 
 # GitHub Actions format (writes to $GITHUB_OUTPUT)
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx \
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx \
   --from origin/main --github-output
 
 # Verbose mode
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main --verbose
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main --verbose
 ```
 
 ### Parameters
@@ -218,8 +218,8 @@ dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from 
       "test": "tests/{name}.Tests/"
     },
     {
-      "source": "tools/Aspire.TestSelector/**",
-      "test": "tests/Aspire.TestSelector.Tests/"
+      "source": "tools/TestSelector/**",
+      "test": "tests/TestSelector.Tests/"
     },
     {
       "source": "playground/**",
@@ -492,7 +492,7 @@ jobs:
         id: detect
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
+            dotnet run --project tools/TestSelector/TestSelector.csproj -- \
               --solution Aspire.slnx \
               --config eng/scripts/test-selection-rules.json \
               --from "${{ github.event.pull_request.base.sha }}" \
@@ -536,8 +536,8 @@ The tool requires:
 ## File Structure
 
 ```text
-tools/Aspire.TestSelector/
-├── Aspire.TestSelector.csproj
+tools/TestSelector/
+├── TestSelector.csproj
 ├── Program.cs                       # CLI entry point + evaluation logic
 ├── CategoryMapper.cs                # Map files → categories via triggerPaths
 ├── DiagnosticLogger.cs              # Verbose logging helper

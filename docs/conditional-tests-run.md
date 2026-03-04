@@ -31,7 +31,7 @@ The key insight is that source-to-test mappings use naming conventions (e.g., `s
 
 ## Architecture
 
-### 1. Test Selector Tool (`tools/Aspire.TestSelector`)
+### 1. Test Selector Tool (`tools/TestSelector`)
 
 A C# CLI tool that:
 - Reads the configuration file
@@ -226,20 +226,20 @@ Glob patterns to identify which projects are test projects. Used to filter `dotn
 
 ```bash
 # Basic usage - compare against origin/main
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main
 
 # With verbose output
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main --verbose
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main --verbose
 
 # Test with explicit changed files
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx \
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx \
   --changed-files "src/Aspire.Dashboard/App.razor" --verbose
 
 # Output to file
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main --output result.json
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main --output result.json
 
 # GitHub Actions format
-dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from origin/main --github-output
+dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/main --github-output
 ```
 
 ### Options
@@ -299,11 +299,11 @@ dotnet run --project tools/Aspire.TestSelector -- --solution Aspire.slnx --from 
 
 ```bash
 # Run all test selector tests
-dotnet test tests/Aspire.TestSelector.Tests
+dotnet test tests/TestSelector.Tests
 
 # Run specific test categories
-dotnet test tests/Aspire.TestSelector.Tests -- --filter-class "*.IgnorePathFilterTests"
-dotnet test tests/Aspire.TestSelector.Tests -- --filter-class "*.EndToEndEvaluationTests"
+dotnet test tests/TestSelector.Tests -- --filter-class "*.IgnorePathFilterTests"
+dotnet test tests/TestSelector.Tests -- --filter-class "*.EndToEndEvaluationTests"
 ```
 
 ### Test Coverage

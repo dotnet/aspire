@@ -179,7 +179,7 @@ jobs:
 Run the test selector locally to verify your configuration:
 
 ```bash
-dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
+dotnet run --project tools/TestSelector/TestSelector.csproj -- \
   --solution Aspire.slnx \
   --config eng/scripts/test-selection-rules.json \
   --from <base-commit> \
