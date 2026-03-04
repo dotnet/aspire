@@ -47,6 +47,8 @@ export class ReferenceExpression {
     private readonly _handle?: Handle;
     private readonly _client?: AspireClient;
 
+    constructor(format: string, valueProviders: unknown[]);
+    constructor(handle: Handle, client: AspireClient);
     constructor(handleOrFormat: Handle | string, clientOrValueProviders: AspireClient | unknown[]) {
         if (typeof handleOrFormat === 'string') {
             this._format = handleOrFormat;
