@@ -91,6 +91,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "command": {
+                "type": "string",
+                "description": "%extension.debug.command%",
+                "enum": ["run", "deploy", "publish", "do"],
+                "default": "run"
+              },
+              "step": {
+                "type": "string",
+                "description": "%extension.debug.step%"
               }
             }
           }
@@ -160,6 +170,12 @@
         "command": "aspire-vscode.deploy",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
         "category": "Aspire"
       },
       {
@@ -425,6 +441,25 @@
           "type": "boolean",
           "default": true,
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "scope": "window"
+        },
+        "aspire.dashboardBrowser": {
+          "type": "string",
+          "enum": ["openExternalBrowser", "debugChrome", "debugEdge", "debugFirefox"],
+          "default": "openExternalBrowser",
+          "description": "%configuration.aspire.dashboardBrowser%",
+          "enumDescriptions": [
+            "%configuration.aspire.dashboardBrowser.openExternalBrowser%",
+            "%configuration.aspire.dashboardBrowser.debugChrome%",
+            "%configuration.aspire.dashboardBrowser.debugEdge%",
+            "%configuration.aspire.dashboardBrowser.debugFirefox%"
+          ],
+          "scope": "window"
+        },
+        "aspire.closeDashboardOnDebugEnd": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.closeDashboardOnDebugEnd%",
           "scope": "window"
         },
         "aspire.enableDebugConfigEnvironmentLogging": {

@@ -34,6 +34,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using StreamJsonRpc;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Hosting;
@@ -371,7 +372,6 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
-        builder.Services.AddTransient<RestartCommand>();
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
@@ -614,6 +614,9 @@ public class Program
 
         try
         {
+            cliLogger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
+            cliLogger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
+
             // Log command invocation details for debugging
             var commandLine = args.Length > 0 ? $"aspire {string.Join(" ", args)}" : "aspire";
             var workingDir = Environment.CurrentDirectory;
@@ -644,17 +647,28 @@ public class Program
             // Catch block is used instead of System.Commandline's default handler behavior.
             // Allows logging of exceptions to telemetry.
 
-            // Don't log or display cancellation exceptions.
+            // Don't log or display cancellation exceptions or connection lost exceptions (which occur during debug session restart).
             // Check both Ctrl+C cancellation (cts.IsCancellationRequested) and
             // extension prompt cancellation (ExtensionOperationCanceledException).
-            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && ex is not ExtensionOperationCanceledException)
+            var isConnectionLost = ex is ConnectionLostException
+                || ex is ObjectDisposedException
+                || (ex is OperationCanceledException && ex.InnerException is ConnectionLostException);
+
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && !isConnectionLost && ex is not ExtensionOperationCanceledException)
             {
                 logger.LogError(ex, "An unexpected error occurred.");
 
                 telemetry.RecordError("An unexpected error occurred.", ex);
 
-                var interactionService = app.Services.GetRequiredService<IInteractionService>();
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+                try
+                {
+                    var interactionService = app.Services.GetRequiredService<IInteractionService>();
+                    interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+                }
+                catch (Exception displayEx) when (displayEx is ConnectionLostException || displayEx is ObjectDisposedException)
+                {
+                    // Swallow exceptions when trying to display an error during connection shutdown
+                }
             }
 
             // Log exit code for debugging

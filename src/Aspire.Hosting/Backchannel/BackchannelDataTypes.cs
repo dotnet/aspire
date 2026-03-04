@@ -271,7 +271,7 @@ internal sealed class ExecuteResourceCommandRequest
     public required string ResourceName { get; init; }
 
     /// <summary>
-    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// Gets the command name (e.g., "start", "stop", "restart").
     /// </summary>
     public required string CommandName { get; init; }
 }
@@ -739,7 +739,7 @@ internal sealed class ResourceSnapshot
 internal sealed class ResourceSnapshotCommand
 {
     /// <summary>
-    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// Gets the command name (e.g., "start", "stop", "restart").
     /// </summary>
     public required string Name { get; init; }
 
