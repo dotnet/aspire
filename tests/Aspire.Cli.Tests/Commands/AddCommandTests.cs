@@ -76,7 +76,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -151,7 +151,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -234,7 +234,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -313,7 +313,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     addedPackageName = packageName;
                     addedPackageVersion = packageVersion;
@@ -380,7 +380,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     // Capture the source used for add
                     addUsedSource = nugetSource;
@@ -501,7 +501,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     return (0, new NuGetPackage[] { dockerPackage, redisPackage });
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     return 0; // Success.
                 };
@@ -723,7 +723,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     return (0, new NuGetPackage[] { redisPackage });
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     selectedPackageId = packageName;
                     return 0;
@@ -830,7 +830,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     addedPackage = packageName;
                     return 0; // Success.
@@ -914,7 +914,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     return 0; // Success.
                 };
@@ -983,7 +983,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                 {
                     addedPackage = packageName;
                     return 0; // Success.
