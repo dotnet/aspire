@@ -597,7 +597,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             appHostFile,
             "Aspire.Hosting.Redis",
             "9.2.0",
-            null, // no source, should use --no-restore
+            null,
+            true, // should use --no-restore
             options,
             CancellationToken.None
             );
@@ -660,6 +661,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             "Aspire.Hosting.Redis",
             "9.2.0",
             "https://api.nuget.org/v3/index.json", // provide source, should use --source
+            false,
             options,
             CancellationToken.None
             );
@@ -724,7 +726,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             projectFile,
             "Aspire.Hosting.Redis",
             "9.2.0",
-            null, // no source, should use --no-restore
+            null,
+            true, // should use --no-restore
             options,
             CancellationToken.None
             );
