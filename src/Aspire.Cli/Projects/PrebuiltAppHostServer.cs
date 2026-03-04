@@ -107,9 +107,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
         try
         {
-            // Generate appsettings.json with ATS assemblies for the server to scan
-            await GenerateAppSettingsAsync(integrationList, cancellationToken);
-
             // Resolve the configured channel (local settings.json → global config fallback)
             var channelName = await ResolveChannelNameAsync(cancellationToken);
 
@@ -134,6 +131,13 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
                 _integrationLibsPath = await RestoreNuGetPackagesAsync(
                     packageRefs, channelName, cancellationToken);
             }
+
+            // Generate appsettings.json after build/restore so we can use actual assembly names
+            // from the build output (project references may have custom <AssemblyName>)
+            var projectRefAssemblyNames = _integrationLibsPath is not null
+                ? await ReadProjectRefAssemblyNamesAsync(_integrationLibsPath, cancellationToken)
+                : [];
+            await GenerateAppSettingsAsync(packageRefs, projectRefAssemblyNames, cancellationToken);
 
             return new AppHostServerPrepareResult(
                 Success: true,
@@ -309,6 +313,18 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             doc.Root!.Add(new XElement("ItemGroup",
                 projectRefs.Select(p => new XElement("ProjectReference",
                     new XAttribute("Include", p.ProjectPath!)))));
+
+            // Add a target that writes the resolved project reference assembly names to a file.
+            // This lets us discover the actual assembly names after build (which may differ from
+            // the settings.json key or csproj filename if <AssemblyName> is overridden).
+            doc.Root!.Add(
+                new XElement("Target",
+                    new XAttribute("Name", "_WriteProjectRefAssemblyNames"),
+                    new XAttribute("AfterTargets", "Build"),
+                    new XElement("WriteLinesToFile",
+                        new XAttribute("File", Path.Combine(outputDir, "_project-ref-assemblies.txt")),
+                        new XAttribute("Lines", "@(_ResolvedProjectReferencePaths->'%(Filename)')"),
+                        new XAttribute("Overwrite", "true"))));
         }
 
         return doc.ToString();
@@ -491,25 +507,48 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <inheritdoc />
     public string GetInstanceIdentifier() => _appPath;
 
+    /// <summary>
+    /// Reads the project reference assembly names written by the MSBuild target during build.
+    /// </summary>
+    private async Task<List<string>> ReadProjectRefAssemblyNamesAsync(string libsPath, CancellationToken cancellationToken)
+    {
+        var filePath = Path.Combine(libsPath, "_project-ref-assemblies.txt");
+        if (!File.Exists(filePath))
+        {
+            _logger.LogWarning("Project reference assembly names file not found at {Path}", filePath);
+            return [];
+        }
+
+        var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+        return lines.Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim()).ToList();
+    }
+
     private async Task GenerateAppSettingsAsync(
-        List<IntegrationReference> integrations,
+        List<IntegrationReference> packageRefs,
+        List<string> projectRefAssemblyNames,
         CancellationToken cancellationToken)
     {
-        // Build the list of ATS assemblies (for [AspireExport] scanning)
-        // Skip SDK-only packages that don't have runtime DLLs
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
-        foreach (var integration in integrations)
+
+        foreach (var pkg in packageRefs)
         {
-            // Skip SDK packages that don't produce runtime assemblies
-            if (integration.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
-                integration.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+            if (pkg.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
+                pkg.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
+            if (!atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
             {
-                atsAssemblies.Add(integration.Name);
+                atsAssemblies.Add(pkg.Name);
+            }
+        }
+
+        foreach (var name in projectRefAssemblyNames)
+        {
+            if (!atsAssemblies.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                atsAssemblies.Add(name);
             }
         }
 
