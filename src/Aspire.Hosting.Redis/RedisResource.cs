@@ -12,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a Redis resource independent of the hosting model.
 /// </remarks>
 /// <param name="name">The name of the resource.</param>
+[AspireExport(ExposeProperties = true)]
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     /// <summary>
