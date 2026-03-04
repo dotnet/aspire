@@ -27,8 +27,6 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
     /// </summary>
-    /// <remarks>This property is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression
     {
         get

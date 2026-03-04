@@ -26,8 +26,6 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     /// <summary>
     /// Gets the connection string expression for the Oracle Database.
     /// </summary>
-    /// <remarks>This property is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 

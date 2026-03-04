@@ -4739,6 +4739,17 @@ export class PostgresDatabaseResource extends ResourceBuilderBase<PostgresDataba
         },
     };
 
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/PostgresDatabaseResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
     /** Gets the DatabaseName property */
     databaseName = {
         get: async (): Promise<string> => {
@@ -5995,6 +6006,17 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
         get: async (): Promise<ReferenceExpression> => {
             const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
                 'Aspire.Hosting.ApplicationModel/PostgresServerResource.userNameReference',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/PostgresServerResource.connectionStringExpression',
                 { context: this._handle }
             );
             return new ReferenceExpression(handle, this._client);

@@ -2586,6 +2586,17 @@ export class OracleDatabaseResource extends ResourceBuilderBase<OracleDatabaseRe
         },
     };
 
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/OracleDatabaseResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
     /** Gets the UriExpression property */
     uriExpression = {
         get: async (): Promise<ReferenceExpression> => {
@@ -2905,6 +2916,17 @@ export class OracleDatabaseServerResource extends ResourceBuilderBase<OracleData
                 { context: this._handle }
             );
             return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/OracleDatabaseServerResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
         },
     };
 

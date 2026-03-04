@@ -511,6 +511,19 @@ func (s *TestDatabaseResource) WithCancellableOperation(operation func(...any) a
 	return result.(*IResource), nil
 }
 
+// WithDataVolume adds a data volume
+func (s *TestDatabaseResource) WithDataVolume(name string) (*TestDatabaseResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withDataVolume", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestDatabaseResource), nil
+}
+
 // TestEnvironmentContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext.
 type TestEnvironmentContext struct {
 	HandleWrapperBase
@@ -950,6 +963,20 @@ func (s *TestRedisResource) WithMultiParamHandleCallback(callback func(...any) a
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withMultiParamHandleCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestRedisResource), nil
+}
+
+// WithDataVolume adds a data volume with persistence
+func (s *TestRedisResource) WithDataVolume(name string, isReadOnly bool) (*TestRedisResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["isReadOnly"] = SerializeValue(isReadOnly)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withDataVolume", reqArgs)
 	if err != nil {
 		return nil, err
 	}

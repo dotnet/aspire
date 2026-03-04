@@ -2577,6 +2577,103 @@ export class GarnetResource extends ResourceBuilderBase<GarnetResourceHandle> {
         super(handle, client);
     }
 
+    /** Gets the PrimaryEndpoint property */
+    primaryEndpoint = {
+        get: async (): Promise<EndpointReference> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceHandle>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.primaryEndpoint',
+                { context: this._handle }
+            );
+            return new EndpointReference(handle, this._client);
+        },
+    };
+
+    /** Gets the Host property */
+    host = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.host',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the Port property */
+    port = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.port',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the UriExpression property */
+    uriExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.uriExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the Entrypoint property */
+    entrypoint = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.entrypoint',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.setEntrypoint',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the ShellExecution property */
+    shellExecution = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.shellExecution',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.setShellExecution',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/GarnetResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** @internal */
     private async _withBindMountInternal(source: string, target: string, isReadOnly?: boolean): Promise<GarnetResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source, target };

@@ -2592,6 +2592,70 @@ export class MySqlDatabaseResource extends ResourceBuilderBase<MySqlDatabaseReso
         super(handle, client);
     }
 
+    /** Gets the Parent property */
+    parent = {
+        get: async (): Promise<MySqlServerResource> => {
+            const handle = await this._client.invokeCapability<MySqlServerResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.parent',
+                { context: this._handle }
+            );
+            return new MySqlServerResource(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the UriExpression property */
+    uriExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.uriExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the JdbcConnectionString property */
+    jdbcConnectionString = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.jdbcConnectionString',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the DatabaseName property */
+    databaseName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.databaseName',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/MySqlDatabaseResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** @internal */
     private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<MySqlDatabaseResource> {
         const callbackId = registerCallback(async (objData: unknown) => {
@@ -2858,6 +2922,128 @@ export class MySqlServerResource extends ResourceBuilderBase<MySqlServerResource
     constructor(handle: MySqlServerResourceHandle, client: AspireClientRpc) {
         super(handle, client);
     }
+
+    /** Gets the PrimaryEndpoint property */
+    primaryEndpoint = {
+        get: async (): Promise<EndpointReference> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.primaryEndpoint',
+                { context: this._handle }
+            );
+            return new EndpointReference(handle, this._client);
+        },
+    };
+
+    /** Gets the Host property */
+    host = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.host',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the Port property */
+    port = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.port',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the UriExpression property */
+    uriExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.uriExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the JdbcConnectionString property */
+    jdbcConnectionString = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.jdbcConnectionString',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the Databases property */
+    private _databases?: AspireDict<string, string>;
+    get databases(): AspireDict<string, string> {
+        if (!this._databases) {
+            this._databases = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.databases',
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.databases'
+            );
+        }
+        return this._databases;
+    }
+
+    /** Gets the Entrypoint property */
+    entrypoint = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.entrypoint',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.setEntrypoint',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the ShellExecution property */
+    shellExecution = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.shellExecution',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.setShellExecution',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/MySqlServerResource.name',
+                { context: this._handle }
+            );
+        },
+    };
 
     /** @internal */
     private async _withBindMountInternal(source: string, target: string, isReadOnly?: boolean): Promise<MySqlServerResource> {
