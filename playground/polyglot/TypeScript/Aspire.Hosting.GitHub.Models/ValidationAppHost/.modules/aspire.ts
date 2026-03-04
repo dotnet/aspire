@@ -308,6 +308,10 @@ export interface AddConnectionStringOptions {
     environmentVariableName?: string;
 }
 
+export interface AddGitHubModelByIdOptions {
+    organization?: ParameterResource;
+}
+
 export interface AddGitHubModelOptions {
     organization?: ParameterResource;
 }
@@ -1069,6 +1073,23 @@ export class DistributedApplicationBuilder {
         return new GitHubModelResourcePromise(this._addGitHubModelInternal(name, model, organization));
     }
 
+    /** Adds a GitHub Model resource using a model identifier string. */
+    /** @internal */
+    async _addGitHubModelByIdInternal(name: string, modelId: string, organization?: ParameterResource): Promise<GitHubModelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, modelId };
+        if (organization !== undefined) rpcArgs.organization = organization;
+        const result = await this._client.invokeCapability<GitHubModelResourceHandle>(
+            'Aspire.Hosting.GitHub.Models/addGitHubModelById',
+            rpcArgs
+        );
+        return new GitHubModelResource(result, this._client);
+    }
+
+    addGitHubModelById(name: string, modelId: string, options?: AddGitHubModelByIdOptions): GitHubModelResourcePromise {
+        const organization = options?.organization;
+        return new GitHubModelResourcePromise(this._addGitHubModelByIdInternal(name, modelId, organization));
+    }
+
 }
 
 /**
@@ -1117,6 +1138,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a GitHub Model resource to the distributed application model. */
     addGitHubModel(name: string, model: GitHubModelName, options?: AddGitHubModelOptions): GitHubModelResourcePromise {
         return new GitHubModelResourcePromise(this._promise.then(obj => obj.addGitHubModel(name, model, options)));
+    }
+
+    /** Adds a GitHub Model resource using a model identifier string. */
+    addGitHubModelById(name: string, modelId: string, options?: AddGitHubModelByIdOptions): GitHubModelResourcePromise {
+        return new GitHubModelResourcePromise(this._promise.then(obj => obj.addGitHubModelById(name, modelId, options)));
     }
 
 }

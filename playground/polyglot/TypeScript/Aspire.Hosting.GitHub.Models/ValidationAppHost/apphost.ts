@@ -9,6 +9,9 @@ const githubModel = await builder.addGitHubModel("chat", GitHubModelName.OpenAIG
 const orgParam = await builder.addParameter("gh-org");
 const githubModelWithOrg = await builder.addGitHubModel("chat-org", GitHubModelName.OpenAIGpt4oMini, { organization: orgParam });
 
+// 3) addGitHubModelById — using a model identifier string for models not in the enum
+const customModel = await builder.addGitHubModelById("custom-chat", "custom-vendor/custom-model");
+
 // 3) withApiKey — configure a custom API key parameter
 const apiKey = await builder.addParameter("gh-api-key", { secret: true });
 await githubModel.withApiKey(apiKey);

@@ -122,6 +122,20 @@ public static class GitHubModelsExtensions
     }
 
     /// <summary>
+    /// Adds a GitHub Model resource to the application model using a model identifier string.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="modelId">The model identifier string, for example <c>"openai/gpt-4o"</c>.</param>
+    /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addGitHubModelById", Description = "Adds a GitHub Model resource using a model identifier string.")]
+    internal static IResourceBuilder<GitHubModelResource> AddGitHubModelById(this IDistributedApplicationBuilder builder, [ResourceName] string name, string modelId, IResourceBuilder<ParameterResource>? organization = null)
+    {
+        return AddGitHubModel(builder, name, modelId, organization);
+    }
+
+    /// <summary>
     /// Configures the API key for the GitHub Model resource from a parameter.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
