@@ -21,7 +21,7 @@ internal interface IExtensionInteractionService : IInteractionService
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
     void DisplayConsolePlainText(string message);
-    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null);
     void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
     void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false);
 }
@@ -447,9 +447,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
-        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
+        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, options, _cancellationToken);
     }
 
     public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)

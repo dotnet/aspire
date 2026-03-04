@@ -144,9 +144,14 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
     projectFile?: string;
 }
 
+export type AspireCommandType = 'run' | 'deploy' | 'publish' | 'do';
+
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
     program: string;
     debuggers?: AspireDebuggersConfiguration;
+    command?: AspireCommandType;
+    args?: string[];
+    step?: string;
 }
 
 interface AspireDebuggersConfiguration {

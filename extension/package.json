@@ -85,6 +85,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "command": {
+                "type": "string",
+                "description": "%extension.debug.command%",
+                "enum": ["run", "deploy", "publish", "do"],
+                "default": "run"
+              },
+              "step": {
+                "type": "string",
+                "description": "%extension.debug.step%"
               }
             }
           }
@@ -154,6 +164,12 @@
         "command": "aspire-vscode.deploy",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
         "category": "Aspire"
       },
       {

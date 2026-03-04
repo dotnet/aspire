@@ -25,4 +25,5 @@ export interface ConfigInfo {
     GlobalSettingsPath: string;
     AvailableFeatures: FeatureInfo[];
     SettingsSchema: SettingsSchema;
+    Capabilities?: string[];
 }
