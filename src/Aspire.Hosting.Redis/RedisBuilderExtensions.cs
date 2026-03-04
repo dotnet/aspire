@@ -388,6 +388,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder for Redis Commander.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for RedisCommander.</returns>
+    [AspireExport("withRedisCommanderHostPort", MethodName = "withHostPort", Description = "Sets the host port for Redis Commander")]
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -404,6 +405,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder for Redis Insight.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for RedisInsight.</returns>
+    [AspireExport("withRedisInsightHostPort", MethodName = "withHostPort", Description = "Sets the host port for Redis Insight")]
     public static IResourceBuilder<RedisInsightResource> WithHostPort(this IResourceBuilder<RedisInsightResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -515,6 +517,7 @@ public static class RedisBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "Each overload targets a different resource builder type, allowing for tailored functionality. Optional volume names enhance usability, enabling users to easily provide custom names while maintaining clear and distinct method signatures.")]
+    [AspireExport("withRedisInsightDataVolume", Description = "Adds a data volume for Redis Insight")]
     public static IResourceBuilder<RedisInsightResource> WithDataVolume(this IResourceBuilder<RedisInsightResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -528,6 +531,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withRedisInsightDataBindMount", Description = "Adds a data bind mount for Redis Insight")]
     public static IResourceBuilder<RedisInsightResource> WithDataBindMount(this IResourceBuilder<RedisInsightResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -542,6 +546,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/>, no password will be configured.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withPassword", Description = "Configures the password for Redis")]
     public static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, IResourceBuilder<ParameterResource>? password)
     {
         ArgumentNullException.ThrowIfNull(builder);

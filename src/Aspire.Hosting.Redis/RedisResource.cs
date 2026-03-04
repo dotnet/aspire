@@ -12,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a Redis resource independent of the hosting model.
 /// </remarks>
 /// <param name="name">The name of the resource.</param>
+[AspireExport(ExposeProperties = true)]
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     /// <summary>
@@ -83,6 +84,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the connection string expression for the Redis server.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression
     {
         get
