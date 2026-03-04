@@ -156,6 +156,56 @@ internal static class Hex1bTestHelpers
     }
 
     /// <summary>
+    /// Waits for a successful command prompt, but fails fast if an error prompt is detected.
+    /// Unlike <see cref="WaitForSuccessPrompt"/>, this method also watches for error prompts
+    /// (ERR:N pattern) and throws immediately instead of waiting for the full timeout.
+    /// Use this for commands that may fail due to transient errors (e.g., CLI downloads).
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPromptFailFast(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+        var sawError = false;
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                if (successSearcher.Search(snapshot).Count > 0)
+                {
+                    return true;
+                }
+
+                var errorSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" ERR:");
+
+                if (errorSearcher.Search(snapshot).Count > 0)
+                {
+                    sawError = true;
+                    return true;
+                }
+
+                return false;
+            }, effectiveTimeout)
+            .WaitUntil(_ =>
+            {
+                if (sawError)
+                {
+                    throw new InvalidOperationException(
+                        $"Command failed with non-zero exit code (detected ERR prompt at sequence {counter.Value}). Check the terminal recording for details.");
+                }
+
+                counter.Increment();
+                return true;
+            }, TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>
     /// Increments the sequence counter.
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
