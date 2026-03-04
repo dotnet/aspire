@@ -24,8 +24,8 @@ jobs:
       run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
       affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
       # True if all test categories are skipped and no affected projects
-      # Note: run_integrations and run_cli_e2e are excluded because they are hardcoded to true in audit mode
-      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
+      # Note: all categories except run_all are hardcoded to true in audit mode, so all_skipped is only true when affected_test_projects is empty
+      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.affected_test_projects == '[]' }}
       versionOverrideArg: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE || inputs.versionOverrideArg }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -82,7 +82,7 @@ jobs:
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
           fi
 
-      - name: Apply conditional scope (polyglot/extension active, matrix audit)
+      - name: Apply conditional scope (audit mode — all categories)
         id: detect
         shell: bash
         run: |
@@ -110,28 +110,26 @@ jobs:
           RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
           RAW_AFFECTED="${{ steps.detect_raw.outputs.affected_test_projects }}"
 
-          # Extension: honor real values (standalone job).
-          # Polyglot: always run for now (feature is still stabilizing).
-          # Matrix filtering: audit mode (log but don't filter).
+          # All categories in audit mode: always run, log detected vs applied.
           echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
           echo "run_integrations=true" >> $GITHUB_OUTPUT
           echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
-          echo "run_extension=${RAW_RUN_EXTENSION}" >> $GITHUB_OUTPUT
+          echo "run_extension=true" >> $GITHUB_OUTPUT
           echo "run_polyglot=true" >> $GITHUB_OUTPUT
           echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
 
           # Audit: log what prepare_for_tests computed vs what we're actually using
           echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Extension** honors real detection. **Polyglot** always runs. Matrix filtering is in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
+          echo "All categories are in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
           echo "| run_all | ${RAW_RUN_ALL:-false} | ${RAW_RUN_ALL:-false} | - |" >> $GITHUB_STEP_SUMMARY
           echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
           echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
-          echo "| extension | ${RAW_RUN_EXTENSION:-false} | ${RAW_RUN_EXTENSION:-false} | **Active** |" >> $GITHUB_STEP_SUMMARY
-          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | **Always on** |" >> $GITHUB_STEP_SUMMARY
+          echo "| extension | ${RAW_RUN_EXTENSION:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
 
