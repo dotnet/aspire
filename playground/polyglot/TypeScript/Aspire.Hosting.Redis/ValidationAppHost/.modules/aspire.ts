@@ -306,7 +306,6 @@ export interface WithDataBindMountOptions {
 
 export interface WithDataVolumeOptions {
     name?: string;
-    isReadOnly?: boolean;
 }
 
 export interface WithDescriptionOptions {
@@ -362,10 +361,6 @@ export interface WithPersistenceOptions {
 export interface WithRedisCommanderOptions {
     configureContainer?: (obj: RedisCommanderResource) => Promise<void>;
     containerName?: string;
-}
-
-export interface WithRedisInsightDataVolumeOptions {
-    name?: string;
 }
 
 export interface WithRedisInsightOptions {
@@ -5232,7 +5227,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** @internal */
-    private async _withRedisInsightDataVolumeInternal(name?: string): Promise<RedisInsightResource> {
+    private async _withDataVolumeInternal(name?: string): Promise<RedisInsightResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
@@ -5243,13 +5238,13 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Adds a data volume for Redis Insight */
-    withRedisInsightDataVolume(options?: WithRedisInsightDataVolumeOptions): RedisInsightResourcePromise {
+    withDataVolume(options?: WithDataVolumeOptions): RedisInsightResourcePromise {
         const name = options?.name;
-        return new RedisInsightResourcePromise(this._withRedisInsightDataVolumeInternal(name));
+        return new RedisInsightResourcePromise(this._withDataVolumeInternal(name));
     }
 
     /** @internal */
-    private async _withRedisInsightDataBindMountInternal(source: string): Promise<RedisInsightResource> {
+    private async _withDataBindMountInternal(source: string): Promise<RedisInsightResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
             'Aspire.Hosting.Redis/withRedisInsightDataBindMount',
@@ -5259,8 +5254,8 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Adds a data bind mount for Redis Insight */
-    withRedisInsightDataBindMount(source: string): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._withRedisInsightDataBindMountInternal(source));
+    withDataBindMount(source: string): RedisInsightResourcePromise {
+        return new RedisInsightResourcePromise(this._withDataBindMountInternal(source));
     }
 
 }
@@ -5481,13 +5476,13 @@ export class RedisInsightResourcePromise implements PromiseLike<RedisInsightReso
     }
 
     /** Adds a data volume for Redis Insight */
-    withRedisInsightDataVolume(options?: WithRedisInsightDataVolumeOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withRedisInsightDataVolume(options)));
+    withDataVolume(options?: WithDataVolumeOptions): RedisInsightResourcePromise {
+        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
     /** Adds a data bind mount for Redis Insight */
-    withRedisInsightDataBindMount(source: string): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withRedisInsightDataBindMount(source)));
+    withDataBindMount(source: string): RedisInsightResourcePromise {
+        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withDataBindMount(source)));
     }
 
 }
@@ -5548,6 +5543,17 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
                 { context: this._handle, value }
             );
         }
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/RedisResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
     };
 
     /** Gets the UriExpression property */

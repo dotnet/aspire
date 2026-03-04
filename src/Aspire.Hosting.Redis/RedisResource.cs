@@ -84,8 +84,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the connection string expression for the Redis server.
     /// </summary>
-    /// <remarks>This property is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression
     {
         get
