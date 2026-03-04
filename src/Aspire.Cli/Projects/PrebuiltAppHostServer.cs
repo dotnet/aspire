@@ -201,16 +201,13 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
         // Resolve channel sources to add via RestoreAdditionalProjectSources
         IEnumerable<string>? channelSources = null;
-        if (channelName is not null)
+        try
         {
-            try
-            {
-                channelSources = await GetNuGetSourcesAsync(channelName, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to configure NuGet sources for integration project build");
-            }
+            channelSources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to configure NuGet sources for integration project build");
         }
 
         var projectContent = GenerateIntegrationProjectFile(packageRefs, projectRefs, outputDir, channelSources);

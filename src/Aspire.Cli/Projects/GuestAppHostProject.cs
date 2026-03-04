@@ -188,10 +188,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Step 1: Load config - source of truth for SDK version and packages
         var config = LoadConfiguration(directory);
-        var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
+        var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
         var sdkVersion = GetPrepareSdkVersion(config);
 
-        var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+        var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
         if (!buildSuccess)
         {
             if (buildOutput is not null)
@@ -218,7 +218,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
                 rpcClient,
-                packages,
+                integrations,
                 cancellationToken);
         }
         finally
@@ -295,7 +295,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Load config - source of truth for SDK version and packages
             var config = LoadConfiguration(directory);
-            var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
+            var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
@@ -303,7 +303,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 async () =>
                 {
                     // Prepare the AppHost server (build for dev mode, restore for prebuilt)
-                    var (prepareSuccess, prepareOutput, channelName, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+                    var (prepareSuccess, prepareOutput, channelName, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
                     if (!prepareSuccess)
                     {
                         return (Success: false, Output: prepareOutput, Error: "Failed to prepare app host.", ChannelName: (string?)null, NeedsCodeGen: false);
@@ -408,7 +408,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 await GenerateCodeViaRpcAsync(
                     directory.FullName,
                     rpcClient,
-                    packages,
+                    integrations,
                     cancellationToken);
             }
 
@@ -599,11 +599,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
             var config = LoadConfiguration(directory);
-            var packages = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
+            var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             // Prepare the AppHost server (build for dev mode, restore for prebuilt)
-            var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+            var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
             if (!prepareSuccess)
             {
                 // Set OutputCollector so PipelineCommandBase can display errors
@@ -681,7 +681,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 await GenerateCodeViaRpcAsync(
                     directory.FullName,
                     rpcClient,
-                    packages,
+                    integrations,
                     cancellationToken);
             }
 
@@ -1047,19 +1047,23 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Saves a hash of the packages to avoid regenerating code unnecessarily.
+    /// Saves a hash of the integrations to avoid regenerating code unnecessarily.
+    /// When project references are present, the hash is always unique to force regeneration
+    /// since project outputs are mutable.
     /// </summary>
     private static void SaveGenerationHash(string generatedPath, List<IntegrationReference> integrations)
     {
         var hashPath = Path.Combine(generatedPath, ".codegen-hash");
-        var hash = ComputePackagesHash(integrations);
+        var hash = ComputeIntegrationsHash(integrations);
         File.WriteAllText(hashPath, hash);
     }
 
     /// <summary>
-    /// Computes a hash of the package list for caching purposes.
+    /// Computes a hash of the integration list for caching purposes.
+    /// If any project references are present, includes a timestamp to force regeneration
+    /// since project outputs can change between builds.
     /// </summary>
-    private static string ComputePackagesHash(List<IntegrationReference> integrations)
+    private static string ComputeIntegrationsHash(List<IntegrationReference> integrations)
     {
         var sb = new System.Text.StringBuilder();
         foreach (var integration in integrations.OrderBy(p => p.Name))
@@ -1069,6 +1073,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
             sb.Append(integration.Version ?? integration.ProjectPath ?? "");
             sb.Append(';');
         }
+
+        // Project references are mutable — always regenerate when they're present
+        if (integrations.Any(i => i.IsProjectReference))
+        {
+            sb.Append("timestamp:");
+            sb.Append(DateTime.UtcNow.Ticks);
+        }
+
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
         return Convert.ToHexString(bytes);
     }

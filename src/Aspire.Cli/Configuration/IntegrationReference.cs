@@ -8,7 +8,7 @@ namespace Aspire.Cli.Configuration;
 /// a NuGet package (with a version) or a local project reference (with a path to a .csproj).
 /// Exactly one of <see cref="Version"/> or <see cref="ProjectPath"/> must be non-null.
 /// </summary>
-internal sealed record IntegrationReference
+internal sealed class IntegrationReference
 {
     /// <summary>
     /// Gets the package or assembly name (e.g., "Aspire.Hosting.Redis").
