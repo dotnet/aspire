@@ -152,6 +152,53 @@ export enum EndpointProperty {
     HostAndPort = "HostAndPort",
 }
 
+/** Enum type for GitHubModelName */
+export enum GitHubModelName {
+    AI21Jamba15Large = "AI21Jamba15Large",
+    CohereCommandA = "CohereCommandA",
+    CohereCommandR082024 = "CohereCommandR082024",
+    CohereCommandRPlus082024 = "CohereCommandRPlus082024",
+    DeepSeekR1 = "DeepSeekR1",
+    DeepSeekR10528 = "DeepSeekR10528",
+    DeepSeekV30324 = "DeepSeekV30324",
+    Llama4Maverick17B128EInstructFP8 = "Llama4Maverick17B128EInstructFP8",
+    Llama4Scout17B16EInstruct = "Llama4Scout17B16EInstruct",
+    Llama3211BVisionInstruct = "Llama3211BVisionInstruct",
+    Llama3290BVisionInstruct = "Llama3290BVisionInstruct",
+    Llama3370BInstruct = "Llama3370BInstruct",
+    MetaLlama31405BInstruct = "MetaLlama31405BInstruct",
+    MetaLlama318BInstruct = "MetaLlama318BInstruct",
+    MaiDSR1 = "MaiDSR1",
+    Phi4 = "Phi4",
+    Phi4MiniInstruct = "Phi4MiniInstruct",
+    Phi4MiniReasoning = "Phi4MiniReasoning",
+    Phi4MultimodalInstruct = "Phi4MultimodalInstruct",
+    Phi4Reasoning = "Phi4Reasoning",
+    Codestral2501 = "Codestral2501",
+    Ministral3B = "Ministral3B",
+    MistralMedium32505 = "MistralMedium32505",
+    MistralSmall31 = "MistralSmall31",
+    OpenAIGpt41 = "OpenAIGpt41",
+    OpenAIGpt41Mini = "OpenAIGpt41Mini",
+    OpenAIGpt41Nano = "OpenAIGpt41Nano",
+    OpenAIGpt4o = "OpenAIGpt4o",
+    OpenAIGpt4oMini = "OpenAIGpt4oMini",
+    OpenAIGpt5 = "OpenAIGpt5",
+    OpenAIGpt5ChatPreview = "OpenAIGpt5ChatPreview",
+    OpenAIGpt5Mini = "OpenAIGpt5Mini",
+    OpenAIGpt5Nano = "OpenAIGpt5Nano",
+    OpenAIO1 = "OpenAIO1",
+    OpenAIO1Mini = "OpenAIO1Mini",
+    OpenAIO1Preview = "OpenAIO1Preview",
+    OpenAIO3 = "OpenAIO3",
+    OpenAIO3Mini = "OpenAIO3Mini",
+    OpenAIO4Mini = "OpenAIO4Mini",
+    OpenAITextEmbedding3Large = "OpenAITextEmbedding3Large",
+    OpenAITextEmbedding3Small = "OpenAITextEmbedding3Small",
+    Grok3 = "Grok3",
+    Grok3Mini = "Grok3Mini",
+}
+
 /** Enum type for IconVariant */
 export enum IconVariant {
     Regular = "Regular",
@@ -1005,19 +1052,19 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddGitHubModel for polyglot app hosts. */
+    /** Adds a GitHub Model resource to the distributed application model. */
     /** @internal */
-    async _addGitHubModelInternal(name: string, model: string, organization?: ParameterResource): Promise<GitHubModelResource> {
+    async _addGitHubModelInternal(name: string, model: GitHubModelName, organization?: ParameterResource): Promise<GitHubModelResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, model };
         if (organization !== undefined) rpcArgs.organization = organization;
         const result = await this._client.invokeCapability<GitHubModelResourceHandle>(
-            'Aspire.Hosting.GitHub.Models/addGitHubModel1',
+            'Aspire.Hosting.GitHub.Models/addGitHubModel',
             rpcArgs
         );
         return new GitHubModelResource(result, this._client);
     }
 
-    addGitHubModel(name: string, model: string, options?: AddGitHubModelOptions): GitHubModelResourcePromise {
+    addGitHubModel(name: string, model: GitHubModelName, options?: AddGitHubModelOptions): GitHubModelResourcePromise {
         const organization = options?.organization;
         return new GitHubModelResourcePromise(this._addGitHubModelInternal(name, model, organization));
     }
@@ -1067,8 +1114,8 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddGitHubModel for polyglot app hosts. */
-    addGitHubModel(name: string, model: string, options?: AddGitHubModelOptions): GitHubModelResourcePromise {
+    /** Adds a GitHub Model resource to the distributed application model. */
+    addGitHubModel(name: string, model: GitHubModelName, options?: AddGitHubModelOptions): GitHubModelResourcePromise {
         return new GitHubModelResourcePromise(this._promise.then(obj => obj.addGitHubModel(name, model, options)));
     }
 
@@ -1712,6 +1759,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -1977,6 +2039,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds an HTTP health check */
@@ -2485,6 +2552,21 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -2698,6 +2780,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
@@ -2838,6 +2925,21 @@ export class GitHubModelResource extends ResourceBuilderBase<GitHubModelResource
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<GitHubModelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<GitHubModelResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new GitHubModelResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): GitHubModelResourcePromise {
+        return new GitHubModelResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<GitHubModelResource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -2893,9 +2995,24 @@ export class GitHubModelResource extends ResourceBuilderBase<GitHubModelResource
         return new GitHubModelResource(result, this._client);
     }
 
-    /** Exports WithApiKey for polyglot app hosts. */
+    /** Configures the API key for the GitHub Model resource. */
     withApiKey(apiKey: ParameterResource): GitHubModelResourcePromise {
         return new GitHubModelResourcePromise(this._withApiKeyInternal(apiKey));
+    }
+
+    /** @internal */
+    private async _enableHealthCheckInternal(): Promise<GitHubModelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<GitHubModelResourceHandle>(
+            'Aspire.Hosting.GitHub.Models/enableHealthCheck',
+            rpcArgs
+        );
+        return new GitHubModelResource(result, this._client);
+    }
+
+    /** Adds a health check for the GitHub Model resource. */
+    enableHealthCheck(): GitHubModelResourcePromise {
+        return new GitHubModelResourcePromise(this._enableHealthCheckInternal());
     }
 
 }
@@ -2945,6 +3062,11 @@ export class GitHubModelResourcePromise implements PromiseLike<GitHubModelResour
         return new GitHubModelResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck(key: string): GitHubModelResourcePromise {
+        return new GitHubModelResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
     /** Adds a resource command */
     withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): GitHubModelResourcePromise {
         return new GitHubModelResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
@@ -2960,9 +3082,14 @@ export class GitHubModelResourcePromise implements PromiseLike<GitHubModelResour
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithApiKey for polyglot app hosts. */
+    /** Configures the API key for the GitHub Model resource. */
     withApiKey(apiKey: ParameterResource): GitHubModelResourcePromise {
         return new GitHubModelResourcePromise(this._promise.then(obj => obj.withApiKey(apiKey)));
+    }
+
+    /** Adds a health check for the GitHub Model resource. */
+    enableHealthCheck(): GitHubModelResourcePromise {
+        return new GitHubModelResourcePromise(this._promise.then(obj => obj.enableHealthCheck()));
     }
 
 }
@@ -3102,6 +3229,21 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ParameterResource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -3197,6 +3339,11 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Prevents resource from starting automatically */
     withExplicitStart(): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds a resource command */
@@ -3680,6 +3827,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -3888,6 +4050,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
@@ -4028,6 +4195,21 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ResourcePromise {
+        return new ResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<Resource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -4118,6 +4300,11 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Prevents resource from starting automatically */
     withExplicitStart(): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds a resource command */

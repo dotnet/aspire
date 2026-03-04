@@ -22,7 +22,7 @@ public static class GitHubModelsExtensions
     /// <param name="model">The model name to use with GitHub Models.</param>
     /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("addGitHubModel1", MethodName = "addGitHubModel", Description = "Adds a GitHub Model resource to the distributed application model.")]
+    [AspireExportIgnore(Reason = "The polyglot overload uses the GitHubModelName enum instead. See the internal AddGitHubModel(GitHubModelName) overload.")]
     public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, string model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -89,6 +89,7 @@ public static class GitHubModelsExtensions
     /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
+    /// <para>This overload is not available in polyglot app hosts. Use the string-based overload instead.</para>
     /// <example>
     /// Create a GitHub Model resource for the Microsoft Phi-3 Medium Instruct model:
     /// <code lang="csharp">
@@ -98,12 +99,26 @@ public static class GitHubModelsExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("addGitHubModel2", MethodName = "addGitHubModel", Description = "Adds a GitHub Model resource to the distributed application model.")]
+    [AspireExportIgnore(Reason = "GitHubModel is a .NET-specific descriptor type not compatible with ATS. Use the GitHubModelName enum-based overload instead.")]
     public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, GitHubModel model, IResourceBuilder<ParameterResource>? organization = null)
     {
         ArgumentNullException.ThrowIfNull(model);
 
         return AddGitHubModel(builder, name, model.Id, organization);
+    }
+
+    /// <summary>
+    /// Adds a GitHub Model resource to the application model using a known <see cref="GitHubModelName"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="model">The known model name from the <see cref="GitHubModelName"/> enumeration.</param>
+    /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addGitHubModel", Description = "Adds a GitHub Model resource to the distributed application model.")]
+    internal static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, GitHubModelName model, IResourceBuilder<ParameterResource>? organization = null)
+    {
+        return AddGitHubModel(builder, name, GitHubModel.GetModelId(model), organization);
     }
 
     /// <summary>
@@ -156,7 +171,7 @@ public static class GitHubModelsExtensions
     /// the model is not working as expected. Furthermore, the health check will run a single time per application instance.
     /// </para>
     /// </remarks>
-    [AspireExport("withHealthCheck", Description = "Adds a health check for the GitHub Model resource.")]
+    [AspireExport("enableHealthCheck", Description = "Adds a health check for the GitHub Model resource.")]
     public static IResourceBuilder<GitHubModelResource> WithHealthCheck(this IResourceBuilder<GitHubModelResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
