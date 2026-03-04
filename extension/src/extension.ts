@@ -29,6 +29,7 @@ import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvide
 import { AspireAppHostTreeProvider } from './views/AspireAppHostTreeProvider';
 import { installCliStableCommand, installCliDailyCommand, verifyCliInstalledCommand } from './commands/walkthroughCommands';
 import { AspireStatusBarProvider } from './views/AspireStatusBarProvider';
+import { AspireMcpServerDefinitionProvider } from './mcp/AspireMcpServerDefinitionProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -118,6 +119,15 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(rpcServer, dcpServer, terminalProvider, aspireExtensionContext.addAspireDebugSession.bind(aspireExtensionContext), aspireExtensionContext.removeAspireDebugSession.bind(aspireExtensionContext))));
 
   aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer, terminalProvider, editorCommandProvider);
+
+  // Register Aspire MCP server definition provider so the Aspire MCP server
+  // appears automatically in VS Code's MCP tools list for Aspire workspaces.
+  const mcpProvider = new AspireMcpServerDefinitionProvider();
+  if (typeof vscode.lm?.registerMcpServerDefinitionProvider === 'function') {
+    context.subscriptions.push(vscode.lm.registerMcpServerDefinitionProvider('aspire-mcp-server', mcpProvider));
+    context.subscriptions.push(mcpProvider);
+    mcpProvider.refresh();
+  }
 
   const getEnableSettingsFileCreationPromptOnStartup = () => vscode.workspace.getConfiguration('aspire').get<boolean>('enableSettingsFileCreationPromptOnStartup', true);
   const setEnableSettingsFileCreationPromptOnStartup = async (value: boolean) => await vscode.workspace.getConfiguration('aspire').update('enableSettingsFileCreationPromptOnStartup', value, vscode.ConfigurationTarget.Workspace);

@@ -37,6 +37,12 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "aspire-mcp-server",
+        "label": "Aspire"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -460,6 +466,12 @@
           "type": "boolean",
           "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
+          "scope": "window"
+        },
+        "aspire.registerMcpServerInWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.registerMcpServerInWorkspace%",
           "scope": "window"
         }
       }
