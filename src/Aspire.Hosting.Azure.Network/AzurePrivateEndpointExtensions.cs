@@ -70,7 +70,8 @@ public static class AzurePrivateEndpointExtensions
         resource.DnsZone = dnsZone;
 
         // Add annotation to the target's root parent (e.g., storage account) to signal
-        // that it should deny public network access.
+        // that it should deny public network access and to associate the private endpoint
+        // for prerequisite provisioning dependency discovery.
         // This should only be done in publish mode. In run mode, the target resource
         // needs to be accessible over the public internet so the local app can reach it.
         IResource rootResource = target.Resource;
@@ -78,7 +79,7 @@ public static class AzurePrivateEndpointExtensions
         {
             rootResource = parentedResource.Parent;
         }
-        rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
+        rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation(resource));
 
         return builder.AddResource(resource);
 

@@ -1479,6 +1479,21 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 
+    [Fact]
+    public void RunCommand_ForwardsUnmatchedTokensToAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run -- --custom-arg value");
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("--custom-arg", result.UnmatchedTokens);
+        Assert.Contains("value", result.UnmatchedTokens);
+    }
+
     private sealed class TestFeatures : IFeatures
     {
         private readonly Dictionary<string, bool> _features = new();

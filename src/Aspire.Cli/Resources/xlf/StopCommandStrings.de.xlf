@@ -1,10 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../StopCommandStrings.resx">
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="translated">Beenden Sie alle ausgeführten AppHosts.</target>
+        <target state="new">Stop all running AppHosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">Beendet einen laufenden Apphost oder die angegebene Ressource.</target>
+        <source>Stop a running apphost.</source>
+        <target state="translated">Beenden Sie einen aktiven Aspire-AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="translated">Mehrere AppHosts sind aktiv. Verwenden Sie {0}, um anzugeben, welche beendet werden soll, oder {1} um sie alle zu beenden.</target>
+        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">Mehrere AppHosts sind aktiv. Verwenden Sie --apphost, um anzugeben, welcher AppHost gestoppt werden soll, oder wählen Sie einen aus:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -49,12 +49,7 @@
       </trans-unit>
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
-        <target state="translated">Die Optionen {0} und {1} können nicht zusammen verwendet werden.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AllAndResourceMutuallyExclusive">
-        <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="translated">Die Option „{0}“ kann nicht mit einem Ressourcenargument verwendet werden.</target>
+        <target state="new">The {0} and {1} options cannot be used together.</target>
         <note />
       </trans-unit>
     </body>
