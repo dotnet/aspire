@@ -133,7 +133,7 @@ public sealed class DcpHostNotificationTests
         var locations = CreateTestLocations();
         var applicationModel = CreateApplicationModelWithHttpsEndpoint();
         var timeProvider = new FakeTimeProvider();
-        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false);
+        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false, latestCertificateIsUntrusted: true);
         var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
         var appHostDirectory = Path.Combine(Path.GetTempPath(), "aspire-apphost-test");
         var configuration = new ConfigurationBuilder()
@@ -649,7 +649,7 @@ public sealed class DcpHostNotificationTests
         var applicationModel = new DistributedApplicationModel(new ResourceCollection([resource]));
 
         var timeProvider = new FakeTimeProvider();
-        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false);
+        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false, latestCertificateIsUntrusted: true);
         var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
         var appHostDirectory = Path.Combine(Path.GetTempPath(), "aspire-apphost-test");
         var configuration = new ConfigurationBuilder()
@@ -829,7 +829,7 @@ public sealed class DcpHostNotificationTests
         var applicationModel = new DistributedApplicationModel(new ResourceCollection([resource]));
 
         var timeProvider = new FakeTimeProvider();
-        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false);
+        var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false, latestCertificateIsUntrusted: true);
         var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
         var appHostDirectory = Path.Combine(Path.GetTempPath(), "aspire-apphost-test");
         var configuration = new ConfigurationBuilder()

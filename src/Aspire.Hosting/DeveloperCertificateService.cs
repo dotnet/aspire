@@ -129,12 +129,8 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    /// <summary>
-    /// Gets a value indicating whether a newer ASP.NET Core development certificate was detected
-    /// that is not in the trusted set. This is true when the highest-version/most-recent dev cert
-    /// is not trusted, even though older trusted certs may exist.
-    /// </summary>
-    internal bool LatestCertificateIsUntrusted
+    /// <inheritdoc />
+    public bool LatestCertificateIsUntrusted
     {
         get
         {
