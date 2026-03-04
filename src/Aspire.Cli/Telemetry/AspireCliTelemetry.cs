@@ -198,8 +198,8 @@ internal sealed class AspireCliTelemetry : IHostedService
             _tagsList.Add(new(TelemetryConstants.Tags.DeviceId, deviceIdTask.Result));
 
             // This is consistent with dashboard version data.
-            _tagsList.Add(new(TelemetryConstants.Tags.CliVersion, typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty));
-            _tagsList.Add(new(TelemetryConstants.Tags.CliBuildId, typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty));
+            _tagsList.Add(new(TelemetryConstants.Tags.CliVersion, GetCliVersion()));
+            _tagsList.Add(new(TelemetryConstants.Tags.CliBuildId, GetCliBuildId()));
 
             _tagsList.Add(new(TelemetryConstants.Tags.DeploymentEnvironmentName, _ciEnvironmentDetector.IsCIEnvironment() ? "ci" : "local"));
 
@@ -290,5 +290,23 @@ internal sealed class AspireCliTelemetry : IHostedService
         }
 
         return "unknown";
+    }
+
+    /// <summary>
+    /// Gets the CLI version from the assembly's informational version attribute.
+    /// </summary>
+    /// <returns>The CLI version string, or an empty string if not available.</returns>
+    internal static string GetCliVersion()
+    {
+        return typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the CLI build ID from the assembly's file version attribute.
+    /// </summary>
+    /// <returns>The CLI build ID string, or an empty string if not available.</returns>
+    internal static string GetCliBuildId()
+    {
+        return typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty;
     }
 }
