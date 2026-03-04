@@ -1,7 +1,8 @@
 {
   "appHostPath": "../apphost.ts",
   "language": "typescript/nodejs",
+  "sdkVersion": "13.1.0",
   "packages": {
-    "Aspire.Hosting.Orleans": ""
+    "Aspire.Hosting.Orleans": "13.3.0-preview.1.26153.5"
   }
 }

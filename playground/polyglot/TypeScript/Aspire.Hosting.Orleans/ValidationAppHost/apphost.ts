@@ -21,9 +21,9 @@ const orleans = await builder.addOrleans("orleans")
 const orleansClient = await orleans.asClient();
 
 const silo = await builder.addContainer("silo", "redis");
-await silo.withSiloReference(orleans);
+await silo.withOrleansReference(orleans);
 
 const client = await builder.addContainer("client", "redis");
-await client.withClientReference(orleansClient);
+await client.withOrleansClientReference(orleansClient);
 
 await builder.build().run();

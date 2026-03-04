@@ -2094,33 +2094,33 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ContainerResource> {
+    private async _withOrleansClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansServiceClient };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Orleans/withClientReference',
+            'Aspire.Hosting.Orleans/withOrleansClientReference',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withClientReferenceInternal(orleansServiceClient));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withOrleansClientReferenceInternal(orleansServiceClient));
     }
 
     /** @internal */
-    private async _withSiloReferenceInternal(orleansService: OrleansService): Promise<ContainerResource> {
+    private async _withOrleansReferenceInternal(orleansService: OrleansService): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansService };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Orleans/withSiloReference',
+            'Aspire.Hosting.Orleans/withOrleansReference',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withSiloReferenceInternal(orleansService));
+    withOrleansReference(orleansService: OrleansService): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withOrleansReferenceInternal(orleansService));
     }
 
 }
@@ -2336,13 +2336,13 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withClientReference(orleansServiceClient)));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withOrleansClientReference(orleansServiceClient)));
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withSiloReference(orleansService)));
+    withOrleansReference(orleansService: OrleansService): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withOrleansReference(orleansService)));
     }
 
 }
@@ -2908,33 +2908,33 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ExecutableResource> {
+    private async _withOrleansClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansServiceClient };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Orleans/withClientReference',
+            'Aspire.Hosting.Orleans/withOrleansClientReference',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withClientReferenceInternal(orleansServiceClient));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withOrleansClientReferenceInternal(orleansServiceClient));
     }
 
     /** @internal */
-    private async _withSiloReferenceInternal(orleansService: OrleansService): Promise<ExecutableResource> {
+    private async _withOrleansReferenceInternal(orleansService: OrleansService): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansService };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Orleans/withSiloReference',
+            'Aspire.Hosting.Orleans/withOrleansReference',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withSiloReferenceInternal(orleansService));
+    withOrleansReference(orleansService: OrleansService): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withOrleansReferenceInternal(orleansService));
     }
 
 }
@@ -3110,13 +3110,13 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withClientReference(orleansServiceClient)));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withOrleansClientReference(orleansServiceClient)));
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withSiloReference(orleansService)));
+    withOrleansReference(orleansService: OrleansService): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withOrleansReference(orleansService)));
     }
 
 }
@@ -3936,33 +3936,33 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ProjectResource> {
+    private async _withOrleansClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansServiceClient };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Orleans/withClientReference',
+            'Aspire.Hosting.Orleans/withOrleansClientReference',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withClientReferenceInternal(orleansServiceClient));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withOrleansClientReferenceInternal(orleansServiceClient));
     }
 
     /** @internal */
-    private async _withSiloReferenceInternal(orleansService: OrleansService): Promise<ProjectResource> {
+    private async _withOrleansReferenceInternal(orleansService: OrleansService): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansService };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Orleans/withSiloReference',
+            'Aspire.Hosting.Orleans/withOrleansReference',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withSiloReferenceInternal(orleansService));
+    withOrleansReference(orleansService: OrleansService): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withOrleansReferenceInternal(orleansService));
     }
 
 }
@@ -4133,13 +4133,13 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withClientReference(orleansServiceClient)));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withOrleansClientReference(orleansServiceClient)));
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withSiloReference(orleansService)));
+    withOrleansReference(orleansService: OrleansService): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withOrleansReference(orleansService)));
     }
 
 }
@@ -4860,33 +4860,33 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     }
 
     /** @internal */
-    private async _withClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ResourceWithEnvironment> {
+    private async _withOrleansClientReferenceInternal(orleansServiceClient: OrleansServiceClientHandle): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansServiceClient };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting.Orleans/withClientReference',
+            'Aspire.Hosting.Orleans/withOrleansClientReference',
             rpcArgs
         );
         return new ResourceWithEnvironment(result, this._client);
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._withClientReferenceInternal(orleansServiceClient));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._withOrleansClientReferenceInternal(orleansServiceClient));
     }
 
     /** @internal */
-    private async _withSiloReferenceInternal(orleansService: OrleansService): Promise<ResourceWithEnvironment> {
+    private async _withOrleansReferenceInternal(orleansService: OrleansService): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, orleansService };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting.Orleans/withSiloReference',
+            'Aspire.Hosting.Orleans/withOrleansReference',
             rpcArgs
         );
         return new ResourceWithEnvironment(result, this._client);
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._withSiloReferenceInternal(orleansService));
+    withOrleansReference(orleansService: OrleansService): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._withOrleansReferenceInternal(orleansService));
     }
 
 }
@@ -4937,13 +4937,13 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
     }
 
     /** Adds an Orleans client reference to a resource */
-    withClientReference(orleansServiceClient: OrleansServiceClientHandle): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withClientReference(orleansServiceClient)));
+    withOrleansClientReference(orleansServiceClient: OrleansServiceClientHandle): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withOrleansClientReference(orleansServiceClient)));
     }
 
     /** Adds an Orleans silo reference to a resource */
-    withSiloReference(orleansService: OrleansService): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withSiloReference(orleansService)));
+    withOrleansReference(orleansService: OrleansService): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withOrleansReference(orleansService)));
     }
 
 }
