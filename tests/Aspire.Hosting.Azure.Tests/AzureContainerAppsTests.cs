@@ -2301,7 +2301,7 @@ public class AzureContainerAppsTests
         var aca = builder.AddAzureContainerAppEnvironment("aca");
         var appService = builder.AddAzureAppServiceEnvironment("appservice");
 
-        // Project targeted to ACA  
+        // Project targeted to ACA
         var webappaca = builder.AddProject<Project>("webappaca", launchProfileName: null)
             .WithHttpEndpoint()
             .WithExternalHttpEndpoints()

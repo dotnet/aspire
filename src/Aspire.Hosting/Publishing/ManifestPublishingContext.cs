@@ -85,7 +85,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         Writer.WriteStartObject();
-        Writer.WriteString("$schema", SchemaUtils.SchemaVersion);
         Writer.WriteStartObject("resources");
 
         foreach (var resource in model.Resources)

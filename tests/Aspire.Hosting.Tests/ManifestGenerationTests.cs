@@ -296,7 +296,6 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         var expectedManifest = $$"""
             {
-              "$schema": "{{SchemaUtils.SchemaVersion}}",
               "resources": {
                 "servicea": {
                   "type": "project.v0",
@@ -558,10 +557,10 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with ContainerFilesDestinationAnnotation
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = sourceContainer.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = sourceContainer.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             });
 
         builder.Build().Run();
@@ -601,10 +600,10 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with ContainerFilesDestinationAnnotation
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = sourceContainer.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = sourceContainer.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             });
 
         builder.Build().Run();
@@ -647,15 +646,15 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with multiple ContainerFilesDestinationAnnotations
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = source1.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = source1.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             })
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = source2.Resource, 
-                DestinationPath = "/usr/share/nginx/assets" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = source2.Resource,
+                DestinationPath = "/usr/share/nginx/assets"
             });
 
         builder.Build().Run();
