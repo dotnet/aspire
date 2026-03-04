@@ -8,6 +8,7 @@ using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Interaction;
 
@@ -20,7 +21,7 @@ internal interface IExtensionInteractionService : IInteractionService
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
     void DisplayConsolePlainText(string message);
-    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null);
     void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
     void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false);
 }
@@ -55,9 +56,22 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
                     await taskFunction.Invoke();
                 }
+                catch (Exception ex) when (IsExtensionConnectionLostException(ex))
+                {
+                    // Connection was lost - only log to console, don't try to send over the closed connection
+                    _consoleInteractionService.DisplaySubtleMessage(ex.Message);
+                }
                 catch (Exception ex) when (ex is not ExtensionOperationCanceledException)
                 {
-                    await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
+                    // Try to display error to extension, but if that fails due to connection issues, just log to console
+                    try
+                    {
+                        await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
+                    }
+                    catch (Exception innerEx) when (IsExtensionConnectionLostException(innerEx))
+                    {
+                        // Swallow connection lost exceptions when trying to report the error
+                    }
                     _consoleInteractionService.DisplayError(ex.Message);
                 }
             }
@@ -433,14 +447,25 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
-        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
+        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, options, _cancellationToken);
     }
 
     public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.WriteDebugSessionMessageAsync(message.RemoveSpectreFormatting(), stdout, textStyle, _cancellationToken));
         Debug.Assert(result);
+    }
+
+    /// <summary>
+    /// Determines if the exception is related to the extension connection being lost.
+    /// This is used to gracefully handle cases where the debug session is being stopped/restarted.
+    /// </summary>
+    private static bool IsExtensionConnectionLostException(Exception ex)
+    {
+        return ex is ConnectionLostException
+            || ex is ObjectDisposedException
+            || (ex is OperationCanceledException && ex.InnerException is ConnectionLostException);
     }
 }

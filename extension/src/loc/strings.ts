@@ -86,6 +86,7 @@ export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PAT
 export const cliFoundAtDefaultPath = (path: string) => vscode.l10n.t('Aspire CLI found at {0}. The extension will use this path.', path);
 export const selectDirectoryTitle = vscode.l10n.t('Select directory');
 export const selectFileTitle = vscode.l10n.t('Select file');
+export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execute');
 
 // Status bar strings
 export const statusBarStopped = vscode.l10n.t('Aspire: Stopped');

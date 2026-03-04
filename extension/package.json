@@ -37,6 +37,12 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "aspire-mcp-server",
+        "label": "Aspire"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -85,6 +91,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "command": {
+                "type": "string",
+                "description": "%extension.debug.command%",
+                "enum": ["run", "deploy", "publish", "do"],
+                "default": "run"
+              },
+              "step": {
+                "type": "string",
+                "description": "%extension.debug.step%"
               }
             }
           }
@@ -154,6 +170,12 @@
         "command": "aspire-vscode.deploy",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
         "category": "Aspire"
       },
       {
@@ -444,6 +466,12 @@
           "type": "boolean",
           "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
+          "scope": "window"
+        },
+        "aspire.registerMcpServerInWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.registerMcpServerInWorkspace%",
           "scope": "window"
         }
       }

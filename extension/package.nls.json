@@ -3,6 +3,8 @@
 	"extension.description": "Official Aspire extension for Visual Studio Code",
 	"extension.debug.program": "Path to the apphost to run",
   "extension.debug.debuggers": "Configuration to apply when launching resources of specific types",
+	"extension.debug.command": "The Aspire CLI command to execute (run, deploy, publish, or do)",
+	"extension.debug.step": "The pipeline step name to execute when command is 'do'",
 	"extension.debug.defaultConfiguration.name": "Aspire: Launch default apphost",
 	"extension.debug.defaultConfiguration.description": "Launch the effective Aspire apphost in your workspace",
 	"command.add": "Add an integration",
@@ -13,6 +15,7 @@
   "command.updateSelf": "Update Aspire CLI",
   "command.openTerminal": "Open Aspire terminal",
 	"command.deploy": "Deploy app",
+	"command.do": "Execute pipeline step (aspire do)",
 	"command.configureLaunchJson": "Configure launch.json file",
 	"command.settings": "Extension settings",
 	"command.openLocalSettings": "Open local Aspire settings",
@@ -29,6 +32,7 @@
   "configuration.aspire.dashboardBrowser.debugFirefox": "Launch Firefox as a debug session (requires Firefox Debugger extension).",
   "configuration.aspire.closeDashboardOnDebugEnd": "Close the dashboard browser when the debug session ends. Works with debug browser options (Chrome, Edge, Firefox).",
   "configuration.aspire.enableDebugConfigEnvironmentLogging": "Include environment variables when logging debug session configurations. This can help diagnose environment-related issues but may expose sensitive information in logs.",
+  "configuration.aspire.registerMcpServerInWorkspace": "Whether to register the Aspire MCP server when a workspace is open.",
   "command.runAppHost": "Run Aspire apphost",
 	"command.debugAppHost": "Debug Aspire apphost",
 	"aspire-vscode.strings.noCsprojFound": "No apphost found in the current workspace.",
@@ -105,6 +109,7 @@
   "aspire-vscode.strings.dismissLabel": "Dismiss",
   "aspire-vscode.strings.selectDirectoryTitle": "Select directory",
   "aspire-vscode.strings.selectFileTitle": "Select file",
+  "aspire-vscode.strings.enterPipelineStep": "Enter the pipeline step to execute",
   "aspire-vscode.strings.statusBarStopped": "Aspire: Stopped",
   "aspire-vscode.strings.statusBarError": "Aspire: Error",
   "aspire-vscode.strings.statusBarRunning": "Aspire: {0}/{1} running",
@@ -142,5 +147,6 @@
   "walkthrough.getStarted.dashboard.title": "Explore the dashboard",
   "walkthrough.getStarted.dashboard.description": "The Aspire Dashboard shows your resources, endpoints, logs, traces, and metrics — all in one place.\n\n[Open dashboard](command:aspire-vscode.openDashboard)",
   "walkthrough.getStarted.nextSteps.title": "Next steps",
-  "walkthrough.getStarted.nextSteps.description": "You're all set! Add integrations for databases, messaging, and cloud services, or deploy your app to production.\n\n[Add an integration](command:aspire-vscode.add)\n\n[Open Aspire docs](https://aspire.dev/docs/)"
+  "walkthrough.getStarted.nextSteps.description": "You're all set! Add integrations for databases, messaging, and cloud services, or deploy your app to production.\n\n[Add an integration](command:aspire-vscode.add)\n\n[Open Aspire docs](https://aspire.dev/docs/)",
+  "mcpServerDefinitionProviders.aspire.label": "Aspire"
 }

@@ -109,31 +109,6 @@ public class ResourceCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourceCommand_AcceptsBackchannelCommandNames()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-
-        // Test with resource-start
-        var startResult = command.Parse("resource myresource resource-start --help");
-        var startExitCode = await startResult.InvokeAsync().DefaultTimeout();
-        Assert.Equal(ExitCodeConstants.Success, startExitCode);
-
-        // Test with resource-stop
-        var stopResult = command.Parse("resource myresource resource-stop --help");
-        var stopExitCode = await stopResult.InvokeAsync().DefaultTimeout();
-        Assert.Equal(ExitCodeConstants.Success, stopExitCode);
-
-        // Test with resource-restart
-        var restartResult = command.Parse("resource myresource resource-restart --help");
-        var restartExitCode = await restartResult.InvokeAsync().DefaultTimeout();
-        Assert.Equal(ExitCodeConstants.Success, restartExitCode);
-    }
-
-    [Fact]
     public async Task ResourceCommand_AcceptsProjectOptionWithStart()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

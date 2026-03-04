@@ -172,7 +172,7 @@ internal sealed class RunCommand : BaseCommand
             && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
         {
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
-            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
+            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession, new DebugSessionOptions { Command = "run" });
             return ExitCodeConstants.Success;
         }
 
@@ -391,6 +391,12 @@ internal sealed class RunCommand : BaseCommand
             InteractionService.DisplayError(errorMessage);
             // Don't display raw output - it's already in the log file
             InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        catch (Exception ex) when (ex is ObjectDisposedException || (ex is OperationCanceledException oce && oce.InnerException is ConnectionLostException))
+        {
+            // This occurs when the extension RPC connection is closed during shutdown/restart
+            // Don't log as unexpected error since this is expected during restart
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
