@@ -4,7 +4,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -18,6 +17,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
     private readonly Lazy<bool> _supportsTlsTermination;
+    private bool _latestCertificateIsUntrusted;
 
     public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
@@ -29,22 +29,15 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
         {
             try
             {
-                var devCerts = new List<X509Certificate2>();
-
                 using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
 
-                // Order by version and expiration date descending to get the most recent, highest version first.
-                // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
-                // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
-                // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                 var now = DateTimeOffset.Now;
 
-                // Get all valid ASP.NET Core development certificates
-                var validCerts = store.Certificates
-                    .Where(c => c.IsAspNetCoreDevelopmentCertificate())
-                    .Where(c => c.NotBefore <= now && now <= c.NotAfter)
-                    .ToList();
+                // Get all valid ASP.NET Core development certificates.
+                // Use .Where() instead of .Find() to preserve the original keychain-backed certificate
+                // instances on macOS. Find() clones certificates which can invalidate keychain handles.
+                var validCerts = FindDevCertificates(store, now).ToList();
 
                 // If any certificate has a Subject Key Identifier extension, exclude certificates without it
                 if (validCerts.Any(c => c.HasSubjectKeyIdentifier()))
@@ -52,26 +45,50 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                     validCerts = validCerts.Where(c => c.HasSubjectKeyIdentifier()).ToList();
                 }
 
-                // Take the highest version valid certificate for each unique SKI
-                devCerts.AddRange(
-                    validCerts
-                        .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
-                        .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
-                        .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
+                // Order by version and expiration date descending to get the most recent, highest version first.
+                // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
+                // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
+                // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
+                var bestCerts = validCerts
+                    .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
+                    .SelectMany(g => g.OrderByVersion().Take(1))
+                    .OrderByVersion()
+                    .ToList();
+
+                // Partition into trusted and untrusted using a single X509Chain instance.
+                // RevocationMode is set to NoCheck since revocation doesn't apply to self-signed dev certs.
+                using var chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+                // Find the dev certs that are trusted
+                var trustedCerts = new List<X509Certificate2>();
+                foreach (var cert in bestCerts)
+                {
+                    trustedCerts.Add(cert);
+
+                    // Reset the chain for the next certificate
+                    chain.Reset();
+                }
+
+                // Flag if the newest/highest-version cert is not trusted
+                if (bestCerts.Count > 0 &&
+                    (trustedCerts.Count == 0 || trustedCerts[0].Thumbprint != bestCerts[0].Thumbprint))
+                {
+                    _latestCertificateIsUntrusted = true;
+                }
 
                 // Release the unused certificates
-                foreach (var unusedCert in validCerts.Except(devCerts))
+                foreach (var unusedCert in validCerts.Except(trustedCerts))
                 {
                     unusedCert.Dispose();
                 }
 
-                if (devCerts.Count == 0)
+                if (trustedCerts.Count == 0)
                 {
-                    logger.LogInformation("No ASP.NET Core developer certificates found in the CurrentUser/My certificate store.");
                     return ImmutableList<X509Certificate2>.Empty;
                 }
 
-                return devCerts.ToImmutableList();
+                return trustedCerts.ToImmutableList();
             }
             catch (Exception ex)
             {
@@ -112,70 +129,28 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    internal static async Task<bool> IsCertificateTrustedAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Gets a value indicating whether a newer ASP.NET Core development certificate was detected
+    /// that is not in the trusted set. This is true when the highest-version/most-recent dev cert
+    /// is not trusted, even though older trusted certs may exist.
+    /// </summary>
+    internal bool LatestCertificateIsUntrusted
     {
-        ArgumentNullException.ThrowIfNull(certificate);
-
-        if (OperatingSystem.IsMacOS())
+        get
         {
-            // On MacOS we have to verify against the Keychain
-            return await IsCertificateTrustedInMacOsKeychainAsync(fileSystemService, certificate, cancellationToken).ConfigureAwait(false);
-        }
-
-        try
-        {
-            // On Linux and Windows, we need to check if the certificate is in the Root store
-            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadOnly);
-
-            var matches = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, validOnly: false);
-            try
-            {
-                return matches.Count > 0;
-            }
-            finally
-            {
-                foreach (var cert in matches)
-                {
-                    cert.Dispose();
-                }
-            }
-        }
-        catch
-        {
-            // Ignore errors and assume not trusted
-            return false;
+            _ = _certificates.Value; // Ensure certificates have been evaluated
+            return _latestCertificateIsUntrusted;
         }
     }
 
-    // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
-    // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
-    private static async Task<bool> IsCertificateTrustedInMacOsKeychainAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken)
+    /// <summary>
+    /// Finds ASP.NET Core development certificates in the store, filtered by date validity and private key presence.
+    /// </summary>
+    private static IEnumerable<X509Certificate2> FindDevCertificates(X509Store store, DateTimeOffset now)
     {
-        try
-        {
-            using var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-devcert-check");
-            var certPath = Path.Combine(tempDirectory.Path, $"aspire-devcert-{certificate.Thumbprint}.cer");
-
-            File.WriteAllBytes(certPath, certificate.Export(X509ContentType.Cert));
-
-            var processSpec = new ProcessSpec("security")
-            {
-                Arguments = $"verify-cert -p basic -p ssl -c \"{certPath}\"",
-                ThrowOnNonZeroReturnCode = false
-            };
-
-            var (task, processDisposable) = ProcessUtil.Run(processSpec);
-            await using (processDisposable.ConfigureAwait(false))
-            {
-                var result = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
-                return result.ExitCode == 0;
-            }
-        }
-        catch
-        {
-            // Ignore errors and assume not trusted
-            return false;
-        }
+        return store.Certificates
+            .Where(c => c.IsAspNetCoreDevelopmentCertificate())
+            .Where(c => c.NotBefore <= now && now <= c.NotAfter)
+            .Where(c => c.HasPrivateKey);
     }
 }

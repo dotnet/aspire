@@ -76,6 +76,16 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <target state="new">Development certificate not fully trusted</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoDeveloperCertificateTrustedMessage">
+        <source>No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</source>
+        <target state="new">No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoDeveloperCertificateTrustedTitle">
+        <source>No trusted development certificate</source>
+        <target state="new">No trusted development certificate</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
         <target state="translated">有未解析的参数需要设置。请为这些参数提供值。</target>

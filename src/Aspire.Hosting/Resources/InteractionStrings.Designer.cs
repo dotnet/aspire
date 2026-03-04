@@ -124,6 +124,24 @@ namespace Aspire.Hosting.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to No trusted development certificate.
+        /// </summary>
+        internal static string NoDeveloperCertificateTrustedTitle {
+            get {
+                return ResourceManager.GetString("NoDeveloperCertificateTrustedTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate..
+        /// </summary>
+        internal static string NoDeveloperCertificateTrustedMessage {
+            get {
+                return ResourceManager.GetString("NoDeveloperCertificateTrustedMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Ensure that Podman is running..
         /// </summary>
         internal static string ContainerRuntimePodmanAdvice {

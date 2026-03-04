@@ -471,9 +471,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 dashboardResource.Annotations.Add(new HttpsCertificateConfigurationCallbackAnnotation(ctx =>
                 {
-                    // Ensure we use a trusted developer certificate (Kestrel selects the latest certificate, which may not be trusted after an SDK update)
-                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
-                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                    // Ensure we use a trusted developer certificate (Kestrel selects the latest certificate, which may not be trusted after an SDK update).
+                    // There can be issues referencing an exported PEM key pair on MacOS, so we the PFX version of the certificate here.
+                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.PfxPath;
                     if (ctx.Password is not null)
                     {
                         ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;

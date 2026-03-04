@@ -76,6 +76,16 @@ Il valore è attualmente salvato nei [segreti utente](https://learn.microsoft.co
         <target state="new">Development certificate not fully trusted</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoDeveloperCertificateTrustedMessage">
+        <source>No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</source>
+        <target state="new">No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoDeveloperCertificateTrustedTitle">
+        <source>No trusted development certificate</source>
+        <target state="new">No trusted development certificate</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
         <target state="translated">Sono presenti parametri non risolti che devono essere impostati. Specifica i valori per questi parametri.</target>

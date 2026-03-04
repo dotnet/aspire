@@ -148,8 +148,11 @@ internal sealed class DcpHost
                 return;
             }
 
-            // Check and warn if the developer certificate is not trusted
-            if (_developerCertificateService.Certificates.Count > 0 && !await DeveloperCertificateService.IsCertificateTrustedAsync(_fileSystemService, _developerCertificateService.Certificates.First(), cancellationToken).ConfigureAwait(false))
+            // Check and warn if no trusted dev certs exist, or if a newer untrusted cert was detected
+            var hasNewerUntrustedCert = _developerCertificateService is DeveloperCertificateService concreteSvc && concreteSvc.LatestCertificateIsUntrusted;
+            var hasNoTrustedCerts = _developerCertificateService.Certificates.Count == 0 && hasNewerUntrustedCert;
+
+            if (hasNoTrustedCerts || hasNewerUntrustedCert)
             {
                 var trustLocation = "your project folder";
                 var appHostDirectory = _configuration["AppHost:Directory"];
@@ -158,10 +161,21 @@ internal sealed class DcpHost
                     trustLocation = $"'{appHostDirectory}'";
                 }
 
-                var title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
-                var message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
+                string title;
+                string message;
 
-                _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
+                if (hasNoTrustedCerts)
+                {
+                    title = InteractionStrings.NoDeveloperCertificateTrustedTitle;
+                    message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.NoDeveloperCertificateTrustedMessage, trustLocation);
+                    _logger.LogWarning("No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
+                }
+                else
+                {
+                    title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
+                    message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
+                    _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
+                }
 
                 // Check if the interaction service is available (dashboard enabled)
                 if (!_interactionService.IsAvailable)
