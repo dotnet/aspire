@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -201,6 +202,10 @@ internal sealed class AspireCliTelemetry : IHostedService
             _tagsList.Add(new(TelemetryConstants.Tags.CliBuildId, typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty));
 
             _tagsList.Add(new(TelemetryConstants.Tags.DeploymentEnvironmentName, _ciEnvironmentDetector.IsCIEnvironment() ? "ci" : "local"));
+
+            _tagsList.Add(new(TelemetryConstants.Tags.OsName, GetOsName()));
+            _tagsList.Add(new(TelemetryConstants.Tags.OsType, GetOsType()));
+            _tagsList.Add(new(TelemetryConstants.Tags.OsVersion, Environment.OSVersion.Version.ToString()));
         }
         catch (Exception ex)
         {
@@ -239,5 +244,51 @@ internal sealed class AspireCliTelemetry : IHostedService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the human-readable operating system name for the <c>os.name</c> semantic convention.
+    /// </summary>
+    internal static string GetOsName()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return "Windows";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return "Linux";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return "macOS";
+        }
+
+        return RuntimeInformation.OSDescription;
+    }
+
+    /// <summary>
+    /// Gets the OpenTelemetry semantic convention value for the <c>os.type</c> attribute.
+    /// </summary>
+    internal static string GetOsType()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return "windows";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return "linux";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return "darwin";
+        }
+
+        return "unknown";
     }
 }
