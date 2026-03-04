@@ -26,7 +26,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     private const string AppsFolder = "hosts";
     public const string ProjectFileName = "AppHostServer.csproj";
     private const string ProjectDllName = "AppHostServer.dll";
-    private const string TargetFramework = "net10.0";
+    internal const string TargetFramework = "net10.0";
     public const string BuildFolder = "build";
     private const string AssemblyName = "AppHostServer";
 
@@ -135,7 +135,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// <summary>
     /// Creates the project .csproj content using project references to the local Aspire repository.
     /// </summary>
-    private XDocument CreateProjectFile(IEnumerable<(string Name, string Version)> packages)
+    private XDocument CreateProjectFile(IEnumerable<IntegrationReference> integrations)
     {
         // Determine OS/architecture for DCP package name
         var (buildOs, buildArch) = GetBuildPlatform();
@@ -183,12 +183,22 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         var addedProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var otherPackages = new List<(string Name, string Version)>();
 
-        foreach (var (name, version) in packages)
+        foreach (var integration in integrations)
         {
-            if (name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase))
+            if (integration.IsProjectReference)
             {
-                var projectPath = Path.Combine(_repoRoot, "src", name, $"{name}.csproj");
-                if (File.Exists(projectPath) && addedProjects.Add(name))
+                // Explicit project reference from settings.json
+                if (addedProjects.Add(integration.Name))
+                {
+                    projectRefGroup.Add(new XElement("ProjectReference",
+                        new XAttribute("Include", integration.ProjectPath!),
+                        new XElement("IsAspireProjectResource", "false")));
+                }
+            }
+            else if (integration.Name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase))
+            {
+                var projectPath = Path.Combine(_repoRoot, "src", integration.Name, $"{integration.Name}.csproj");
+                if (File.Exists(projectPath) && addedProjects.Add(integration.Name))
                 {
                     projectRefGroup.Add(new XElement("ProjectReference",
                         new XAttribute("Include", projectPath),
@@ -197,7 +207,11 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             }
             else
             {
-                otherPackages.Add((name, version));
+                if (integration.Version is null)
+                {
+                    throw new InvalidOperationException($"Integration '{integration.Name}' is neither a project reference nor a package reference (both Version and ProjectPath are null).");
+                }
+                otherPackages.Add((integration.Name, integration.Version));
             }
         }
 
@@ -262,9 +276,8 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// Scaffolds the project files.
     /// </summary>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(
-        IEnumerable<(string Name, string Version)> packages,
-        CancellationToken cancellationToken = default,
-        IEnumerable<string>? additionalProjectReferences = null)
+        IEnumerable<IntegrationReference> integrations,
+        CancellationToken cancellationToken = default)
     {
         // Clean obj folder to ensure fresh NuGet restore
         var objPath = Path.Combine(_projectModelPath, "obj");
@@ -288,23 +301,18 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
 
         // Create appsettings.json with ATS assemblies
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
-        foreach (var pkg in packages)
+        foreach (var integration in integrations)
         {
-            if (!atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
+            // Skip SDK-only packages that don't produce runtime assemblies
+            if (integration.Name.Equals("Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase) ||
+                integration.Name.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
             {
-                atsAssemblies.Add(pkg.Name);
+                continue;
             }
-        }
 
-        if (additionalProjectReferences is not null)
-        {
-            foreach (var projectPath in additionalProjectReferences)
+            if (!atsAssemblies.Contains(integration.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var assemblyName = Path.GetFileNameWithoutExtension(projectPath);
-                if (!atsAssemblies.Contains(assemblyName, StringComparer.OrdinalIgnoreCase))
-                {
-                    atsAssemblies.Add(assemblyName);
-                }
+                atsAssemblies.Add(integration.Name);
             }
         }
 
@@ -327,11 +335,11 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
 
         // Handle NuGet config and channel resolution
         string? channelName = null;
-        var nugetConfigPath = Path.Combine(_projectModelPath, "nuget.config");
 
         var userNugetConfig = FindNuGetConfig(_appPath);
         if (userNugetConfig is not null)
         {
+            var nugetConfigPath = Path.Combine(_projectModelPath, "nuget.config");
             File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
         }
 
@@ -344,41 +352,37 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         }
 
-        PackageChannel? channel;
-        if (!string.IsNullOrEmpty(configuredChannelName))
-        {
-            channel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
-        }
-        else
-        {
-            channel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Explicit);
-        }
+        // Resolve channel sources and add them via RestoreAdditionalProjectSources
+        // This is additive — it preserves the user's nuget.config and adds channel-specific sources
+        var channelSources = new List<string>();
+        var matchedChannels = !string.IsNullOrEmpty(configuredChannelName)
+            ? channels.Where(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase))
+            : channels.Where(c => c.Type == PackageChannelType.Explicit);
 
-        if (channel is not null)
+        foreach (var ch in matchedChannels)
         {
-            await NuGetConfigMerger.CreateOrUpdateAsync(
-                new DirectoryInfo(_projectModelPath),
-                channel,
-                cancellationToken: cancellationToken);
-            channelName = channel.Name;
+            channelName ??= ch.Name;
+            if (ch.Mappings is not null)
+            {
+                foreach (var mapping in ch.Mappings)
+                {
+                    if (!channelSources.Contains(mapping.Source, StringComparer.OrdinalIgnoreCase))
+                    {
+                        channelSources.Add(mapping.Source);
+                    }
+                }
+            }
         }
 
         // Create the project file
-        var doc = CreateProjectFile(packages);
+        var doc = CreateProjectFile(integrations);
 
-        // Add additional project references
-        if (additionalProjectReferences is not null)
+        // Add channel sources to the project so project references can resolve packages
+        if (channelSources.Count > 0)
         {
-            var additionalProjectRefs = additionalProjectReferences
-                .Select(path => new XElement("ProjectReference",
-                    new XAttribute("Include", path),
-                    new XElement("IsAspireProjectResource", "false")))
-                .ToList();
-
-            if (additionalProjectRefs.Count > 0)
-            {
-                doc.Root!.Add(new XElement("ItemGroup", additionalProjectRefs));
-            }
+            var sourceList = string.Join(";", channelSources);
+            doc.Root!.Descendants("PropertyGroup").First()
+                .Add(new XElement("RestoreAdditionalProjectSources", sourceList));
         }
 
         // Add appsettings.json to output
@@ -433,10 +437,10 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// <inheritdoc />
     public async Task<AppHostServerPrepareResult> PrepareAsync(
         string sdkVersion,
-        IEnumerable<(string Name, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken = default)
     {
-        var (_, channelName) = await CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await CreateProjectFilesAsync(integrations, cancellationToken);
         var (buildSuccess, buildOutput) = await BuildAsync(cancellationToken);
 
         if (!buildSuccess)
