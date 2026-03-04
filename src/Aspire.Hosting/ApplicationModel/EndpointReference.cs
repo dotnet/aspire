@@ -141,7 +141,8 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public DeferredValueProvider GetTlsValue(string enabledValue, string? disabledValue)
     {
         return new DeferredValueProvider(
-            () => TlsEnabled ? enabledValue : disabledValue);
+            () => new ValueTask<string?>(TlsEnabled ? enabledValue : disabledValue),
+            () => TlsEnabled ? enabledValue ?? "" : disabledValue ?? "");
     }
 
     /// <summary>

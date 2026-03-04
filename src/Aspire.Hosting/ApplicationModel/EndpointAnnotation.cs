@@ -169,7 +169,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     public string Transport
     {
-        get => _transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        get => _transport ?? (string.Equals(UriScheme, "http", StringComparisons.EndpointAnnotationUriScheme) || string.Equals(UriScheme, "https", StringComparisons.EndpointAnnotationUriScheme) ? "http" : Protocol.ToString().ToLowerInvariant());
         set => _transport = value;
     }
 
@@ -197,7 +197,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </remarks>
     public bool TlsEnabled
     {
-        get => _tlsEnabled ?? (UriScheme == "https");
+        get => _tlsEnabled ?? string.Equals(UriScheme, "https", StringComparisons.EndpointAnnotationUriScheme);
         set => _tlsEnabled = value;
     }
 

@@ -14,51 +14,50 @@ namespace Aspire.Hosting.ApplicationModel;
 /// until later in the application lifecycle (e.g., whether TLS has been enabled on an endpoint).
 /// </para>
 /// <para>
-/// Callbacks receive a <see cref="ValueProviderContext"/> that provides access to the execution context,
-/// the calling resource, and network information. When no separate manifest expression callback is provided,
-/// the value callback is used for both <see cref="GetValueAsync(ValueProviderContext, CancellationToken)"/> and <see cref="ValueExpression"/>. A
-/// <see langword="null"/> return from the value callback is treated as an empty string for the manifest expression.
+/// Value callbacks are asynchronous and receive a <see cref="ValueProviderContext"/> that provides access
+/// to the execution context, the calling resource, and network information. A separate synchronous manifest
+/// expression callback is required because <see cref="IManifestExpressionProvider.ValueExpression"/> is a
+/// synchronous property.
 /// </para>
 /// </remarks>
 public class DeferredValueProvider : IValueProvider, IManifestExpressionProvider
 {
-    private readonly Func<ValueProviderContext, string?> _valueCallback;
-    private readonly Func<string>? _manifestExpressionCallback;
+    private readonly Func<ValueProviderContext, ValueTask<string?>> _valueCallback;
+    private readonly Func<string> _manifestExpressionCallback;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="DeferredValueProvider"/> with a context-free callback.
+    /// Initializes a new instance of <see cref="DeferredValueProvider"/> with a context-free async callback.
     /// </summary>
-    /// <param name="valueCallback">A callback that returns the value. A <see langword="null"/> return is treated
-    /// as an empty string for the manifest expression. Called each time the value is resolved.</param>
-    /// <param name="manifestExpressionCallback">An optional callback that returns the manifest expression string.
-    /// When <see langword="null"/>, the <paramref name="valueCallback"/> is used for both runtime and manifest values.</param>
-    public DeferredValueProvider(Func<string?> valueCallback, Func<string>? manifestExpressionCallback = null)
+    /// <param name="valueCallback">An async callback that returns the value. Called each time the value is resolved.</param>
+    /// <param name="manifestExpressionCallback">A callback that returns the manifest expression string.
+    /// This is required because <see cref="IManifestExpressionProvider.ValueExpression"/> is synchronous
+    /// and cannot call the async <paramref name="valueCallback"/>.</param>
+    public DeferredValueProvider(Func<ValueTask<string?>> valueCallback, Func<string> manifestExpressionCallback)
     {
         ArgumentNullException.ThrowIfNull(valueCallback);
+        ArgumentNullException.ThrowIfNull(manifestExpressionCallback);
         _valueCallback = _ => valueCallback();
         _manifestExpressionCallback = manifestExpressionCallback;
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="DeferredValueProvider"/> with a context-aware callback.
+    /// Initializes a new instance of <see cref="DeferredValueProvider"/> with a context-aware async callback.
     /// </summary>
-    /// <param name="valueCallback">A callback that receives a <see cref="ValueProviderContext"/> and returns
-    /// the value. A <see langword="null"/> return is treated as an empty string for the manifest expression.
-    /// Called each time the value is resolved.</param>
-    /// <param name="manifestExpressionCallback">An optional callback that returns the manifest expression string.
-    /// When <see langword="null"/>, the <paramref name="valueCallback"/> is invoked with an empty
-    /// <see cref="ValueProviderContext"/> for the manifest expression.</param>
-    public DeferredValueProvider(Func<ValueProviderContext, string?> valueCallback, Func<string>? manifestExpressionCallback = null)
+    /// <param name="valueCallback">An async callback that receives a <see cref="ValueProviderContext"/> and returns
+    /// the value. Called each time the value is resolved.</param>
+    /// <param name="manifestExpressionCallback">A callback that returns the manifest expression string.
+    /// This is required because <see cref="IManifestExpressionProvider.ValueExpression"/> is synchronous
+    /// and cannot call the async <paramref name="valueCallback"/>.</param>
+    public DeferredValueProvider(Func<ValueProviderContext, ValueTask<string?>> valueCallback, Func<string> manifestExpressionCallback)
     {
         ArgumentNullException.ThrowIfNull(valueCallback);
+        ArgumentNullException.ThrowIfNull(manifestExpressionCallback);
         _valueCallback = valueCallback;
         _manifestExpressionCallback = manifestExpressionCallback;
     }
 
     /// <inheritdoc />
-    public string ValueExpression => _manifestExpressionCallback is not null
-        ? _manifestExpressionCallback()
-        : _valueCallback(new ValueProviderContext()) ?? "";
+    public string ValueExpression => _manifestExpressionCallback();
 
     /// <inheritdoc />
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
@@ -69,6 +68,6 @@ public class DeferredValueProvider : IValueProvider, IManifestExpressionProvider
     /// <inheritdoc />
     public ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
     {
-        return new(_valueCallback(context));
+        return _valueCallback(context);
     }
 }

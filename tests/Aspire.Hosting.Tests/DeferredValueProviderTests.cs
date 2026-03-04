@@ -9,7 +9,7 @@ public class DeferredValueProviderTests
     public async Task GetValueAsync_ReturnsCallbackResult()
     {
         var provider = new DeferredValueProvider(
-            () => "hello",
+            () => new ValueTask<string?>("hello"),
             () => "manifest-expression");
 
         var value = await provider.GetValueAsync();
@@ -20,7 +20,7 @@ public class DeferredValueProviderTests
     public async Task GetValueAsync_ReturnsNullWhenCallbackReturnsNull()
     {
         var provider = new DeferredValueProvider(
-            () => null,
+            () => new ValueTask<string?>((string?)null),
             () => "");
 
         var value = await provider.GetValueAsync();
@@ -31,7 +31,7 @@ public class DeferredValueProviderTests
     public void ValueExpression_ReturnsManifestCallbackResult()
     {
         var provider = new DeferredValueProvider(
-            () => "runtime-value",
+            () => new ValueTask<string?>("runtime-value"),
             () => "manifest-expression");
 
         Assert.Equal("manifest-expression", provider.ValueExpression);
@@ -42,6 +42,7 @@ public class DeferredValueProviderTests
     {
         var enabled = false;
         var provider = new DeferredValueProvider(
+            () => new ValueTask<string?>(enabled ? ",ssl=true" : ""),
             () => enabled ? ",ssl=true" : "");
 
         // Before enabling
@@ -70,8 +71,9 @@ public class DeferredValueProviderTests
             (ctx) =>
             {
                 capturedContext = ctx;
-                return "context-aware-value";
-            });
+                return new ValueTask<string?>("context-aware-value");
+            },
+            () => "context-aware-value");
 
         var value = await provider.GetValueAsync(context);
         Assert.Equal("context-aware-value", value);
@@ -79,19 +81,20 @@ public class DeferredValueProviderTests
     }
 
     [Fact]
-    public void ValueExpression_WithContextCallback_InvokesWithEmptyContext()
+    public void ValueExpression_UsesManifestCallback()
     {
         var provider = new DeferredValueProvider(
-            (ValueProviderContext _) => "context-value");
+            (ValueProviderContext _) => new ValueTask<string?>("runtime-value"),
+            () => "manifest-expression");
 
-        Assert.Equal("context-value", provider.ValueExpression);
+        Assert.Equal("manifest-expression", provider.ValueExpression);
     }
 
     [Fact]
     public async Task GetValueAsync_WithContextAndManifestCallback_UsesIndependentCallbacks()
     {
         var provider = new DeferredValueProvider(
-            (ValueProviderContext _) => "runtime-value",
+            (ValueProviderContext _) => new ValueTask<string?>("runtime-value"),
             () => "manifest-expression");
 
         var value = await provider.GetValueAsync();
@@ -100,20 +103,11 @@ public class DeferredValueProviderTests
     }
 
     [Fact]
-    public async Task SingleCallback_NullReturnsTreatedAsEmptyForManifest()
-    {
-        var provider = new DeferredValueProvider(() => (string?)null);
-
-        var value = await provider.GetValueAsync();
-        Assert.Null(value);
-        Assert.Equal("", provider.ValueExpression);
-    }
-
-    [Fact]
     public async Task DeferredValueProvider_WorksInReferenceExpressionBuilder()
     {
         var enabled = false;
         var tlsFragment = new DeferredValueProvider(
+            () => new ValueTask<string?>(enabled ? ",ssl=true" : ""),
             () => enabled ? ",ssl=true" : "");
 
         var builder = new ReferenceExpressionBuilder();
