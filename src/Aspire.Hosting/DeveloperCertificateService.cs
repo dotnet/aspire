@@ -60,17 +60,44 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 using var chain = new X509Chain();
                 chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
+                // On Windows, chain.Build() can succeed even when the certificate isn't in the
+                // trusted root store. Open the CurrentUser Root store so we can verify membership.
+                X509Certificate2Collection? rootCerts = null;
+                if (OperatingSystem.IsWindows())
+                {
+                    using var rootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+                    rootStore.Open(OpenFlags.ReadOnly);
+                    rootCerts = rootStore.Certificates;
+                }
+
                 // Find the dev certs that are trusted
                 var trustedCerts = new List<X509Certificate2>();
                 foreach (var cert in bestCerts)
                 {
                     if (chain.Build(cert))
                     {
+                        // On Windows, also verify the certificate exists in the root store
+                        if (rootCerts is not null &&
+                            !rootCerts.Any(rc => rc.RawDataMemory.Span.SequenceEqual(cert.RawDataMemory.Span)))
+                        {
+                            chain.Reset();
+                            continue;
+                        }
+
                         trustedCerts.Add(cert);
                     }
 
                     // Reset the chain for the next certificate
                     chain.Reset();
+                }
+
+                // Dispose root store certificates after use
+                if (rootCerts is not null)
+                {
+                    foreach (var rc in rootCerts)
+                    {
+                        rc.Dispose();
+                    }
                 }
 
                 // Flag if the newest/highest-version cert is not trusted
