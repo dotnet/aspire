@@ -9,7 +9,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -35,13 +34,14 @@ internal sealed class ResourceCommand : BaseCommand
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
     /// <summary>
-    /// Maps friendly command names to their backchannel equivalents with display metadata.
+    /// Well-known commands with their display metadata.
+    /// The command name is used directly (no mapping needed since the user-facing names match the actual command names).
     /// </summary>
-    private static readonly Dictionary<string, (string BackchannelCommand, string ProgressVerb, string BaseVerb, string PastTenseVerb)> s_wellKnownCommands = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, (string ProgressVerb, string BaseVerb, string PastTenseVerb)> s_wellKnownCommands = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["start"] = (KnownResourceCommands.StartCommand, "Starting", "start", "started"),
-        ["stop"] = (KnownResourceCommands.StopCommand, "Stopping", "stop", "stopped"),
-        ["restart"] = (KnownResourceCommands.RestartCommand, "Restarting", "restart", "restarted"),
+        ["start"] = ("Starting", "start", "started"),
+        ["stop"] = ("Stopping", "stop", "stopped"),
+        ["restart"] = ("Restarting", "restart", "restarted"),
     };
 
     public ResourceCommand(
@@ -82,7 +82,7 @@ internal sealed class ResourceCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        // Map well-known friendly names (start/stop/restart) to their backchannel equivalents
+        // Map well-known friendly names (start/stop/restart) to their display metadata
         if (s_wellKnownCommands.TryGetValue(commandName, out var knownCommand))
         {
             return await ResourceCommandHelper.ExecuteResourceCommandAsync(
@@ -90,7 +90,7 @@ internal sealed class ResourceCommand : BaseCommand
                 _interactionService,
                 _logger,
                 resourceName,
-                knownCommand.BackchannelCommand,
+                commandName,
                 knownCommand.ProgressVerb,
                 knownCommand.BaseVerb,
                 knownCommand.PastTenseVerb,
