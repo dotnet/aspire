@@ -84,7 +84,7 @@ internal sealed class RestoreCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            if (project.LanguageId == KnownLanguageId.CSharp)
+            if (project is DotNetAppHostProject)
             {
                 if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
                 {
@@ -109,28 +109,28 @@ internal sealed class RestoreCommand : BaseCommand
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            if (project is not GuestAppHostProject guestProject)
+            if (project is GuestAppHostProject guestProject)
             {
-                InteractionService.DisplayError(RestoreCommandStrings.UnrecognizedAppHostType);
-                return ExitCodeConstants.FailedToFindProject;
+                var directory = effectiveAppHostFile.Directory!;
+                _logger.LogDebug("Restoring SDK code for {AppHost} in {Directory}", effectiveAppHostFile.FullName, directory.FullName);
+
+                var success = await _interactionService.ShowStatusAsync(
+                    RestoreCommandStrings.RestoringSdkCode,
+                    async () => await guestProject.BuildAndGenerateSdkAsync(directory, cancellationToken),
+                    emoji: KnownEmojis.Gear);
+
+                if (success)
+                {
+                    _interactionService.DisplaySuccess(
+                        string.Format(CultureInfo.CurrentCulture, RestoreCommandStrings.RestoreSucceeded, effectiveAppHostFile.Name));
+                    return ExitCodeConstants.Success;
+                }
+
+                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            var directory = effectiveAppHostFile.Directory!;
-            _logger.LogDebug("Restoring SDK code for {AppHost} in {Directory}", effectiveAppHostFile.FullName, directory.FullName);
-
-            var success = await _interactionService.ShowStatusAsync(
-                RestoreCommandStrings.RestoringSdkCode,
-                async () => await guestProject.BuildAndGenerateSdkAsync(directory, cancellationToken),
-                emoji: KnownEmojis.Gear);
-
-            if (success)
-            {
-                _interactionService.DisplaySuccess(
-                    string.Format(CultureInfo.CurrentCulture, RestoreCommandStrings.RestoreSucceeded, effectiveAppHostFile.Name));
-                return ExitCodeConstants.Success;
-            }
-
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            InteractionService.DisplayError(RestoreCommandStrings.UnrecognizedAppHostType);
+            return ExitCodeConstants.FailedToFindProject;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

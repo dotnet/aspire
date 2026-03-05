@@ -120,9 +120,6 @@
   <data name="Description" xml:space="preserve">
     <value>Restore dependencies and generate SDK code for an AppHost project.</value>
   </data>
-  <data name="NotSupportedForDotNet" xml:space="preserve">
-    <value>The restore command is not supported by .NET AppHost projects.</value>
-  </data>
   <data name="UnrecognizedAppHostType" xml:space="preserve">
     <value>Unrecognized app host type.</value>
   </data>

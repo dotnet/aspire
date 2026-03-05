@@ -61,14 +61,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string NotSupportedForDotNet
-        {
-            get
-            {
-                return ResourceManager.GetString("NotSupportedForDotNet", resourceCulture);
-            }
-        }
-
         public static string UnrecognizedAppHostType
         {
             get

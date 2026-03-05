@@ -19,6 +19,7 @@ public class RestoreCommandTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(appHostFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
 
         var restoreCalled = false;
+        string? capturedProjectFilePath = null;
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -27,7 +28,7 @@ public class RestoreCommandTests(ITestOutputHelper outputHelper)
                 RestoreAsyncCallback = (projectFilePath, _, _) =>
                 {
                     restoreCalled = true;
-                    Assert.Equal(appHostFile.FullName, projectFilePath.FullName);
+                    capturedProjectFilePath = projectFilePath.FullName;
                     return Aspire.Cli.ExitCodeConstants.Success;
                 }
             };
@@ -41,6 +42,7 @@ public class RestoreCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(Aspire.Cli.ExitCodeConstants.Success, exitCode);
         Assert.True(restoreCalled);
+        Assert.Equal(appHostFile.FullName, capturedProjectFilePath);
     }
 
     [Fact]

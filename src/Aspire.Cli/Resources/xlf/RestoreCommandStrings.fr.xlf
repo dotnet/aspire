@@ -7,11 +7,6 @@
         <target state="new">Restore dependencies and generate SDK code for an AppHost project.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NotSupportedForDotNet">
-        <source>The restore command is not supported by .NET AppHost projects.</source>
-        <target state="new">The restore command is not supported by .NET AppHost projects.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="UnrecognizedAppHostType">
         <source>Unrecognized app host type.</source>
         <target state="new">Unrecognized app host type.</target>
