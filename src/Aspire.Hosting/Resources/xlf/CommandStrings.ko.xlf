@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="RestartProjectDescription">
         <source>Restart resource. Source code is not recompiled.</source>
-        <target state="new">Restart resource. Source code is not recompiled.</target>
+        <target state="translated">리소스를 다시 시작합니다. 소스 코드는 다시 컴파일되지 않습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetParameterDescription">

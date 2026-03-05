@@ -232,7 +232,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The project could not be built. For more information run with --debug switch..
+        ///   Looks up a localized string similar to The project could not be built. See logs at {0}.
         /// </summary>
         public static string ProjectCouldNotBeBuilt {
             get {
@@ -241,7 +241,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The --project option specified a project that does not exist..
+        ///   Looks up a localized string similar to The --apphost option specified a project that does not exist..
         /// </summary>
         public static string ProjectOptionDoesntExist {
             get {
@@ -250,7 +250,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The --project option was not specified and multiple app host project files were detected..
+        ///   Looks up a localized string similar to The --apphost option was not specified and multiple app host project files were detected..
         /// </summary>
         public static string ProjectOptionNotSpecifiedMultipleAppHostsFound {
             get {
@@ -336,6 +336,15 @@ namespace Aspire.Cli.Resources {
         public static string UnexpectedErrorOccurred {
             get {
                 return ResourceManager.GetString("UnexpectedErrorOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to See logs at {0}.
+        /// </summary>
+        public static string SeeLogsAt {
+            get {
+                return ResourceManager.GetString("SeeLogsAt", resourceCulture);
             }
         }
         

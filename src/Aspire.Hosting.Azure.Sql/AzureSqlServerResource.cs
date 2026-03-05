@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
@@ -15,7 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
-public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString
+public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString, IAzurePrivateEndpointTarget
 {
     private readonly Dictionary<string, AzureSqlDatabaseResource> _databases = new Dictionary<string, AzureSqlDatabaseResource>(StringComparers.ResourceName);
     private readonly bool _createdWithInnerResource;
@@ -50,6 +52,11 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the "id" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference Id => new("id", this);
 
     private BicepOutputReference AdminName => new("sqlServerAdminName", this);
 
@@ -324,4 +331,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
 
         return result;
     }
+
+    BicepOutputReference IAzurePrivateEndpointTarget.Id => Id;
+
+    IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["sqlServer"];
+
+    string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() => "privatelink.database.windows.net";
 }

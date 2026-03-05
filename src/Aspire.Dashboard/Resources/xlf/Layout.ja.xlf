@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointApiBody">
         <source>Untrusted apps can access telemetry data via the API.</source>
-        <target state="new">Untrusted apps can access telemetry data via the API.</target>
+        <target state="translated">信頼されていないアプリは、API を介してテレメトリ データにアクセスできます。</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">

@@ -5,6 +5,7 @@ using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.Tests.Ats;
 
+[Trait("Partition", "4")]
 public class AtsCapabilityScannerTests
 {
     #region MapToAtsTypeId Tests
@@ -90,6 +91,14 @@ public class AtsCapabilityScannerTests
     }
 
     [Fact]
+    public void MapToAtsTypeId_IEnumerableOfString_ReturnsStringArray()
+    {
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IEnumerable<string>));
+
+        Assert.Equal("string[]", result);
+    }
+
+    [Fact]
     public void MapToAtsTypeId_IResourceBuilder_ExtractsResourceType()
     {
         var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IResourceBuilder<TestResource>));
@@ -115,6 +124,24 @@ public class AtsCapabilityScannerTests
 
         // System.Object maps to 'any'
         Assert.Equal("any", result);
+    }
+
+    [Fact]
+    public void ScanAssembly_IEnumerableCapability_UsesArrayTypes()
+    {
+        var result = AtsCapabilityScanner.ScanAssembly(typeof(AtsCapabilityScannerTests).Assembly);
+
+        var enumerableParameterCapability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/testEnumerableParameter", StringComparison.Ordinal));
+        var itemsParameter = Assert.Single(enumerableParameterCapability.Parameters);
+        var itemsType = Assert.IsType<AtsTypeRef>(itemsParameter.Type);
+        Assert.Equal("string[]", itemsType.TypeId);
+        Assert.Equal(AtsTypeCategory.Array, itemsType.Category);
+
+        var enumerableReturnCapability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/testEnumerableReturn", StringComparison.Ordinal));
+        Assert.Equal("string[]", enumerableReturnCapability.ReturnType.TypeId);
+        Assert.Equal(AtsTypeCategory.Array, enumerableReturnCapability.ReturnType.Category);
     }
 
     #endregion
@@ -167,12 +194,92 @@ public class AtsCapabilityScannerTests
 
     #endregion
 
+    #region Assembly-Level AspireExport Tests
+
+    [Fact]
+    public void ScanAssembly_AssemblyLevelExport_AppearsInHandleTypes()
+    {
+        // Regression test: assembly-level [AspireExport(typeof(T))] attributes must be
+        // discovered and included in HandleTypes so they participate in Unknown→Handle resolution.
+        // The Aspire.Hosting assembly exports CancellationToken at assembly level.
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        // ContainerApp types are exported via assembly-level attributes in AppContainers,
+        // but CancellationToken is exported in Aspire.Hosting's AtsTypeMappings.cs
+        var cancellationTokenType = result.HandleTypes
+            .FirstOrDefault(t => t.AtsTypeId.Contains("CancellationToken"));
+
+        Assert.NotNull(cancellationTokenType);
+    }
+
+    #endregion
+
+    #region Callback Parameter Type Resolution Tests
+
+    [Fact]
+    public void ScanAssembly_MultiParamCallbackTypes_AreResolved()
+    {
+        // Regression test: callback parameter types must be resolved (not left as Unknown)
+        // when the types are exported. Previously only param.Type was resolved but not
+        // param.CallbackParameters[i].Type.
+        var testAssembly = typeof(AtsCapabilityScannerTests).Assembly;
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+
+        // Find the testMultiParamHandleCallback capability
+        var capability = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId.EndsWith("/testMultiParamHandleCallback", StringComparison.Ordinal));
+
+        Assert.NotNull(capability);
+
+        var callbackParam = Assert.Single(capability.Parameters, p => p.IsCallback);
+        Assert.NotNull(callbackParam.CallbackParameters);
+        Assert.Equal(2, callbackParam.CallbackParameters.Count);
+
+        // Both callback parameter types should be resolved to Handle (not Unknown)
+        foreach (var cbParam in callbackParam.CallbackParameters)
+        {
+            Assert.NotNull(cbParam.Type);
+            Assert.NotEqual(AtsTypeCategory.Unknown, cbParam.Type.Category);
+        }
+    }
+
+    #endregion
+
     #region Test Types
 
     private sealed class TestResource : Resource
     {
         public TestResource(string name) : base(name)
         {
+        }
+    }
+
+    private static class TestExports
+    {
+        [AspireExport("testEnumerableParameter")]
+        public static void TestEnumerableParameter(IDistributedApplicationBuilder builder, IEnumerable<string> items)
+        {
+            _ = builder;
+            _ = items;
+        }
+
+        [AspireExport("testEnumerableReturn")]
+        public static IEnumerable<string> TestEnumerableReturn(IDistributedApplicationBuilder builder)
+        {
+            _ = builder;
+            return [];
+        }
+
+        [AspireExport("testMultiParamHandleCallback")]
+        public static IResourceBuilder<TestResource> TestMultiParamHandleCallback(
+            IResourceBuilder<TestResource> builder,
+            Func<ContainerResource, ProjectResource, Task> callback)
+        {
+            _ = callback;
+            return builder;
         }
     }
 

@@ -6,7 +6,6 @@ using System.CommandLine.Help;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -19,17 +18,14 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class ConfigCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
+
     private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
         : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-
         _configuration = configuration;
         _interactionService = interactionService;
 
@@ -230,59 +226,94 @@ internal sealed class ConfigCommand : BaseCommand
             // Check if we have any configuration at all
             if (localConfig.Count == 0 && globalConfig.Count == 0)
             {
-                InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
+                InteractionService.DisplayMessage(KnownEmojis.Information, ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 
-            // Display Local Configuration (including features)
-            if (localConfig.Count > 0)
-            {
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                foreach (var kvp in localConfig.OrderBy(k => k.Key))
-                {
-                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
-                }
-            }
-            else if (globalConfig.Count > 0)
-            {
-                // Only show "no local config" message if we have global config
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
-            }
+            // Compute max column widths across both tables for consistent alignment
+            var keyWidth = MaxWidth(ConfigCommandStrings.HeaderKey, localConfig.Keys, globalConfig.Keys);
+            var valueWidth = MaxWidth(ConfigCommandStrings.HeaderValue, localConfig.Values, globalConfig.Values);
 
-            // Display Global Configuration (including features)
-            if (globalConfig.Count > 0)
-            {
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                foreach (var kvp in globalConfig.OrderBy(k => k.Key))
-                {
-                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
-                }
-            }
-            else if (localConfig.Count > 0)
-            {
-                // Only show "no global config" message if we have local config
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
-            }
+            // Display Local Configuration
+            RenderConfigTable(
+                ConfigCommandStrings.LocalConfigurationHeader,
+                localConfig,
+                ConfigCommandStrings.NoLocalConfigurationFound,
+                keyWidth,
+                valueWidth);
+
+            InteractionService.DisplayEmptyLine();
+
+            // Display Global Configuration
+            RenderConfigTable(
+                ConfigCommandStrings.GlobalConfigurationHeader,
+                globalConfig,
+                ConfigCommandStrings.NoGlobalConfigurationFound,
+                keyWidth,
+                valueWidth);
 
             // Display Available Features
-            var allConfiguredFeatures = localConfig.Concat(globalConfig).Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).Select(kvp => kvp.Key.Substring(featurePrefix.Length)).ToHashSet(StringComparer.Ordinal);
-            var availableFeatures = KnownFeatures.GetAllFeatureNames().ToList();
-            var unconfiguredFeatures = availableFeatures.Where(f => !allConfiguredFeatures.Contains(f)).ToList();
+            var allConfiguredFeatures = localConfig.Concat(globalConfig)
+                .Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal))
+                .Select(kvp => kvp.Key.Substring(featurePrefix.Length))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var unconfiguredFeatures = KnownFeatures.GetAllFeatureMetadata()
+                .Where(f => !allConfiguredFeatures.Contains(f.Name))
+                .ToList();
 
             if (unconfiguredFeatures.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                InteractionService.DisplayPlainText($"  {string.Join(", ", unconfiguredFeatures)}");
+                foreach (var feature in unconfiguredFeatures)
+                {
+                    var defaultText = feature.DefaultValue ? "true" : "false";
+                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
+                    InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                }
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
             }
 
             return ExitCodeConstants.Success;
+
+            static int MaxWidth(string header, IEnumerable<string> localValues, IEnumerable<string> globalValues)
+            {
+                const int minColumnWidth = 30;
+
+                return localValues.Concat(globalValues)
+                    .Select(s => s.Length)
+                    .Append(header.Length)
+                    .Append(minColumnWidth)
+                    .Max();
+            }
+        }
+
+        private void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage, int keyWidth, int valueWidth)
+        {
+            var table = new Table();
+            table.Title = new TableTitle($"[bold]{title.EscapeMarkup()}[/]");
+            table.AddBoldColumn(ConfigCommandStrings.HeaderKey, width: keyWidth);
+            table.AddBoldColumn(ConfigCommandStrings.HeaderValue, width: valueWidth);
+
+            if (config.Count > 0)
+            {
+                foreach (var kvp in config.OrderBy(k => k.Key))
+                {
+                    table.AddRow(
+                        $"[cyan]{kvp.Key.EscapeMarkup()}[/]",
+                        $"[yellow]{kvp.Value.EscapeMarkup()}[/]");
+                }
+            }
+            else
+            {
+                table.AddRow($"[dim]{emptyMessage.EscapeMarkup()}[/]", "");
+            }
+
+            InteractionService.DisplayRenderable(table);
         }
     }
 
@@ -420,7 +451,8 @@ internal sealed class ConfigCommand : BaseCommand
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)
                 {
-                    consoleService.DisplayRawText(json);
+                    // Structured output always goes to stdout.
+                    consoleService.DisplayRawText(json, ConsoleOutput.Standard);
                 }
                 else
                 {
@@ -445,7 +477,7 @@ internal sealed class ConfigCommand : BaseCommand
                 foreach (var property in localSchema.Properties)
                 {
                     var requiredText = property.Required ? "[red]*[/]" : "";
-                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type}[/]) - {property.Description.EscapeMarkup()}");
+                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type.EscapeMarkup()}[/]) - {property.Description.EscapeMarkup()}");
                 }
             }
 

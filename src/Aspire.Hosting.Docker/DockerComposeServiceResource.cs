@@ -333,6 +333,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
             context.ReportingStep.Log(LogLevel.Information,
                 $"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**. No public endpoints were configured.",
                 enableMarkdown: true);
+            context.Summary.Add(TargetResource.Name, "No public endpoints");
             return;
         }
 
@@ -346,6 +347,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         {
             var endpointList = string.Join(", ", endpoints.Select(e => $"[{e}]({e})"));
             context.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{TargetResource.Name}** to {endpointList}.", enableMarkdown: true);
+            context.Summary.Add(TargetResource.Name, string.Join(", ", endpoints));
         }
         else
         {
@@ -353,6 +355,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
             context.ReportingStep.Log(LogLevel.Information,
                 $"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**.",
                 enableMarkdown: true);
+            context.Summary.Add(TargetResource.Name, "No public endpoints");
         }
     }
 

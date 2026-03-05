@@ -158,8 +158,7 @@ dependency-reduced-pom.xml
 # Publisher Outputs
 playground/**/publish/
 
-# TypeScript AppHost generated modules
-playground/**/.modules/
+# TypeScript AppHost
 playground/**/dist/
 
 # Verify
@@ -167,6 +166,9 @@ playground/**/dist/
 
 #Aspire CLI
 .aspire/
+
+# Required for polyglot apps
+!playground/polyglot/**/.aspire/
 
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/

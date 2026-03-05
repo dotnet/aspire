@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -43,6 +45,11 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(AzureResourceInfrastructure infrastructure)
         {
+            var azureResource = (AzureSearchResource)infrastructure.AspireResource;
+
+            // Check if this Search service has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var search = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -50,14 +57,25 @@ public static class AzureSearchExtensions
                     resource.Name = name;
                     return resource;
                 },
-                (infrastructure) => new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
+                (infrastructure) =>
                 {
-                    SearchSkuName = SearchServiceSkuName.Basic,
-                    ReplicaCount = 1,
-                    PartitionCount = 1,
-                    HostingMode = SearchServiceHostingMode.Default,
-                    IsLocalAuthDisabled = true,
-                    Tags = { { "aspire-resource-name", name } }
+                    var svc = new SearchService(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        SearchSkuName = SearchServiceSkuName.Basic,
+                        ReplicaCount = 1,
+                        PartitionCount = 1,
+                        HostingMode = SearchServiceHostingMode.Default,
+                        IsLocalAuthDisabled = true,
+                        Tags = { { "aspire-resource-name", name } }
+                    };
+
+                    // When using private endpoints, disable public network access.
+                    if (hasPrivateEndpoint)
+                    {
+                        svc.PublicNetworkAccess = SearchServicePublicNetworkAccess.Disabled;
+                    }
+
+                    return svc;
                 });
 
             // TODO: The endpoint format should move into Azure.Provisioning so we can maintain this
@@ -75,6 +93,9 @@ public static class AzureSearchExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = search.Name.ToBicepExpression() });
+
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = search.Id.ToBicepExpression() });
         }
     }
 

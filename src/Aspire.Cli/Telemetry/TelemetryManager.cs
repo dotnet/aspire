@@ -36,9 +36,12 @@ internal sealed class TelemetryManager
     /// Initializes a new instance of the <see cref="TelemetryManager"/> class.
     /// </summary>
     /// <param name="configuration">The configuration to read telemetry settings from.</param>
-    public TelemetryManager(IConfiguration configuration)
+    /// <param name="args">The command-line arguments.</param>
+    public TelemetryManager(IConfiguration configuration, string[]? args = null)
     {
-        var telemetryOptOut = configuration.GetBool(AspireCliTelemetry.TelemetryOptOutConfigKey, defaultValue: false);
+        // Don't send telemetry for informational commands or if the user has opted out.
+        var hasOptOutArg = args?.Any(a => CommonOptionNames.InformationalOptionNames.Contains(a)) ?? false;
+        var telemetryOptOut = hasOptOutArg || configuration.GetBool(AspireCliTelemetry.TelemetryOptOutConfigKey, defaultValue: false);
 
 #if DEBUG
         var useOtlpExporter = !string.IsNullOrEmpty(configuration[AspireCliTelemetry.OtlpExporterEndpointConfigKey]);

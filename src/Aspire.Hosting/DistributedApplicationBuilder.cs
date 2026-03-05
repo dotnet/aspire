@@ -29,6 +29,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.UserSecrets;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -186,9 +187,24 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
+        // Resolve the effective UserSecretsId: assembly attribute for .NET, env var for polyglot
+        var userSecretsId = AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId
+            ?? _innerBuilder.Configuration[KnownConfigNames.AspireUserSecretsId];
+
+        // For polyglot AppHosts (no assembly attribute), add user secrets early so they have the
+        // same precedence as the default AddUserSecrets called by HostApplicationBuilder for .NET projects.
+        // Only add in Development environment, matching the behavior of the default AddUserSecrets.
+        if (!string.IsNullOrEmpty(userSecretsId) &&
+            AppHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>() is null &&
+            _innerBuilder.Environment.IsDevelopment())
+        {
+            _innerBuilder.Configuration.AddUserSecrets(userSecretsId);
+        }
+
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
-        _innerBuilder.Services.AddSingleton<ILoggerProvider, BackchannelLoggerProvider>();
+        _innerBuilder.Services.AddSingleton<BackchannelLoggerProvider>();
+        _innerBuilder.Services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<BackchannelLoggerProvider>());
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -315,9 +331,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return _directoryService;
         });
 
-        // Create and register the user secrets manager
+        // Create and register the user secrets manager (uses the userSecretsId resolved at top of constructor)
         var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
-        _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
+
+        _userSecretsManager = !string.IsNullOrEmpty(userSecretsId)
+            ? userSecretsFactory.GetOrCreateFromId(userSecretsId)
+            : NoopUserSecretsManager.Instance;
+
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
 
@@ -401,6 +421,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // of MCP clients.
                     _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
 
+                    // Set a random API key for the Dashboard Telemetry API if one isn't already present in configuration.
+                    // This is the canonical API key; it also falls back to McpApiKey for MCP if not set.
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:DashboardApiKey", TokenGenerator.GenerateToken);
+
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
                                                               KnownConfigNames.Legacy.DashboardFrontendBrowserToken, fallbackOnEmpty: true) is not { } browserToken)
@@ -466,6 +490,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
+
+            // Required command validation for resources
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddSingleton<IRequiredCommandValidator, RequiredCommandValidator>();
+#pragma warning restore ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddEventingSubscriber<RequiredCommandValidationLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)
@@ -486,6 +516,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
+            Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.WarnPersistentContainersWithoutUserSecrets);
         }
 
         // Publishing support

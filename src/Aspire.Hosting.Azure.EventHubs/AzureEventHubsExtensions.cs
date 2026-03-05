@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -45,6 +47,11 @@ public static class AzureEventHubsExtensions
 
         var configureInfrastructure = static (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
+
+            // Check if this Event Hubs has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var eventHubsNamespace = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -67,6 +74,10 @@ public static class AzureEventHubsExtensions
                         {
                             Name = skuParameter
                         },
+                        // When using private endpoints, disable public network access.
+                        PublicNetworkAccess = hasPrivateEndpoint
+                            ? AzureProvisioning.EventHubsPublicNetworkAccess.Disabled
+                            : AzureProvisioning.EventHubsPublicNetworkAccess.Enabled,
                         Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                     };
                     return resource;
@@ -92,7 +103,8 @@ public static class AzureEventHubsExtensions
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = eventHubsNamespace.Name.ToBicepExpression() });
 
-            var azureResource = (AzureEventHubsResource)infrastructure.AspireResource;
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = eventHubsNamespace.Id.ToBicepExpression() });
 
             foreach (var hub in azureResource.Hubs)
             {

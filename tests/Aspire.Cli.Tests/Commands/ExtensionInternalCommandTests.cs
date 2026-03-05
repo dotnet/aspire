@@ -7,7 +7,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -35,7 +35,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -49,12 +49,11 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12304")]
     public async Task GetAppHostsCommand_WithSingleProject_ReturnsSuccessWithValidJson()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -71,7 +70,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension get-apphosts");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
         // Join all captured output and deserialize
@@ -96,7 +95,6 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12300")]
     public async Task GetAppHostsCommand_WithMultipleProjects_ReturnsSuccessWithAllCandidates()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -114,7 +112,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension get-apphosts");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
         // Join all captured output and deserialize
@@ -153,7 +151,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension get-apphosts");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -171,7 +169,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension get-apphosts");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -185,7 +183,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("extension get-apphosts --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 

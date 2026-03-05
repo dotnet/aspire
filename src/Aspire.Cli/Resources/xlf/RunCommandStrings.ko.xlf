@@ -37,6 +37,11 @@
         <target state="translated">AppHost 프로세스가 {0} 코드로 종료되었습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="translated">AppHost를 빌드하지 못했습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost를 시작했습니다.</target>
@@ -47,11 +52,6 @@
         <target state="translated">자세한 내용은 로그를 확인하세요. {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">실행 중인 인스턴스를 확인하는 중...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">apphost에 연결하는 중...</target>
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="CopyingUserSecrets">
         <source>Copying user secrets for isolated mode...</source>
-        <target state="new">Copying user secrets for isolated mode...</target>
+        <target state="translated">격리 모드용 사용자 암호를 복사하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
+        <source>Run an Aspire AppHost interactively for development.</source>
+        <target state="new">Run an Aspire AppHost interactively for development.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
-        <target state="new">The --format option can only be used together with --detach.</target>
+        <target state="translated">--format 옵션은 --detach와만 함께 사용할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -113,23 +113,33 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <source>Output format for detached AppHost results.</source>
+        <target state="new">Output format for detached AppHost results.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">임의의 포트와 격리된 사용자 암호를 사용해 격리 모드로 실행하면 여러 인스턴스를 동시에 실행할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">이 AppHost의 실행 중인 인스턴스가 발견되어 중지됩니다. 여러 개의 격리된 인스턴스를 동시에 실행하려면 git worktree 디렉터리와 같은 서로 다른 디렉터리에서 실행합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="translated">실행하기 전에 프로젝트를 빌드하거나 복원하지 마세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="translated">감시 모드를 켠 상태에서는 --no-build 옵션을 사용할 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -148,8 +158,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">프로젝트를 실행할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="translated">프로젝트를 실행할 수 없습니다. {0}에서 로그 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

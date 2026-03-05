@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -37,6 +35,9 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
     /// <remarks>
     /// <para>
+    /// This overload is not available in polyglot app hosts. Use <see cref="AddAzureFunctionsProject(IDistributedApplicationBuilder, string, string)"/> with a project path instead.
+    /// </para>
+    /// <para>
     /// When Functions projects are deployed to Azure Container Apps, they are provisioned with the container app <c>kind</c>
     /// property set to <c>functionapp</c>. This enables KEDA auto-scaler rules to be automatically configured based on the
     /// Azure Functions triggers defined in the project.
@@ -58,6 +59,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// implicit default storage account.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "TProject : IProjectMetadata is a .NET-specific generic constraint not compatible with ATS. Use the project path overload instead.")]
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         where TProject : IProjectMetadata, new()
     {
@@ -113,6 +115,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addAzureFunctionsProject", Description = "Adds an Azure Functions project to the distributed application")]
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -150,9 +153,6 @@ public static class AzureFunctionsProjectResourceExtensions
                 .Resource;
         }
 
-        // Register the FuncCoreToolsInstallationManager service for validating Azure Functions Core Tools
-        builder.Services.TryAddSingleton<FuncCoreToolsInstallationManager>();
-
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
         {
             var removeStorage = true;
@@ -189,12 +189,7 @@ public static class AzureFunctionsProjectResourceExtensions
         // Only validate Azure Functions Core Tools in run mode (not during publish)
         if (builder.ExecutionContext.IsRunMode)
         {
-            functionsBuilder.OnBeforeResourceStarted(static async (functionsResource, e, ct) =>
-            {
-                // Validate that Azure Functions Core Tools (func) is installed
-                var funcToolsManager = e.Services.GetRequiredService<FuncCoreToolsInstallationManager>();
-                await funcToolsManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-            });
+            functionsBuilder.WithRequiredCommand("func", "https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools");
         }
 
         // Add launch profile annotations like regular projects do.
@@ -209,7 +204,7 @@ public static class AzureFunctionsProjectResourceExtensions
         return functionsBuilder
             .WithEnvironment(context =>
             {
-                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
+                context.EnvironmentVariables[KnownOtelConfigNames.DotnetExperimentalOtlpRetry] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
                 // Required to enable OpenTelemetry in the Azure Functions host.
@@ -317,6 +312,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
     /// <param name="storage">The resource builder for the Azure Storage resource to be used as host storage.</param>
     /// <returns>The resource builder for the Azure Functions project resource, configured with the specified host storage.</returns>
+    [AspireExport("withHostStorage", Description = "Configures the Azure Functions project to use specified Azure Storage as host storage")]
     public static IResourceBuilder<AzureFunctionsProjectResource> WithHostStorage(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureStorageResource> storage)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -334,6 +330,8 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <param name="destination">The resource where connection information will be injected.</param>
     /// <param name="source">The resource from which to extract the connection string.</param>
     /// <param name="connectionName">An override of the source resource's name for the connection name. The resulting connection name will be connectionName if this is not null.</param>
+    /// <remarks>This method is not available in polyglot app hosts. Use the standard <c>withReference</c> method from the base resource builder instead.</remarks>
+    [AspireExportIgnore(Reason = "IResourceWithAzureFunctionsConfig is an internal interface constraint not compatible with ATS.")]
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {

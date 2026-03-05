@@ -60,6 +60,8 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression
     {
         get

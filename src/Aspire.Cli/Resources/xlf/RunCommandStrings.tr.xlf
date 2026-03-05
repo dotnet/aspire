@@ -37,6 +37,11 @@
         <target state="translated">AppHost işlemi {0} koduyla sonlandırıldı.</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostFailedToBuild">
+        <source>AppHost failed to build.</source>
+        <target state="translated">AppHost derlenemedi.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="translated">AppHost başarıyla başlatıldı.</target>
@@ -47,11 +52,6 @@
         <target state="translated">Ayrıntılar için günlükleri kontrol edin: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Çalışan örnekler kontrol ediliyor...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Apphost'a bağlanılıyor...</target>
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="CopyingUserSecrets">
         <source>Copying user secrets for isolated mode...</source>
-        <target state="new">Copying user secrets for isolated mode...</target>
+        <target state="translated">Yalıtılmış mod için kullanıcı gizli bilgileri kopyalanıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire apphost in development mode.</source>
-        <target state="translated">Geliştirme modunda bir Aspire uygulama ana işlemini çalıştırın.</target>
+        <source>Run an Aspire AppHost interactively for development.</source>
+        <target state="new">Run an Aspire AppHost interactively for development.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
-        <target state="new">The --format option can only be used together with --detach.</target>
+        <target state="translated">--format seçeneği yalnızca --detach ile birlikte kullanılabilir.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -113,23 +113,33 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
-        <source>Output result as JSON (only valid with --detach).</source>
-        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <source>Output format for detached AppHost results.</source>
+        <target state="new">Output format for detached AppHost results.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">Rastgele bağlantı noktaları ve yalıtılmış kullanıcı gizli dizileri ile yalıtılmış modda çalıştırarak birden çok örneğin aynı anda çalışmasına olanak tanıyın.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">Bu AppHost'un çalışan bir örneği bulundu ve durdurulacak. Birden çok yalıtılmış örneği aynı anda çalıştırmak için git çalışma ağacı dizinleri gibi farklı dizinlerden çalıştırın.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Günlükler</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildArgumentDescription">
+        <source>Do not build or restore the project before running.</source>
+        <target state="translated">Çalıştırmadan önce projeyi derlemeyin veya geri yüklemeyin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBuildNotSupportedWithWatchMode">
+        <source>The --no-build option cannot be used when watch mode is enabled.</source>
+        <target state="translated">İzleme modu etkin olduğunda --no-build seçeneği kullanılamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -148,8 +158,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">Proje çalıştırılamadı. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="translated">Proje çalıştırılamadı. {0} adresinde günlüklere bakın</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

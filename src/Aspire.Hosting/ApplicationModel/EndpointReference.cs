@@ -141,8 +141,10 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
 
+#pragma warning disable CS0618 // Type or member is obsolete
     internal ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot =>
         EndpointAnnotation.AllocatedEndpointSnapshot;
+#pragma warning restore CS0618 // Type or member is obsolete
 
     internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
@@ -307,21 +309,8 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
 
         async ValueTask<string?> ResolveValueWithAllocatedAddress()
         {
-            // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
-            // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
             var endpointSnapshots = Endpoint.EndpointAnnotation.AllAllocatedEndpoints;
-            var nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
-            if (nes is null)
-            {
-                nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), networkContext);
-                if (!endpointSnapshots.TryAdd(networkContext, nes.Snapshot))
-                {
-                    // Someone else added it first, use theirs.
-                    nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).First();
-                }
-            }
-
-            var allocatedEndpoint = await nes.Snapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var allocatedEndpoint = await endpointSnapshots.GetAllocatedEndpointAsync(networkContext, cancellationToken).ConfigureAwait(false);
 
             return Property switch
             {

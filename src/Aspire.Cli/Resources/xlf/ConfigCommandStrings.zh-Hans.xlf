@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">管理配置设置。</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="new">Manage CLI configuration including feature flags.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -82,34 +82,44 @@
         <target state="translated">全局配置</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderKey">
+        <source>Key</source>
+        <target state="new">Key</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderValue">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">可用的功能</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_Description">
         <source>Display configuration file paths and available features.</source>
-        <target state="new">Display configuration file paths and available features.</target>
+        <target state="translated">显示配置文件路径和可用功能。</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_GlobalSettingsPath">
         <source>Global settings path</source>
-        <target state="new">Global settings path</target>
+        <target state="translated">全局设置路径</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_JsonOptionDescription">
         <source>Output information in JSON format.</source>
-        <target state="new">Output information in JSON format.</target>
+        <target state="translated">以 JSON 格式输出信息。</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_LocalSettingsPath">
         <source>Local settings path</source>
-        <target state="new">Local settings path</target>
+        <target state="translated">本地设置路径</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_SettingsProperties">
         <source>Settings file properties</source>
-        <target state="new">Settings file properties</target>
+        <target state="translated">设置文件属性</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -180,6 +190,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">要设置的配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="new">Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</target>
         <note />
       </trans-unit>
     </body>

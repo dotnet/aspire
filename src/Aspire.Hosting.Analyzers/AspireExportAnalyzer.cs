@@ -489,7 +489,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         // IReadOnlyList<T> and IReadOnlyCollection<T>
         if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyList_1) ||
-            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyCollection_1))
+            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyCollection_1) ||
+            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IEnumerable_1))
         {
             return namedType.TypeArguments.Length == 1 &&
                    IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);

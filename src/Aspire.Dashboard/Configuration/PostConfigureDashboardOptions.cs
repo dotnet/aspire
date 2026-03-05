@@ -87,27 +87,17 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
 
         options.AI.Disabled = _configuration.GetBool(DashboardConfigNames.DashboardAIDisabledName.ConfigKey);
 
-        // Normalize API keys between Mcp and Api options for backward compatibility.
-        // If Api has keys but Mcp doesn't, copy to Mcp (Api is the canonical location).
-        // If Mcp has keys but Api doesn't, copy to Api (for backward compat with existing Mcp configs).
+        // Normalize API keys: Api is canonical, falls back to Mcp if not set.
+        // Api -> Mcp fallback only (not bidirectional).
         if (string.IsNullOrEmpty(options.Mcp.PrimaryApiKey) && !string.IsNullOrEmpty(options.Api.PrimaryApiKey))
         {
             _logger.LogDebug("Defaulting Mcp.PrimaryApiKey from Api.PrimaryApiKey.");
             options.Mcp.PrimaryApiKey = options.Api.PrimaryApiKey;
         }
-        else if (string.IsNullOrEmpty(options.Api.PrimaryApiKey) && !string.IsNullOrEmpty(options.Mcp.PrimaryApiKey))
-        {
-            _logger.LogDebug("Defaulting Api.PrimaryApiKey from Mcp.PrimaryApiKey.");
-            options.Api.PrimaryApiKey = options.Mcp.PrimaryApiKey;
-        }
 
         if (string.IsNullOrEmpty(options.Mcp.SecondaryApiKey) && !string.IsNullOrEmpty(options.Api.SecondaryApiKey))
         {
             options.Mcp.SecondaryApiKey = options.Api.SecondaryApiKey;
-        }
-        else if (string.IsNullOrEmpty(options.Api.SecondaryApiKey) && !string.IsNullOrEmpty(options.Mcp.SecondaryApiKey))
-        {
-            options.Api.SecondaryApiKey = options.Mcp.SecondaryApiKey;
         }
 
         if (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessageName.ConfigKey) is { } suppressUnsecuredTelemetryMessage)

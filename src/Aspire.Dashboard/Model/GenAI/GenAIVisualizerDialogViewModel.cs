@@ -63,9 +63,9 @@ public sealed class GenAIVisualizerDialogViewModel
             SpanDetailsViewModel = spanDetailsViewModel,
             SelectedLogEntryId = selectedLogEntryId,
             GetContextGenAISpans = getContextGenAISpans,
-            SourceName = OtlpResource.GetResourceName(spanDetailsViewModel.Span.Source, resources),
+            SourceName = OtlpHelpers.GetResourceName(spanDetailsViewModel.Span.Source.Resource, resources),
             PeerName = telemetryRepository.GetPeerResource(spanDetailsViewModel.Span) is { } peerResource
-                ? OtlpResource.GetResourceName(peerResource, resources)
+                ? OtlpHelpers.GetResourceName(peerResource, resources)
                 : OtlpHelpers.GetPeerAddress(spanDetailsViewModel.Span.Attributes) ?? UnknownPeerName
         };
 

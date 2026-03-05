@@ -414,7 +414,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         await ClearSelectedLogEntryAsync();
     }
 
-    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app.Resource, _resources);
+    private string GetResourceName(OtlpResourceView app) => OtlpHelpers.GetResourceName(app.Resource, _resources);
 
     private string GetRowClass(OtlpLogEntry entry)
     {
