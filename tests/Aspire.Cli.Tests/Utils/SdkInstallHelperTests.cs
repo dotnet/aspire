@@ -20,7 +20,7 @@ public class SdkInstallHelperTests
             CheckAsyncCallback = _ => (true, "9.0.302", "9.0.302")
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestInteractionService();
 
         var result = await SdkInstallHelper.EnsureSdkInstalledAsync(
             sdkInstaller,
@@ -46,7 +46,7 @@ public class SdkInstallHelperTests
             CheckAsyncCallback = _ => (false, null, "9.0.302")
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestInteractionService();
 
         var result = await SdkInstallHelper.EnsureSdkInstalledAsync(
             sdkInstaller,
@@ -72,7 +72,7 @@ public class SdkInstallHelperTests
             CheckAsyncCallback = _ => (false, "8.0.100", "9.0.302")
         };
 
-        var interactionService = new TestConsoleInteractionService();
+        var interactionService = new TestInteractionService();
 
         var result = await SdkInstallHelper.EnsureSdkInstalledAsync(
             sdkInstaller,

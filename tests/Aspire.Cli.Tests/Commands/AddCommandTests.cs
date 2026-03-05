@@ -415,7 +415,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new TestConsoleInteractionService();
+                var testInteractionService = new TestInteractionService();
                 testInteractionService.DisplayErrorCallback = (message) =>
                 {
                     displayedErrorMessage = message;
@@ -457,7 +457,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new TestConsoleInteractionService();
+                var testInteractionService = new TestInteractionService();
                 testInteractionService.DisplaySubtleMessageCallback = (message) =>
                 {
                     displayedSubtleMessage = message;
@@ -551,7 +551,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -599,7 +599,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -647,7 +647,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -700,7 +700,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {

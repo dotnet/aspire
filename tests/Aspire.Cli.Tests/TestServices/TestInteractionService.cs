@@ -9,21 +9,46 @@ using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.TestServices;
 
-internal sealed class TestConsoleInteractionService : IInteractionService
+internal sealed class TestInteractionService : IInteractionService
 {
+    private readonly Queue<(string Response, ResponseType Type)> _responses = new();
+    private bool _shouldCancel;
+
     public ConsoleOutput Console { get; set; }
+
+    // Callback hooks
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
-    public Action<string>? ShowStatusCallback { get; set;  }
-    
+    public Action<string>? ShowStatusCallback { get; set; }
+    public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
+
     /// <summary>
     /// Callback for capturing selection prompts in tests. Uses non-generic IEnumerable and object
     /// to work with the generic PromptForSelectionAsync&lt;T&gt; method regardless of T's type.
     /// This allows tests to inspect what choices are presented without knowing the generic type at compile time.
     /// </summary>
     public Func<string, IEnumerable, Func<object, string>, CancellationToken, object>? PromptForSelectionCallback { get; set; }
+
+    // Call tracking
+    public List<StringPromptCall> StringPromptCalls { get; } = [];
+    public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
+    public List<string> DisplayedErrors { get; } = [];
+
+    // Response queue setup methods
+    public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
+    public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
+    public void SetupBooleanResponse(bool response) => _responses.Enqueue((response.ToString().ToLowerInvariant(), ResponseType.Boolean));
+    public void SetupCancellationResponse() => _shouldCancel = true;
+
+    public void SetupSequentialResponses(params (string Response, ResponseType Type)[] responses)
+    {
+        foreach (var (response, type) in responses)
+        {
+            _responses.Enqueue((response, type));
+        }
+    }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
@@ -38,6 +63,18 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
+        StringPromptCalls.Add(new StringPromptCall(promptText, defaultValue, isSecret));
+
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            return Task.FromResult(response.Response);
+        }
+
         return Task.FromResult(defaultValue ?? string.Empty);
     }
 
@@ -48,6 +85,11 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
@@ -55,12 +97,17 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
         if (PromptForSelectionCallback is not null)
         {
-            // Invoke the callback - casting is safe here because:
-            // 1. 'choices' is IEnumerable<T>, and we cast items to T when calling choiceFormatter
-            // 2. 'result' comes from the callback which receives 'choices', so it must be of type T
-            // 3. These casts are for test infrastructure only, not production code
             var result = PromptForSelectionCallback(promptText, choices, o => choiceFormatter((T)o), cancellationToken);
             return Task.FromResult((T)result);
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            var matchingChoice = choices.FirstOrDefault(c => choiceFormatter(c) == response.Response || c.ToString() == response.Response);
+            if (matchingChoice is not null)
+            {
+                return Task.FromResult(matchingChoice);
+            }
         }
 
         return Task.FromResult(choices.First());
@@ -68,11 +115,17 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, bool notRequired = false, CancellationToken cancellationToken = default) where T : notnull
     {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
         }
 
+        _ = _responses.TryDequeue(out _);
         return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
     }
 
@@ -83,6 +136,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
+        DisplayedErrors.Add(errorMessage);
         DisplayErrorCallback?.Invoke(errorMessage);
     }
 
@@ -104,7 +158,24 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
+        BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));
+
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        if (ConfirmCallback is not null)
+        {
+            return Task.FromResult(ConfirmCallback(promptText, defaultValue));
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            return Task.FromResult(bool.Parse(response.Response));
+        }
+
+        return Task.FromResult(defaultValue);
     }
 
     public void DisplaySubtleMessage(string message, bool allowMarkup = false)
@@ -138,8 +209,6 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         DisplayConsoleWriteLineMessage?.Invoke(output);
     }
 
-    public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
-
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
@@ -154,3 +223,14 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         return callback(_ => { });
     }
 }
+
+internal enum ResponseType
+{
+    String,
+    Selection,
+    Boolean
+}
+
+internal sealed record StringPromptCall(string PromptText, string? DefaultValue, bool IsSecret);
+internal sealed record SelectionPromptCall<T>(string PromptText, IEnumerable<T> Choices, Func<T, string> ChoiceFormatter);
+internal sealed record BooleanPromptCall(string PromptText, bool DefaultValue);
