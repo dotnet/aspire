@@ -139,7 +139,7 @@ public class TelemetryLogsCommandTests(ITestOutputHelper outputHelper)
 
         var response = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceLogs = resourceLogs },
+            Data = new OtlpTelemetryDataJson { ResourceLogs = resourceLogs },
             TotalCount = entries.Length,
             ReturnedCount = entries.Length
         };

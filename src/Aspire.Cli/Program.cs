@@ -398,6 +398,7 @@ public class Program
         builder.Services.AddTransient<TelemetryLogsCommand>();
         builder.Services.AddTransient<TelemetrySpansCommand>();
         builder.Services.AddTransient<TelemetryTracesCommand>();
+        builder.Services.AddTransient<ExportCommand>();
         builder.Services.AddTransient<DocsCommand>();
         builder.Services.AddTransient<DocsListCommand>();
         builder.Services.AddTransient<DocsSearchCommand>();

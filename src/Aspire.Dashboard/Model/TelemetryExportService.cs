@@ -3,9 +3,7 @@
 
 using System.Globalization;
 using System.IO.Compression;
-using System.Text;
 using System.Text.Json;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Otlp.Serialization;
@@ -14,6 +12,8 @@ using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Aspire.Shared;
+using Aspire.Shared.ConsoleLogs;
+using Aspire.Shared.Export;
 using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
@@ -137,7 +137,7 @@ public sealed class TelemetryExportService
         // Write results to archive sequentially (ZipArchive is not thread-safe)
         foreach (var (resourceName, logEntries) in allLogEntries)
         {
-            var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(resourceName)}.txt");
+            var entry = archive.CreateEntry($"consolelogs/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.txt");
             using var entryStream = entry.Open();
             LogEntrySerializer.WriteLogEntriesToStream(logEntries, entryStream);
         }
@@ -149,10 +149,7 @@ public sealed class TelemetryExportService
         {
             var resourceName = ResourceViewModel.GetResourceName(resource, resources);
             var resourceJson = ConvertResourceToJson(resource, resources);
-            var entry = archive.CreateEntry($"resources/{SanitizeFileName(resourceName)}.json");
-            using var entryStream = entry.Open();
-            using var writer = new StreamWriter(entryStream, Encoding.UTF8);
-            writer.Write(resourceJson);
+            TelemetryArchiveWriter.WriteTextToArchive(archive, $"resources/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", resourceJson);
         }
     }
 
@@ -169,7 +166,7 @@ public sealed class TelemetryExportService
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
             var logsJson = ConvertLogsToOtlpJson(logs.Items);
-            WriteJsonToArchive(archive, $"structuredlogs/{SanitizeFileName(resourceName)}.json", logsJson);
+            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"structuredlogs/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", logsJson, OtlpJsonSerializerContext.IndentedOptions);
         }
     }
 
@@ -186,7 +183,7 @@ public sealed class TelemetryExportService
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
             var tracesJson = ConvertTracesToOtlpJson(tracesResponse.PagedResult.Items, _outgoingPeerResolvers);
-            WriteJsonToArchive(archive, $"traces/{SanitizeFileName(resourceName)}.json", tracesJson);
+            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"traces/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", tracesJson, OtlpJsonSerializerContext.IndentedOptions);
         }
     }
 
@@ -227,7 +224,7 @@ public sealed class TelemetryExportService
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
             var metricsJson = ConvertMetricsToOtlpJson(resource, instrumentsData);
-            WriteJsonToArchive(archive, $"metrics/{SanitizeFileName(resourceName)}.json", metricsJson);
+            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"metrics/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", metricsJson, OtlpJsonSerializerContext.IndentedOptions);
         }
     }
 
@@ -690,26 +687,6 @@ public sealed class TelemetryExportService
         }
 
         return result;
-    }
-
-    private static void WriteJsonToArchive<T>(ZipArchive archive, string path, T data)
-    {
-        var entry = archive.CreateEntry(path);
-        using var entryStream = entry.Open();
-        JsonSerializer.Serialize(entryStream, data, OtlpJsonSerializerContext.IndentedOptions);
-    }
-
-    private static string SanitizeFileName(string name)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new StringBuilder(name.Length);
-
-        foreach (var c in name)
-        {
-            sanitized.Append(invalidChars.Contains(c) ? '_' : c);
-        }
-
-        return sanitized.ToString();
     }
 
     internal static string ConvertResourceToJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources)

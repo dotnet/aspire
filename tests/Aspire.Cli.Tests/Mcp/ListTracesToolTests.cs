@@ -55,7 +55,7 @@ public class ListTracesToolTests
         // Arrange - Create mock HTTP handler with sample traces response
         var apiResponseObj = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson
+            Data = new OtlpTelemetryDataJson
             {
                 ResourceSpans =
                 [
@@ -224,7 +224,7 @@ public class ListTracesToolTests
         // Arrange - Create mock HTTP handler with empty traces response
         var apiResponseObj = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceSpans = [] },
+            Data = new OtlpTelemetryDataJson { ResourceSpans = [] },
             TotalCount = 0,
             ReturnedCount = 0
         };
@@ -285,7 +285,7 @@ public class ListTracesToolTests
 
         var emptyTracesResponse = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceSpans = [] },
+            Data = new OtlpTelemetryDataJson { ResourceSpans = [] },
             TotalCount = 0,
             ReturnedCount = 0
         };
@@ -362,7 +362,7 @@ public class ListTracesToolTests
 
         var apiResponseObj = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson
+            Data = new OtlpTelemetryDataJson
             {
                 ResourceSpans =
                 [

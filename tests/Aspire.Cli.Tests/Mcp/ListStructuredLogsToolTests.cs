@@ -87,7 +87,7 @@ public class ListStructuredLogsToolTests
         // Include aspire.log_id attribute to verify it's extracted to log_id field and filtered from attributes
         var apiResponseObj = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson
+            Data = new OtlpTelemetryDataJson
             {
                 ResourceLogs =
                 [
@@ -242,7 +242,7 @@ public class ListStructuredLogsToolTests
         // Arrange - Create mock HTTP handler with empty logs response
         var apiResponseObj = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceLogs = [] },
+            Data = new OtlpTelemetryDataJson { ResourceLogs = [] },
             TotalCount = 0,
             ReturnedCount = 0
         };
@@ -303,7 +303,7 @@ public class ListStructuredLogsToolTests
 
         var emptyLogsResponse = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceLogs = [] },
+            Data = new OtlpTelemetryDataJson { ResourceLogs = [] },
             TotalCount = 0,
             ReturnedCount = 0
         };

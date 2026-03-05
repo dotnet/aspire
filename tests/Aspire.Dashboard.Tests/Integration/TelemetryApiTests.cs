@@ -7,6 +7,7 @@ using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Hosting;
+using Aspire.Otlp.Serialization;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

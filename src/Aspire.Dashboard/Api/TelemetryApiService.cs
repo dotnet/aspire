@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Otlp.Serialization;
 
 namespace Aspire.Dashboard.Api;
 

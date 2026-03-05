@@ -8,25 +8,12 @@ using Aspire.Otlp.Serialization;
 namespace Aspire.Cli.Otlp;
 
 /// <summary>
-/// Represents the telemetry data returned by the Dashboard API.
-/// Contains logs, traces, and/or metrics data.
-/// </summary>
-internal sealed class TelemetryDataJson
-{
-    [JsonPropertyName("resourceSpans")]
-    public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
-
-    [JsonPropertyName("resourceLogs")]
-    public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
-}
-
-/// <summary>
 /// Represents the API response wrapper for telemetry data.
 /// </summary>
 internal sealed class TelemetryApiResponse
 {
     [JsonPropertyName("data")]
-    public TelemetryDataJson? Data { get; set; }
+    public OtlpTelemetryDataJson? Data { get; set; }
 
     [JsonPropertyName("totalCount")]
     public int TotalCount { get; set; }
@@ -87,7 +74,7 @@ internal sealed class ResourceInfoJson
 
 /// <summary>
 /// Source-generated JSON serializer context for OTLP types used by CLI telemetry commands.
-/// Provides AOT-compatible serialization for logs and trace types.
+/// Provides AOT-compatible serialization for logs, trace, and telemetry data types.
 /// </summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -96,7 +83,7 @@ internal sealed class ResourceInfoJson
     ReadCommentHandling = JsonCommentHandling.Skip,
     AllowTrailingCommas = true)]
 [JsonSerializable(typeof(TelemetryApiResponse))]
-[JsonSerializable(typeof(TelemetryDataJson))]
+[JsonSerializable(typeof(OtlpTelemetryDataJson))]
 [JsonSerializable(typeof(ResourceInfoJson))]
 [JsonSerializable(typeof(ResourceInfoJson[]))]
 [JsonSerializable(typeof(OtlpAnyValueJson))]

@@ -141,7 +141,7 @@ public class TelemetrySpansCommandTests(ITestOutputHelper outputHelper)
 
         var response = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceSpans = resourceSpans },
+            Data = new OtlpTelemetryDataJson { ResourceSpans = resourceSpans },
             TotalCount = entries.Length,
             ReturnedCount = entries.Length
         };

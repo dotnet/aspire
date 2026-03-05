@@ -1,41 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Shared.ConsoleLogs;
+// This file is intentionally kept as a thin forwarding layer.
+// The implementation has been moved to src/Shared/ConsoleLogs/LogEntrySerializer.cs
+// and is included via <Compile Include> in the csproj.
+// This file can be deleted once the shared include is confirmed working.
 
-namespace Aspire.Dashboard.ConsoleLogs;
-
-/// <summary>
-/// Provides methods for serializing log entries to text.
-/// </summary>
-internal static class LogEntrySerializer
-{
-    /// <summary>
-    /// Writes a collection of log entries to a stream, stripping ANSI control sequences.
-    /// </summary>
-    /// <param name="entries">The log entries to serialize.</param>
-    /// <param name="stream">The stream to write to.</param>
-    public static void WriteLogEntriesToStream(IList<LogEntry> entries, Stream stream)
-    {
-        using var writer = new StreamWriter(stream, leaveOpen: true);
-
-        foreach (var entry in entries)
-        {
-            if (entry.Type is LogEntryType.Pause)
-            {
-                continue;
-            }
-
-            if (entry.RawContent is not null)
-            {
-                writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
-            }
-            else
-            {
-                writer.WriteLine();
-            }
-        }
-
-        writer.Flush();
-    }
-}
+// The shared LogEntrySerializer in namespace Aspire.Shared.ConsoleLogs is used directly.
+// See TelemetryExportService.cs for usage.

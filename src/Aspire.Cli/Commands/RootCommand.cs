@@ -129,6 +129,7 @@ internal sealed class RootCommand : BaseRootCommand
         McpCommand mcpCommand,
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
+        ExportCommand exportCommand,
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
@@ -216,6 +217,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
+        Subcommands.Add(exportCommand);
         Subcommands.Add(docsCommand);
         Subcommands.Add(secretCommand);
 
