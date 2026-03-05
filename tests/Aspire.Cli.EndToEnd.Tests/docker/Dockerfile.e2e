@@ -3,51 +3,40 @@
 # Usage:
 #   Local dev (build from source):
 #     BuildContext = repo root, no special build args needed.
-#     Docker builds the CLI from source and installs it.
+#     Docker builds all packages and the native AOT CLI from source.
 #
 #   CI (pre-built artifacts):
 #     Pass SKIP_SOURCE_BUILD=true as a build arg.
-#     Mount pre-built CLI archive via a volume at /artifacts.
-#     The test code installs from the mounted artifacts.
+#     The test code installs from CI artifacts or aspire.dev instead.
 
 # ============================================================
-# Stage 1: Build the Aspire CLI from source
+# Stage 1: Build Aspire from source
 # ============================================================
-# This stage is skipped when SKIP_SOURCE_BUILD=true (CI mode).
-# It builds a framework-dependent publish (no native AOT) for speed.
+# Produces NuGet packages and the native AOT CLI binary.
+# Skipped when SKIP_SOURCE_BUILD=true (CI mode).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 ARG SKIP_SOURCE_BUILD=false
 
+# Install native AOT build toolchain.
+RUN if [ "$SKIP_SOURCE_BUILD" != "true" ]; then \
+      apt-get update -qq && \
+      apt-get install -y --no-install-recommends clang zlib1g-dev && \
+      rm -rf /var/lib/apt/lists/*; \
+    fi
+
 WORKDIR /repo
 
-# Copy build infrastructure first for better layer caching.
-COPY global.json ./
-COPY NuGet.config ./
-COPY Directory.Build.props ./
-COPY Directory.Build.targets ./
-COPY Directory.Packages.props ./
-COPY eng/ eng/
+# Copy everything (filtered by .dockerignore at repo root).
+COPY . .
 
-# Copy the CLI project and its source dependencies.
-COPY src/Aspire.Cli/ src/Aspire.Cli/
-COPY src/Shared/ src/Shared/
-COPY src/Aspire.Hosting/Backchannel/BackchannelDataTypes.cs src/Aspire.Hosting/Backchannel/BackchannelDataTypes.cs
-COPY src/Aspire.Hosting/ApplicationModel/KnownResourceCommands.cs src/Aspire.Hosting/ApplicationModel/KnownResourceCommands.cs
-COPY src/Aspire.Hosting/Ats/RuntimeSpec.cs src/Aspire.Hosting/Ats/RuntimeSpec.cs
-
-# Restore and publish the CLI (framework-dependent, no AOT).
-# The RUN is conditional on SKIP_SOURCE_BUILD so CI can skip it entirely.
+# Full build: restore, build, pack, then bundle (native AOT CLI).
 RUN if [ "$SKIP_SOURCE_BUILD" != "true" ]; then \
-      dotnet restore src/Aspire.Cli/Aspire.Cli.csproj && \
-      dotnet publish src/Aspire.Cli/Aspire.Cli.csproj \
-        -c Release \
-        --no-restore \
-        -o /cli-publish \
-        /p:PublishAot=false \
-        /p:IsCliToolProject=false; \
+      ./restore.sh && \
+      ./build.sh --pack -c Release && \
+      ./build.sh --bundle -c Release; \
     else \
-      mkdir -p /cli-publish; \
+      mkdir -p /repo/artifacts/bundle; \
     fi
 
 # ============================================================
@@ -55,13 +44,21 @@ RUN if [ "$SKIP_SOURCE_BUILD" != "true" ]; then \
 # ============================================================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS runtime
 
-# Copy the published CLI from the build stage (empty when SKIP_SOURCE_BUILD=true).
-COPY --from=build /cli-publish/ /root/.aspire/bin/
+# Copy the bundle archive from the build stage.
+# The archive is at artifacts/bundle/aspire-*-linux-x64.tar.gz
+# and extracts to provide bin/aspire plus runtime, dashboard, DCP, etc.
+COPY --from=build /repo/artifacts/bundle/aspire-*-linux-x64.tar.gz /tmp/
 
-# Ensure the CLI binary is executable (no-op if directory is empty).
-RUN chmod +x /root/.aspire/bin/aspire 2>/dev/null || true
+# Install the CLI from the bundle archive (no-op when SKIP_SOURCE_BUILD=true
+# because the glob won't match any files and tar will be skipped).
+RUN if ls /tmp/aspire-*-linux-x64.tar.gz 1>/dev/null 2>&1; then \
+      mkdir -p /root/.aspire && \
+      tar -xzf /tmp/aspire-*-linux-x64.tar.gz -C /root/.aspire && \
+      rm -f /tmp/aspire-*-linux-x64.tar.gz; \
+    fi
 
-ENV PATH="/root/.aspire/bin:${PATH}"
+ENV PATH="/root/.aspire/bin:/root/.aspire:${PATH}"
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 ENV DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 ENV DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+
