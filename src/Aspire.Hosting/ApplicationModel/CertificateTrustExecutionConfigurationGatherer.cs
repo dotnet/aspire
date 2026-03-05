@@ -73,7 +73,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
 
         additionalData.Certificates.AddRange(certificates);
 
-        if (!additionalData.Certificates.Any())
+        if (additionalData.Certificates.Count == 0)
         {
             // No certificates to configure
             resourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
@@ -102,6 +102,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
             Arguments = context.Arguments,
             EnvironmentVariables = context.EnvironmentVariables,
             CancellationToken = cancellationToken,
+            IsContainer = configurationContext.IsContainer,
         };
 
         if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
@@ -145,27 +146,6 @@ public class CertificateTrustExecutionConfigurationData : IExecutionConfiguratio
     /// Collection of custom certificate bundle generators added via the <see cref="CertificateTrustConfigurationCallbackAnnotationContext.CreateCustomBundle"/> method, keyed by the bundle's relative path under the root certificates path. The value is a function that generates the bundle contents as a byte array given a collection of X509 certificates and a cancellation token.
     /// </summary>
     public Dictionary<string, Func<X509Certificate2Collection, CancellationToken, Task<byte[]>>> CustomBundlesFactories { get; } = new();
-
-    private class TrackedReference : IValueProvider, IManifestExpressionProvider
-    {
-        private readonly ReferenceExpression _reference;
-
-        public TrackedReference(ReferenceExpression reference)
-        {
-            _reference = reference;
-        }
-
-        public bool WasResolved { get; internal set; }
-
-        public string ValueExpression => _reference.ValueExpression;
-
-        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
-        {
-            WasResolved = true;
-
-            return _reference.GetValueAsync(cancellationToken);
-        }
-    }
 }
 
 /// <summary>
@@ -188,4 +168,9 @@ public class CertificateTrustExecutionConfigurationContext
     /// The root path certificates will be written to in the resource context (e.g., container filesystem).
     /// </summary>
     public required string RootCertificatesPath { get; init; }
+
+    /// <summary>
+    /// Is this request being generated for a container resource (i.e. does it require Linux style paths?).
+    /// </summary>
+    public bool IsContainer { get; init; }
 }

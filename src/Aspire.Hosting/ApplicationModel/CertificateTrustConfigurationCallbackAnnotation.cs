@@ -94,17 +94,42 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     public required CancellationToken CancellationToken { get; init; }
 
     /// <summary>
-    /// Adds a custom certificate bundle to the callback context. The provided generator will be invoked during trust configuration and should return the bundle name and contents as a byte array.
+    /// Adds a custom certificate bundle to the callback context. The provided generator will be invoked during trust configuration and should return the bundle contents as a byte array.
     /// </summary>
     /// <param name="bundleGenerator">A function that generates the custom certificate bundle and returns the bundle contents as a byte array.</param>
     /// <returns>A <see cref="ReferenceExpression"/> that can be used to reference the custom bundle.</returns>
+    /// <remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.AddContainer("my-java-app", "my-image:latest")
+    ///     .WithCertificateTrustConfiguration(ctx =>
+    ///     {
+    ///         ctx.EnvironmentVariables["JAVAX_NET_SSL_TRUSTSTORE"] = ctx.CreateCustomBundle((certs, ct) =>
+    ///         {
+    ///             var pkcs12Builder = new Pkcs12Builder();
+    ///             var safeContents = new Pkcs12SafeContents();
+    ///             foreach (var cert in certs)
+    ///             {
+    ///                 safeContents.AddCertificate(cert);
+    ///             }
+    ///             pkcs12Builder.AddSafeContentsUnencrypted(safeContents);
+    ///             pkcs12Builder.SealWithMac(string.Empty, HashAlgorithmName.SHA256, 2048);
+    ///             return Task.FromResult(pkcs12Builder.Encode());
+    ///         });
+    ///         return Task.CompletedTask;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public ReferenceExpression CreateCustomBundle(Func<X509Certificate2Collection, CancellationToken, Task<byte[]>> bundleGenerator)
     {
+        ArgumentException.ThrowIfNullOrEmpty(RootCertificatesPath);
+
         var bundleId = Guid.NewGuid().ToString("N");
         CustomBundlesFactories[bundleId] = bundleGenerator;
 
-        var bundleFilename = IsContainer == true ? Path.Join(RootCertificatesPath, "bundles", bundleId) : $"{RootCertificatesPath}/bundles/{bundleId}";
+        var bundleFilename = IsContainer ? $"{RootCertificatesPath}/bundles/{bundleId}" : Path.Join(RootCertificatesPath, "bundles", bundleId);
         var reference = ReferenceExpression.Create($"{bundleFilename}");
 
         return reference;
@@ -118,7 +143,7 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     /// <summary>
     /// Is this being generated for a container (requires Linux style paths)
     /// </summary>
-    internal bool? IsContainer { get; init; }
+    internal bool IsContainer { get; init; }
 
     /// <summary>
     /// Collection of custom certificate bundle generators added via the <see cref="CreateCustomBundle"/> method, keyed by the bundle's unique ID/filename under the root certificates path. The value is a function that generates the bundle contents as a byte array given a collection of X509 certificates.

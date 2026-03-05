@@ -1646,6 +1646,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the base paths for certificate output in the DCP session directory.
             var certificatesRootDir = Path.Join(_locations.DcpSessionDir, exe.Name());
             var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
+            var customBundleOutputPath = Path.Join(certificatesRootDir, "bundles");
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
@@ -1700,13 +1701,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     ContinueOnError = true,
                 };
 
+                if (certificateTrustConfiguration.CustomBundlesFactories.Count > 0)
+                {
+                    Directory.CreateDirectory(customBundleOutputPath);
+                }
+
                 foreach (var bundleFactory in certificateTrustConfiguration.CustomBundlesFactories)
                 {
                     var bundleId = bundleFactory.Key;
                     var bundleBytes = await bundleFactory.Value(certificateTrustConfiguration.Certificates, cancellationToken).ConfigureAwait(false);
 
-                    var customBundleOutputPath = Path.Join(certificatesRootDir, bundleId);
-                    File.WriteAllBytes(customBundleOutputPath, bundleBytes);
+                    File.WriteAllBytes(Path.Join(customBundleOutputPath, bundleId), bundleBytes);
                 }
             }
 
@@ -2095,6 +2100,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         // Build Linux PATH style colon-separated list of directories
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
                         RootCertificatesPath = certificatesDestination,
+                        IsContainer = true,
                     };
                 })
                 .WithHttpsCertificateConfig(cert => new()
@@ -2106,7 +2112,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 .BuildAsync(_executionContext, resourceLogger, cancellationToken)
                 .ConfigureAwait(false);
 
-            List<ContainerFileSystemEntry>? customBundleFiles = new();
+            List<ContainerFileSystemEntry> customBundleFiles = new();
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ContainerPemCertificates? pemCertificates = null;
@@ -2176,7 +2182,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 buildCreateFilesContext,
                 cancellationToken).ConfigureAwait(false);
 
-            if (customBundleFiles.Any())
+            if (customBundleFiles.Count > 0)
             {
                 createFiles.Add(new ContainerCreateFileSystem
                 {
