@@ -1308,6 +1308,39 @@ public class AtsTypeScriptCodeGeneratorTests
             .UseFileName("WithDataVolumeOptionsMerged");
     }
 
+    [Fact]
+    public void Generate_AllBuilderClasses_HaveHandleTypeAliases()
+    {
+        // Verifies that every builder class referencing a handle type alias has
+        // that alias actually declared. Previously, types discovered only via
+        // ExpandedTargetTypes (interface expansion) or CollectAllReferencedTypes
+        // got builder classes generated but their handle type aliases were missing,
+        // causing TypeScript compilation errors.
+        var code = GenerateTwoPassCode();
+
+        // Find all "extends ResourceBuilderBase<FooHandle>" patterns
+        var builderPattern = new System.Text.RegularExpressions.Regex(
+            @"extends ResourceBuilderBase<(\w+)>");
+        var handleAliasPattern = new System.Text.RegularExpressions.Regex(
+            @"^type (\w+) = Handle<",
+            System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        var referencedHandles = builderPattern.Matches(code)
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToHashSet();
+
+        var declaredHandles = handleAliasPattern.Matches(code)
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet();
+
+        var missingHandles = referencedHandles.Except(declaredHandles).ToList();
+
+        Assert.True(
+            missingHandles.Count == 0,
+            $"Builder classes reference handle types that are not declared: {string.Join(", ", missingHandles)}");
+    }
+
     private static int CountOccurrences(string text, string pattern)
     {
         var count = 0;

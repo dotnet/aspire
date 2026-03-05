@@ -24,6 +24,7 @@ public static class DotnetToolResourceExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="packageId">The package id of the tool.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addDotnetTool", Description = "Adds a .NET tool resource")]
     public static IResourceBuilder<DotnetToolResource> AddDotnetTool(this IDistributedApplicationBuilder builder, [ResourceName] string name, string packageId)
         => builder.AddDotnetTool(new DotnetToolResource(name, packageId));
 
@@ -35,6 +36,8 @@ public static class DotnetToolResourceExtensions
     /// <param name="builder">The distributed application builder to which the .NET tool resource will be added.</param>
     /// <param name="resource">The .NET tool resource instance to add and configure.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts. Use the overload with name and packageId instead.</remarks>
+    [AspireExportIgnore(Reason = "Generic resource parameter overload not intended for polyglot use.")]
     public static IResourceBuilder<T> AddDotnetTool<T>(this IDistributedApplicationBuilder builder, T resource)
         where T : DotnetToolResource
     {
@@ -121,6 +124,7 @@ public static class DotnetToolResourceExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="packageId">The package identifier to assign to the tool configuration. Cannot be null.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolPackage", Description = "Sets the tool package ID")]
     public static IResourceBuilder<T> WithToolPackage<T>(this IResourceBuilder<T> builder, string packageId)
         where T : DotnetToolResource
     {
@@ -135,6 +139,7 @@ public static class DotnetToolResourceExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="version">The package version to use</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolVersion", Description = "Sets the tool version")]
     public static IResourceBuilder<T> WithToolVersion<T>(this IResourceBuilder<T> builder, string version)
         where T : DotnetToolResource
     {
@@ -148,6 +153,7 @@ public static class DotnetToolResourceExtensions
     /// <typeparam name="T">The type of resource being built. Must inherit from DotnetToolResource.</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolPrerelease", Description = "Allows prerelease tool versions")]
     public static IResourceBuilder<T> WithToolPrerelease<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {
@@ -162,6 +168,7 @@ public static class DotnetToolResourceExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="source">The source to add.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolSource", Description = "Adds a NuGet source for the tool")]
     public static IResourceBuilder<T> WithToolSource<T>(this IResourceBuilder<T> builder, string source)
         where T : DotnetToolResource
     {
@@ -175,6 +182,7 @@ public static class DotnetToolResourceExtensions
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolIgnoreExistingFeeds", Description = "Ignores existing NuGet feeds")]
     public static IResourceBuilder<T> WithToolIgnoreExistingFeeds<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {
@@ -188,6 +196,7 @@ public static class DotnetToolResourceExtensions
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("withToolIgnoreFailedSources", Description = "Ignores failed NuGet sources")]
     public static IResourceBuilder<T> WithToolIgnoreFailedSources<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {

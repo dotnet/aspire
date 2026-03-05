@@ -46,6 +46,8 @@ public static class ExecutableResourceBuilderExtensions
     /// <param name="workingDirectory">The working directory of the executable.</param>
     /// <param name="args">The arguments to the executable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts. Use the string[] overload instead.</remarks>
+    [AspireExportIgnore(Reason = "Uses object[] parameter which is not ATS-compatible.")]
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params object[]? args)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -72,6 +74,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("publishAsDockerFile", Description = "Publishes the executable as a Docker container")]
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
         return builder.PublishAsDockerFile(c => { });
@@ -106,6 +109,7 @@ public static class ExecutableResourceBuilderExtensions
     /// it is used to configure the container resource.
     /// </summary>
     /// <remarks>
+    /// <para>This method is not available in polyglot app hosts. Use the parameterless overload instead.</para>
     /// When the executable resource is converted to a container resource, the arguments to the executable
     /// are not used. This is because arguments to the executable often contain physical paths that are not valid
     /// in the container. The container can be set up with the correct arguments using the <paramref name="configure"/> action.
@@ -114,6 +118,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExportIgnore(Reason = "Uses Action<IResourceBuilder<ContainerResource>> which is not ATS-compatible.")]
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure)
         where T : ExecutableResource
     {

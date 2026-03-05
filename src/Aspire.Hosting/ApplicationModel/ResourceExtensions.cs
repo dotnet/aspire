@@ -476,7 +476,9 @@ public static class ResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to configure container build options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExportIgnore(Reason = "Uses ContainerBuildOptionsCallbackContext which is not an ATS-exported context.")]
     public static IResourceBuilder<T> WithContainerBuildOptions<T>(
         this IResourceBuilder<T> builder,
         Action<ContainerBuildOptionsCallbackContext> callback)
@@ -495,7 +497,9 @@ public static class ResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">An async callback to configure container build options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExportIgnore(Reason = "Uses ContainerBuildOptionsCallbackContext which is not an ATS-exported context.")]
     public static IResourceBuilder<T> WithContainerBuildOptions<T>(
         this IResourceBuilder<T> builder,
         Func<ContainerBuildOptionsCallbackContext, Task> callback)
