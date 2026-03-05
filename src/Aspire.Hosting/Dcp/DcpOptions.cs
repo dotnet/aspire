@@ -110,6 +110,11 @@ internal sealed class DcpOptions
     /// Enables Aspire container tunnel for container-to-host connectivity across all container orchestrators.
     /// </summary>
     public bool EnableAspireContainerTunnel { get; set; } = true;
+
+    /// <summary>
+    /// Optional path to the Watch.Aspire tool used for hot reload support.
+    /// </summary>
+    public string? WatchAspirePath { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -139,6 +144,7 @@ internal class ConfigureDefaultDcpOptions(
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
+    private const string WatchAspirePathMetadataKey = "watchaspirepath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -232,6 +238,15 @@ internal class ConfigureDefaultDcpOptions(
         options.DiagnosticsLogLevel = dcpPublisherConfiguration[nameof(options.DiagnosticsLogLevel)];
         options.PreserveExecutableLogs = dcpPublisherConfiguration.GetValue<bool?>(nameof(options.PreserveExecutableLogs), options.PreserveExecutableLogs);
         options.EnableAspireContainerTunnel = configuration.GetValue(KnownConfigNames.EnableContainerTunnel, options.EnableAspireContainerTunnel);
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.WatchAspirePath)]))
+        {
+            options.WatchAspirePath = dcpPublisherConfiguration[nameof(options.WatchAspirePath)];
+        }
+        else
+        {
+            options.WatchAspirePath = GetMetadataValue(assemblyMetadata, WatchAspirePathMetadataKey);
+        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
