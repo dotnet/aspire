@@ -21,7 +21,7 @@ public class BaseCommandTests(ITestOutputHelper outputHelper)
     public async Task BaseCommand_FormatOption_SetsConsoleOutputCorrectly(string args, bool expectErrorConsole)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var testInteractionService = new TestConsoleInteractionService();
+        var testInteractionService = new TestInteractionService();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => testInteractionService;

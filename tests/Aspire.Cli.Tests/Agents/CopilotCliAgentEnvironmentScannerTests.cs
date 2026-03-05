@@ -329,7 +329,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             new FakeNpmRunner(),
             new FakeNpmProvenanceChecker(),
             new FakePlaywrightCliRunner(),
-            new TestConsoleInteractionService(),
+            new TestInteractionService(),
             new ConfigurationBuilder().Build(),
             NullLogger<PlaywrightCliInstaller>.Instance);
     }
