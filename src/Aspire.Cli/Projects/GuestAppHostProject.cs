@@ -13,9 +13,11 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -98,8 +100,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return configuredVersion;
         }
         
-        _logger.LogDebug("Using default SDK version: {Version}", AppHostServerProject.DefaultSdkVersion);
-        return AppHostServerProject.DefaultSdkVersion;
+        _logger.LogDebug("Using default SDK version: {Version}", DotNetBasedAppHostServerProject.DefaultSdkVersion);
+        return DotNetBasedAppHostServerProject.DefaultSdkVersion;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -128,6 +130,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
+    /// <inheritdoc />
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return AspireRepositoryDetector.DetectRepositoryRoot(appHostFile.Directory?.FullName) is not null;
+    }
+
     /// <summary>
     /// Gets all packages including the code generation package for the current language.
     /// </summary>
@@ -135,37 +143,39 @@ internal sealed class GuestAppHostProject : IAppHostProject
         AspireJsonConfiguration config,
         CancellationToken cancellationToken)
     {
-        var packages = config.GetAllPackages().ToList();
+        var defaultSdkVersion = GetEffectiveSdkVersion();
+        var packages = config.GetAllPackages(defaultSdkVersion).ToList();
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
         if (codeGenPackage is not null)
         {
-            packages.Add((codeGenPackage, config.SdkVersion!));
+            var codeGenVersion = config.GetEffectiveSdkVersion(defaultSdkVersion);
+            packages.Add((codeGenPackage, codeGenVersion));
         }
         return packages;
     }
 
+    private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
+    {
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        return AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+    }
+
+    private string GetPrepareSdkVersion(AspireJsonConfiguration config)
+    {
+        return config.GetEffectiveSdkVersion(GetEffectiveSdkVersion());
+    }
+
     /// <summary>
-    /// Creates project files and builds the AppHost server.
+    /// Prepares the AppHost server (creates files and builds for dev mode, restores packages for prebuilt mode).
     /// </summary>
-    private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
-        AppHostServerProject appHostServerProject,
+    private static async Task<(bool Success, OutputCollector? Output, string? ChannelName, bool NeedsCodeGen)> PrepareAppHostServerAsync(
+        IAppHostServerProject appHostServerProject,
         string sdkVersion,
         List<(string Name, string Version)> packages,
         CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
-
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
-        var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
-        if (!buildSuccess)
-        {
-            foreach (var (_, line) in buildOutput.GetLines())
-            {
-                outputCollector.AppendOutput(line);
-            }
-        }
-
-        return (buildSuccess, outputCollector, channelName);
+        var result = await appHostServerProject.PrepareAsync(sdkVersion, packages, cancellationToken);
+        return (result.Success, result.Output, result.ChannelName, result.NeedsCodeGeneration);
     }
 
     /// <summary>
@@ -173,25 +183,27 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// </summary>
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
+
         // Step 1: Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        var config = LoadConfiguration(directory);
         var packages = await GetAllPackagesAsync(config, cancellationToken);
+        var sdkVersion = GetPrepareSdkVersion(config);
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-        var socketPath = appHostServerProject.GetSocketPath();
-
-        var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
+        var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
         if (!buildSuccess)
         {
-            _interactionService.DisplayLines(buildOutput.GetLines());
-            _interactionService.DisplayError("Failed to build AppHost server.");
+            if (buildOutput is not null)
+            {
+                _interactionService.DisplayLines(buildOutput.GetLines());
+            }
+            _interactionService.DisplayError("Failed to prepare AppHost server.");
             return;
         }
 
         // Step 2: Start the AppHost server temporarily for code generation
         var currentPid = Environment.ProcessId;
-        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid);
 
         try
         {
@@ -268,7 +280,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             Dictionary<string, string> certEnvVars;
             try
             {
-                var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                var certResult = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
                 certEnvVars = new Dictionary<string, string>(certResult.EnvironmentVariables);
             }
             catch
@@ -278,27 +290,26 @@ internal sealed class GuestAppHostProject : IAppHostProject
             }
 
             // Build phase: build AppHost server (dependency install happens after server starts)
-            // Load config - source of truth for SDK version and packages
-            var effectiveSdkVersion = GetEffectiveSdkVersion();
-            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
-            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-            var socketPath = appHostServerProject.GetSocketPath();
+            // Load config - source of truth for SDK version and packages
+            var config = LoadConfiguration(directory);
+            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
-                ":gear:  Preparing Aspire server...",
+                "Preparing Aspire server...",
                 async () =>
                 {
-                    // Build the AppHost server
-                    var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
-                    if (!buildSuccess)
+                    // Prepare the AppHost server (build for dev mode, restore for prebuilt)
+                    var (prepareSuccess, prepareOutput, channelName, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+                    if (!prepareSuccess)
                     {
-                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null, NeedsCodeGen: false);
+                        return (Success: false, Output: prepareOutput, Error: "Failed to prepare app host.", ChannelName: (string?)null, NeedsCodeGen: false);
                     }
 
-                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: NeedsGeneration(directory.FullName, packages));
-                });
+                    return (Success: true, Output: prepareOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: needsCodeGen);
+                }, emoji: KnownEmojis.Gear);
 
             // Save the channel to settings.json if available (config already has SdkVersion)
             if (buildResult.ChannelName is not null)
@@ -322,8 +333,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Signal that build/preparation is complete
             context.BuildCompletionSource?.TrySetResult(true);
 
-            // Read launchSettings.json if it exists, or create defaults
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
             foreach (var kvp in certEnvVars)
@@ -337,12 +348,15 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
             // Start the AppHost server process
             var currentPid = Environment.ProcessId;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
+            var (socketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -474,6 +488,21 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
     }
 
+    private Dictionary<string, string> GetServerEnvironmentVariables(DirectoryInfo directory)
+    {
+        var envVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+        // Support ASPIRE_ENVIRONMENT from the launch profile to set both DOTNET_ENVIRONMENT and ASPNETCORE_ENVIRONMENT
+        envVars.TryGetValue("ASPIRE_ENVIRONMENT", out var environment);
+        environment ??= "Development";
+
+        // Set the environment for the AppHost server process
+        envVars["DOTNET_ENVIRONMENT"] = environment;
+        envVars["ASPNETCORE_ENVIRONMENT"] = environment;
+
+        return envVars;
+    }
+
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
         // For guest apphosts, look for apphost.run.json
@@ -567,33 +596,28 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Load config - source of truth for SDK version and packages
-            var effectiveSdkVersion = GetEffectiveSdkVersion();
-            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+            var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
+            var config = LoadConfiguration(directory);
             var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var sdkVersion = GetPrepareSdkVersion(config);
 
-            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-            var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
-
-            // Build the AppHost server
-            var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
-            if (!buildSuccess)
+            // Prepare the AppHost server (build for dev mode, restore for prebuilt)
+            var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+            if (!prepareSuccess)
             {
                 // Set OutputCollector so PipelineCommandBase can display errors
-                context.OutputCollector = buildOutput;
+                context.OutputCollector = prepareOutput;
                 // Signal the backchannel completion source so the caller doesn't wait forever
                 context.BackchannelCompletionSource?.TrySetException(
-                    new InvalidOperationException("The app host build failed."));
+                    new InvalidOperationException("The app host preparation failed."));
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Store output collector in context for exception handling
-            context.OutputCollector = buildOutput;
+            context.OutputCollector = prepareOutput;
 
-            // Check if code generation is needed (we'll do it after server starts)
-            var needsCodeGen = NeedsGeneration(directory.FullName, packages);
-
-            // Read launchSettings.json if it exists
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+            // Read launch settings and set shared environment variables
+            var launchSettingsEnvVars = GetServerEnvironmentVariables(directory);
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -601,9 +625,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
+            launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+
+            // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
+            var (jsonRpcSocketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -816,8 +843,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        var config = LoadConfiguration(directory);
 
         // Update .aspire/settings.json with the new package
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
@@ -839,8 +865,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        var config = LoadConfiguration(directory);
 
         // Find updates for SDK version and packages
         string? newSdkVersion = null;
@@ -899,7 +924,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (updates.Count == 0 && newSdkVersion is null)
         {
-            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ProjectUpToDateMessage);
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
@@ -907,11 +932,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         _interactionService.DisplayEmptyLine();
         if (newSdkVersion is not null)
         {
-            _interactionService.DisplayMessage("package", $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion}[/] to [bold green]{newSdkVersion}[/]");
+            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion.EscapeMarkup()}[/] to [bold green]{newSdkVersion.EscapeMarkup()}[/]", allowMarkup: true);
         }
         foreach (var (packageId, currentVersion, newVersion) in updates)
         {
-            _interactionService.DisplayMessage("package", $"[bold yellow]{packageId}[/] [bold green]{currentVersion}[/] to [bold green]{newVersion}[/]");
+            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]{packageId.EscapeMarkup()}[/] [bold green]{currentVersion.EscapeMarkup()}[/] to [bold green]{newVersion.EscapeMarkup()}[/]", allowMarkup: true);
         }
         _interactionService.DisplayEmptyLine();
 
@@ -939,8 +964,15 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        _interactionService.DisplaySubtleMessage("Regenerating SDK code with updated packages...");
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
+        await _interactionService.ShowStatusAsync(
+            UpdateCommandStrings.RegeneratingSdkCode,
+            async () =>
+            {
+                await BuildAndGenerateSdkAsync(directory, cancellationToken);
+                return 0;
+            });
+
+        _interactionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.RegeneratedSdkCode);
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
@@ -949,7 +981,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         // For guest projects, we use the AppHost server's path to compute the socket path
         // The AppHost server is created in a subdirectory of the guest apphost directory
@@ -959,8 +991,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return RunningInstanceResult.NoRunningInstance; // No directory, nothing to check
         }
 
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-        var genericAppHostPath = appHostServerProject.GetProjectFilePath();
+        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
+        var genericAppHostPath = appHostServerProject.GetInstanceIdentifier();
 
         // Find matching sockets for this AppHost
         var matchingSockets = AppHostHelper.FindMatchingSockets(genericAppHostPath, homeDirectory.FullName);
@@ -976,43 +1008,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
-    }
-
-    /// <summary>
-    /// Checks if code generation is needed based on the current state.
-    /// </summary>
-    private bool NeedsGeneration(string appPath, IEnumerable<(string PackageId, string Version)> packages)
-    {
-        // In dev mode (ASPIRE_REPO_ROOT set), always regenerate to pick up code changes
-        if (!string.IsNullOrEmpty(_configuration["ASPIRE_REPO_ROOT"]))
-        {
-            _logger.LogDebug("Dev mode detected (ASPIRE_REPO_ROOT set), skipping generation cache");
-            return true;
-        }
-
-        return CheckNeedsGeneration(appPath, packages.ToList());
-    }
-
-    /// <summary>
-    /// Checks if code generation is needed by comparing the hash of current packages
-    /// with the stored hash from previous generation.
-    /// </summary>
-    private static bool CheckNeedsGeneration(string appPath, List<(string PackageId, string Version)> packages)
-    {
-        var generatedPath = Path.Combine(appPath, GeneratedFolderName);
-        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
-
-        // If hash file doesn't exist, generation is needed
-        if (!File.Exists(hashPath))
-        {
-            return true;
-        }
-
-        // Compare stored hash with current packages hash
-        var storedHash = File.ReadAllText(hashPath).Trim();
-        var currentHash = ComputePackagesHash(packages);
-
-        return !string.Equals(storedHash, currentHash, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1178,5 +1173,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+    }
+
+    /// <summary>
+    /// Computes a deterministic synthetic UserSecretsId from the AppHost file path.
+    /// </summary>
+    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var id = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+        return Task.FromResult<string?>(id);
     }
 }

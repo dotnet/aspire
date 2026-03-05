@@ -105,8 +105,9 @@ internal sealed class SdkDumpCommand : BaseCommand
         }
 
         return await InteractionService.ShowStatusAsync(
-            ":magnifying_glass_tilted_right: Scanning capabilities...",
-            async () => await DumpCapabilitiesAsync(integrationProject, outputFile, format, cancellationToken));
+            "Scanning capabilities...",
+            async () => await DumpCapabilitiesAsync(integrationProject, outputFile, format, cancellationToken),
+            emoji: KnownEmojis.MagnifyingGlassTiltedRight);
     }
 
     private async Task<int> DumpCapabilitiesAsync(
@@ -121,8 +122,15 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         try
         {
-            var appHostServerProject = _appHostServerProjectFactory.Create(tempDir);
-            var socketPath = appHostServerProject.GetSocketPath();
+            // TODO: Support bundle mode by using DLL references instead of project references.
+            // In bundle mode, we'd need to add integration DLLs to the probing path rather than
+            // using additionalProjectReferences. For now, SDK dump only works with .NET SDK.
+            var appHostServerProjectInterface = await _appHostServerProjectFactory.CreateAsync(tempDir, cancellationToken);
+            if (appHostServerProjectInterface is not DotNetBasedAppHostServerProject appHostServerProject)
+            {
+                InteractionService.DisplayError("SDK dump is only available with .NET SDK installed.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
 
             // Build packages list - empty since we only need core capabilities + optional integration
             var packages = new List<(string Name, string Version)>();
@@ -135,7 +143,6 @@ internal sealed class SdkDumpCommand : BaseCommand
                 : null;
 
             await appHostServerProject.CreateProjectFilesAsync(
-                AppHostServerProject.DefaultSdkVersion,
                 packages,
                 cancellationToken,
                 additionalProjectReferences: additionalProjectRefs);
@@ -147,14 +154,14 @@ internal sealed class SdkDumpCommand : BaseCommand
                 InteractionService.DisplayError("Failed to build capability scanner.");
                 foreach (var (_, line) in buildOutput.GetLines())
                 {
-                    InteractionService.DisplayMessage("wrench", line.EscapeMarkup());
+                    InteractionService.DisplayMessage(KnownEmojis.Wrench, line);
                 }
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
 
             try
             {

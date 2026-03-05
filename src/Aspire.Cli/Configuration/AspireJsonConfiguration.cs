@@ -102,6 +102,13 @@ internal sealed class AspireJsonConfiguration
         }
 
         var json = File.ReadAllText(filePath);
+
+        // Handle empty files or whitespace-only content
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
         return JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
     }
 
@@ -156,32 +163,56 @@ internal sealed class AspireJsonConfiguration
     }
 
     /// <summary>
+    /// Gets the effective SDK version for package-based AppHost preparation.
+    /// Falls back to <paramref name="defaultSdkVersion"/> when no SDK version is configured.
+    /// </summary>
+    public string GetEffectiveSdkVersion(string defaultSdkVersion)
+    {
+        return string.IsNullOrWhiteSpace(SdkVersion) ? defaultSdkVersion : SdkVersion;
+    }
+
+    /// <summary>
+    /// Gets all package references including the base Aspire.Hosting package.
+    /// Empty package versions in settings are resolved to the effective SDK version.
+    /// </summary>
+    /// <param name="defaultSdkVersion">Default SDK version to use when not configured.</param>
+    /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
+    public IEnumerable<(string Name, string Version)> GetAllPackages(string defaultSdkVersion)
+    {
+        var sdkVersion = GetEffectiveSdkVersion(defaultSdkVersion);
+
+        // Base package always included (Aspire.Hosting.AppHost is an SDK, not a runtime DLL)
+        yield return ("Aspire.Hosting", sdkVersion);
+
+        if (Packages is null)
+        {
+            yield break;
+        }
+
+        foreach (var (packageName, version) in Packages)
+        {
+            // Skip base packages and SDK-only packages
+            if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            yield return (packageName, string.IsNullOrWhiteSpace(version) ? sdkVersion : version);
+        }
+    }
+
+    /// <summary>
     /// Gets all package references including the base Aspire.Hosting packages.
     /// Uses the SdkVersion for base packages.
+    /// Note: Aspire.Hosting.AppHost is an SDK package (not a runtime DLL) and is excluded.
     /// </summary>
     /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
     public IEnumerable<(string Name, string Version)> GetAllPackages()
     {
-        var sdkVersion = SdkVersion ?? throw new InvalidOperationException("SdkVersion must be set before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
-
-        // Base packages always included
-        yield return ("Aspire.Hosting", sdkVersion);
-        yield return ("Aspire.Hosting.AppHost", sdkVersion);
-
-        // Additional packages from settings
-        if (Packages is not null)
-        {
-            foreach (var (packageName, version) in Packages)
-            {
-                // Skip base packages as they're already included
-                if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                yield return (packageName, version);
-            }
-        }
+        var sdkVersion = !string.IsNullOrWhiteSpace(SdkVersion)
+            ? SdkVersion
+            : throw new InvalidOperationException("SdkVersion must be set to a non-empty value before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
+        return GetAllPackages(sdkVersion);
     }
 }

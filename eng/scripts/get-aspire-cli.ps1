@@ -555,7 +555,103 @@ function Test-FileChecksum {
     }
 }
 
+# Function to get the CLI executable path for a given OS
+function Get-CliExecutablePath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$OS
+    )
+
+    $exeName = if ($OS -eq "win") { "aspire.exe" } else { "aspire" }
+    return Join-Path $DestinationPath $exeName
+}
+
+# Function to backup existing CLI executable before overwriting
+# This allows installation to proceed even when the CLI is running
+# The running process still has a handle to the old file, but the file can be renamed
+function Backup-ExistingCliExecutable {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if (Test-Path $TargetExePath) {
+        $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $backupPath = "$TargetExePath.old.$unixTimestamp"
+        
+        if ($PSCmdlet.ShouldProcess($TargetExePath, "Backup to $backupPath")) {
+            Write-Message "Backing up existing CLI: $TargetExePath -> $backupPath" -Level Verbose
+            
+            # Rename existing executable to .old.[timestamp]
+            Move-Item -Path $TargetExePath -Destination $backupPath -Force
+            return $backupPath
+        }
+    }
+    
+    return $null
+}
+
+# Function to restore CLI executable from backup if installation fails
+function Restore-CliExecutableFromBackup {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BackupPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    if ($PSCmdlet.ShouldProcess($BackupPath, "Restore to $TargetExePath")) {
+        Write-Message "Restoring CLI from backup: $BackupPath -> $TargetExePath" -Level Warning
+        
+        if (Test-Path $TargetExePath) {
+            Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
+        }
+        
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+    }
+}
+
+# Function to clean up old backup files (aspire.exe.old.* or aspire.old.*)
+function Remove-OldCliBackupFiles {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetExePath
+    )
+    
+    $directory = Split-Path -Parent $TargetExePath
+    if ([string]::IsNullOrEmpty($directory)) {
+        return
+    }
+    
+    $exeName = Split-Path -Leaf $TargetExePath
+    $searchPattern = "$exeName.old.*"
+    
+    $oldBackupFiles = Get-ChildItem -Path $directory -Filter $searchPattern -ErrorAction SilentlyContinue
+    foreach ($backupFile in $oldBackupFiles) {
+        if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
+            try {
+                Remove-Item -Path $backupFile.FullName -Force
+                Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
+            }
+            catch {
+                Write-Message "Failed to delete old backup file: $($backupFile.FullName) - $($_.Exception.Message)" -Level Verbose
+            }
+        }
+    }
+}
+
 function Expand-AspireCliArchive {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$ArchiveFile,
         [string]$DestinationPath,
@@ -564,11 +660,20 @@ function Expand-AspireCliArchive {
 
     Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
 
+    # Get the target executable path using shared function
+    $targetExePath = Get-CliExecutablePath -DestinationPath $DestinationPath -OS $OS
+    $backupPath = $null
+
     try {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
             Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
             New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+        }
+        else {
+            # Backup existing executable before extraction
+            # This allows installation to proceed even when the CLI is running
+            $backupPath = Backup-ExistingCliExecutable -TargetExePath $targetExePath
         }
 
         if ($OS -eq "win") {
@@ -595,9 +700,18 @@ function Expand-AspireCliArchive {
             }
         }
 
+        # Clean up old backup files on successful extraction
+        if ($backupPath -and (Test-Path $targetExePath)) {
+            Remove-OldCliBackupFiles -TargetExePath $targetExePath
+        }
+
         Write-Message "Successfully unpacked archive" -Level Verbose
     }
     catch {
+        # If anything goes wrong and we have a backup, restore it
+        if ($backupPath -and (Test-Path $backupPath)) {
+            Restore-CliExecutableFromBackup -BackupPath $backupPath -TargetExePath $targetExePath
+        }
         throw "Failed to unpack archive: $($_.Exception.Message)"
     }
 }

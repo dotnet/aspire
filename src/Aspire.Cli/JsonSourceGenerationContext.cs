@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Utils.EnvironmentChecker;
 
@@ -28,6 +29,11 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(FeatureInfo))]
 [JsonSerializable(typeof(SettingsSchema))]
 [JsonSerializable(typeof(PropertyInfo))]
+[JsonSerializable(typeof(LlmsDocument[]))]
+[JsonSerializable(typeof(LlmsSection))]
+[JsonSerializable(typeof(DocsListItem[]))]
+[JsonSerializable(typeof(SearchResult[]))]
+[JsonSerializable(typeof(DocsContent))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
     private static JsonSourceGenerationContext? s_relaxedEscaping;

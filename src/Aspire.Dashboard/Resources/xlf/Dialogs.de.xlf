@@ -559,7 +559,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
         <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
-        <target state="translated">Sie müssen den API-Schlüssel zu Aspire MCP hinzufügen, bevor Sie ihn verwenden können. Wählen Sie im GitHub Copilot-Chat die Schaltfläche „Tools“ und dann den Aspire MCP-Server aus. Geben Sie unten den API-Schlüssel in das Textfeld ein.</target>
+        <target state="translated">Sie müssen Aspire MCP den API-Schlüssel hinzufügen, bevor Sie ihn verwenden können. Wählen Sie im GitHub Copilot Chat die Schaltfläche „Tools“ und dann den Aspire MCP-Server aus. Geben Sie unten den API-Schlüssel in das Textfeld ein.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">

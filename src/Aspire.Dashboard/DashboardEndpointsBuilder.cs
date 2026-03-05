@@ -118,11 +118,19 @@ public static class DashboardEndpointsBuilder
             .RequireAuthorization(ApiAuthenticationHandler.PolicyName)
             .SkipStatusCodePages();
 
+        // GET /api/telemetry/resources - List resources that have telemetry data
+        group.MapGet("/resources", (TelemetryApiService service) =>
+        {
+            var resources = service.GetResources();
+            return Results.Json(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        });
+
         // GET /api/telemetry/spans - List spans in OTLP JSON format (with optional streaming via ?follow=true)
+        // Supports multiple resource names: ?resource=app1&resource=app2
         group.MapGet("/spans", async (
             TelemetryApiService service,
             HttpContext httpContext,
-            [FromQuery] string? resource,
+            [FromQuery] string[]? resource,
             [FromQuery] string? traceId,
             [FromQuery] bool? hasError,
             [FromQuery] int? limit,
@@ -141,7 +149,7 @@ public static class DashboardEndpointsBuilder
                 return Results.NotFound(new ProblemDetails
                 {
                     Title = "Resource not found",
-                    Detail = $"No resource with name '{resource}' was found.",
+                    Detail = $"No resource with specified name(s) was found.",
                     Status = StatusCodes.Status404NotFound
                 });
             }
@@ -149,10 +157,11 @@ public static class DashboardEndpointsBuilder
         });
 
         // GET /api/telemetry/logs - List logs in OTLP JSON format (with optional streaming via ?follow=true)
+        // Supports multiple resource names: ?resource=app1&resource=app2
         group.MapGet("/logs", async (
             TelemetryApiService service,
             HttpContext httpContext,
-            [FromQuery] string? resource,
+            [FromQuery] string[]? resource,
             [FromQuery] string? traceId,
             [FromQuery] string? severity,
             [FromQuery] int? limit,
@@ -171,7 +180,7 @@ public static class DashboardEndpointsBuilder
                 return Results.NotFound(new ProblemDetails
                 {
                     Title = "Resource not found",
-                    Detail = $"No resource with name '{resource}' was found.",
+                    Detail = $"No resource with specified name(s) was found.",
                     Status = StatusCodes.Status404NotFound
                 });
             }
@@ -179,9 +188,10 @@ public static class DashboardEndpointsBuilder
         });
 
         // GET /api/telemetry/traces - List traces in OTLP JSON format (snapshot only, no streaming)
+        // Supports multiple resource names: ?resource=app1&resource=app2
         group.MapGet("/traces", (
             TelemetryApiService service,
-            [FromQuery] string? resource,
+            [FromQuery] string[]? resource,
             [FromQuery] bool? hasError,
             [FromQuery] int? limit) =>
         {
@@ -191,7 +201,7 @@ public static class DashboardEndpointsBuilder
                 return Results.NotFound(new ProblemDetails
                 {
                     Title = "Resource not found",
-                    Detail = $"No resource with name '{resource}' was found.",
+                    Detail = $"No resource with specified name(s) was found.",
                     Status = StatusCodes.Status404NotFound
                 });
             }

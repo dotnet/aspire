@@ -3,43 +3,38 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../PsCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>List running Aspire apphosts.</source>
-        <target state="translated">列出正在執行的 Aspire apphost。</target>
+        <source>List running apphosts.</source>
+        <target state="new">List running apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="needs-review-translation">CLI_PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
-        <target state="translated">儀表板</target>
+        <source>Dashboard</source>
+        <target state="needs-review-translation">儀表板</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">路徑</target>
+        <source>Path</source>
+        <target state="needs-review-translation">路徑</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="translated">PID</target>
+        <target state="needs-review-translation">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output in JSON format.</source>
-        <target state="translated">以 JSON 格式輸出。</target>
+        <source>Output format (Table or Json).</source>
+        <target state="translated">輸出格式 (資料表或 Json)。</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoRunningAppHostsFound">
-        <source>No running AppHosts found.</source>
-        <target state="translated">找不到正在執行的 AppHost。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ScanningForRunningAppHosts">
-        <source>Scanning for running AppHosts...</source>
-        <target state="translated">正在掃描執行中的 AppHost...</target>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="new">Include resource details for each running app host. Only applies to JSON output.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

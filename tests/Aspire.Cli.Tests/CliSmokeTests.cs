@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.DotNet.RemoteExecutor;
 
 namespace Aspire.Cli.Tests;
@@ -19,7 +20,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
     [InlineData(new[] { "--version" }, ExitCodeConstants.Success)]
     public async Task MainReturnsExpectedExitCode(string[] args, int expectedExitCode)
     {
-        var exitCode = await Program.Main(args);
+        var exitCode = await Program.Main(args).DefaultTimeout();
         Assert.Equal(expectedExitCode, exitCode);
     }
 
@@ -41,7 +42,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
             Environment.SetEnvironmentVariable(envVar, loc);
             // Suppress first-time use notice to avoid extra lines in stderr
             Environment.SetEnvironmentVariable(CliConfigNames.NoLogo, "true");
-            await Program.Main([]);
+            await Program.Main([]).DefaultTimeout();
             Environment.SetEnvironmentVariable(envVar, null);
             Environment.SetEnvironmentVariable(CliConfigNames.NoLogo, null);
             Console.SetError(oldErrorOutput);
@@ -75,7 +76,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
             var oldErrorOutput = Console.Error;
             Console.SetError(errorWriter);
 
-            await Program.Main(["-d", "--help"]);
+            await Program.Main(["-d", "--help"]).DefaultTimeout();
 
             Console.SetError(oldErrorOutput);
             var errorOutput = errorWriter.ToString();
@@ -86,6 +87,35 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
             // Debug mode should write log output to stderr (SpectreConsoleLogger uses [HH:mm:ss] [level] Category: message format)
             var lines = errorOutput.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
             Assert.Contains(lines, line => line.EndsWith("[dbug] Program: Parsing arguments: -d --help"));
+        }, options: s_remoteInvokeOptions);
+
+        outputHelper.WriteLine(result.Process.StandardOutput.ReadToEnd());
+    }
+
+    [Fact]
+    public void VersionFlagSuppressesBanner()
+    {
+        using var result = RemoteExecutor.Invoke(async () =>
+        {
+            await using var outputWriter = new StringWriter();
+            var oldOutput = Console.Out;
+            Console.SetOut(outputWriter);
+
+            await Program.Main(["--version"]).DefaultTimeout();
+
+            Console.SetOut(oldOutput);
+            var output = outputWriter.ToString();
+
+            // Write to stdout so it can be captured by the test harness
+            Console.WriteLine($"Output: {output}");
+
+            // The output should only contain the version, not the animated banner
+            // The banner contains "Welcome to the" and ASCII art
+            Assert.DoesNotContain("Welcome to the", output);
+            Assert.DoesNotContain("█████", output);
+            
+            // The output should contain a version number
+            Assert.Contains(".", output); // Version should have at least one dot
         }, options: s_remoteInvokeOptions);
 
         outputHelper.WriteLine(result.Process.StandardOutput.ReadToEnd());

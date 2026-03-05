@@ -3,7 +3,7 @@
   "$id": "https://json.schemastore.org/aspire-global-settings.json",
   "type": "object",
   "title": "Aspire Global Settings",
-  "description": "Global configuration file for .NET Aspire CLI (~/.aspire/settings.json)",
+  "description": "Aspire CLI global configuration file (~/.aspire/settings.json)",
   "properties": {
     "channel": {
       "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\"). Used by aspire add to determine which NuGet feed to use.",
@@ -29,22 +29,6 @@
           "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
           "default": false
         },
-        "dotnetSdkInstallationEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
-          "default": true
-        },
         "execCommandEnabled": {
           "anyOf": [
             {
@@ -59,6 +43,70 @@
             }
           ],
           "description": "Enable or disable the 'aspire exec' command for executing commands inside running resources",
+          "default": false
+        },
+        "experimentalPolyglot:go": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Go language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:java": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Java language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:python": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Python language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:rust": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications",
           "default": false
         },
         "minimumSdkCheckEnabled": {
@@ -108,22 +156,6 @@
           ],
           "description": "Enable or disable disk caching for package search results to improve performance",
           "default": true
-        },
-        "polyglotSupportEnabled": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          ],
-          "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
-          "default": false
         },
         "runningInstanceDetectionEnabled": {
           "anyOf": [

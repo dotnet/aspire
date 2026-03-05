@@ -13,10 +13,10 @@ public class CliHostEnvironmentTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveInput);
     }
@@ -26,25 +26,12 @@ public class CliHostEnvironmentTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveOutput);
-    }
-
-    [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenNoConfigSet()
-    {
-        // Arrange
-        var configuration = new ConfigurationBuilder().Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
     }
 
     [Theory]
@@ -59,10 +46,10 @@ public class CliHostEnvironmentTests
                 [key] = value
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveInput);
     }
@@ -79,10 +66,10 @@ public class CliHostEnvironmentTests
                 [key] = value
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
     }
@@ -102,10 +89,10 @@ public class CliHostEnvironmentTests
                 [envVar] = value
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveInput);
     }
@@ -124,33 +111,12 @@ public class CliHostEnvironmentTests
                 [envVar] = value
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
-    }
-
-    [Theory]
-    [InlineData("CI", "true")]
-    [InlineData("CI", "1")]
-    [InlineData("GITHUB_ACTIONS", "true")]
-    public void SupportsAnsi_ReturnsTrue_InCIEnvironment(string envVar, string value)
-    {
-        // Arrange - ANSI should still be supported in CI for colored output
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [envVar] = value
-            })
-            .Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
     }
 
     [Fact]
@@ -163,10 +129,10 @@ public class CliHostEnvironmentTests
                 ["NO_COLOR"] = "1"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsAnsi);
     }
@@ -176,10 +142,10 @@ public class CliHostEnvironmentTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveInput);
     }
@@ -189,25 +155,12 @@ public class CliHostEnvironmentTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
-    }
-
-    [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenNonInteractiveTrue()
-    {
-        // Arrange - ANSI should still be supported even in non-interactive mode
-        var configuration = new ConfigurationBuilder().Build();
-        
-        // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
-        // Assert
-        Assert.True(env.SupportsAnsi);
     }
 
     [Fact]
@@ -220,10 +173,10 @@ public class CliHostEnvironmentTests
                 ["ASPIRE_PLAYGROUND"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveInput);
     }
@@ -238,10 +191,10 @@ public class CliHostEnvironmentTests
                 ["ASPIRE_PLAYGROUND"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveOutput);
     }
@@ -257,10 +210,10 @@ public class CliHostEnvironmentTests
                 ["CI"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveInput);
     }
@@ -276,50 +229,50 @@ public class CliHostEnvironmentTests
                 ["GITHUB_ACTIONS"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsInteractiveOutput);
     }
 
     [Fact]
-    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveInput_ReturnsFalse_WhenNonInteractiveIsTrue_EvenWithPlaygroundMode()
     {
-        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        // Arrange - --non-interactive should take precedence over ASPIRE_PLAYGROUND
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ASPIRE_PLAYGROUND"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
+
         // Assert
-        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
-        Assert.True(env.SupportsInteractiveInput);
+        // --non-interactive takes precedence over ASPIRE_PLAYGROUND
+        Assert.False(env.SupportsInteractiveInput);
     }
 
     [Fact]
-    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveOutput_ReturnsFalse_WhenNonInteractiveIsTrue_EvenWithPlaygroundMode()
     {
-        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
+        // Arrange - --non-interactive should take precedence over ASPIRE_PLAYGROUND
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ASPIRE_PLAYGROUND"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
+
         // Assert
-        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
-        Assert.True(env.SupportsInteractiveOutput);
+        // --non-interactive takes precedence over ASPIRE_PLAYGROUND
+        Assert.False(env.SupportsInteractiveOutput);
     }
 
     [Fact]
@@ -333,10 +286,10 @@ public class CliHostEnvironmentTests
                 ["CI"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.False(env.SupportsInteractiveInput);
     }
@@ -351,10 +304,10 @@ public class CliHostEnvironmentTests
                 ["ASPIRE_PLAYGROUND"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsAnsi);
     }
@@ -370,28 +323,28 @@ public class CliHostEnvironmentTests
                 ["NO_COLOR"] = "1"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsAnsi);
     }
 
     [Fact]
-    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_WithNonInteractive()
+    public void SupportsAnsi_ReturnsTrue_WhenAnsiPassThruSet_WithNonInteractive()
     {
-        // Arrange - ASPIRE_PLAYGROUND should enable ANSI even with --non-interactive
+        // Arrange - ASPIRE_ANSI_PASS_THRU explicitly enables ANSI even with --non-interactive
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ASPIRE_PLAYGROUND"] = "true"
+                ["ASPIRE_ANSI_PASS_THRU"] = "true"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
-        
+
         // Assert
         Assert.True(env.SupportsAnsi);
     }
@@ -408,10 +361,10 @@ public class CliHostEnvironmentTests
                 [key] = value
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsAnsi);
     }
@@ -427,10 +380,10 @@ public class CliHostEnvironmentTests
                 ["NO_COLOR"] = "1"
             })
             .Build();
-        
+
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
-        
+
         // Assert
         Assert.True(env.SupportsAnsi);
     }

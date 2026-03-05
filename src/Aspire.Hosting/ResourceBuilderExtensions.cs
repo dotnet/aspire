@@ -457,6 +457,9 @@ public static class ResourceBuilderExtensions
             context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
             var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
+            // Track per-scheme index for service discovery keys to handle multiple endpoints with the same scheme.
+            var schemeIndexTracker = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var endpoint in annotation.Resource.GetEndpoints(annotation.ContextNetworkID))
             {
                 if (specificEndpointName != null && !string.Equals(endpoint.EndpointName, specificEndpointName, StringComparison.OrdinalIgnoreCase))
@@ -483,7 +486,24 @@ public static class ResourceBuilderExtensions
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
                 {
-                    context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
+                    // Use the endpoint's scheme (not name) in the service discovery key so that
+                    // .NET service discovery can correctly match the scheme segment to the URI scheme.
+                    var scheme = endpoint.Scheme;
+                    if (!schemeIndexTracker.TryGetValue(scheme, out var index))
+                    {
+                        index = 0;
+                    }
+
+                    // Find the next unused index for this scheme in case of collisions with other callbacks.
+                    var key = $"services__{serviceName}__{scheme}__{index}";
+                    while (context.EnvironmentVariables.ContainsKey(key))
+                    {
+                        index++;
+                        key = $"services__{serviceName}__{scheme}__{index}";
+                    }
+
+                    context.EnvironmentVariables[key] = endpoint;
+                    schemeIndexTracker[scheme] = index + 1;
                 }
             }
         };
@@ -602,7 +622,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
     /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{sourceResourceName}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -622,7 +642,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
     /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{name}_{ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{name}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{name}_{ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -770,7 +790,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Injects service discovery and endpoint information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each endpoint uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
-    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
+    /// either "services__{name}__{endpointScheme}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -2620,6 +2640,77 @@ public static class ResourceBuilderExtensions
         var annotation = new HttpsCertificateConfigurationCallbackAnnotation(callback);
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
+    }
+
+    /// <summary>
+    /// Subscribes to the <see cref="BeforeStartEvent"/> and invokes the specified callback when an HTTPS certificate
+    /// is determined to be available for the resource. This is used to conditionally update endpoint URI schemes or
+    /// perform other HTTPS-related configuration at startup.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when HTTPS is enabled. Receives an <see cref="HttpsEndpointUpdateCallbackContext"/>
+    /// providing access to the service provider, resource, and application model.</param>
+    /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// The callback is invoked when either:
+    /// <list type="bullet">
+    /// <item>No <see cref="HttpsCertificateAnnotation"/> is present and the <see cref="IDeveloperCertificateService"/> indicates
+    /// that HTTPS should be used by default.</item>
+    /// <item>An <see cref="HttpsCertificateAnnotation"/> is present that requests a developer certificate or provides a custom certificate.</item>
+    /// </list>
+    /// <example>
+    /// Switch an endpoint to HTTPS when a certificate is available:
+    /// <code lang="csharp">
+    /// builder.SubscribeHttpsEndpointsUpdate(ctx =>
+    /// {
+    ///     builder.WithEndpoint("http", ep => ep.UriScheme = "https");
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<TResource> SubscribeHttpsEndpointsUpdate<TResource>(this IResourceBuilder<TResource> builder, Action<HttpsEndpointUpdateCallbackContext> callback)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var resource = builder.Resource;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+        {
+            var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+            bool addHttps = false;
+            if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+            {
+                if (developerCertificateService.UseForHttps)
+                {
+                    addHttps = true;
+                }
+            }
+            else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+            {
+                addHttps = true;
+            }
+
+            if (addHttps)
+            {
+                var context = new HttpsEndpointUpdateCallbackContext
+                {
+                    Services = @event.Services,
+                    Resource = resource,
+                    Model = @event.Model,
+                    CancellationToken = cancellationToken,
+                };
+
+                callback(context);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return builder;
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults

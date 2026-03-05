@@ -98,18 +98,18 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
-        <source>The project could not be built. For more information run with --debug switch.</source>
-        <target state="translated">Nie można skompilować projektu. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
+        <source>The project could not be built. See logs at {0}</source>
+        <target state="translated">Nie można skompilować projektu. Zobacz dzienniki pod adresem {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
-        <source>The --project option specified a project that does not exist.</source>
-        <target state="translated">Opcja --project określiła projekt, który nie istnieje.</target>
+        <source>The --apphost option specified a project that does not exist.</source>
+        <target state="new">The --apphost option specified a project that does not exist.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
-        <source>The --project option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">Nie określono opcji --project i wykryto wiele plików projektu hosta aplikacji.</target>
+        <source>The --apphost option was not specified and multiple app host project files were detected.</source>
+        <target state="new">The --apphost option was not specified and multiple app host project files were detected.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -126,6 +126,11 @@
         <source>Searching...</source>
         <target state="translated">Trwa wyszukiwanie...</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SeeLogsAt">
+        <source>See logs at {0}</source>
+        <target state="translated">Zobacz dzienniki pod adresem {0}</target>
+        <note>{0} is the log file path</note>
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select an apphost to use:</source>

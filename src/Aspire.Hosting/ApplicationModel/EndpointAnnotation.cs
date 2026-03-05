@@ -101,7 +101,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
         _networkID = networkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
+#pragma warning disable CS0618 // Type or member is obsolete
         AllAllocatedEndpoints.TryAdd(_networkID, AllocatedEndpointSnapshot);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
@@ -202,8 +204,10 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint
     {
+#pragma warning disable CS0618 // Type or member is obsolete (AllocatedEndpointSnapshot)
         get
         {
+
             if (!AllocatedEndpointSnapshot.IsValueSet)
             {
                 return null;
@@ -223,14 +227,20 @@ public sealed class EndpointAnnotation : IResourceAnnotation
             }
             else
             {
+                if (_networkID != value.NetworkID)
+                {
+                    throw new InvalidOperationException($"The default AllocatedEndpoint's network ID must match the EndpointAnnotation network ID ('{_networkID}'). The attempted AllocatedEndpoint belongs to '{value.NetworkID}'.");
+                }
                 AllocatedEndpointSnapshot.SetValue(value);
             }
         }
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
     /// Gets the <see cref="AllocatedEndpointSnapshot"/> for the default <see cref="AllocatedEndpoint"/>.
     /// </summary>
+    [Obsolete("This property will be marked as internal in future Aspire release. Use AllocatedEndpoint and AllAllocatedEndpoints properties to access and change allocated endpoints associated with an EndpointAnnotation.")]
     public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get; } = new();
 
     /// <summary>
@@ -244,6 +254,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="Snapshot">AllocatedEndpoint snapshot</param>
 /// <param name="NetworkID">The ID of the network that is associated with the AllocatedEndpoint snapshot.</param>
+[DebuggerDisplay("NetworkID = {NetworkID}, Endpoint = {Snapshot}")]
 public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Snapshot, NetworkIdentifier NetworkID);
 
 /// <summary>
@@ -251,6 +262,7 @@ public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Sna
 /// </summary>
 public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
 {
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
     private readonly ConcurrentBag<NetworkEndpointSnapshot> _snapshots = new();
 
     /// <summary>
@@ -269,6 +281,7 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
     /// <summary>
     /// Adds an AllocatedEndpoint snapshot for a specific network if one does not already exist.
     /// </summary>
+    [Obsolete("This method is for internal use only and will be marked internal in a future Aspire release. Use AddOrUpdateAllocatedEndpoint instead.")]
     public bool TryAdd(NetworkIdentifier networkID, ValueSnapshot<AllocatedEndpoint> snapshot)
     {
         lock (_snapshots)
@@ -281,4 +294,41 @@ public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
             return true;
         }
     }
+
+    /// <summary>
+    /// Adds or updates an AllocatedEndpoint value associated with a specific network in the snapshot list.
+    /// </summary>
+    public void AddOrUpdateAllocatedEndpoint(NetworkIdentifier networkID, AllocatedEndpoint endpoint)
+    {
+        if (endpoint.NetworkID != networkID)
+        {
+            throw new ArgumentException($"AllocatedEndpoint must use the same network as the {nameof(networkID)} parameter", nameof(endpoint));
+        }
+        var nes = GetSnapshotFor(networkID);
+        nes.Snapshot.SetValue(endpoint);
+    }
+
+    /// <summary>
+    /// Gets an AllocatedEndpoint for a given network ID, waiting for it to appear if it is not already present.
+    /// </summary>
+    public Task<AllocatedEndpoint> GetAllocatedEndpointAsync(NetworkIdentifier networkID, CancellationToken cancellationToken = default)
+    {
+        var nes = GetSnapshotFor(networkID);
+        return nes.Snapshot.GetValueAsync(cancellationToken);
+    }
+
+    private NetworkEndpointSnapshot GetSnapshotFor(NetworkIdentifier networkID)
+    {
+        lock (_snapshots)
+        {
+            var nes = _snapshots.FirstOrDefault(s => s.NetworkID.Equals(networkID));
+            if (nes is null)
+            {
+                nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), networkID);
+                _snapshots.Add(nes);
+            }
+            return nes;
+        }
+    }
+
 }

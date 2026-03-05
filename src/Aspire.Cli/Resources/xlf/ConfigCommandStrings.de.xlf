@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">Verwalten Sie Konfigurationseinstellungen.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="translated">Verwalten Sie die CLI-Konfiguration einschließlich Featureflags.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -82,34 +82,44 @@
         <target state="translated">Globale Konfiguration</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderKey">
+        <source>Key</source>
+        <target state="new">Key</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderValue">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">Verfügbare Features</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_Description">
         <source>Display configuration file paths and available features.</source>
-        <target state="new">Display configuration file paths and available features.</target>
+        <target state="translated">Konfigurationsdateipfade und verfügbare Funktionen anzeigen.</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_GlobalSettingsPath">
         <source>Global settings path</source>
-        <target state="new">Global settings path</target>
+        <target state="translated">Pfad für globale Einstellungen</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_JsonOptionDescription">
         <source>Output information in JSON format.</source>
-        <target state="new">Output information in JSON format.</target>
+        <target state="translated">Informationen im JSON-Format ausgeben.</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_LocalSettingsPath">
         <source>Local settings path</source>
-        <target state="new">Local settings path</target>
+        <target state="translated">Pfad für lokale Einstellungen</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_SettingsProperties">
         <source>Settings file properties</source>
-        <target state="new">Settings file properties</target>
+        <target state="translated">Eigenschaften der Einstellungsdatei</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -180,6 +190,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">Der festzulegende Konfigurationswert.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="translated">Verwenden Sie „aspire config set features.&lt;name&gt; true|false“, um ein Feature zu aktivieren oder zu deaktivieren.</target>
         <note />
       </trans-unit>
     </body>

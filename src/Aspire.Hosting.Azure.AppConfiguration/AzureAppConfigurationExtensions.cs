@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppConfiguration;
@@ -36,6 +38,11 @@ public static class AzureAppConfigurationExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureAppConfigurationResource)infrastructure.AspireResource;
+
+            // Check if this App Configuration has a private endpoint (via annotation)
+            var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
             var store = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -43,17 +50,31 @@ public static class AzureAppConfigurationExtensions
                     resource.Name = name;
                     return resource;
                 },
-                (infrastructure) => new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
+                (infrastructure) =>
                 {
-                    SkuName = "standard",
-                    DisableLocalAuth = true,
-                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    var appConfig = new AppConfigurationStore(infrastructure.AspireResource.GetBicepIdentifier())
+                    {
+                        SkuName = "standard",
+                        DisableLocalAuth = true,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+
+                    // When using private endpoints, disable public network access.
+                    if (hasPrivateEndpoint)
+                    {
+                        appConfig.PublicNetworkAccess = AppConfigurationPublicNetworkAccess.Disabled;
+                    }
+
+                    return appConfig;
                 });
 
             infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = store.Name.ToBicepExpression() });
+
+            // Output the resource id for private endpoint support.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = store.Id.ToBicepExpression() });
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);

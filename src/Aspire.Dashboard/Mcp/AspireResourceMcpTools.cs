@@ -3,10 +3,9 @@
 
 using System.ComponentModel;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -92,7 +91,7 @@ internal sealed class AspireResourceMcpTools
             return $"Unable to find a resource named '{resourceName}'.";
         }
 
-        var logParser = new LogParser(ConsoleColor.Black);
+        var logParser = new LogParser(ConsoleColor.Black, encodeForHtml: true);
         var logEntries = new LogEntries(maximumEntryCount: AIHelpers.ConsoleLogsLimit) { BaseLineNumber = 1 };
 
         // Add a timeout for getting all console logs.
@@ -116,14 +115,15 @@ internal sealed class AspireResourceMcpTools
 
         var entries = logEntries.GetEntries().ToList();
         var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-        var (trimmedItems, limitMessage) = AIHelpers.GetLimitFromEndWithSummary<LogEntry>(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
             entries,
             totalLogsCount,
             AIHelpers.ConsoleLogsLimit,
             "console log",
-            AIHelpers.SerializeLogEntry,
-            logEntry => AIHelpers.EstimateTokenCount((string)logEntry));
-        var consoleLogsText = AIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
+            "console logs",
+            SharedAIHelpers.SerializeLogEntry,
+            SharedAIHelpers.EstimateTokenCount);
+        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems);
 
         var consoleLogsData = $"""
             {limitMessage}

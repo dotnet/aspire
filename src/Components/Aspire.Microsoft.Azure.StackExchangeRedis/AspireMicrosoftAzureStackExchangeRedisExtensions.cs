@@ -36,7 +36,8 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
             configurationOptions =>
             {
                 var azureOptionsProvider = new AzureOptionsProvider();
-                if (configurationOptions.EndPoints.Any(azureOptionsProvider.IsMatch))
+                var azureManagedOptionsProvider = new AzureManagedRedisOptionsProvider();
+                if (configurationOptions.EndPoints.Any(ep => azureOptionsProvider.IsMatch(ep) || azureManagedOptionsProvider.IsMatch(ep)))
                 {
                     // only set up Azure AD authentication if the endpoint indicates it's an Azure Cache for Redis instance
                     credential ??= new DefaultAzureCredential();

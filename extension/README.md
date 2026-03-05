@@ -7,16 +7,19 @@ The Aspire VS Code extension provides a set of commands and tools to help you wo
 
 The extension adds the following commands to VS Code:
 
-| Command | Description | Availability |
-|---------|-------------|--------------|
-| Aspire: New Aspire project | Create a new Aspire apphost or starter app from a template. | Available |
-| Aspire: Add an integration | Add a hosting integration (`Aspire.Hosting.*`) to the Aspire apphost. | Available |
-| Aspire: Configure launch.json | Adds the default Aspire debugger launch configuration to your workspace's `launch.json`, which will detect and run the apphost in the workspace. | Available |
-| Aspire: Manage configuration settings | Manage configuration settings including feature flags. | Available |
-| Aspire: Open Aspire terminal | Open an Aspire VS Code terminal for working with Aspire projects. | Available |
-| Aspire: Publish deployment artifacts | Generates deployment artifacts for an Aspire apphost. | Preview |
-| Aspire: Deploy app | Deploy the contents of an Aspire apphost to its defined deployment targets. | Preview |
-| Aspire: Update integrations | Update hosting integrations and Aspire SDK in the apphost. | Preview |
+| Command | Description |
+|---------|-------------|
+| Aspire: New Aspire project | Create a new Aspire apphost or starter app from a template. |
+| Aspire: Initialize Aspire | Initialize Aspire in an existing project. |
+| Aspire: Add an integration | Add a hosting integration (`Aspire.Hosting.*`) to the Aspire apphost. |
+| Aspire: Update integrations | Update hosting integrations and Aspire SDK in the apphost. |
+| Aspire: Publish deployment artifacts | Generate deployment artifacts for an Aspire apphost. |
+| Aspire: Deploy app | Deploy the contents of an Aspire apphost to its defined deployment targets. |
+| Aspire: Configure launch.json file | Add the default Aspire debugger launch configuration to your workspace's `launch.json`. |
+| Aspire: Extension settings | Open Aspire extension settings. |
+| Aspire: Open local Aspire settings | Open the local `.aspire/settings.json` file for the current workspace. |
+| Aspire: Open global Aspire settings | Open the global `~/.aspire/globalsettings.json` file. |
+| Aspire: Open Aspire terminal | Open an Aspire VS Code terminal for working with Aspire projects. |
 
 All commands are available from the Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`) and are grouped under the "Aspire" category.
 

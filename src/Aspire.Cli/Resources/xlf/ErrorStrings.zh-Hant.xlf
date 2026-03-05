@@ -138,8 +138,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
-        <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
-        <target state="translated">因為組建錯誤，無法分析專案。如需詳細資訊，請使用 --debug 切換執行。</target>
+        <source>The project could not be analyzed due to a build error. See logs at {0}</source>
+        <target state="translated">因為組建錯誤，無法分析專案。請參閱 {0} 中的記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">

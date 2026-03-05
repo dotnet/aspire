@@ -9,6 +9,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -24,7 +25,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("add --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -89,7 +90,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -164,7 +165,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add docker");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         Assert.False(promptedForIntegrationPackages);
     }
@@ -247,7 +248,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add docker --version 9.2.0");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         Assert.False(promptedForIntegrationPackages);
         Assert.False(promptedForVersion);
@@ -327,7 +328,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add red");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         Assert.Collection(
             promptedPackages!,
@@ -397,7 +398,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse($"add redis --source {expectedSource}");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -440,7 +441,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
         Assert.Contains(AddCommandStrings.NoIntegrationPackagesFound, displayedErrorMessage);
     }
@@ -513,7 +514,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add nonexistentpackage");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         Assert.True(promptedForIntegration);
         Assert.Equal(string.Format(AddCommandStrings.NoPackagesMatchedSearchTerm, "nonexistentpackage"), displayedSubtleMessage);
@@ -579,7 +580,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        await prompter.PromptForIntegrationAsync(packages, CancellationToken.None);
+        await prompter.PromptForIntegrationAsync(packages, CancellationToken.None).DefaultTimeout();
 
         // Assert - should only show highest version (9.2.0) for the package ID
         Assert.NotNull(displayedPackages);
@@ -628,7 +629,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        var result = await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+        var result = await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None).DefaultTimeout();
 
         // Assert - For implicit channel with no explicit channels, should automatically select highest version without prompting
         Assert.Null(displayedChoices); // No prompt should be shown
@@ -680,7 +681,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+        await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None).DefaultTimeout();
 
         // Assert - should show 2 root choices: one for implicit channel, one submenu for explicit channel
         Assert.NotNull(displayedChoices);
@@ -738,7 +739,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<AddCommand>();
         var result = command.Parse("add redis");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -844,7 +845,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
         // Use "postgre" instead of "postgresql" - should still find it via fuzzy search
         var result = command.Parse("add postgre");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         // Verify that PostgreSQL package was added through fuzzy matching
         Assert.Equal("Aspire.Hosting.PostgreSQL", addedPackage);
@@ -927,7 +928,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
         // Use "sql" - should match both PostgreSQL and MySql, but not Redis or RabbitMQ
         var result = command.Parse("add sql");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         // Should have prompted with packages that fuzzy match "sql"
         Assert.True(promptedPackages.Count > 0);
@@ -997,7 +998,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
         // Use "azureapp" (Azure AppContainers) - should find Azure.AppContainers via fuzzy search
         var result = command.Parse("add azureapp");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         // Verify that Azure AppContainers package was found and added through fuzzy matching
         Assert.Equal("Aspire.Hosting.Azure.AppContainers", addedPackage);

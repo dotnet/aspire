@@ -226,21 +226,25 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             foreach (var resolved in httpIngress.ResolvedEndpoints)
             {
                 var endpoint = resolved.Endpoint;
+                var preserveHttp = _containerAppEnvironmentContext.Environment.PreserveHttpEndpoints;
 
-                if (endpoint.UriScheme is "http" && endpoint.Port is not null and not 80)
-                {
-                    throw new NotSupportedException($"The endpoint '{endpoint.Name}' is an http endpoint and must use port 80");
-                }
+                // By default, HTTP ingress uses HTTPS in ACA (HTTP→HTTPS redirect breaks WebSocket upgrades)
+                // If PreserveHttpEndpoints is true, keep the original scheme
+                var scheme = preserveHttp ? endpoint.UriScheme : "https";
+                var port = scheme is "http" ? 80 : 443;
 
-                if (endpoint.UriScheme is "https" && endpoint.Port is not null and not 443)
-                {
-                    throw new NotSupportedException($"The endpoint '{endpoint.Name}' is an https endpoint and must use port 443");
-                }
+                _endpointMapping[endpoint.Name] = new(scheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+            }
 
-                // For the http ingress port is always 80 or 443
-                var port = endpoint.UriScheme is "http" ? 80 : 443;
+            // Record HTTP endpoints being upgraded (logged once at environment level)
+            if (!_containerAppEnvironmentContext.Environment.PreserveHttpEndpoints)
+            {
+                var upgradedEndpoints = httpIngress.ResolvedEndpoints
+                    .Where(r => r.Endpoint.UriScheme is "http")
+                    .Select(r => r.Endpoint.Name)
+                    .ToArray();
 
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+                _containerAppEnvironmentContext.RecordHttpsUpgrade(Resource.Name, upgradedEndpoints);
             }
         }
 

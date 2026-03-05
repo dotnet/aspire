@@ -21,6 +21,13 @@ public sealed class NullPublishingActivityReporter : IPipelineActivityReporter
     }
 
     /// <inheritdoc />
+    public Task CompletePublishAsync(PublishCompletionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    [Obsolete("Use CompletePublishAsync(PublishCompletionOptions?, CancellationToken) instead.")]
     public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;

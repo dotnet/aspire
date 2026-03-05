@@ -13,6 +13,14 @@ public class DocsIndexServiceTests
         return new MockDocsFetcher(content);
     }
 
+    private static DocsIndexService CreateService(IDocsFetcher? fetcher = null, IDocsCache? cache = null)
+    {
+        return new DocsIndexService(
+            fetcher ?? new MockDocsFetcher(null),
+            cache ?? new NullDocsCache(),
+            NullLogger<DocsIndexService>.Instance);
+    }
+
     [Fact]
     public async Task ListDocumentsAsync_ReturnsAllDocuments()
     {
@@ -29,7 +37,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -42,7 +50,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchFails_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -65,7 +73,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -84,7 +92,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("caching");
 
@@ -107,7 +115,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Configuration");
 
@@ -132,7 +140,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -158,7 +166,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("AddRedis");
 
@@ -197,7 +205,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: 3);
 
@@ -213,7 +221,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("");
 
@@ -229,7 +237,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("   ");
 
@@ -252,7 +260,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis caching");
 
@@ -272,7 +280,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration");
 
@@ -292,7 +300,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("REDIS-INTEGRATION");
 
@@ -311,7 +319,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("nonexistent-doc");
 
@@ -335,7 +343,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "Installation");
 
@@ -356,7 +364,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "Getting Started");
 
@@ -382,7 +390,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration");
 
@@ -402,7 +410,7 @@ public class DocsIndexServiceTests
             callCount++;
             return "# Doc\nContent.";
         });
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await service.EnsureIndexedAsync();
         await service.EnsureIndexedAsync();
@@ -432,7 +440,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -455,7 +463,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync(null!);
 
@@ -473,7 +481,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync(null!);
 
@@ -491,7 +499,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("");
 
@@ -509,7 +517,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("   ");
 
@@ -520,7 +528,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchReturnsEmpty_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher("");
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -531,7 +539,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchReturnsWhitespace_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher("   \n\t\n   ");
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -542,7 +550,7 @@ public class DocsIndexServiceTests
     public async Task SearchAsync_WhenNoDocsIndexed_ReturnsEmptyResults()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -553,7 +561,7 @@ public class DocsIndexServiceTests
     public async Task GetDocumentAsync_WhenNoDocsIndexed_ReturnsNull()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("any-slug");
 
@@ -564,7 +572,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new InvalidOperationException("Fetch failed"));
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.ListDocumentsAsync().AsTask());
     }
@@ -573,7 +581,7 @@ public class DocsIndexServiceTests
     public async Task SearchAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new HttpRequestException("Network error"));
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => service.SearchAsync("Redis").AsTask());
     }
@@ -582,7 +590,7 @@ public class DocsIndexServiceTests
     public async Task GetDocumentAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new TimeoutException("Request timed out"));
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<TimeoutException>(() => service.GetDocumentAsync("redis-integration").AsTask());
     }
@@ -591,7 +599,7 @@ public class DocsIndexServiceTests
     public async Task EnsureIndexedAsync_WhenCancelled_ThrowsOperationCanceledException()
     {
         var fetcher = new DelayingDocsFetcher("# Doc\nContent.", TimeSpan.FromSeconds(10));
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -604,7 +612,7 @@ public class DocsIndexServiceTests
     public async Task EnsureIndexedAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new InvalidOperationException("Critical error"));
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.EnsureIndexedAsync().AsTask());
     }
@@ -620,7 +628,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         // Should not throw
         var results = await service.SearchAsync("Redis!@#$%^&*()");
@@ -640,7 +648,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var longQuery = new string('a', 10000);
 
@@ -664,7 +672,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "NonExistentSection");
 
@@ -684,7 +692,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: 0);
 
@@ -702,11 +710,276 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: -1);
 
         Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task SearchAsync_SlugExactMatch_RanksHigher()
+    {
+        // This tests the "service discovery" example from the issue
+        // Query "service-discovery" should match slug "service-discovery" and rank #1
+        var content = """
+            # Service Discovery
+            > Learn about service discovery in Aspire.
+
+            Service discovery content.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            Azure Service Bus has a service name.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("service-discovery");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Service Discovery", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_SlugPhraseMatch_RanksHigher()
+    {
+        // Query "service discovery" should match slug "service-discovery" with high score
+        // and not "azure-service-bus" just because "service" appears in it
+        var content = """
+            # Service Discovery
+            > Learn about service discovery in Aspire.
+
+            Service discovery content.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus for messaging.
+
+            Azure Service Bus documentation with lots of service mentions.
+            Service is mentioned multiple times. Service again. And service.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("service discovery");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Service Discovery", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhatsNewPenalty_RanksLower()
+    {
+        // "What's New" pages mention many features and should rank lower than dedicated docs
+        var content = """
+            # JavaScript Integration
+            > How to use JavaScript with Aspire.
+
+            JavaScript integration details.
+
+            # What's New in Aspire 1.3
+            > Release notes for Aspire 1.3.
+
+            JavaScript support was added. JavaScript is now fully supported.
+            JavaScript JavaScript JavaScript. We love JavaScript!
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("javascript");
+
+        Assert.NotEmpty(results);
+        // The dedicated JavaScript doc should rank higher even though What's New mentions it more
+        Assert.Equal("JavaScript Integration", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_PartialSlugMatch_StillRanksReasonably()
+    {
+        // Query with partial slug match should still rank well
+        var content = """
+            # Configure the MCP Server
+            > How to configure MCP.
+
+            MCP configuration details.
+
+            # Aspire Dashboard Configuration
+            > Dashboard configuration including MCP settings.
+
+            The dashboard has MCP options in settings.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("mcp");
+
+        Assert.NotEmpty(results);
+        // The doc with "mcp" in the slug should rank higher
+        Assert.Equal("Configure the MCP Server", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ChangelogPenalty_AppliesCorrectly()
+    {
+        // Similar to whats-new, changelog pages should be penalized
+        var content = """
+            # Redis Integration
+            > How to use Redis with Aspire.
+
+            Redis integration details.
+
+            # Changelog
+            > Complete changelog for Aspire.
+
+            Redis support was added. Redis improvements. More Redis features.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("redis");
+
+        Assert.NotEmpty(results);
+        // The dedicated Redis doc should rank higher than the changelog
+        Assert.Equal("Redis Integration", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_MultiWordQuery_MatchesSlugSegments()
+    {
+        // Query "azure cosmos" should match slug "azure-cosmos-db" well
+        var content = """
+            # Azure Cosmos DB
+            > Connect to Azure Cosmos DB.
+
+            Cosmos content.
+
+            # Azure Overview
+            > General Azure services overview.
+
+            Overview includes Cosmos DB mention.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("azure cosmos");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Azure Cosmos DB", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_SingleWordQuery_UsesSegmentMatching()
+    {
+        // Single-word query should use segment-based matching (10 points)
+        // not phrase matching (30 points).
+        // This ensures "service" is scored by segment matches so that docs with "service"
+        // in the title and slug outrank docs where it only appears in the body.
+        var content = """
+            # Redis Integration
+            > How to use Redis with Aspire.
+
+            Redis integration details.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            The service is for messaging. Redis is mentioned in the service docs.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("service");
+
+        Assert.NotEmpty(results);
+        // Both docs should return results, but Azure Service Bus should rank higher
+        // because "service" is in the title AND as a slug segment
+        Assert.Equal("Azure Service Bus", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_HyphenatedQuery_MatchesSlugWithExtraSegments()
+    {
+        // Query "service-bus" should match slug "azure-service-bus" 
+        // even though it's a single token containing a hyphen
+        var content = """
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            Service Bus content.
+
+            # Azure Overview
+            > General Azure services overview.
+
+            Overview of Azure services.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("service-bus");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Azure Service Bus", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ChangelogQuery_DoesNotApplyPenalty()
+    {
+        // When user searches for "changelog", the changelog page should NOT be penalized
+        var content = """
+            # Changelog
+            > Complete changelog for Aspire.
+
+            Version 1.0 changes. Version 2.0 changes.
+
+            # Some Other Page
+            > Random page.
+
+            Changelog mentioned once.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("changelog");
+
+        Assert.NotEmpty(results);
+        // The dedicated Changelog page should rank highest when user searches for it
+        Assert.Equal("Changelog", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhatsNewQuery_DoesNotApplyPenalty()
+    {
+        // When user searches for "whats new", the whats-new page should NOT be penalized
+        var content = """
+            # What's New in Aspire 1.3
+            > Release notes for Aspire 1.3.
+
+            New features and improvements.
+
+            # Other Documentation
+            > Some other docs.
+
+            Nothing new here.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = CreateService(fetcher);
+
+        var results = await service.SearchAsync("whats new");
+
+        Assert.NotEmpty(results);
+        // The What's New page should rank highest when user searches for it
+        Assert.Equal("What's New in Aspire 1.3", results[0].Title);
     }
 
     private sealed class MockDocsFetcher(string? content) : IDocsFetcher
@@ -740,5 +1013,16 @@ public class DocsIndexServiceTests
             await Task.Delay(delay, cancellationToken);
             return content;
         }
+    }
+
+    private sealed class NullDocsCache : IDocsCache
+    {
+        public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task SetAsync(string key, string content, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<LlmsDocument[]?> GetIndexAsync(CancellationToken cancellationToken = default) => Task.FromResult<LlmsDocument[]?>(null);
+        public Task SetIndexAsync(LlmsDocument[] documents, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task InvalidateAsync(string key, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

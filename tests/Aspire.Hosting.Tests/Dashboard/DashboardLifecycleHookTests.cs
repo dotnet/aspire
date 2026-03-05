@@ -5,11 +5,11 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
-using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -20,6 +20,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
+[Trait("Partition", "3")]
 public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
@@ -139,7 +140,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         var httpEndpoint = new EndpointReference(dashboardResource, "http");
         httpEndpoint.EndpointAnnotation.AllocatedEndpoint = new(httpEndpoint.EndpointAnnotation, "localhost", 8080);
-        var otlpGrpcEndpoint = new EndpointReference(dashboardResource, DashboardEventHandlers.OtlpGrpcEndpointName);
+        var otlpGrpcEndpoint = new EndpointReference(dashboardResource, KnownEndpointNames.OtlpGrpcEndpointName);
         otlpGrpcEndpoint.EndpointAnnotation.AllocatedEndpoint = new(otlpGrpcEndpoint.EndpointAnnotation, "localhost", 4317);
 
         var context = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = TestServiceProvider.Instance });
@@ -190,8 +191,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
     }
 
-    [Fact]
-    public async Task ResourceReadyEvent_LogsDashboardUrlFromAllocatedEndpoint()
+    [Theory]
+    [InlineData("https://localhost:17131", "localhost", 9999, "https")]
+    [InlineData("https://aspire-dashboard.dev.localhost:17131", "aspire-dashboard.dev.localhost", 9999, "https")]
+    [InlineData("http://myapp.localhost:8080", "myapp.localhost", 5555, "http")]
+    public async Task ResourceReadyEvent_LogsDashboardUrlFromAllocatedEndpoint(string configuredUrl, string expectedHost, int allocatedPort, string expectedScheme)
     {
         // Arrange
         var testSink = new TestSink();
@@ -208,11 +212,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var configurationBuilder = new ConfigurationBuilder();
         var configuration = configurationBuilder.Build();
 
-        // Configure dashboard with a specific URL (e.g., port 17131) but we'll allocate a different port (e.g., 9999)
+        // Configure dashboard with a specific URL - we'll allocate a different port
         var dashboardOptions = Options.Create(new DashboardOptions
         {
             DashboardPath = "test.dll",
-            DashboardUrl = "https://localhost:17131",  // Configured URL
+            DashboardUrl = configuredUrl,
             DashboardToken = "test-token",
             OtlpGrpcEndpointUrl = "http://localhost:4317",
         });
@@ -234,9 +238,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
 
-        // Set up allocated endpoint with a different port (9999) than configured (17131)
-        var httpsEndpoint = dashboardResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "https");
-        httpsEndpoint.AllocatedEndpoint = new(httpsEndpoint, "localhost", 9999, targetPortExpression: "9999");
+        // Set up allocated endpoint - DCP allocates "localhost" as the address since localhost TLD binds to localhost
+        var endpointAnnotation = dashboardResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == expectedScheme);
+        endpointAnnotation.AllocatedEndpoint = new(endpointAnnotation, "localhost", allocatedPort, targetPortExpression: allocatedPort.ToString());
 
         // Fire the ResourceReadyEvent
         var readyEvent = new ResourceReadyEvent(dashboardResource, new TestServiceProvider());
@@ -250,12 +254,13 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         // Extract the DashboardUrl from the structured log state
         var dashboardUrlValue = LogTestHelpers.GetValue(listeningLog, "DashboardUrl")?.ToString();
-
         Assert.NotNull(dashboardUrlValue);
 
-        // Parse the URL and verify the port is the allocated port (9999), not the configured port (17131)
+        // Parse the URL and verify it uses the expected host (configured TLD if applicable) and allocated port
         var uri = new Uri(dashboardUrlValue);
-        Assert.Equal(9999, uri.Port);
+        Assert.Equal(expectedHost, uri.Host);
+        Assert.Equal(allocatedPort, uri.Port);
+        Assert.Equal(expectedScheme, uri.Scheme);
     }
 
     [Fact]
@@ -336,14 +341,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var netCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.NETCore.App");
             var aspNetCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.AspNetCore.App");
 
-            // The versions should be updated to match the AppHost's target framework versions
-            // In the test environment, the AppHost targets .NET 8.0, so the versions should be "8.0.0"
             Assert.Equal("8.0.0", netCoreFramework.GetProperty("version").GetString());
             Assert.Equal("8.0.0", aspNetCoreFramework.GetProperty("version").GetString());
         }
         finally
         {
-            // Cleanup
             if (Directory.Exists(tempDir))
             {
                 Directory.Delete(tempDir, recursive: true);
@@ -359,7 +361,6 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
 
-        // Create a temporary test dashboard directory with exe, dll and runtimeconfig.json
         var tempDir = Path.GetTempFileName();
         File.Delete(tempDir);
         Directory.CreateDirectory(tempDir);
@@ -370,7 +371,6 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
             var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
 
-            // Create mock files
             File.WriteAllText(dashboardExe, "mock exe content");
             File.WriteAllText(dashboardDll, "mock dll content");
 
@@ -411,11 +411,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             Assert.Equal("exec", args[0]);
             Assert.Equal("--runtimeconfig", args[1]);
             Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
-            Assert.Equal(dashboardDll, args[3]); // Should point to the DLL, not the EXE
+            Assert.Equal(dashboardDll, args[3]);
         }
         finally
         {
-            // Cleanup
             if (Directory.Exists(tempDir))
             {
                 Directory.Delete(tempDir, recursive: true);
@@ -431,18 +430,16 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
 
-        // Create a temporary test dashboard directory with Unix executable (no extension), dll and runtimeconfig.json
         var tempDir = Path.GetTempFileName();
         File.Delete(tempDir);
         Directory.CreateDirectory(tempDir);
 
         try
         {
-            var dashboardExe = Path.Combine(tempDir, "Aspire.Dashboard"); // No extension for Unix
+            var dashboardExe = Path.Combine(tempDir, "Aspire.Dashboard");
             var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
             var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
 
-            // Create mock files
             File.WriteAllText(dashboardExe, "mock exe content");
             File.WriteAllText(dashboardDll, "mock dll content");
 
@@ -483,11 +480,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             Assert.Equal("exec", args[0]);
             Assert.Equal("--runtimeconfig", args[1]);
             Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
-            Assert.Equal(dashboardDll, args[3]); // Should point to the DLL, not the EXE
+            Assert.Equal(dashboardDll, args[3]);
         }
         finally
         {
-            // Cleanup
             if (Directory.Exists(tempDir))
             {
                 Directory.Delete(tempDir, recursive: true);
@@ -503,7 +499,6 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
 
-        // Create a temporary test dashboard directory with direct dll and runtimeconfig.json
         var tempDir = Path.GetTempFileName();
         File.Delete(tempDir);
         Directory.CreateDirectory(tempDir);
@@ -513,7 +508,6 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
             var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
 
-            // Create mock files
             File.WriteAllText(dashboardDll, "mock dll content");
 
             var originalConfig = new
@@ -553,11 +547,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             Assert.Equal("exec", args[0]);
             Assert.Equal("--runtimeconfig", args[1]);
             Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
-            Assert.Equal(dashboardDll, args[3]); // Should point to the same DLL, not modify it
+            Assert.Equal(dashboardDll, args[3]);
         }
         finally
         {
-            // Cleanup
             if (Directory.Exists(tempDir))
             {
                 Directory.Delete(tempDir, recursive: true);

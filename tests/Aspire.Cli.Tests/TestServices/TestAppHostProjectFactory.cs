@@ -117,6 +117,11 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         public string DisplayName => "C# (.NET)";
         public string? AppHostFileName => "AppHost.csproj";
 
+        public bool IsUsingProjectReferences(FileInfo appHostFile)
+        {
+            return false;
+        }
+
         public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken)
             => Task.FromResult(s_detectionPatterns);
 
@@ -168,8 +173,11 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         public Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+        public Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
             => Task.FromResult(RunningInstanceResult.NoRunningInstance);
+
+        public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+            => Task.FromResult<string?>(null);
 
         private static bool IsValidSingleFileAppHost(FileInfo candidateFile)
         {

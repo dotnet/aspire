@@ -61,7 +61,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Manage AI agent integrations.</value>
+    <value>Manage AI agent specific setup.</value>
   </data>
   <data name="McpCommand_Description" xml:space="preserve">
     <value>Start the MCP (Model Context Protocol) server.</value>
@@ -80,5 +80,14 @@
   </data>
   <data name="ConfigUpdatesSelectPrompt" xml:space="preserve">
     <value>The following agent configurations use the deprecated 'mcp start' command. Update them?</value>
+  </data>
+  <data name="MalformedConfigFileError" xml:space="preserve">
+    <value>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</value>
+  </data>
+  <data name="SkippedMalformedConfigFile" xml:space="preserve">
+    <value>Skipping update of '{0}'.</value>
+  </data>
+  <data name="ConfigurationCompletedWithErrors" xml:space="preserve">
+    <value>Configuration completed with errors. Please fix the reported issues and re-run the command.</value>
   </data>
 </root>

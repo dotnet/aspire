@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="translated">Adicione uma integração de hosting ao Aspire AppHost.</target>
+        <source>Add a hosting integration to the apphost.</source>
+        <target state="new">Add a hosting integration to the apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -43,13 +43,13 @@
         <note>{0} is the package name, {1} is the version.</note>
       </trans-unit>
       <trans-unit id="PackageInstallationFailed">
-        <source>The package installation failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">A instalação do pacote falhou com o código de saída {0}. Para mais informações, execute com a opção --debug.</target>
-        <note />
+        <source>The package installation failed with exit code {0}. See logs at {1}</source>
+        <target state="translated">A instalação do pacote falhou com o código de saída {0}. Ver logs em {1}</target>
+        <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the project file to add the integration to.</source>
-        <target state="translated">O caminho para o arquivo de projeto ao qual adicionar a integração.</target>
+        <source>The path to the Aspire AppHost project file to add the integration to.</source>
+        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -70,6 +70,15 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the integration.</source>
         <target state="translated">A fonte do NuGet a ser usada para a integração.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
+          <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
+          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+        </trans-unit>
+      <trans-unit id="UnableToStopRunningInstances">
+        <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
+        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
+[Trait("Partition", "2")]
 public class ExecutionConfigurationGathererTests
 {
     #region ArgumentsExecutionConfigurationGatherer Tests
@@ -538,8 +539,6 @@ public class ExecutionConfigurationGathererTests
 
     #endregion
 
-    #region Helper Methods
-
     private static X509Certificate2 CreateTestCertificate()
     {
         using var rsa = RSA.Create(2048);
@@ -589,6 +588,4 @@ public class ExecutionConfigurationGathererTests
 
         public bool UseForHttps => true;
     }
-
-    #endregion
 }

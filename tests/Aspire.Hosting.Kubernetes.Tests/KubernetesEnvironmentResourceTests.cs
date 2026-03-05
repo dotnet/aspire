@@ -105,7 +105,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
             .AddProject<Projects.ServiceA>("project1", launchProfileName: null)
             .WithHttpEndpoint();
 
-        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        var endpointReferenceEx = env.Resource.GetHostAddressExpression(project.GetEndpoint("http"));
         Assert.NotNull(endpointReferenceEx);
 
         Assert.Equal("project1-service", endpointReferenceEx.Format);

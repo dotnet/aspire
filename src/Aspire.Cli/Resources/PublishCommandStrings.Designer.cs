@@ -86,7 +86,16 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InputPromptLoading", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Do not build or restore the project before running..
+        /// </summary>
+        public static string NoBuildArgumentDescription {
+            get {
+                return ResourceManager.GetString("NoBuildArgumentDescription", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to PUBLISHING COMPLETED.
         /// </summary>

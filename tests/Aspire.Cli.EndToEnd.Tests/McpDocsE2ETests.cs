@@ -107,6 +107,8 @@ public partial class McpDocsE2ETests : IAsyncLifetime
         var text = GetResultText(result);
         // Should find Redis-related documentation
         Assert.Contains("Search Results", text);
+        // Should include slug for use with get_doc
+        Assert.Contains("Slug:", text);
     }
 
     [Fact]
@@ -126,6 +128,43 @@ public partial class McpDocsE2ETests : IAsyncLifetime
         var text = GetResultText(result);
         // Should contain search results but limited count
         Assert.Contains("Search Results", text);
+    }
+
+    [Fact]
+    public async Task SearchDocs_SlugCanBeUsedWithGetDoc()
+    {
+        Assert.NotNull(_mcpClient);
+
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        // Search for documentation
+        var searchResult = await _mcpClient.CallToolAsync(
+            "search_docs",
+            new Dictionary<string, object?> { ["query"] = "redis" },
+            cancellationToken: cancellationToken);
+
+        Assert.NotNull(searchResult);
+        Assert.True(searchResult.IsError is null or false, $"Tool returned error: {GetResultText(searchResult)}");
+
+        var searchText = GetResultText(searchResult);
+
+        // Extract a slug from the search results
+        var slugMatch = SlugRegex().Match(searchText);
+        Assert.True(slugMatch.Success, "Could not find a slug in search_docs output. Search results should include slugs for use with get_doc.");
+
+        var slug = slugMatch.Groups[1].Value;
+
+        // Use the slug with get_doc to retrieve full content
+        var docResult = await _mcpClient.CallToolAsync(
+            "get_doc",
+            new Dictionary<string, object?> { ["slug"] = slug },
+            cancellationToken: cancellationToken);
+
+        Assert.NotNull(docResult);
+        Assert.True(docResult.IsError is null or false, $"get_doc returned error for slug '{slug}': {GetResultText(docResult)}");
+
+        var docText = GetResultText(docResult);
+        Assert.NotEmpty(docText);
     }
 
     [Fact]

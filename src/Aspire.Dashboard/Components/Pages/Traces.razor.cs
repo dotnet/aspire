@@ -248,8 +248,8 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
-    private string GetResourceName(OtlpResource app) => OtlpResource.GetResourceName(app, _resources);
-    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app, _resources);
+    private string GetResourceName(OtlpResource app) => OtlpHelpers.GetResourceName(app, _resources);
+    private string GetResourceName(OtlpResourceView app) => OtlpHelpers.GetResourceName(app.Resource, _resources);
 
     private static string GetRowClass(OtlpTrace entry)
     {

@@ -1072,7 +1072,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Act
         using var app = builder.Build();
         await app.StartAsync();
-        await app.StopAsync();
+        await app.WaitForShutdownAsync();
 
         if (step == "diagnostics")
         {
@@ -1159,7 +1159,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Act
         using var app = builder.Build();
         await app.StartAsync();
-        await app.StopAsync();
+        await app.WaitForShutdownAsync();
 
         // In diagnostics mode, verify the deployment graph shows correct dependencies
         var logs = mockActivityReporter.LoggedMessages
@@ -1197,6 +1197,44 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 .ToList();
 
         await Verify(logs);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithRequestFailedException_DoesNotIncludeVerboseHttpDetails()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
+
+        ConfigureTestServices(builder, bicepProvisioner: new FailingBicepProvisioner(), activityReporter: mockActivityReporter);
+
+        builder.AddAzureEnvironment();
+        builder.AddAzureSqlServer("sql").AddDatabase("db");
+
+        using var app = builder.Build();
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Collect all error-level messages from the pipeline activity reporter
+        var errorLogs = mockActivityReporter.LoggedMessages
+                .Where(m => m.LogLevel >= LogLevel.Error)
+                .Select(s => s.Message)
+                .ToList();
+
+        // Collect all completed step/task messages
+        var completedStepMessages = mockActivityReporter.CompletedSteps
+                .Where(s => s.CompletionState == CompletionState.CompletedWithError)
+                .Select(s => s.CompletionText)
+                .ToList();
+
+        var completedTaskMessages = mockActivityReporter.CompletedTasks
+                .Where(t => t.CompletionState == CompletionState.CompletedWithError)
+                .Select(t => t.CompletionMessage ?? t.TaskStatusText)
+                .ToList();
+
+        var allMessages = errorLogs.Concat(completedStepMessages).Concat(completedTaskMessages).ToList();
+
+        Assert.NotEmpty(allMessages);
+
+        await Verify(allMessages);
     }
 
     private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
@@ -1264,6 +1302,54 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         {
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FailingBicepProvisioner : IBicepProvisioner
+    {
+        public Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+        {
+            // Build a mock Azure Response with JSON error body, simulating what the ARM
+            // deployment API returns when a deployment fails. This ensures the
+            // ExtractDetailedErrorMessage method can parse the JSON and produce a clean
+            // error message rather than falling back to the verbose Message property.
+            var jsonContent = """{"error":{"code":"LocationNotAvailableForResourceType","message":"The provided location 'asia' is not available for resource type 'Microsoft.ManagedIdentity/userAssignedIdentities'."}}""";
+            var response = new TestAzureResponse(400, "Bad Request", jsonContent);
+
+            throw new global::Azure.RequestFailedException(response);
+        }
+    }
+
+    /// <summary>
+    /// Minimal Azure Response subclass for testing. Provides JSON content that
+    /// ExtractDetailedErrorMessage can parse, simulating a real Azure SDK error.
+    /// </summary>
+    private sealed class TestAzureResponse : global::Azure.Response
+    {
+        private readonly int _status;
+        private readonly string _reasonPhrase;
+
+        public TestAzureResponse(int status, string reasonPhrase, string content)
+        {
+            _status = status;
+            _reasonPhrase = reasonPhrase;
+            ContentStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
+        }
+
+        public override int Status => _status;
+        public override string ReasonPhrase => _reasonPhrase;
+        public override Stream? ContentStream { get; set; }
+        public override string ClientRequestId { get; set; } = string.Empty;
+
+        public override void Dispose() { }
+        protected override bool TryGetHeader(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value) { value = null; return false; }
+        protected override bool TryGetHeaderValues(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IEnumerable<string>? values) { values = null; return false; }
+        protected override bool ContainsHeader(string name) => false;
+        protected override IEnumerable<global::Azure.Core.HttpHeader> EnumerateHeaders() => [];
     }
 
     private sealed class Project : IProjectMetadata

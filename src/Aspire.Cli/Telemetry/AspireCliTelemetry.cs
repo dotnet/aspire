@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Aspire.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +33,7 @@ internal sealed class AspireCliTelemetry : IHostedService
     /// <summary>
     /// Environment variable for OpenTelemetry Protocol exporter endpoint.
     /// </summary>
-    internal const string OtlpExporterEndpointConfigKey = "OTEL_EXPORTER_OTLP_ENDPOINT";
+    internal const string OtlpExporterEndpointConfigKey = KnownOtelConfigNames.ExporterOtlpEndpoint;
 
     /// <summary>
     /// Environment variable to specify the console exporter level for debugging.

@@ -15,14 +15,6 @@
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
 
-    <!--
-      Command to be executed directly before 'build.sh -test' is executed.
-      This is used by TestRunsheetBuilder.
-
-      FIXME: temporary workaround for https://github.com/Azure/azure-functions-dotnet-worker/issues/2969
-     -->
-    <TestRunnerPreCommand>./dotnet.sh build &quot;%24(pwd)/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj&quot; -c $(Configuration) /p:SkipUnstableEmulators=true /p:CI=false &amp;&amp; </TestRunnerPreCommand>
-
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <TestArchiveTestsDir>$(TestArchiveTestsDirForBuildOnHelixTests)</TestArchiveTestsDir>

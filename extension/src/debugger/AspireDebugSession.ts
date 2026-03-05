@@ -29,6 +29,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private _trackedDebugAdapters: string[] = [];
   private _rpcClient?: ICliRpcClient;
   private readonly _disposables: vscode.Disposable[] = [];
+  private _disposed = false;
+  private _userInitiatedStop = false;
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
   public readonly debugSessionId: string;
@@ -93,18 +95,19 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
 
-        this.spawnRunCommand(args, appHostPath, noDebug);
+        void this.spawnRunCommand(args, appHostPath, noDebug);
       }
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
 
         const workspaceFolder = path.dirname(appHostPath);
         args.push('--project', appHostPath);
-        this.spawnRunCommand(args, workspaceFolder, noDebug);
+        void this.spawnRunCommand(args, workspaceFolder, noDebug);
       }
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
       this.sendMessageWithEmoji("🔌", disconnectingFromSession);
+      this._userInitiatedStop = true;
       this.dispose();
 
       this.sendEvent({
@@ -133,7 +136,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  spawnRunCommand(args: string[], workingDirectory: string | undefined, noDebug: boolean) {
+  async spawnRunCommand(args: string[], workingDirectory: string | undefined, noDebug: boolean) {
     const disposable = this._rpcServer.onNewConnection((client: ICliRpcClient) => {
       if (client.debugSessionId === this.debugSessionId) {
         this._rpcClient = client;
@@ -143,7 +146,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     spawnCliProcess(
       this._terminalProvider,
-      this._terminalProvider.getAspireCliExecutablePath(),
+      await this._terminalProvider.getAspireCliExecutablePath(),
       args,
       {
         stdoutCallback: (data) => {
@@ -173,7 +176,9 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     this._disposables.push({
       dispose: () => {
-        this._rpcClient?.stopCli();
+        this._rpcClient?.stopCli().catch((err) => {
+          extensionLogOutputChannel.info(`stopCli failed (connection may already be closed): ${err}`);
+        });
         extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
       }
     });
@@ -219,9 +224,15 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
         if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
-          // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
+          const shouldRestart = !this._userInitiatedStop;
+          const config = this.configuration;
+          // Always dispose the current Aspire debug session when the AppHost stops.
           this.dispose();
-          disposable.dispose();
+
+          if (shouldRestart) {
+            extensionLogOutputChannel.info('AppHost terminated unexpectedly, restarting Aspire debug session');
+            await vscode.debug.startDebugging(undefined, config);
+          }
         }
       });
 
@@ -281,11 +292,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   dispose(): void {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
     vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
     this._trackedDebugAdapters = [];
-    this._rpcClient?.stopCli();
   }
 
   private sendResponse(request: any, body: any = {}) {

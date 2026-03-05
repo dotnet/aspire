@@ -319,6 +319,9 @@ public class AspireExportAnalyzerTests
 
                 [AspireExport("readonlyCollections")]
                 public static IReadOnlyList<int> ReadonlyMethod(IReadOnlyDictionary<string, bool> dict) => [];
+
+                [AspireExport("enumerableCollections")]
+                public static IEnumerable<int> EnumerableMethod(IEnumerable<int> values) => [];
             }
             """, []);
 

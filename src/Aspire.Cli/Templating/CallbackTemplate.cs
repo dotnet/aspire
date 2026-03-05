@@ -2,19 +2,35 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using Aspire.Cli.Commands;
 
 namespace Aspire.Cli.Templating;
 
-internal class CallbackTemplate(string name, string description, Func<string, string> pathDeriverCallback, Action<TemplateCommand> applyOptionsCallback, Func<CallbackTemplate, TemplateInputs, ParseResult, CancellationToken, Task<TemplateResult>> applyTemplateCallback) : ITemplate
+internal class CallbackTemplate(
+    string name,
+    string description,
+    Func<string, string> pathDeriverCallback,
+    Action<Command> applyOptionsCallback,
+    Func<CallbackTemplate, TemplateInputs, ParseResult, CancellationToken, Task<TemplateResult>> applyTemplateCallback,
+    TemplateRuntime runtime = TemplateRuntime.DotNet,
+    Func<string, bool>? supportsLanguageCallback = null,
+    IReadOnlyList<string>? selectableAppHostLanguages = null) : ITemplate
 {
     public string Name => name;
 
     public string Description => description;
 
+    public TemplateRuntime Runtime => runtime;
+
     public Func<string, string> PathDeriver => pathDeriverCallback;
 
-    public void ApplyOptions(TemplateCommand command)
+    public bool SupportsLanguage(string languageId)
+    {
+        return supportsLanguageCallback?.Invoke(languageId) ?? true;
+    }
+
+    public IReadOnlyList<string> SelectableAppHostLanguages { get; } = selectableAppHostLanguages ?? [];
+
+    public void ApplyOptions(Command command)
     {
         applyOptionsCallback?.Invoke(command);
     }
