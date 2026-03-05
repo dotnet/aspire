@@ -93,7 +93,7 @@ jobs:
   tests_requires_nugets:
     name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages]
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux, build_cli_archives_other]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
     strategy:
       fail-fast: false
