@@ -147,7 +147,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
             InteractionService.DisplayEmptyLine();
             var polyglotResult = await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
-            return await PromptAndRunAgentInitAsync(polyglotResult, _executionContext.WorkingDirectory, parseResult, cancellationToken);
+            return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, InitCommandStrings.PromptRunAgentInit, polyglotResult, _executionContext.WorkingDirectory, cancellationToken);
         }
 
         // For C#, we need the .NET SDK
@@ -181,32 +181,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             workspaceRoot = _executionContext.WorkingDirectory;
         }
 
-        return await PromptAndRunAgentInitAsync(initResult, workspaceRoot, parseResult, cancellationToken);
-    }
-
-    private async Task<int> PromptAndRunAgentInitAsync(int initResult, DirectoryInfo workspaceRoot, ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        if (initResult != ExitCodeConstants.Success)
-        {
-            return initResult;
-        }
-
-        if (!_hostEnvironment.SupportsInteractiveInput)
-        {
-            return ExitCodeConstants.Success;
-        }
-
-        var runAgentInit = await InteractionService.ConfirmAsync(
-            InitCommandStrings.PromptRunAgentInit,
-            defaultValue: true,
-            cancellationToken: cancellationToken);
-
-        if (runAgentInit)
-        {
-            return await _agentInitCommand.ExecuteCommandAsync(parseResult, workspaceRoot, cancellationToken);
-        }
-
-        return ExitCodeConstants.Success;
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, InitCommandStrings.PromptRunAgentInit, initResult, workspaceRoot, cancellationToken);
     }
 
     private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)

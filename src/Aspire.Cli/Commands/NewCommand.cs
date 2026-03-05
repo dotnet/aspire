@@ -372,33 +372,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
-        return await PromptAndRunAgentInitAsync(templateResult.ExitCode, templateResult.OutputPath, parseResult, cancellationToken);
-    }
-
-    private async Task<int> PromptAndRunAgentInitAsync(int newResult, string? outputPath, ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        if (newResult != ExitCodeConstants.Success)
-        {
-            return newResult;
-        }
-
-        if (!_hostEnvironment.SupportsInteractiveInput)
-        {
-            return ExitCodeConstants.Success;
-        }
-
-        var runAgentInit = await InteractionService.ConfirmAsync(
-            NewCommandStrings.PromptRunAgentInit,
-            defaultValue: true,
-            cancellationToken: cancellationToken);
-
-        if (runAgentInit)
-        {
-            var workspaceRoot = new DirectoryInfo(outputPath ?? ExecutionContext.WorkingDirectory.FullName);
-            return await _agentInitCommand.ExecuteCommandAsync(parseResult, workspaceRoot, cancellationToken);
-        }
-
-        return ExitCodeConstants.Success;
+        var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, NewCommandStrings.PromptRunAgentInit, templateResult.ExitCode, workspaceRoot, cancellationToken);
     }
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)

@@ -63,13 +63,38 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
     }
 
     /// <summary>
-    /// Executes the init command with a pre-determined workspace root, skipping the workspace root prompt.
-    /// Used when chaining from another command (e.g. <c>aspire init</c> or <c>aspire new</c>) that already knows the workspace location.
+    /// Prompts the user to run agent init after a successful command, then chains into agent init if accepted.
+    /// Used by commands (e.g. <c>aspire init</c>, <c>aspire new</c>) to offer agent init as a follow-up step.
     /// </summary>
-    internal Task<int> ExecuteCommandAsync(ParseResult parseResult, DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    internal async Task<int> PromptAndChainAsync(
+        ICliHostEnvironment hostEnvironment,
+        IInteractionService interactionService,
+        string promptString,
+        int previousResult,
+        DirectoryInfo workspaceRoot,
+        CancellationToken cancellationToken)
     {
-        _ = parseResult; // Unused but kept for API consistency with the other overload.
-        return ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+        if (previousResult != ExitCodeConstants.Success)
+        {
+            return previousResult;
+        }
+
+        if (!hostEnvironment.SupportsInteractiveInput)
+        {
+            return ExitCodeConstants.Success;
+        }
+
+        var runAgentInit = await interactionService.ConfirmAsync(
+            promptString,
+            defaultValue: true,
+            cancellationToken: cancellationToken);
+
+        if (runAgentInit)
+        {
+            return await ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+        }
+
+        return ExitCodeConstants.Success;
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
