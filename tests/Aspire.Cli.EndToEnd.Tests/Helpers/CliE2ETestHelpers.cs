@@ -520,6 +520,22 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Specifies which Dockerfile variant to use for the test container.
+    /// </summary>
+    internal enum DockerfileVariant
+    {
+        /// <summary>
+        /// .NET SDK + Docker + Python + Node.js. For tests that create/run .NET AppHosts.
+        /// </summary>
+        DotNet,
+
+        /// <summary>
+        /// Docker + Python + Node.js (no .NET SDK). For TypeScript-only AppHost tests.
+        /// </summary>
+        Polyglot,
+    }
+
+    /// <summary>
     /// Detects the install mode for Docker-based tests based on the current environment.
     /// </summary>
     /// <param name="repoRoot">The repo root directory on the host.</param>
@@ -548,6 +564,9 @@ internal static class CliE2ETestHelpers
     /// </summary>
     /// <param name="repoRoot">The repo root directory, used as the Docker build context.</param>
     /// <param name="installMode">The detected install mode, controlling Docker build args and volumes.</param>
+    /// <param name="variant">Which Dockerfile variant to use (DotNet or Polyglot).</param>
+    /// <param name="mountDockerSocket">Whether to mount the Docker socket for DCP/container access.</param>
+    /// <param name="workspace">Optional workspace to mount into the container at /workspace.</param>
     /// <param name="width">Terminal width in columns.</param>
     /// <param name="height">Terminal height in rows.</param>
     /// <param name="testName">The test name for the recording file path.</param>
@@ -555,12 +574,21 @@ internal static class CliE2ETestHelpers
     internal static Hex1bTerminal CreateDockerTestTerminal(
         string repoRoot,
         DockerInstallMode installMode,
+        DockerfileVariant variant = DockerfileVariant.DotNet,
+        bool mountDockerSocket = false,
+        TemporaryWorkspace? workspace = null,
         int width = 160,
         int height = 48,
         [CallerMemberName] string testName = "")
     {
         var recordingPath = GetTestResultsRecordingPath(testName);
-        var dockerfilePath = Path.Combine(repoRoot, "tests", "Aspire.Cli.EndToEnd.Tests", "docker", "Dockerfile.e2e");
+        var dockerfileName = variant switch
+        {
+            DockerfileVariant.DotNet => "Dockerfile.e2e",
+            DockerfileVariant.Polyglot => "Dockerfile.e2e-polyglot",
+            _ => throw new ArgumentOutOfRangeException(nameof(variant)),
+        };
+        var dockerfilePath = Path.Combine(repoRoot, "tests", "Aspire.Cli.EndToEnd.Tests", "docker", dockerfileName);
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -571,16 +599,23 @@ internal static class CliE2ETestHelpers
                 c.DockerfilePath = dockerfilePath;
                 c.BuildContext = repoRoot;
 
+                if (mountDockerSocket)
+                {
+                    c.MountDockerSocket = true;
+                }
+
+                if (workspace is not null)
+                {
+                    c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace");
+                }
+
                 if (installMode != DockerInstallMode.SourceBuild)
                 {
-                    // Skip the source build stage when we'll install via script instead.
                     c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
                 }
 
                 if (installMode == DockerInstallMode.PullRequest)
                 {
-                    // Forward CI environment variables so get-aspire-cli-pr.sh can
-                    // authenticate with the GitHub API and download PR artifacts.
                     var ghToken = Environment.GetEnvironmentVariable("GH_TOKEN");
                     if (!string.IsNullOrEmpty(ghToken))
                     {
@@ -598,14 +633,17 @@ internal static class CliE2ETestHelpers
     /// <summary>
     /// Sets up the bash prompt tracking inside a Docker container.
     /// Docker containers run as root, so the default prompt uses '#' instead of '$'.
-    /// This method waits for the container prompt and configures the sequence counter.
+    /// Optionally changes to the /workspace directory if a workspace is mounted.
     /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter.</param>
+    /// <param name="workspace">Optional workspace — when provided, cd into /workspace.</param>
     internal static Hex1bTerminalInputSequenceBuilder PrepareDockerEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
+        SequenceCounter counter,
+        TemporaryWorkspace? workspace = null)
     {
         // Docker containers run as root, so bash shows '# ' (not '$ ').
-        // With --norc, the prompt may be 'bash-X.Y# ' or 'root@host:/# '.
         var waitingForContainerReady = new CellPatternSearcher()
             .Find("# ");
 
@@ -616,10 +654,20 @@ internal static class CliE2ETestHelpers
         // Set up the same prompt counting mechanism used by all E2E tests.
         const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
 
-        return builder
+        builder
             .Type(promptSetup)
             .Enter()
             .WaitForSuccessPrompt(counter);
+
+        if (workspace is not null)
+        {
+            builder
+                .Type("cd /workspace")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
+        return builder;
     }
 
     /// <summary>

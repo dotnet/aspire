@@ -1,7 +1,8 @@
-# Multi-stage Dockerfile for Aspire CLI E2E testing (.NET variant).
+# Multi-stage Dockerfile for Aspire CLI E2E testing (polyglot variant).
 #
-# Includes: .NET SDK 10.0, Docker CLI (via host socket mount), gh CLI,
+# Includes: Docker CLI (via host socket mount), gh CLI,
 #           Node.js, Python, Aspire install scripts.
+# Does NOT include .NET SDK — for TypeScript-only AppHost tests.
 #
 # Usage:
 #   Local dev (build from source):
@@ -43,16 +44,18 @@ RUN if [ "$SKIP_SOURCE_BUILD" != "true" ]; then \
     fi
 
 # ============================================================
-# Stage 2: .NET test runtime environment
+# Stage 2: Polyglot test runtime environment (no .NET SDK)
 # ============================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS runtime
+FROM ubuntu:24.04 AS runtime
 
-# --- Common tooling (shared between dotnet and polyglot variants) ---
+# Install base tools and Docker CLI.
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+      ca-certificates curl gpg docker.io git && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install gh CLI (needed by get-aspire-cli-pr.sh to download PR artifacts).
-RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends gpg docker.io && \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
       > /etc/apt/sources.list.d/github-cli.list && \
@@ -60,7 +63,7 @@ RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends gh && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Node.js (needed for TypeScript/JS templates and polyglot AppHosts).
+# Install Node.js (needed for TypeScript AppHosts and JS templates).
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
@@ -92,9 +95,5 @@ RUN mkdir -p /workspace
 WORKDIR /workspace
 
 ENV PATH="/root/.aspire/bin:/root/.aspire:${PATH}"
-ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
-ENV DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-ENV DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 ENV ASPIRE_PLAYGROUND=true
 ENV TERM=xterm
-
