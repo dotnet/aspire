@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure;
+using Aspire.Hosting.Foundry;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var foundry = builder.AddAzureAIFoundry("my-foundry");
-var deployment = foundry.AddDeployment("my-gpt-5", AIFoundryModel.OpenAI.Gpt5)
+var foundry = builder.AddFoundry("my-foundry");
+var deployment = foundry.AddDeployment("my-gpt-5", FoundryModel.OpenAI.Gpt5)
     .WithProperties(d => d.SkuCapacity = 10);
 var project = foundry.AddProject("my-foundry-proj");
 

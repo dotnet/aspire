@@ -32,28 +32,28 @@ analysis-output/api-changes-build-current/all-api-changes.txt
 #### Step 1: Start with API Changes Diff to Identify What's New
 
 ```bash
-grep -A 5 -B 2 "AddAzureAIFoundry" analysis-output/api-changes-build-current/api-changes-diff.txt
+grep -A 5 -B 2 "AddFoundry" analysis-output/api-changes-build-current/api-changes-diff.txt
 ```
 
 #### Step 2: Use Uber File Only for Writing Accurate Usage Examples  
 
 ```bash
-grep -A 10 -B 2 "AddAzureAIFoundry" analysis-output/api-changes-build-current/all-api-changes.txt
+grep -A 10 -B 2 "AddFoundry" analysis-output/api-changes-build-current/all-api-changes.txt
 ```
 
 #### Step 3: Extract Complete API Signatures for Code Samples
 
 ```csharp
 // From uber file - get complete API signature for accurate usage examples: 
-public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> AddAzureAIFoundry(this IDistributedApplicationBuilder builder, string name)
-public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> builder, string name, string modelName, string modelVersion, string format)
+public static ApplicationModel.IResourceBuilder<Azure.FoundryResource> AddFoundry(this IDistributedApplicationBuilder builder, string name)
+public static ApplicationModel.IResourceBuilder<Azure.FoundryDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<Azure.FoundryResource> builder, string name, string modelName, string modelVersion, string format)
 ```
 
 #### Step 4: Write Usage Example with Correct API Signatures
 
 ```csharp
 // ✅ CORRECT: Usage example based on actual API signatures from uber file
-var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+var aiFoundry = builder.AddFoundry("ai-foundry");
 var deployment = aiFoundry.AddDeployment("gpt-4", "gpt-4", "1106", "OpenAI");
 ```
 
@@ -61,7 +61,7 @@ var deployment = aiFoundry.AddDeployment("gpt-4", "gpt-4", "1106", "OpenAI");
 
 ```csharp
 // ❌ WRONG: These methods are NOT found in the API diff or uber file
-builder.AddAzureAIFoundry("ai")
+builder.AddFoundry("ai")
     .WithModel("gpt-4", modelId: "gpt-4-1106")      // INVENTED - not in uber file
     .WithEndpoint("chat", deployment: "chat-latest") // INVENTED - not in uber file
     .WithRoleAssignments(roles: KeyVaultBuiltInRole.SecretsUser) // INVENTED - not in uber file

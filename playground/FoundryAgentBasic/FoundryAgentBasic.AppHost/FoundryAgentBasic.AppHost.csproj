@@ -1,4 +1,4 @@
-﻿<!-- once everything moves to net10.0 as the target framework, then I think using single file app hosts will work. -->
+<!-- once everything moves to net10.0 as the target framework, then I think using single file app hosts will work. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AIFoundry" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Foundry" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ContainerRegistry" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Python" />
   </ItemGroup>

@@ -1,11 +1,11 @@
-using Aspire.Hosting.Azure;
+using Aspire.Hosting.Foundry;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var name = builder.Configuration.GetSection("App").GetValue<string>("Name") ?? "my-app";
 
-var project = builder.AddAzureAIFoundryProject("proj");
-var chat = project.AddModelDeployment("chat", AIFoundryModel.OpenAI.Gpt41Mini);
+var project = builder.AddFoundryProject("proj");
+var chat = project.AddModelDeployment("chat", FoundryModel.OpenAI.Gpt41Mini);
 
 builder.AddPythonApp(name, "../app", "main.py")
     .WithHttpEndpoint(port: 9999, name: "api", env: "PORT")

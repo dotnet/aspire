@@ -117,7 +117,7 @@ Aspire now provides first-class support for Azure AI Foundry, enabling you to ea
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure AI Foundry resource
-var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+var aiFoundry = builder.AddFoundry("ai-foundry");
 
 // Add model deployment
 var gptDeployment = aiFoundry.AddDeployment("gpt-4", "gpt-4", "1106", "OpenAI");

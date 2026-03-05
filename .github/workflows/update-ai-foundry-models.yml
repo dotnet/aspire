@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Generate updated AIFoundry model descriptors
-        working-directory: src/Aspire.Hosting.Azure.AIFoundry/tools
+        working-directory: src/Aspire.Hosting.Foundry/tools
         run: |
           set -e
           "$GITHUB_WORKSPACE/dotnet.sh" run GenModel.cs
@@ -34,4 +34,4 @@ jobs:
             area-integrations
             area-engineering-systems
           title: "[Automated] Update AI Foundry Models"
-          body: "Auto-generated update of Azure AI Foundry model descriptors (AIFoundryModel.Generated.cs)."
+          body: "Auto-generated update of Azure AI Foundry model descriptors (FoundryModel.Generated.cs)."
