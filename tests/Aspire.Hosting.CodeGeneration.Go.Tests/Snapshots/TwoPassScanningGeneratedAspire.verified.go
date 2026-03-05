@@ -2141,6 +2141,18 @@ func (s *IConfiguration) GetConnectionString(name string) (*string, error) {
 	return result.(*string), nil
 }
 
+// IContainerFilesDestinationResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource.
+type IContainerFilesDestinationResource struct {
+	HandleWrapperBase
+}
+
+// NewIContainerFilesDestinationResource creates a new IContainerFilesDestinationResource.
+func NewIContainerFilesDestinationResource(handle *Handle, client *AspireClient) *IContainerFilesDestinationResource {
+	return &IContainerFilesDestinationResource{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
 // IDistributedApplicationBuilder wraps a handle for Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder.
 type IDistributedApplicationBuilder struct {
 	HandleWrapperBase
@@ -2415,6 +2427,18 @@ type IResourceWithConnectionString struct {
 // NewIResourceWithConnectionString creates a new IResourceWithConnectionString.
 func NewIResourceWithConnectionString(handle *Handle, client *AspireClient) *IResourceWithConnectionString {
 	return &IResourceWithConnectionString{
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
+	}
+}
+
+// IResourceWithContainerFiles wraps a handle for Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles.
+type IResourceWithContainerFiles struct {
+	ResourceBuilderBase
+}
+
+// NewIResourceWithContainerFiles creates a new IResourceWithContainerFiles.
+func NewIResourceWithContainerFiles(handle *Handle, client *AspireClient) *IResourceWithContainerFiles {
+	return &IResourceWithContainerFiles{
 		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
 	}
 }
@@ -3208,6 +3232,20 @@ func (s *ProjectResource) WithUrlForEndpointFactory(endpointName string, callbac
 		return nil, err
 	}
 	return result.(*IResourceWithEndpoints), nil
+}
+
+// PublishWithContainerFiles configures the resource to copy container files from the specified source during publishing
+func (s *ProjectResource) PublishWithContainerFiles(source *IResourceWithContainerFiles, destinationPath string) (*IContainerFilesDestinationResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["source"] = SerializeValue(source)
+	reqArgs["destinationPath"] = SerializeValue(destinationPath)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishWithContainerFiles", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IContainerFilesDestinationResource), nil
 }
 
 // WaitFor waits for another resource to be ready
@@ -6594,6 +6632,9 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", func(h *Handle, c *AspireClient) any {
 		return NewIResourceWithServiceDiscovery(h, c)
 	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", func(h *Handle, c *AspireClient) any {
+		return NewIResourceWithContainerFiles(h, c)
+	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewTestCallbackContext(h, c)
 	})
@@ -6617,6 +6658,9 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", func(h *Handle, c *AspireClient) any {
 		return NewITestVaultResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", func(h *Handle, c *AspireClient) any {
+		return NewIContainerFilesDestinationResource(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Dict<string,any>", func(h *Handle, c *AspireClient) any {
 		return &AspireDict[any, any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
