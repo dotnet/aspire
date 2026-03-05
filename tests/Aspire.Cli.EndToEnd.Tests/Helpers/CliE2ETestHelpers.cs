@@ -663,4 +663,19 @@ internal static class CliE2ETestHelpers
             "Could not find repo root (directory containing Aspire.slnx) " +
             $"by walking up from {AppContext.BaseDirectory}");
     }
+
+    /// <summary>
+    /// Converts a host-side path (under the workspace root) to the corresponding
+    /// container-side path (under /workspace). Use this when a path constructed from
+    /// <see cref="TemporaryWorkspace.WorkspaceRoot"/> needs to be used in a command
+    /// typed into the Docker container terminal.
+    /// </summary>
+    /// <param name="hostPath">The full host-side path.</param>
+    /// <param name="workspace">The workspace whose root is mounted at /workspace.</param>
+    /// <returns>The equivalent path inside the container.</returns>
+    internal static string ToContainerPath(string hostPath, TemporaryWorkspace workspace)
+    {
+        var relativePath = Path.GetRelativePath(workspace.WorkspaceRoot.FullName, hostPath);
+        return "/workspace/" + relativePath.Replace('\\', '/');
+    }
 }

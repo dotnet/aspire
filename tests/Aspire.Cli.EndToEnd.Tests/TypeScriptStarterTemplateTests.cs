@@ -18,12 +18,11 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndRunTypeScriptStarterProject()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -33,16 +32,9 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            // TypeScript starter requires the bundle (not just CLI) because the AppHost server
-            // is bundled and cannot be obtained via NuGet packages in SDK-based fallback mode
-            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireBundleEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Step 1: Create project using aspire new, selecting the Express/React template
         sequenceBuilder.AspireNew("TsStarterApp", counter, template: AspireTemplate.ExpressReact);

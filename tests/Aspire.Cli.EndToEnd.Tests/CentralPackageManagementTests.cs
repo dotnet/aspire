@@ -18,12 +18,11 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
     [Fact]
     public async Task AspireUpdateRemovesAppHostPackageVersionFromDirectoryPackagesProps()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -43,14 +42,9 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Disable update notifications to prevent the CLI self-update prompt
         // from appearing after "Update successful!" and blocking the test.
@@ -66,6 +60,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var appHostDir = Path.Combine(projectDir, "CpmTest.AppHost");
         var appHostCsprojPath = Path.Combine(appHostDir, "CpmTest.AppHost.csproj");
         var directoryPackagesPropsPath = Path.Combine(projectDir, "Directory.Packages.props");
+        var containerAppHostCsprojPath = CliE2ETestHelpers.ToContainerPath(appHostCsprojPath, workspace);
 
         sequenceBuilder
             .ExecuteCallback(() =>
@@ -104,7 +99,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             })
             // Use --channel stable to skip the channel selection prompt that appears
             // in CI when PR hive directories are present.
-            .Type($"aspire update --project \"{appHostCsprojPath}\" --channel stable")
+            .Type($"aspire update --project \"{containerAppHostCsprojPath}\" --channel stable")
             .Enter()
             .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .Enter() // confirm "Perform updates?" (default: Yes)
@@ -119,7 +114,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
             .VerifyFileDoesNotContain(directoryPackagesPropsPath, "Aspire.Hosting.AppHost")
             // Verify dotnet restore succeeds (would fail with NU1009 without the fix)
-            .Type($"dotnet restore \"{appHostCsprojPath}\"")
+            .Type($"dotnet restore \"{containerAppHostCsprojPath}\"")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
             // Clean up: re-enable update notifications
