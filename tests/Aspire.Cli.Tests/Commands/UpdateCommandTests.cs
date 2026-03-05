@@ -913,7 +913,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -958,7 +958,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         {
             options.EnabledFeatures = [KnownFeatures.StagingChannelEnabled];
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
