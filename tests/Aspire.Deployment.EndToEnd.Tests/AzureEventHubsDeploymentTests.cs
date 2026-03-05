@@ -96,7 +96,7 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.Type("aspire init")
+            sequenceBuilder.Type("aspire init --language csharp")
                 .Enter()
                 // NuGet.config prompt may or may not appear depending on environment.
                 // Wait a moment then press Enter to dismiss if present, then wait for completion.
