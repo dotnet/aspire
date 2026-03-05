@@ -2,16 +2,16 @@ import { createBuilder } from './.modules/aspire.js';
 
 const builder = await createBuilder();
 
-const api = await builder
-    .addNodeApp("api", "./api", "src/index.ts")
+const app = await builder
+    .addNodeApp("app", "./api", "src/index.ts")
     .withHttpEndpoint({ env: "PORT" })
     .withExternalHttpEndpoints();
 
 const frontend = await builder
     .addViteApp("frontend", "./frontend")
-    .withServiceReference(api)
-    .waitFor(api);
+    .withServiceReference(app)
+    .waitFor(app);
 
-api.publishWithContainerFiles(frontend, "./static");
+app.publishWithContainerFiles(frontend, "./static");
 
 await builder.build().run();
