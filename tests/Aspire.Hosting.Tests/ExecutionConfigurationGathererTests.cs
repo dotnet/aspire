@@ -813,6 +813,7 @@ public class ExecutionConfigurationGathererTests
             CertificateBundlePath = ReferenceExpression.Create($"/etc/ssl/certs/ca-bundle.crt"),
             CertificateDirectoriesPath = ReferenceExpression.Create($"/etc/ssl/certs"),
             RootCertificatesPath = "/etc/ssl/certs",
+            IsContainer = true,
         };
     }
 
