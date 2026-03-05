@@ -100,7 +100,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     throw new InvalidOperationException("Should not prompt when no work required.");
@@ -217,7 +217,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -356,7 +356,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -509,7 +509,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -647,7 +647,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -752,7 +752,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -854,7 +854,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     // Should not be called since no updates are needed
@@ -998,7 +998,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1121,7 +1121,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1235,7 +1235,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1345,7 +1345,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1443,7 +1443,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1545,7 +1545,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1629,7 +1629,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -1711,7 +1711,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -1785,7 +1785,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1868,7 +1868,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1956,7 +1956,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2038,7 +2038,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2117,7 +2117,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2208,7 +2208,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2335,7 +2335,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;

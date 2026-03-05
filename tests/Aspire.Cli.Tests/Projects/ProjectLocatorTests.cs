@@ -774,7 +774,7 @@ builder.Build().Run();");
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true).DefaultTimeout();
 
-        // Should return the first project file (TestConsoleInteractionService returns the first choice)
+        // Should return the first project file (TestInteractionService returns the first choice)
         Assert.Equal(projectFile1.FullName, returnedProjectFile!.FullName);
     }
 
@@ -967,7 +967,7 @@ builder.Build().Run();");
         return new ProjectLocator(
             logger,
             executionContext,
-            interactionService ?? new TestConsoleInteractionService(),
+            interactionService ?? new TestInteractionService(),
             configurationService ?? new TestConfigurationService(),
             projectFactory ?? new TestAppHostProjectFactory(),
             languageDiscovery ?? new TestLanguageDiscovery(),
