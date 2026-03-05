@@ -161,7 +161,7 @@ internal static class TelemetryCommandHelpers
 
     public static bool TryResolveResourceNames(
         string? resourceName,
-        IList<ResourceInfo> resources,
+        IList<ResourceInfoJson> resources,
         out List<string>? resolvedResources)
     {
         if (string.IsNullOrEmpty(resourceName))
@@ -203,13 +203,13 @@ internal static class TelemetryCommandHelpers
         return false;
     }
 
-    public static async Task<ResourceInfo[]> GetAllResourcesAsync(HttpClient client, string baseUrl, CancellationToken cancellationToken)
+    public static async Task<ResourceInfoJson[]> GetAllResourcesAsync(HttpClient client, string baseUrl, CancellationToken cancellationToken)
     {
         var url = DashboardUrls.TelemetryResourcesApiUrl(baseUrl);
         var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var resources = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.ResourceInfoArray, cancellationToken).ConfigureAwait(false) ?? [];
+        var resources = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false) ?? [];
 
         // Sort resources by name for consistent ordering.
         Array.Sort(resources, (a, b) =>
@@ -317,9 +317,9 @@ internal static class TelemetryCommandHelpers
     }
 
     /// <summary>
-    /// Converts an array of <see cref="ResourceInfo"/> to a list of <see cref="IOtlpResource"/> for use with <see cref="OtlpHelpers.GetResourceName"/>.
+    /// Converts an array of <see cref="ResourceInfoJson"/> to a list of <see cref="IOtlpResource"/> for use with <see cref="OtlpHelpers.GetResourceName"/>.
     /// </summary>
-    public static IReadOnlyList<IOtlpResource> ToOtlpResources(ResourceInfo[] resources)
+    public static IReadOnlyList<IOtlpResource> ToOtlpResources(ResourceInfoJson[] resources)
     {
         var result = new IOtlpResource[resources.Length];
         for (var i = 0; i < resources.Length; i++)

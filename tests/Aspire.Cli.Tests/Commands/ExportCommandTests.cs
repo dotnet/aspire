@@ -27,8 +27,8 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
 
         var resources = new[]
         {
-            new ResourceInfo { Name = "redis", InstanceId = null },
-            new ResourceInfo { Name = "apiservice", InstanceId = null },
+            new ResourceInfoJson { Name = "redis", InstanceId = null },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = null },
         };
 
         var logsJson = BuildLogsJson(
@@ -116,7 +116,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         var outputPath = Path.Combine(customDir, "my-export.zip");
 
         var provider = CreateExportTestServices(workspace, outputWriter,
-            resources: [new ResourceInfo { Name = "redis", InstanceId = null }],
+            resources: [new ResourceInfoJson { Name = "redis", InstanceId = null }],
             telemetryEndpoints: new Dictionary<string, string>
             {
                 ["/api/telemetry/logs"] = BuildLogsJson(),
@@ -234,8 +234,8 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         monitor.AddConnection("hash-target", "socket.hash-target", targetConnection);
 
         var resourcesJson = JsonSerializer.Serialize(
-            new[] { new ResourceInfo { Name = "target-resource", InstanceId = null } },
-            OtlpJsonSerializerContext.Default.ResourceInfoArray);
+            new[] { new ResourceInfoJson { Name = "target-resource", InstanceId = null } },
+            OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var handler = new MockHttpMessageHandler(request =>
         {
@@ -304,9 +304,9 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         // 3 telemetry resources: redis (singleton) + apiservice with 2 replicas
         var resources = new[]
         {
-            new ResourceInfo { Name = "redis", InstanceId = null },
-            new ResourceInfo { Name = "apiservice", InstanceId = "abc" },
-            new ResourceInfo { Name = "apiservice", InstanceId = "def" },
+            new ResourceInfoJson { Name = "redis", InstanceId = null },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "abc" },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "def" },
         };
 
         // Structured logs from all 3 resources
@@ -428,12 +428,12 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
     private ServiceProvider CreateExportTestServices(
         TemporaryWorkspace workspace,
         TestOutputTextWriter outputWriter,
-        ResourceInfo[] resources,
+        ResourceInfoJson[] resources,
         Dictionary<string, string> telemetryEndpoints,
         List<ResourceSnapshot> resourceSnapshots,
         List<ResourceLogLine> logLines)
     {
-        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel

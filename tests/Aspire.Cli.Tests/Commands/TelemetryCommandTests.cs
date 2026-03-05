@@ -146,7 +146,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public void ToOtlpResources_ConvertsResourceInfoToOtlpResources()
     {
-        var resources = new ResourceInfo[]
+        var resources = new ResourceInfoJson[]
         {
             new() { Name = "frontend", InstanceId = "abc123" },
             new() { Name = "backend", InstanceId = null },

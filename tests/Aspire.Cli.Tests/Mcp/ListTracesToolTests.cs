@@ -114,13 +114,13 @@ public class ListTracesToolTests
         var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         // Create resources that match the OtlpResourceSpansJson entries
-        var resources = new ResourceInfo[]
+        var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = "instance-1", HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "api-service", InstanceId = "instance-2", HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "worker-service", InstanceId = "instance-1", HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -229,11 +229,11 @@ public class ListTracesToolTests
         };
         var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
-        var resources = new ResourceInfo[]
+        var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -276,11 +276,11 @@ public class ListTracesToolTests
     public async Task ListTracesTool_ReturnsResourceNotFound_WhenResourceDoesNotExist()
     {
         // Arrange - Create mock HTTP handler that returns resources that don't match the requested name
-        var resources = new ResourceInfo[]
+        var resources = new ResourceInfoJson[]
         {
             new() { Name = "other-resource", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var emptyTracesResponse = new TelemetryApiResponse
         {
@@ -384,12 +384,12 @@ public class ListTracesToolTests
 
         var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
-        var resources = new ResourceInfo[]
+        var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "worker-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         string? capturedUrl = null;
         using var mockHandler = new MockHttpMessageHandler(request =>

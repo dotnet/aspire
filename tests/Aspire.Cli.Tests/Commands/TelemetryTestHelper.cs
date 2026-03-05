@@ -62,10 +62,10 @@ internal static class TelemetryTestHelper
         TemporaryWorkspace workspace,
         ITestOutputHelper outputHelper,
         TestOutputTextWriter outputWriter,
-        ResourceInfo[] resources,
+        ResourceInfoJson[] resources,
         Dictionary<string, string> telemetryEndpoints)
     {
-        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel

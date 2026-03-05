@@ -122,7 +122,7 @@ public static class DashboardEndpointsBuilder
         group.MapGet("/resources", (TelemetryApiService service) =>
         {
             var resources = service.GetResources();
-            return Results.Json(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+            return Results.Json(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
         });
 
         // GET /api/telemetry/spans - List spans in OTLP JSON format (with optional streaming via ?follow=true)

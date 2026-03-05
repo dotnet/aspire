@@ -9,7 +9,7 @@ namespace Aspire.Otlp.Serialization;
 /// Information about a resource that has telemetry data.
 /// Shared between Dashboard and CLI for serialization/deserialization of the telemetry resources API.
 /// </summary>
-internal sealed class ResourceInfo
+internal sealed class ResourceInfoJson
 {
     /// <summary>
     /// Gets or sets the base resource name (e.g., "catalogservice").

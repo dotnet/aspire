@@ -391,12 +391,12 @@ internal sealed class TelemetryApiService(
     /// <summary>
     /// Gets the list of available resources that have telemetry data.
     /// </summary>
-    public ResourceInfo[] GetResources()
+    public ResourceInfoJson[] GetResources()
     {
         var resources = telemetryRepository.GetResources();
         return resources
             .Where(r => !r.UninstrumentedPeer) // Exclude uninstrumented peers
-            .Select(r => new ResourceInfo
+            .Select(r => new ResourceInfoJson
             {
                 Name = r.ResourceName,
                 InstanceId = r.InstanceId,
