@@ -25,12 +25,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task AgentCommands_AllHelpOutputs_AreCorrect()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -41,14 +40,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Test 1: aspire agent --help
         sequenceBuilder
@@ -119,18 +113,18 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task AgentInitCommand_MigratesDeprecatedConfig()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         // Use .mcp.json (Claude Code format) for simpler testing
         // This is the same format used by the doctor test that passes
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
+        var containerConfigPath = CliE2ETestHelpers.ToContainerPath(configPath, workspace);
 
         // Patterns for agent init prompts - look for the colon at the end which indicates
         // the prompt is ready for input
@@ -142,14 +136,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Step 1: Create deprecated config file using Claude Code format (.mcp.json)
         // This simulates a config that was created by an older version of the CLI
@@ -165,7 +154,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Debug: Show that the file exists and where we are
         var fileExistsPattern = new CellPatternSearcher().Find(".mcp.json");
         sequenceBuilder
-            .Type($"ls -la {configPath} && pwd")
+            .Type($"ls -la {containerConfigPath} && pwd")
             .Enter()
             .WaitUntil(s => fileExistsPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -200,10 +189,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Debug: Show the scanner log file to diagnose what the scanner found
-        var debugLogPath = Path.Combine(Path.GetTempPath(), "aspire-deprecated-scan.log");
         var debugLogPattern = new CellPatternSearcher().Find("Scanning context");
         sequenceBuilder
-            .Type($"cat {debugLogPath} 2>/dev/null || echo 'No debug log found'")
+            .Type("cat /tmp/aspire-deprecated-scan.log 2>/dev/null || echo 'No debug log found'")
             .Enter()
             .WaitUntil(s => debugLogPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -232,12 +220,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task DoctorCommand_DetectsDeprecatedAgentConfig()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -255,14 +242,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create deprecated config file
         sequenceBuilder
@@ -297,13 +279,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task AgentInitCommand_DefaultSelection_InstallsSkillOnly()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -319,14 +299,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create .vscode folder so the scanner detects VS Code environment
         sequenceBuilder
