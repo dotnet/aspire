@@ -50,7 +50,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
@@ -180,7 +180,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 ConfirmCallback = (prompt, defaultValue) =>
                 {
@@ -223,7 +223,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 ConfirmCallback = (prompt, defaultValue) =>
                 {
@@ -296,7 +296,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 ConfirmCallback = (prompt, defaultValue) =>
                 {
@@ -361,7 +361,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -408,7 +408,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -504,7 +504,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -571,7 +571,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -625,8 +625,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        var errorDisplayed = false;
-        string? errorMessage = null;
+        TestInteractionService? testInteractionService = null;
         
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -638,13 +637,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ =>
             {
-                DisplayErrorCallback = (message) =>
-                {
-                    errorDisplayed = true;
-                    errorMessage = message;
-                }
+                testInteractionService = new TestInteractionService();
+                return testInteractionService;
             };
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
@@ -672,8 +668,9 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
-        Assert.True(errorDisplayed, "Error should be displayed for invalid quality");
-        Assert.NotNull(errorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.NotEmpty(testInteractionService.DisplayedErrors);
+        var errorMessage = Assert.Single(testInteractionService.DisplayedErrors);
         Assert.Contains("invalid", errorMessage);
         Assert.Contains("stable", errorMessage);
         Assert.Contains("daily", errorMessage);
@@ -698,7 +695,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -756,7 +753,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var cancellationMessageDisplayed = false;
         
-        var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
+        var wrappedService = new CancellationTrackingInteractionService(new TestInteractionService()
         {
             PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
             {
@@ -821,7 +818,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
                 {
@@ -877,7 +874,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var cancellationMessageDisplayed = false;
         
-        var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
+        var wrappedService = new CancellationTrackingInteractionService(new TestInteractionService()
         {
             PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
             {
@@ -1053,8 +1050,8 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.ConfirmAsync(promptText, defaultValue, cancellationToken);
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
         => _innerService.PromptForSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
-        => _innerService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, bool optional = false, CancellationToken cancellationToken = default) where T : notnull 
+        => _innerService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, optional, cancellationToken);
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) 
         => _innerService.DisplayIncompatibleVersionError(ex, appHostHostingVersion);
     public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);

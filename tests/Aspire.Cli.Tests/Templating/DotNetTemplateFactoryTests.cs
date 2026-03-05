@@ -8,7 +8,6 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
@@ -17,8 +16,6 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
-using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Tests.Templating;
 
@@ -448,52 +445,6 @@ public class DotNetTemplateFactoryTests
                 _ => defaultValue
             };
         }
-    }
-
-    private sealed class TestInteractionService : IInteractionService
-    {
-        public ConsoleOutput Console { get; set; }
-
-        public Task<T> PromptForSelectionAsync<T>(string prompt, IEnumerable<T> choices, Func<T, string> displaySelector, CancellationToken cancellationToken) where T : notnull
-            => throw new NotImplementedException();
-
-        public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
-            => throw new NotImplementedException();
-
-        public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
-
-        public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
-
-        public Task<bool> ConfirmAsync(string prompt, bool defaultAnswer, CancellationToken cancellationToken)
-            => throw new NotImplementedException();
-
-        public Task<TResult> ShowStatusAsync<TResult>(string message, Func<Task<TResult>> work, KnownEmoji? emoji = null, bool allowMarkup = false)
-            => throw new NotImplementedException();
-
-        public Task ShowStatusAsync(string message, Func<Task> work)
-            => throw new NotImplementedException();
-
-        public void ShowStatus(string message, Action work, KnownEmoji? emoji = null, bool allowMarkup = false)
-            => throw new NotImplementedException();
-
-        public void DisplaySuccess(string message, bool allowMarkup = false) { }
-        public void DisplayError(string message) { }
-        public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
-        public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
-        public void DisplayCancellationMessage() { }
-        public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
-        public void DisplayPlainText(string text) { }
-        public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
-        public void DisplayMarkdown(string markdown) { }
-        public void DisplayMarkupLine(string markup) { }
-        public void DisplaySubtleMessage(string message, bool allowMarkup = false) { }
-        public void DisplayEmptyLine() { }
-        public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
-        public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
-        public void DisplayRenderable(IRenderable renderable) { }
-        public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
     }
 
     private sealed class TestDotNetCliRunner : IDotNetCliRunner

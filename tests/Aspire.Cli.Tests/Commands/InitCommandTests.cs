@@ -170,7 +170,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
             options.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
 

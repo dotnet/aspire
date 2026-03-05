@@ -2382,7 +2382,7 @@ export class AzureSignalRResource extends ResourceBuilderBase<AzureSignalRResour
         return new AzureSignalRResource(result, this._client);
     }
 
-    /** Exports RunAsEmulator for polyglot app hosts. */
+    /** Configures an Azure SignalR resource to be emulated. This resource requires an  to be added to the application model. Please note that the resource will be emulated in Serverless mode. */
     runAsEmulator(options?: RunAsEmulatorOptions): AzureSignalRResourcePromise {
         const configureContainer = options?.configureContainer;
         return new AzureSignalRResourcePromise(this._runAsEmulatorInternal(configureContainer));
@@ -2495,7 +2495,7 @@ export class AzureSignalRResourcePromise implements PromiseLike<AzureSignalRReso
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports RunAsEmulator for polyglot app hosts. */
+    /** Configures an Azure SignalR resource to be emulated. This resource requires an  to be added to the application model. Please note that the resource will be emulated in Serverless mode. */
     runAsEmulator(options?: RunAsEmulatorOptions): AzureSignalRResourcePromise {
         return new AzureSignalRResourcePromise(this._promise.then(obj => obj.runAsEmulator(options)));
     }

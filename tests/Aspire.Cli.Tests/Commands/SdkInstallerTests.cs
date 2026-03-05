@@ -38,7 +38,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             // Use TestDotNetCliRunner to avoid real process execution
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -60,7 +60,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
                 CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
 
             // Need to provide a project locator since AddCommand checks for project first
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
@@ -85,7 +85,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
                 CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -125,7 +125,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             // Use TestDotNetCliRunner to avoid real process execution
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -163,7 +163,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             // Use TestDotNetCliRunner to avoid real process execution
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -186,7 +186,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
                 CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
             };
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.InteractionServiceFactory = _ => new TestInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
