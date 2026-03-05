@@ -70,6 +70,7 @@ internal sealed class AppHostLauncher(
     /// <param name="format">The output format (JSON or table).</param>
     /// <param name="isolated">Whether to run in isolated mode.</param>
     /// <param name="isExtensionHost">Whether running inside VS Code extension.</param>
+    /// <param name="waitForDebugger">Whether the AppHost is waiting for a debugger to attach.</param>
     /// <param name="globalArgs">Global CLI args to forward to child process.</param>
     /// <param name="additionalArgs">Additional unmatched args to forward.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -79,6 +80,7 @@ internal sealed class AppHostLauncher(
         OutputFormat? format,
         bool isolated,
         bool isExtensionHost,
+        bool waitForDebugger,
         IEnumerable<string> globalArgs,
         IEnumerable<string> additionalArgs,
         CancellationToken cancellationToken)
@@ -118,6 +120,16 @@ internal sealed class AppHostLauncher(
         var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPrefix)!;
 
         logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
+
+        // If --wait-for-debugger is active, show a message so the user knows the AppHost
+        // is paused. In detached mode we don't have the AppHost PID (stdout is suppressed),
+        // so we show a generic message without a PID.
+        if (waitForDebugger)
+        {
+            interactionService.DisplayMessage(
+                KnownEmojis.Bug,
+                InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+        }
 
         // Start the child process and wait for the backchannel
         var launchResult = await interactionService.ShowStatusAsync(

@@ -249,12 +249,14 @@ public class DistributedApplication : IHost, IAsyncDisposable
         if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebugger) == "true")
         {
             var startedWaiting = DateTimeOffset.UtcNow;
-            TimeSpan timeout = TimeSpan.FromSeconds(30);
+            var timeout = TimeSpan.FromSeconds(30);
 
             if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebuggerTimeout) is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
             {
                 timeout = TimeSpan.FromSeconds(timeoutSeconds);
             }
+
+            Console.WriteLine($"AppHost PID: {Environment.ProcessId}");
 
             while (Debugger.IsAttached == false)
             {

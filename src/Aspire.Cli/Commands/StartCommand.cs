@@ -49,6 +49,7 @@ internal sealed class StartCommand : BaseCommand
 
         var noBuild = parseResult.GetValue(s_noBuildOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+        var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
         var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
         var additionalArgs = parseResult.UnmatchedTokens.ToList();
 
@@ -62,6 +63,7 @@ internal sealed class StartCommand : BaseCommand
             format,
             isolated,
             isExtensionHost,
+            waitForDebugger,
             globalArgs,
             additionalArgs,
             cancellationToken);

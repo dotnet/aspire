@@ -216,6 +216,7 @@ internal sealed class RunCommand : BaseCommand
             // The completion sources are the contract between RunCommand and IAppHostProject
             var buildCompletionSource = new TaskCompletionSource<bool>();
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
+            var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
 
             context = new AppHostProjectContext
             {
@@ -224,14 +225,14 @@ internal sealed class RunCommand : BaseCommand
                 Debug = parseResult.GetValue(RootCommand.DebugOption),
                 NoBuild = noBuild,
                 NoRestore = noBuild, // --no-build implies --no-restore
-                WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
+                WaitForDebugger = waitForDebugger,
                 Isolated = isolated,
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
                 BuildCompletionSource = buildCompletionSource,
-                BackchannelCompletionSource = backchannelCompletionSource
+                BackchannelCompletionSource = backchannelCompletionSource,
             };
 
             // Start the project run as a pending task - we'll handle UX while it runs
@@ -248,6 +249,12 @@ internal sealed class RunCommand : BaseCommand
                 }
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ProjectCouldNotBeBuilt, ExecutionContext.LogFilePath));
                 return await pendingRun;
+            }
+
+            // If --wait-for-debugger, display a message so the user knows the AppHost is paused.
+            if (waitForDebugger)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
             // Now wait for the backchannel to be established
@@ -625,6 +632,7 @@ internal sealed class RunCommand : BaseCommand
         var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
         var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
+        var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
         var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
         var additionalArgs = parseResult.UnmatchedTokens.Where(t => t != "--detach").ToList();
 
@@ -638,6 +646,7 @@ internal sealed class RunCommand : BaseCommand
             format,
             isolated,
             isExtensionHost,
+            waitForDebugger,
             globalArgs,
             additionalArgs,
             cancellationToken);
