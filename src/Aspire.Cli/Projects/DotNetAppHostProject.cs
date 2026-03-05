@@ -34,7 +34,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
-    internal static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
+    internal static IReadOnlyCollection<string> ProjectExtensions { get; } =
+        Array.AsReadOnly([".csproj", ".fsproj", ".vbproj"]);
 
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
@@ -85,7 +86,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         var extension = appHostFile.Extension.ToLowerInvariant();
 
         // Handle project files (.csproj, .fsproj, .vbproj)
-        if (s_projectExtensions.Contains(extension))
+        if (ProjectExtensions.Contains(extension))
         {
             // We can handle any project file - ValidateAsync will do deeper validation
             return true;
@@ -520,7 +521,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Auto-initialize user secrets (only for csproj projects - file-based apphosts
         // always have a UserSecretsId provided by the SDK)
-        if (!s_projectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
+        if (!ProjectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
         {
             return userSecretsId;
         }

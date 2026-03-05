@@ -180,18 +180,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // and ServiceDefaults directories would be created inside that project which
         // is not supported.
         var solutionDirectory = solutionFile.Directory!;
-        var projectFilesInSolutionDir = solutionDirectory.EnumerateFiles("*.*proj")
-            .Where(f => DotNetAppHostProject.s_projectExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase))
-            .ToList();
+        var projectFileInSolutionDir = solutionDirectory.EnumerateFiles()
+            .FirstOrDefault(f => DotNetAppHostProject.ProjectExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
 
-        if (projectFilesInSolutionDir.Count > 0)
+        if (projectFileInSolutionDir is not null)
         {
             InteractionService.DisplayError(
                 string.Format(
                     CultureInfo.CurrentCulture,
                     InitCommandStrings.SolutionAndProjectInSameDirectory,
                     solutionFile.Name,
-                    projectFilesInSolutionDir[0].Name));
+                    projectFileInSolutionDir.Name));
             return ExitCodeConstants.FailedToCreateNewProject;
         }
 
