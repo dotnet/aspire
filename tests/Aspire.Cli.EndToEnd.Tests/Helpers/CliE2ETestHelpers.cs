@@ -132,7 +132,7 @@ internal static class CliE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     internal static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
@@ -323,7 +323,7 @@ internal static class CliE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
@@ -461,7 +461,7 @@ internal static class CliE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
