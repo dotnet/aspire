@@ -82,10 +82,6 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
 
         var configurationContext = _configContextFactory(additionalData.Scope);
 
-        // Set up tracked PKCS#12 reference so we can detect if a callback references it
-        additionalData.Pkcs12BundlePathReference = configurationContext.Pkcs12BundlePath;
-        additionalData.Pkcs12BundlePassword = configurationContext.Pkcs12BundlePassword;
-
         // Apply default OpenSSL environment configuration for certificate trust
         context.EnvironmentVariables["SSL_CERT_DIR"] = configurationContext.CertificateDirectoriesPath;
 
@@ -102,8 +98,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
             CertificateBundlePath = configurationContext.CertificateBundlePath,
             CertificateDirectoriesPath = configurationContext.CertificateDirectoriesPath,
             // Must use the tracked reference to ensure proper tracking of usage
-            Pkcs12BundlePath = additionalData.Pkcs12BundlePathReference!,
-            Pkcs12BundlePassword = additionalData.Pkcs12BundlePassword,
+            RootCertificatesPath = configurationContext.RootCertificatesPath,
             Arguments = context.Arguments,
             EnvironmentVariables = context.EnvironmentVariables,
             CancellationToken = cancellationToken,
@@ -115,6 +110,11 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
             {
                 await callback.Callback(callbackContext).ConfigureAwait(false);
             }
+        }
+
+        foreach (var bundleFactory in callbackContext.CustomBundlesFactories)
+        {
+            additionalData.CustomBundlesFactories[bundleFactory.Key] = bundleFactory.Value;
         }
 
         if (additionalData.Scope == CertificateTrustScope.System)
@@ -131,9 +131,6 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class CertificateTrustExecutionConfigurationData : IExecutionConfigurationData
 {
-    private ReferenceExpression? _pkcs12BundlePathReference;
-    private TrackedReference? _trackedPkcs12BundlePathReference;
-
     /// <summary>
     /// The certificate trust scope for the resource.
     /// </summary>
@@ -145,38 +142,9 @@ public class CertificateTrustExecutionConfigurationData : IExecutionConfiguratio
     public X509Certificate2Collection Certificates { get; } = new();
 
     /// <summary>
-    /// Reference expression that will resolve to the path of the PKCS#12 trust store bundle.
+    /// Collection of custom certificate bundle generators added via the <see cref="CertificateTrustConfigurationCallbackAnnotationContext.CreateCustomBundle"/> method, keyed by the bundle's relative path under the root certificates path. The value is a function that generates the bundle contents as a byte array given a collection of X509 certificates and a cancellation token.
     /// </summary>
-    public ReferenceExpression? Pkcs12BundlePathReference
-    {
-        get
-        {
-            return _pkcs12BundlePathReference;
-        }
-        internal set
-        {
-            if (value is null)
-            {
-                _trackedPkcs12BundlePathReference = null;
-                _pkcs12BundlePathReference = null;
-            }
-            else
-            {
-                _trackedPkcs12BundlePathReference = new TrackedReference(value);
-                _pkcs12BundlePathReference = ReferenceExpression.Create($"{_trackedPkcs12BundlePathReference}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Indicates whether the PKCS#12 bundle path was actually referenced in the resource configuration.
-    /// </summary>
-    public bool IsPkcs12BundlePathReferenced => _trackedPkcs12BundlePathReference?.WasResolved ?? false;
-
-    /// <summary>
-    /// The password for the PKCS#12 trust store bundle.
-    /// </summary>
-    public string Pkcs12BundlePassword { get; internal set; } = string.Empty;
+    public Dictionary<string, Func<X509Certificate2Collection, CancellationToken, Task<byte[]>>> CustomBundlesFactories { get; } = new();
 
     private class TrackedReference : IValueProvider, IManifestExpressionProvider
     {
@@ -217,13 +185,7 @@ public class CertificateTrustExecutionConfigurationContext
     public required ReferenceExpression CertificateDirectoriesPath { get; init; }
 
     /// <summary>
-    /// The path to the PKCS#12 trust store bundle file in the resource context (e.g., container filesystem).
-    /// Only generated if a resource's certificate trust configuration callback references this path.
+    /// The root path certificates will be written to in the resource context (e.g., container filesystem).
     /// </summary>
-    public required ReferenceExpression Pkcs12BundlePath { get; init; }
-
-    /// <summary>
-    /// The password for the PKCS#12 trust store bundle. Defaults to an empty string.
-    /// </summary>
-    public string Pkcs12BundlePassword { get; init; } = string.Empty;
+    public required string RootCertificatesPath { get; init; }
 }

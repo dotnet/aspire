@@ -14,9 +14,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Formats.Asn1;
 using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -45,16 +43,6 @@ namespace Aspire.Hosting.Dcp;
 internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
-
-    // Oracle/Java trust anchor bag attribute OID. When present on a CertBag, Java's PKCS12KeyStore
-    // recognizes the entry as a trustedCertEntry. Defined in OpenJDK as ORACLE_TrustedKeyUsage:
-    // https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/sun/security/util/KnownOIDs.java
-    internal const string JavaTrustedKeyUsageOid = "2.16.840.1.113894.746875.1.1";
-
-    // The anyExtendedKeyUsage OID (2.5.29.37.0) used as the trust anchor attribute value.
-    // This matches Java's AnyUsage constant and the encoding produced by keytool -importcert -trustcacerts.
-    // Java's PKCS12KeyStore calls getOID() on each value, so the value must be a DER-encoded OID primitive.
-    internal const string AnyExtendedKeyUsageOid = "2.5.29.37.0";
 
     // The base name for ephemeral container (Docker, Pdman etc) networks
     internal const string DefaultAspireNetworkName = "aspire-session-network";
@@ -1658,7 +1646,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the base paths for certificate output in the DCP session directory.
             var certificatesRootDir = Path.Join(_locations.DcpSessionDir, exe.Name());
             var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
-            var pkcs12BundleOutputPath = Path.Join(certificatesRootDir, "truststore.p12");
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
@@ -1682,7 +1669,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         CertificateBundlePath = ReferenceExpression.Create($"{bundleOutputPath}"),
                         // Build the SSL_CERT_DIR value by combining the new certs directory with any existing directories.
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(Path.PathSeparator, dirs)}"),
-                        Pkcs12BundlePath = ReferenceExpression.Create($"{pkcs12BundleOutputPath}"),
+                        RootCertificatesPath = certificatesRootDir,
                     };
                 })
                 .WithHttpsCertificateConfig(cert => new()
@@ -1712,28 +1699,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }).DistinctBy(cert => cert.Thumbprint).ToList(),
                     ContinueOnError = true,
                 };
+
+                foreach (var bundleFactory in certificateTrustConfiguration.CustomBundlesFactories)
+                {
+                    var bundleId = bundleFactory.Key;
+                    var bundleBytes = await bundleFactory.Value(certificateTrustConfiguration.Certificates, cancellationToken).ConfigureAwait(false);
+
+                    var customBundleOutputPath = Path.Join(certificatesRootDir, bundleId);
+                    File.WriteAllBytes(customBundleOutputPath, bundleBytes);
+                }
             }
 
             exe.Spec.PemCertificates = pemCertificates;
-
-            // Generate PKCS#12 trust store if it was referenced by a certificate trust configuration callback
-            if (certificateTrustConfiguration is not null
-                && certificateTrustConfiguration.IsPkcs12BundlePathReferenced
-                && certificateTrustConfiguration.Certificates.Count > 0)
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    Directory.CreateDirectory(certificatesRootDir);
-                }
-                else
-                {
-                    Directory.CreateDirectory(certificatesRootDir, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
-                }
-
-                var pkcs12Bytes = CreatePkcs12TrustStore(certificateTrustConfiguration.Certificates, certificateTrustConfiguration.Pkcs12BundlePassword);
-                File.WriteAllBytes(pkcs12BundleOutputPath, pkcs12Bytes);
-                Array.Clear(pkcs12Bytes, 0, pkcs12Bytes.Length);
-            }
 
             if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
             {
@@ -2117,7 +2094,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         CertificateBundlePath = ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
                         // Build Linux PATH style colon-separated list of directories
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
-                        Pkcs12BundlePath = ReferenceExpression.Create($"{certificatesDestination}/truststore.p12"),
+                        RootCertificatesPath = certificatesDestination,
                     };
                 })
                 .WithHttpsCertificateConfig(cert => new()
@@ -2128,6 +2105,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 })
                 .BuildAsync(_executionContext, resourceLogger, cancellationToken)
                 .ConfigureAwait(false);
+
+            List<ContainerFileSystemEntry>? customBundleFiles = new();
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ContainerPemCertificates? pemCertificates = null;
@@ -2156,35 +2135,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Group by common directory to avoid creating multiple file system entries for the same root directory.
                     pemCertificates.OverwriteBundlePaths = bundlePaths;
                 }
+
+                foreach (var bundleFactory in certificateTrustConfiguration.CustomBundlesFactories)
+                {
+                    var bundleId = bundleFactory.Key;
+                    var bundleBytes = await bundleFactory.Value(certificateTrustConfiguration.Certificates, cancellationToken).ConfigureAwait(false);
+
+                    customBundleFiles.Add(new ContainerFileSystemEntry
+                    {
+                        Name = bundleId,
+                        Type = ContainerFileSystemEntryType.File,
+                        RawContents = Convert.ToBase64String(bundleBytes),
+                    });
+                }
             }
 
             spec.PemCertificates = pemCertificates;
-
-            // Generate PKCS#12 trust store as a container filesystem entry if it was referenced by a callback
-            List<ContainerCreateFileSystem>? pkcs12CreateFiles = null;
-            if (certificateTrustConfiguration is not null
-                && certificateTrustConfiguration.IsPkcs12BundlePathReferenced
-                && certificateTrustConfiguration.Certificates.Count > 0)
-            {
-                var pkcs12Bytes = CreatePkcs12TrustStore(certificateTrustConfiguration.Certificates, certificateTrustConfiguration.Pkcs12BundlePassword);
-                pkcs12CreateFiles =
-                [
-                    new ContainerCreateFileSystem
-                    {
-                        Destination = certificatesDestination,
-                        Entries =
-                        [
-                            new ContainerFileSystemEntry
-                            {
-                                Name = "truststore.p12",
-                                Type = ContainerFileSystemEntryType.File,
-                                RawContents = Convert.ToBase64String(pkcs12Bytes),
-                            }
-                        ],
-                    }
-                ];
-                Array.Clear(pkcs12Bytes, 0, pkcs12Bytes.Length);
-            }
 
             var buildCreateFilesContext = new BuildCreateFilesContext
             {
@@ -2210,20 +2176,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 buildCreateFilesContext,
                 cancellationToken).ConfigureAwait(false);
 
+            if (customBundleFiles.Any())
+            {
+                createFiles.Add(new ContainerCreateFileSystem
+                {
+                    Destination = certificatesDestination,
+                    Entries = [
+                        new ContainerFileSystemEntry
+                        {
+                            Name = "bundles",
+                            Type = ContainerFileSystemEntryType.Directory,
+                            Entries = customBundleFiles,
+                        },
+                    ],
+                });
+            }
+
             if (tlsCertificateConfiguration is not null)
             {
                 var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
                 var publicCertificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
                 (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
                 var certificateFiles = new List<ContainerFileSystemEntry>()
-            {
-                new ContainerFileSystemEntry
                 {
-                    Name = thumbprint + ".crt",
-                    Type = ContainerFileSystemEntryType.File,
-                    Contents = new string(publicCertificatePem),
-                }
-            };
+                    new ContainerFileSystemEntry
+                    {
+                        Name = thumbprint + ".crt",
+                        Type = ContainerFileSystemEntryType.File,
+                        Contents = new string(publicCertificatePem),
+                    }
+                };
 
                 if (keyPem is not null)
                 {
@@ -2255,11 +2237,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     Destination = serverAuthCertificatesBasePath,
                     Entries = certificateFiles,
                 });
-            }
-
-            if (pkcs12CreateFiles is not null)
-            {
-                createFiles.AddRange(pkcs12CreateFiles);
             }
 
             // Set the final args, env vars, and create files on the container spec
@@ -2979,42 +2956,5 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return endpoint is not null;
     }
 
-    /// <summary>
-    /// Creates a PKCS#12 trust store containing the specified certificates (public keys only, no private keys).
-    /// Each certificate entry includes the Oracle/Java trust anchor bag attribute
-    /// (OID <c>2.16.840.1.113894.746875.1.1</c>) so that Java's <c>KeyStore</c> recognizes entries as
-    /// <c>trustedCertEntry</c> instances. The resulting trust store is compatible with Java's keytool and
-    /// can be used as a <c>javax.net.ssl.trustStore</c>.
-    /// </summary>
-    /// <remarks>
-    /// The trust anchor OID is defined in the OpenJDK source as <c>ORACLE_TrustedKeyUsage</c>:
-    /// <see href="https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/sun/security/util/KnownOIDs.java">KnownOIDs.java</see>.
-    /// </remarks>
-    internal static byte[] CreatePkcs12TrustStore(X509Certificate2Collection certificates, string password)
-    {
-        var builder = new Pkcs12Builder();
-        var safeContents = new Pkcs12SafeContents();
-
-        var trustAnchorOid = new Oid(JavaTrustedKeyUsageOid);
-        var asnWriter = new AsnWriter(AsnEncodingRules.DER);
-        asnWriter.WriteObjectIdentifier(AnyExtendedKeyUsageOid);
-        var trustAnchorValue = asnWriter.Encode();
-
-        for (var i = 0; i < certificates.Count; i++)
-        {
-            // Strip any private keys — trust stores contain only public certificates.
-            var publicCert = new X509Certificate2(certificates[i].Export(X509ContentType.Cert));
-            var certBag = safeContents.AddCertificate(publicCert);
-
-            certBag.Attributes.Add(
-                new CryptographicAttributeObject(
-                    trustAnchorOid,
-                    new AsnEncodedDataCollection(new AsnEncodedData(trustAnchorOid, trustAnchorValue))));
-        }
-
-        builder.AddSafeContentsUnencrypted(safeContents);
-        builder.SealWithMac(password, HashAlgorithmName.SHA256, iterationCount: 2048);
-
-        return builder.Encode();
-    }
 }
+
