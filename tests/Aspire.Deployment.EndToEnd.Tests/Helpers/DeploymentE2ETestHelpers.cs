@@ -143,7 +143,7 @@ internal static class DeploymentE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
