@@ -603,7 +603,7 @@ public class ExecutionConfigurationGathererTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var cert = CreateTestCertificate();
+        var cert = CreateTestCertificateWithPrivateKey();
 
         var resource = builder.AddContainer("test", "image")
             .WithAnnotation(new HttpsCertificateAnnotation { Certificate = cert })
@@ -631,7 +631,7 @@ public class ExecutionConfigurationGathererTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:password"] = "test-password";
-        var cert = CreateTestCertificate();
+        var cert = CreateTestCertificateWithPrivateKey();
         var password = builder.AddParameter("password", secret: true);
 
         var resource = builder.AddContainer("test", "image")
@@ -709,7 +709,7 @@ public class ExecutionConfigurationGathererTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var cert = CreateTestCertificate();
+        var cert = CreateTestCertificateWithPrivateKey();
 
         var resource = builder.AddContainer("test", "image")
             .WithAnnotation(new HttpsCertificateAnnotation { Certificate = cert })
@@ -744,7 +744,7 @@ public class ExecutionConfigurationGathererTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var cert = CreateTestCertificate();
+        var cert = CreateTestCertificateWithPrivateKey();
         var callbackExecuted = false;
 
         var resource = builder.AddContainer("test", "image")
@@ -772,6 +772,29 @@ public class ExecutionConfigurationGathererTests
     #endregion
 
     private static X509Certificate2 CreateTestCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            new X500DistinguishedName("CN=test"),
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+
+        // Use Create() instead of CreateSelfSigned() to produce a public-only certificate
+        // that doesn't touch the macOS keychain (avoids AppleCommonCryptoCryptographicException).
+        var serialNumber = new byte[16];
+        RandomNumberGenerator.Fill(serialNumber);
+        var generator = X509SignatureGenerator.CreateForRSA(rsa, RSASignaturePadding.Pkcs1);
+
+        return request.Create(
+            request.SubjectName,
+            generator,
+            DateTimeOffset.Now,
+            DateTimeOffset.Now.AddYears(1),
+            serialNumber);
+    }
+
+    private static X509Certificate2 CreateTestCertificateWithPrivateKey()
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
