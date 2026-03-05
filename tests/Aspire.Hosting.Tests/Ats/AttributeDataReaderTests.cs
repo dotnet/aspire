@@ -100,6 +100,19 @@ public class AttributeDataReaderTests
     }
 
     [Fact]
+    public void GetAspireExportData_MatchesByConstructorSignature_NotParameterName()
+    {
+        // Third-party attribute with renamed constructor parameter (e.g., "name" instead of "id")
+        // should still be parsed correctly via signature-based matching.
+        var method = typeof(RenamedParamExports).GetMethod(nameof(RenamedParamExports.RenamedParamMethod))!;
+        var result = AttributeDataReader.GetAspireExportData(method);
+
+        Assert.NotNull(result);
+        Assert.Equal("renamedParamMethod", result.Id);
+        Assert.Equal("Renamed param method", result.Description);
+    }
+
+    [Fact]
     public void ScanAssembly_FindsThirdPartyAttributedMethods()
     {
         // Full integration: scan the test assembly and verify that methods annotated
@@ -190,6 +203,16 @@ public class AttributeDataReaderTests
     public class ThirdPartyDtoType
     {
         public string Name { get; set; } = "";
+    }
+
+    // Uses renamed constructor parameters to verify signature-based matching
+    public static class RenamedParamExports
+    {
+        [RenamedParam.AspireExport("renamedParamMethod", Description = "Renamed param method")]
+        public static void RenamedParamMethod(object value)
+        {
+            _ = value;
+        }
     }
 
     #endregion

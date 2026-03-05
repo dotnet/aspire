@@ -103,18 +103,20 @@ internal static class AttributeDataReader
         string? id = null;
         Type? type = null;
 
-        // Read constructor arguments
-        var ctorParams = data.Constructor.GetParameters();
-        for (var i = 0; i < data.ConstructorArguments.Count; i++)
+        // Match constructor arguments by signature (arity + type) rather than parameter name,
+        // so third-party attribute copies with different parameter names still work.
+        // The three recognized constructor signatures are:
+        //   ()           — type export
+        //   (string)     — capability export (the string is the method/capability id)
+        //   (Type)       — assembly-level type export
+        if (data.ConstructorArguments.Count == 1)
         {
-            var arg = data.ConstructorArguments[i];
-            var paramName = i < ctorParams.Length ? ctorParams[i].Name : null;
-
-            if (paramName == "id" && arg.Value is string idValue)
+            var arg = data.ConstructorArguments[0];
+            if (arg.Value is string idValue)
             {
                 id = idValue;
             }
-            else if (paramName == "type" && arg.Value is Type typeValue)
+            else if (arg.Value is Type typeValue)
             {
                 type = typeValue;
             }

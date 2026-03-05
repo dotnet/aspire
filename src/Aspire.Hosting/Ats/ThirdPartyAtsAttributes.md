@@ -178,7 +178,7 @@ public sealed class AddMyDatabaseOptions
 
 ## Important Notes
 
-- **Property names must match exactly**: `Id`, `Type`, `Description`, `MethodName`, `ExposeProperties`, `ExposeMethods`, `Reason`, `DtoTypeId`, `Types`.
-- **Constructor parameter names must match**: `id` (string), `type` (Type), `types` (Type[]).
+- **Constructor signatures must match by arity and argument type**: `()`, `(string)`, `(Type)` for `AspireExportAttribute`; `(params Type[])` for `AspireUnionAttribute`. Parameter names can differ.
+- **Property names must match exactly**: `Type`, `Description`, `MethodName`, `ExposeProperties`, `ExposeMethods`, `Reason`, `DtoTypeId`, `Types`.
 - If you later add a reference to `Aspire.Hosting` and both your custom attribute and the official one are applied to the same member, both will be detected (the scanner takes the first match).
 - The scanner uses `CustomAttributeData` which reads metadata without instantiating the attribute, so your attribute types don't need to be loadable at scan time — only the name must match.
