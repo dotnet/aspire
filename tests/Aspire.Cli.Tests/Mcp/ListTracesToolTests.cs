@@ -112,7 +112,7 @@ public class ListTracesToolTests
             ReturnedCount = 3
         };
 
-        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         // Create resources that match the OtlpResourceSpansJson entries
         var resources = new ResourceInfoJson[]
@@ -121,7 +121,7 @@ public class ListTracesToolTests
             new() { Name = "api-service", InstanceId = "instance-2", HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "worker-service", InstanceId = "instance-1", HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -228,13 +228,13 @@ public class ListTracesToolTests
             TotalCount = 0,
             ReturnedCount = 0
         };
-        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -281,7 +281,7 @@ public class ListTracesToolTests
         {
             new() { Name = "other-resource", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var emptyTracesResponse = new TelemetryApiResponse
         {
@@ -289,7 +289,7 @@ public class ListTracesToolTests
             TotalCount = 0,
             ReturnedCount = 0
         };
-        var emptyTracesJson = JsonSerializer.Serialize(emptyTracesResponse, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var emptyTracesJson = JsonSerializer.Serialize(emptyTracesResponse, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -383,14 +383,14 @@ public class ListTracesToolTests
             ReturnedCount = 1
         };
 
-        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "worker-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         string? capturedUrl = null;
         using var mockHandler = new MockHttpMessageHandler(request =>

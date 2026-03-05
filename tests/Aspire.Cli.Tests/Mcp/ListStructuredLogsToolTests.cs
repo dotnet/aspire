@@ -140,7 +140,7 @@ public class ListStructuredLogsToolTests
             ReturnedCount = 3
         };
 
-        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         // Create resources that match the OtlpResourceLogsJson entries
         var resources = new ResourceInfoJson[]
@@ -149,7 +149,7 @@ public class ListStructuredLogsToolTests
             new() { Name = "api-service", InstanceId = "instance-2", HasLogs = true, HasTraces = true, HasMetrics = true },
             new() { Name = "worker-service", InstanceId = "instance-1", HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -246,13 +246,13 @@ public class ListStructuredLogsToolTests
             TotalCount = 0,
             ReturnedCount = 0
         };
-        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Serialize(apiResponseObj, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         var resources = new ResourceInfoJson[]
         {
             new() { Name = "api-service", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {
@@ -299,7 +299,7 @@ public class ListStructuredLogsToolTests
         {
             new() { Name = "other-resource", InstanceId = null, HasLogs = true, HasTraces = true, HasMetrics = true }
         };
-        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesResponse = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var emptyLogsResponse = new TelemetryApiResponse
         {
@@ -307,7 +307,7 @@ public class ListStructuredLogsToolTests
             TotalCount = 0,
             ReturnedCount = 0
         };
-        var emptyLogsJson = JsonSerializer.Serialize(emptyLogsResponse, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var emptyLogsJson = JsonSerializer.Serialize(emptyLogsResponse, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         using var mockHandler = new MockHttpMessageHandler(request =>
         {

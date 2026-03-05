@@ -146,6 +146,6 @@ public class TelemetrySpansCommandTests(ITestOutputHelper outputHelper)
             ReturnedCount = entries.Length
         };
 
-        return JsonSerializer.Serialize(response, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        return JsonSerializer.Serialize(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
     }
 }

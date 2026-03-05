@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Otlp.Serialization;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Aspire.Shared;
@@ -55,77 +53,78 @@ public sealed class TelemetryExportService
     {
         var memoryStream = new MemoryStream();
 
-        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+        var exportArchive = new ExportArchive();
+
+        var allOtlpResources = _telemetryRepository.GetResources();
+
+        // Get resources from dashboard client if enabled and ResourceDetails is selected
+        List<ResourceViewModel> resourceDetailsResources = [];
+        var hasResourceDetailsSelected = selectedResources.Any(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails));
+        if (_dashboardClient.IsEnabled && hasResourceDetailsSelected)
         {
-            var allOtlpResources = _telemetryRepository.GetResources();
+            var snapshot = _dashboardClient.GetResources();
+            var resourcesByName = snapshot.ToDictionary(r => r.Name, StringComparers.ResourceName);
 
-            // Get resources from dashboard client if enabled and ResourceDetails is selected
-            List<ResourceViewModel> resourceDetailsResources = [];
-            var hasResourceDetailsSelected = selectedResources.Any(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails));
-            if (_dashboardClient.IsEnabled && hasResourceDetailsSelected)
-            {
-                var snapshot = _dashboardClient.GetResources();
-                var resourcesByName = snapshot.ToDictionary(r => r.Name, StringComparers.ResourceName);
-
-                resourceDetailsResources = selectedResources
-                    .Where(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails) && resourcesByName.ContainsKey(kvp.Key))
-                    .Select(kvp => resourcesByName[kvp.Key])
-                    .ToList();
-            }
-
-            var consoleLogResources = selectedResources
-                .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
-                .Select(kvp => kvp.Key)
-                .ToHashSet(StringComparers.ResourceName);
-
-            var structuredLogResources = allOtlpResources
-                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.StructuredLogs))
+            resourceDetailsResources = selectedResources
+                .Where(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails) && resourcesByName.ContainsKey(kvp.Key))
+                .Select(kvp => resourcesByName[kvp.Key])
                 .ToList();
-
-            var traceResources = allOtlpResources
-                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Traces))
-                .ToList();
-
-            var metricsResources = allOtlpResources
-                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Metrics))
-                .ToList();
-
-            // Export resource details for selected resources
-            if (resourceDetailsResources.Count > 0)
-            {
-                ExportResources(archive, resourceDetailsResources);
-            }
-
-            // Export console logs for selected resources
-            if (consoleLogResources.Count > 0)
-            {
-                await ExportConsoleLogsAsync(archive, consoleLogResources, cancellationToken).ConfigureAwait(false);
-            }
-
-            // Export structured logs (OTLP JSON)
-            if (structuredLogResources.Count > 0)
-            {
-                ExportStructuredLogs(archive, structuredLogResources);
-            }
-
-            // Export traces (OTLP JSON)
-            if (traceResources.Count > 0)
-            {
-                ExportTraces(archive, traceResources);
-            }
-
-            // Export metrics (OTLP JSON)
-            if (metricsResources.Count > 0)
-            {
-                ExportMetrics(archive, metricsResources);
-            }
         }
+
+        var consoleLogResources = selectedResources
+            .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparers.ResourceName);
+
+        var structuredLogResources = allOtlpResources
+            .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.StructuredLogs))
+            .ToList();
+
+        var traceResources = allOtlpResources
+            .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Traces))
+            .ToList();
+
+        var metricsResources = allOtlpResources
+            .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Metrics))
+            .ToList();
+
+        // Export resource details for selected resources
+        if (resourceDetailsResources.Count > 0)
+        {
+            AddResources(exportArchive, resourceDetailsResources);
+        }
+
+        // Export console logs for selected resources
+        if (consoleLogResources.Count > 0)
+        {
+            await AddConsoleLogsAsync(exportArchive, consoleLogResources, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Export structured logs (OTLP JSON)
+        if (structuredLogResources.Count > 0)
+        {
+            AddStructuredLogs(exportArchive, structuredLogResources);
+        }
+
+        // Export traces (OTLP JSON)
+        if (traceResources.Count > 0)
+        {
+            AddTraces(exportArchive, traceResources);
+        }
+
+        // Export metrics (OTLP JSON)
+        if (metricsResources.Count > 0)
+        {
+            AddMetrics(exportArchive, metricsResources);
+        }
+
+        exportArchive.WriteToStream(memoryStream);
 
         memoryStream.Position = 0;
         return memoryStream;
     }
 
-    private async Task ExportConsoleLogsAsync(ZipArchive archive, HashSet<string> resourceNames, CancellationToken cancellationToken)
+    private async Task AddConsoleLogsAsync(ExportArchive exportArchive, HashSet<string> resourceNames, CancellationToken cancellationToken)
     {
         if (!_consoleLogsFetcher.IsEnabled)
         {
@@ -134,26 +133,27 @@ public sealed class TelemetryExportService
 
         var allLogEntries = await _consoleLogsFetcher.FetchLogEntriesAsync(resourceNames, cancellationToken).ConfigureAwait(false);
 
-        // Write results to archive sequentially (ZipArchive is not thread-safe)
         foreach (var (resourceName, logEntries) in allLogEntries)
         {
-            var entry = archive.CreateEntry($"consolelogs/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.txt");
-            using var entryStream = entry.Open();
-            LogEntrySerializer.WriteLogEntriesToStream(logEntries, entryStream);
+            var lines = logEntries
+                .Where(e => e.Type is not LogEntryType.Pause)
+                .Select(e => e.RawContent is not null ? AnsiParser.StripControlSequences(e.RawContent) : string.Empty)
+                .ToList();
+            exportArchive.ConsoleLogs[resourceName] = lines;
         }
     }
 
-    private static void ExportResources(ZipArchive archive, List<ResourceViewModel> resources)
+    private static void AddResources(ExportArchive exportArchive, List<ResourceViewModel> resources)
     {
         foreach (var resource in resources)
         {
             var resourceName = ResourceViewModel.GetResourceName(resource, resources);
-            var resourceJson = ConvertResourceToJson(resource, resources);
-            TelemetryArchiveWriter.WriteTextToArchive(archive, $"resources/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", resourceJson);
+            var resourceJson = CreateResourceJson(resource, resources);
+            exportArchive.Resources[resourceName] = resourceJson;
         }
     }
 
-    private void ExportStructuredLogs(ZipArchive archive, List<OtlpResource> resources)
+    private void AddStructuredLogs(ExportArchive exportArchive, List<OtlpResource> resources)
     {
         foreach (var resource in resources)
         {
@@ -165,12 +165,11 @@ public sealed class TelemetryExportService
             }
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
-            var logsJson = ConvertLogsToOtlpJson(logs.Items);
-            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"structuredlogs/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", logsJson, OtlpJsonSerializerContext.IndentedOptions);
+            exportArchive.StructuredLogs[resourceName] = ConvertLogsToOtlpJson(logs.Items);
         }
     }
 
-    private void ExportTraces(ZipArchive archive, List<OtlpResource> resources)
+    private void AddTraces(ExportArchive exportArchive, List<OtlpResource> resources)
     {
         foreach (var resource in resources)
         {
@@ -182,12 +181,11 @@ public sealed class TelemetryExportService
             }
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
-            var tracesJson = ConvertTracesToOtlpJson(tracesResponse.PagedResult.Items, _outgoingPeerResolvers);
-            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"traces/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", tracesJson, OtlpJsonSerializerContext.IndentedOptions);
+            exportArchive.Traces[resourceName] = ConvertTracesToOtlpJson(tracesResponse.PagedResult.Items, _outgoingPeerResolvers);
         }
     }
 
-    private void ExportMetrics(ZipArchive archive, List<OtlpResource> resources)
+    private void AddMetrics(ExportArchive exportArchive, List<OtlpResource> resources)
     {
         foreach (var resource in resources)
         {
@@ -223,8 +221,7 @@ public sealed class TelemetryExportService
             }
 
             var resourceName = OtlpHelpers.GetResourceName(resource, resources);
-            var metricsJson = ConvertMetricsToOtlpJson(resource, instrumentsData);
-            TelemetryArchiveWriter.WriteJsonToArchive(archive, $"metrics/{TelemetryArchiveWriter.SanitizeFileName(resourceName)}.json", metricsJson, OtlpJsonSerializerContext.IndentedOptions);
+            exportArchive.Metrics[resourceName] = ConvertMetricsToOtlpJson(resource, instrumentsData);
         }
     }
 
@@ -691,6 +688,12 @@ public sealed class TelemetryExportService
 
     internal static string ConvertResourceToJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources)
     {
+        var resourceJson = CreateResourceJson(resource, allResources);
+        return JsonSerializer.Serialize(resourceJson, ResourceJsonSerializerContext.IndentedOptions);
+    }
+
+    internal static ResourceJson CreateResourceJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources)
+    {
         // Build relationships by matching DisplayName and filtering out hidden resources
         ResourceRelationshipJson[]? relationshipsJson = null;
         if (resource.Relationships.Length > 0)
@@ -776,7 +779,7 @@ public sealed class TelemetryExportService
             Source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
         };
 
-        return JsonSerializer.Serialize(resourceJson, ResourceJsonSerializerContext.IndentedOptions);
+        return resourceJson;
     }
 
     /// <summary>

@@ -66,7 +66,7 @@ internal static class TelemetryTestHelper
         ResourceInfoJson[] resources,
         Dictionary<string, string> telemetryEndpoints)
     {
-        var resourcesJson = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel

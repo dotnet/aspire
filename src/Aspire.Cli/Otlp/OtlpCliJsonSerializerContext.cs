@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Otlp.Serialization;
 
@@ -70,40 +69,4 @@ internal sealed class ResourceInfoJson
 
         return $"{Name}-{InstanceId}";
     }
-}
-
-/// <summary>
-/// Source-generated JSON serializer context for OTLP types used by CLI telemetry commands.
-/// Provides AOT-compatible serialization for logs, trace, and telemetry data types.
-/// </summary>
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    WriteIndented = false,
-    ReadCommentHandling = JsonCommentHandling.Skip,
-    AllowTrailingCommas = true)]
-[JsonSerializable(typeof(TelemetryApiResponse))]
-[JsonSerializable(typeof(OtlpTelemetryDataJson))]
-[JsonSerializable(typeof(ResourceInfoJson))]
-[JsonSerializable(typeof(ResourceInfoJson[]))]
-[JsonSerializable(typeof(OtlpAnyValueJson))]
-[JsonSerializable(typeof(OtlpArrayValueJson))]
-[JsonSerializable(typeof(OtlpKeyValueListJson))]
-[JsonSerializable(typeof(OtlpKeyValueJson))]
-[JsonSerializable(typeof(OtlpInstrumentationScopeJson))]
-[JsonSerializable(typeof(OtlpEntityRefJson))]
-[JsonSerializable(typeof(OtlpResourceJson))]
-[JsonSerializable(typeof(OtlpResourceSpansJson))]
-[JsonSerializable(typeof(OtlpScopeSpansJson))]
-[JsonSerializable(typeof(OtlpSpanJson))]
-[JsonSerializable(typeof(OtlpSpanEventJson))]
-[JsonSerializable(typeof(OtlpSpanLinkJson))]
-[JsonSerializable(typeof(OtlpSpanStatusJson))]
-[JsonSerializable(typeof(OtlpExportTraceServiceRequestJson))]
-[JsonSerializable(typeof(OtlpResourceLogsJson))]
-[JsonSerializable(typeof(OtlpScopeLogsJson))]
-[JsonSerializable(typeof(OtlpLogRecordJson))]
-[JsonSerializable(typeof(OtlpExportLogsServiceRequestJson))]
-internal sealed partial class OtlpCliJsonSerializerContext : JsonSerializerContext
-{
 }

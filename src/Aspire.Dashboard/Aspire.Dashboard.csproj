@@ -323,7 +323,8 @@
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\Model\Serialization\OtlpLogsJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\Model\Serialization\OtlpTraceJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpMetricsJson.cs" Link="Otlp\Model\Serialization\OtlpMetricsJson.cs" />
-    <Compile Include="$(SharedDir)Export\TelemetryArchiveWriter.cs" Link="Export\TelemetryArchiveWriter.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpJsonSerializerContext.cs" Link="Otlp\Model\Serialization\OtlpJsonSerializerContext.Shared.cs" />
+    <Compile Include="$(SharedDir)Export\ExportArchive.cs" Link="Export\ExportArchive.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntrySerializer.cs" Link="ConsoleLogs\LogEntrySerializer.cs" />
   </ItemGroup>
 

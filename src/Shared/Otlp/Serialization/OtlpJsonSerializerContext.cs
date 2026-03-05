@@ -1,17 +1,31 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Shared.Model.Serialization;
+#if CLI
+using Aspire.Cli.Otlp;
+#else
 using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Otlp.Model.Serialization;
-using Aspire.Shared.Model.Serialization;
+#endif
 
 namespace Aspire.Otlp.Serialization;
 
 /// <summary>
-/// Extends the shared OTLP JSON serializer context with Dashboard-specific types.
+/// Source-generated JSON serializer context for OTLP and resource types.
+/// Provides AOT-compatible serialization for all shared OTLP JSON types.
+/// The CLI define is used to conditionally include project-specific types.
 /// </summary>
-// Common OTLP types
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    WriteIndented = false,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
+// Common types
 [JsonSerializable(typeof(OtlpAnyValueJson))]
 [JsonSerializable(typeof(OtlpArrayValueJson))]
 [JsonSerializable(typeof(OtlpKeyValueListJson))]
@@ -51,6 +65,12 @@ namespace Aspire.Otlp.Serialization;
 [JsonSerializable(typeof(OtlpExemplarJson))]
 // Resource model types
 [JsonSerializable(typeof(ResourceJson))]
+#if CLI
+// CLI-specific types
+[JsonSerializable(typeof(TelemetryApiResponse))]
+[JsonSerializable(typeof(ResourceInfoJson))]
+[JsonSerializable(typeof(ResourceInfoJson[]))]
+#else
 // Dashboard-specific types
 [JsonSerializable(typeof(OtlpExportTraceServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportTracePartialSuccessJson))]
@@ -62,6 +82,30 @@ namespace Aspire.Otlp.Serialization;
 [JsonSerializable(typeof(TelemetryApiResponse<OtlpTelemetryDataJson>))]
 [JsonSerializable(typeof(ResourceInfo))]
 [JsonSerializable(typeof(ResourceInfo[]))]
-internal sealed partial class OtlpJsonSerializerContext
+#endif
+internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
 {
+    /// <summary>
+    /// Gets the default serializer options for OTLP JSON serialization.
+    /// </summary>
+    public static JsonSerializerOptions DefaultOptions { get; } = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = false,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = Default
+    };
+
+    /// <summary>
+    /// Gets the serializer options for OTLP JSON serialization with indented output.
+    /// </summary>
+    public static JsonSerializerOptions IndentedOptions { get; } = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = Default
+    };
 }

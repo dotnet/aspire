@@ -210,7 +210,7 @@ internal static class TelemetryCommandHelpers
         var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var resources = await response.Content.ReadFromJsonAsync(OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false) ?? [];
+        var resources = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.ResourceInfoJsonArray, cancellationToken).ConfigureAwait(false) ?? [];
 
         // Sort resources by name for consistent ordering.
         Array.Sort(resources, (a, b) =>

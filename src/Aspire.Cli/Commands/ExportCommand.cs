@@ -3,12 +3,10 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -120,11 +118,13 @@ internal sealed class ExportCommand : BaseCommand
         {
             using var client = TelemetryCommandHelpers.CreateApiClient(_httpClientFactory, apiToken);
 
-            // Get telemetry resources from the Dashboard API
-            var telemetryResources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
-
-            // Get resource snapshots from the backchannel
-            var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+            // Get telemetry resources and resource snapshots
+            var (telemetryResources, snapshots) = await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringResources, async () =>
+            {
+                var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
+                var snaps = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+                return (resources, snaps);
+            });
 
             // Filter by resource name if specified
             if (resourceName is not null)
@@ -153,36 +153,33 @@ internal sealed class ExportCommand : BaseCommand
                 TelemetryCommandHelpers.TryResolveResourceNames(resourceName, telemetryResources, out resolvedTelemetryResources);
             }
 
-            using var fileStream = File.Create(outputPath);
-            using var archive = new ZipArchive(fileStream, ZipArchiveMode.Create, leaveOpen: false);
+            var exportArchive = new ExportArchive();
 
             // 1. Export resource details
-            await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringResources, () =>
-            {
-                ExportResources(archive, snapshots);
-                return Task.FromResult(true);
-            });
+            AddResources(exportArchive, snapshots);
 
             // 2. Export console logs from backchannel
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringConsoleLogs, async () =>
             {
-                await ExportConsoleLogsAsync(archive, connection, snapshots, cancellationToken).ConfigureAwait(false);
+                await AddConsoleLogsAsync(exportArchive, connection, resourceName, snapshots, cancellationToken).ConfigureAwait(false);
                 return true;
             });
 
             // 3. Export structured logs from Dashboard API
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringStructuredLogs, async () =>
             {
-                await ExportStructuredLogsAsync(archive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
+                await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
                 return true;
             });
 
             // 4. Export traces from Dashboard API
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringTraces, async () =>
             {
-                await ExportTracesAsync(archive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
+                await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
                 return true;
             });
+
+            exportArchive.WriteToFile(outputPath);
 
             var fullPath = Path.GetFullPath(outputPath);
             _interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.ExportComplete, fullPath));
@@ -196,43 +193,49 @@ internal sealed class ExportCommand : BaseCommand
         }
     }
 
-    private static void ExportResources(ZipArchive archive, IReadOnlyList<ResourceSnapshot> snapshots)
+    private static void AddResources(ExportArchive exportArchive, IReadOnlyList<ResourceSnapshot> snapshots)
     {
         var resourceJsonList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots);
 
         foreach (var (snapshot, resourceJson) in snapshots.Zip(resourceJsonList))
         {
             var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, snapshots);
-            var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.RelaxedEscaping.ResourceJson);
-            TelemetryArchiveWriter.WriteTextToArchive(archive, $"resources/{TelemetryArchiveWriter.SanitizeFileName(displayName)}.json", json);
+            exportArchive.Resources[displayName] = resourceJson;
         }
     }
 
-    private static async Task ExportConsoleLogsAsync(
-        ZipArchive archive,
+    private static async Task AddConsoleLogsAsync(
+        ExportArchive exportArchive,
         IAppHostAuxiliaryBackchannel connection,
+        string? resourceName,
         IReadOnlyList<ResourceSnapshot> snapshots,
         CancellationToken cancellationToken)
     {
-        foreach (var snapshot in snapshots)
+        var logLinesByResource = new Dictionary<string, List<string>>();
+
+        await foreach (var logLine in connection.GetResourceLogsAsync(resourceName, follow: false, cancellationToken).ConfigureAwait(false))
         {
-            var logLines = new List<string>();
-
-            await foreach (var logLine in connection.GetResourceLogsAsync(snapshot.Name, follow: false, cancellationToken).ConfigureAwait(false))
+            if (!logLinesByResource.TryGetValue(logLine.ResourceName, out var lines))
             {
-                logLines.Add(logLine.Content);
+                lines = [];
+                logLinesByResource[logLine.ResourceName] = lines;
             }
 
-            if (logLines.Count > 0)
-            {
-                var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, snapshots);
-                TelemetryArchiveWriter.WriteConsoleLogsToArchive(archive, displayName, logLines);
-            }
+            lines.Add(logLine.Content);
+        }
+
+        foreach (var (name, lines) in logLinesByResource)
+        {
+            var snapshot = snapshots.FirstOrDefault(s => string.Equals(s.Name, name, StringComparisons.ResourceName));
+            var displayName = snapshot is not null
+                ? ResourceSnapshotMapper.GetResourceName(snapshot, snapshots)
+                : name;
+            exportArchive.ConsoleLogs[displayName] = lines;
         }
     }
 
-    private static async Task ExportStructuredLogsAsync(
-        ZipArchive archive,
+    private static async Task AddStructuredLogsAsync(
+        ExportArchive exportArchive,
         HttpClient client,
         string baseUrl,
         List<string>? resolvedResources,
@@ -243,20 +246,19 @@ internal sealed class ExportCommand : BaseCommand
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var apiResponse = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         if (apiResponse?.Data?.ResourceLogs is { Length: > 0 })
         {
-            var data = new OtlpTelemetryDataJson
+            exportArchive.StructuredLogs["structured-logs"] = new OtlpTelemetryDataJson
             {
                 ResourceLogs = apiResponse.Data.ResourceLogs
             };
-            TelemetryArchiveWriter.WriteJsonToArchive(archive, "structuredlogs/structured-logs.json", data, OtlpCliJsonSerializerContext.Default.OtlpTelemetryDataJson);
         }
     }
 
-    private static async Task ExportTracesAsync(
-        ZipArchive archive,
+    private static async Task AddTracesAsync(
+        ExportArchive exportArchive,
         HttpClient client,
         string baseUrl,
         List<string>? resolvedResources,
@@ -267,15 +269,14 @@ internal sealed class ExportCommand : BaseCommand
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var apiResponse = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var apiResponse = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
 
         if (apiResponse?.Data?.ResourceSpans is { Length: > 0 })
         {
-            var data = new OtlpTelemetryDataJson
+            exportArchive.Traces["traces"] = new OtlpTelemetryDataJson
             {
                 ResourceSpans = apiResponse.Data.ResourceSpans
             };
-            TelemetryArchiveWriter.WriteJsonToArchive(archive, "traces/traces.json", data, OtlpCliJsonSerializerContext.Default.OtlpTelemetryDataJson);
         }
     }
 }

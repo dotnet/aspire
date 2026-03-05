@@ -91,13 +91,13 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
 
         // Verify structured logs content is valid JSON
         var structuredLogsJson = ReadEntryText(archive, "structuredlogs/structured-logs.json");
-        var structuredLogsData = JsonSerializer.Deserialize(structuredLogsJson, OtlpCliJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        var structuredLogsData = JsonSerializer.Deserialize(structuredLogsJson, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         Assert.NotNull(structuredLogsData?.ResourceLogs);
         Assert.NotEmpty(structuredLogsData.ResourceLogs);
 
         // Verify traces content is valid JSON
         var tracesContent = ReadEntryText(archive, "traces/traces.json");
-        var tracesData = JsonSerializer.Deserialize(tracesContent, OtlpCliJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        var tracesData = JsonSerializer.Deserialize(tracesContent, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         Assert.NotNull(tracesData?.ResourceSpans);
         Assert.NotEmpty(tracesData.ResourceSpans);
     }
@@ -230,7 +230,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
 
         var resourcesJson = JsonSerializer.Serialize(
             new[] { new ResourceInfoJson { Name = "target-resource", InstanceId = null } },
-            OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+            OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var handler = new MockHttpMessageHandler(request =>
         {
@@ -301,7 +301,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         List<ResourceSnapshot> resourceSnapshots,
         List<ResourceLogLine> logLines)
     {
-        var resourcesJson = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel
@@ -381,7 +381,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
                 TotalCount = 0,
                 ReturnedCount = 0
             };
-            return JsonSerializer.Serialize(emptyResponse, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+            return JsonSerializer.Serialize(emptyResponse, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         }
 
         var resourceLogs = entries
@@ -411,7 +411,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
             ReturnedCount = entries.Length
         };
 
-        return JsonSerializer.Serialize(response, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        return JsonSerializer.Serialize(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
     }
 
     private static string BuildTracesJson(params (string serviceName, string? instanceId, string spanId, string name, DateTime startTime, DateTime endTime, bool hasError)[] entries)
@@ -424,7 +424,7 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
                 TotalCount = 0,
                 ReturnedCount = 0
             };
-            return JsonSerializer.Serialize(emptyResponse, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+            return JsonSerializer.Serialize(emptyResponse, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         }
 
         var resourceSpans = entries
@@ -456,6 +456,6 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
             ReturnedCount = entries.Length
         };
 
-        return JsonSerializer.Serialize(response, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        return JsonSerializer.Serialize(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
     }
 }
