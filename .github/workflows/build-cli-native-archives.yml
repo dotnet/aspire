@@ -33,12 +33,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      # Download RID-specific NuGet packages (for DCP) used by Bundle.proj
-      - name: Download RID-specific NuGets
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806  # v4.1.9
-        with:
-          name: built-nugets-for-${{ matrix.targets.rids }}
-          path: artifacts/packages/Release/Shipping
+      # Build RID-specific NuGet packages (DCP + Dashboard) locally instead of
+      # downloading them from the build_packages job. This allows the CLI archive
+      # build to run in parallel with build_packages.
+      - name: Build RID-specific packages (Windows)
+        if: ${{ matrix.targets.os == 'windows-latest' }}
+        shell: pwsh
+        run: >
+          .\build.cmd
+          -ci
+          -restore
+          -build
+          -pack
+          -configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:BuildBundleDepsOnly=true
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Build RID-specific packages (Unix)
+        if: ${{ matrix.targets.os != 'windows-latest' }}
+        shell: bash
+        run: >
+          ./build.sh
+          --ci
+          --restore
+          --build
+          --pack
+          --configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:BuildBundleDepsOnly=true
+          ${{ inputs.versionOverrideArg }}
 
       - name: Build bundle payload archive (Windows)
         if: ${{ matrix.targets.os == 'windows-latest' }}

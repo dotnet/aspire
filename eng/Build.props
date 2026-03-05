@@ -7,6 +7,7 @@
       BuildTestsOnly         - if 'true', builds only test projects, defaults to 'false'
       SkipTestProjects       - if 'true', skips building test projects, defaults to 'false'
       SkipPlaygroundProjects - if 'true', skips building playground projects, defaults to 'false'
+      BuildBundleDepsOnly    - if 'true', builds only eng/dcppack and eng/dashboardpack projects (for CLI bundle), defaults to 'false'
       TargetRids             - colon separated list of RIDs to build native projects for
   -->
 
@@ -21,10 +22,18 @@
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
   </PropertyGroup>
 
+  <!-- `$(BuildBundleDepsOnly)` builds only the DCP and Dashboard packaging projects needed
+        by the CLI bundle. This allows the CLI native archive build to produce these packages
+        independently without waiting for the full build_packages job. -->
+  <ItemGroup Condition="'$(BuildBundleDepsOnly)' == 'true'">
+    <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
+  </ItemGroup>
+
   <!-- `$(BuildTestsOnly)` allows building only test projects, skipping the following directories:
         src, playground, eng/dcppack, and eng/dashboardpack. This is useful for reducing disk space
         usage when only test projects need to be built, such as during test runsheet generation. -->
-  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(BuildTestsOnly)' != 'true'">
+  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(BuildTestsOnly)' != 'true' and '$(BuildBundleDepsOnly)' != 'true'">
     <!-- Project name validation runs once in the outer build -->
     <ProjectToBuild Include="$(RepoRoot)eng\OuterPreBuild.proj" />
 
@@ -42,17 +51,17 @@
   <!-- `$(SkipTestProjects)` allows skipping test projects from being
         included in the build at all. This is useful for cases like when we are
         just building the packages, and don't need to build the test projects. -->
-  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipTestProjects)' != 'true'">
+  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipTestProjects)' != 'true' and '$(BuildBundleDepsOnly)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" />
   </ItemGroup>
 
   <!-- Extension build project -->
-  <ItemGroup Condition="'$(BuildExtension)' == 'true'">
+  <ItemGroup Condition="'$(BuildExtension)' == 'true' and '$(BuildBundleDepsOnly)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)extension\Extension.proj" />
   </ItemGroup>
 
   <!-- Native build only -->
-  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true'">
+  <ItemGroup Condition="'$(SkipNativeBuild)' != 'true' and '$(BuildBundleDepsOnly)' != 'true'">
     <!-- Add Aspire.Cli project here for native-only builds so it gets picked
          up Restore, because Aspire.Cli.$(RID).csproj uses MSBuild task to build
          instead of a ProjectReference -->
