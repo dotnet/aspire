@@ -1004,7 +1004,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddOpenAI for polyglot app hosts. */
+    /** Adds an OpenAI resource to the distributed application model. */
     /** @internal */
     async _addOpenAIInternal(name: string): Promise<OpenAIResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1064,7 +1064,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddOpenAI for polyglot app hosts. */
+    /** Adds an OpenAI resource to the distributed application model. */
     addOpenAI(name: string): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._promise.then(obj => obj.addOpenAI(name)));
     }
@@ -3117,7 +3117,7 @@ export class OpenAIResource extends ResourceBuilderBase<OpenAIResourceHandle> {
         return new OpenAIModelResource(result, this._client);
     }
 
-    /** Exports AddModel for polyglot app hosts. */
+    /** Adds an OpenAI model resource. */
     addModel(name: string, model: string): OpenAIModelResourcePromise {
         return new OpenAIModelResourcePromise(this._addModelInternal(name, model));
     }
@@ -3132,7 +3132,7 @@ export class OpenAIResource extends ResourceBuilderBase<OpenAIResourceHandle> {
         return new OpenAIResource(result, this._client);
     }
 
-    /** Exports WithEndpoint for polyglot app hosts. */
+    /** Configures the endpoint URI for the OpenAI resource. */
     withEndpoint(endpoint: string): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._withEndpointInternal(endpoint));
     }
@@ -3147,7 +3147,7 @@ export class OpenAIResource extends ResourceBuilderBase<OpenAIResourceHandle> {
         return new OpenAIResource(result, this._client);
     }
 
-    /** Exports WithApiKey for polyglot app hosts. */
+    /** Configures the API key for the OpenAI resource. */
     withApiKey(apiKey: ParameterResource): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._withApiKeyInternal(apiKey));
     }
@@ -3214,17 +3214,17 @@ export class OpenAIResourcePromise implements PromiseLike<OpenAIResource> {
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports AddModel for polyglot app hosts. */
+    /** Adds an OpenAI model resource. */
     addModel(name: string, model: string): OpenAIModelResourcePromise {
         return new OpenAIModelResourcePromise(this._promise.then(obj => obj.addModel(name, model)));
     }
 
-    /** Exports WithEndpoint for polyglot app hosts. */
+    /** Configures the endpoint URI for the OpenAI resource. */
     withEndpoint(endpoint: string): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._promise.then(obj => obj.withEndpoint(endpoint)));
     }
 
-    /** Exports WithApiKey for polyglot app hosts. */
+    /** Configures the API key for the OpenAI resource. */
     withApiKey(apiKey: ParameterResource): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._promise.then(obj => obj.withApiKey(apiKey)));
     }

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -17,7 +16,6 @@ using Aspire.Cli.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -541,15 +539,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommand_EmptyPackageList_DisplaysErrorMessage()
     {
-        string? displayedErrorMessage = null;
+        TestInteractionService? testInteractionService = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) => {
-                    displayedErrorMessage = message;
-                };
+                testInteractionService = new TestInteractionService();
                 return testInteractionService;
             };
 
@@ -570,7 +565,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
-        Assert.Contains(TemplatingStrings.NoTemplateVersionsFound, displayedErrorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.Contains(testInteractionService.DisplayedErrors, e => e.Contains(TemplatingStrings.NoTemplateVersionsFound));
     }
 
     [Fact]
@@ -711,7 +707,20 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new OrderTrackingInteractionService(operationOrder);
+                var testInteractionService = new TestInteractionService();
+                testInteractionService.PromptForSelectionCallback = (promptText, choices, formatter, ct) =>
+                {
+                    // Track template option prompts
+                    if (promptText?.Contains("Redis") == true ||
+                        promptText?.Contains("test framework") == true ||
+                        promptText?.Contains("Create a test project") == true ||
+                        promptText?.Contains("xUnit") == true)
+                    {
+                        operationOrder.Add("TemplateOption");
+                    }
+
+                    return choices.Cast<object>().First();
+                };
                 return testInteractionService;
             };
 
@@ -838,7 +847,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
             };
@@ -903,7 +912,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
             };
@@ -1005,7 +1014,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) =>
                 {
@@ -1180,7 +1189,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) =>
                 {
@@ -1348,75 +1357,6 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
             _ => Task.FromResult(candidatePackages.First()) // If no callback is provided just accept the first package.
         };
     }
-}
-
-internal sealed class OrderTrackingInteractionService(List<string> operationOrder) : IInteractionService
-{
-    public ConsoleOutput Console { get; set; }
-
-    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false)
-    {
-        return action();
-    }
-
-    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
-    {
-        action();
-    }
-
-    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(defaultValue ?? string.Empty);
-    }
-
-    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
-    {
-        if (!choices.Any())
-        {
-            throw new EmptyChoicesException($"No items available for selection: {promptText}");
-        }
-
-        // Track template option prompts
-        if (promptText?.Contains("Redis") == true ||
-            promptText?.Contains("test framework") == true ||
-            promptText?.Contains("Create a test project") == true ||
-            promptText?.Contains("xUnit") == true)
-        {
-            operationOrder.Add("TemplateOption");
-        }
-
-        return Task.FromResult(choices.First());
-    }
-
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
-    {
-        if (!choices.Any())
-        {
-            throw new EmptyChoicesException($"No items available for selection: {promptText}");
-        }
-
-        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
-    }
-
-    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
-    public void DisplayError(string errorMessage) { }
-    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
-    public void DisplaySuccess(string message, bool allowMarkup = false) { }
-    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
-    public void DisplayCancellationMessage() { }
-    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
-    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
-        => PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken);
-    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
-    public void DisplayEmptyLine() { }
-    public void DisplayPlainText(string text) { }
-    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
-    public void DisplayMarkdown(string markdown) { }
-    public void DisplayMarkupLine(string markup) { }
-    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
-    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
-    public void DisplayRenderable(IRenderable renderable) { }
-    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
 }
 
 internal sealed class NewCommandTestPackagingService : IPackagingService

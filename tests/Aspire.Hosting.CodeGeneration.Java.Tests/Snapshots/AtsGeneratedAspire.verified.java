@@ -412,6 +412,16 @@ class TestDatabaseResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
     }
 
+    /** Adds a data volume */
+    public TestDatabaseResource withDataVolume(String name) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
+        return (TestDatabaseResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDataVolume", reqArgs);
+    }
+
 }
 
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext. */
@@ -705,6 +715,19 @@ class TestRedisResource extends ResourceBuilderBase {
             reqArgs.put("callback", getClient().registerCallback(callback));
         }
         return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withMultiParamHandleCallback", reqArgs);
+    }
+
+    /** Adds a data volume with persistence */
+    public TestRedisResource withDataVolume(String name, Boolean isReadOnly) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
+        if (isReadOnly != null) {
+            reqArgs.put("isReadOnly", AspireClient.serializeValue(isReadOnly));
+        }
+        return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDataVolume", reqArgs);
     }
 
 }
