@@ -44,6 +44,12 @@ RUN if [ "$SKIP_SOURCE_BUILD" != "true" ]; then \
 # ============================================================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS runtime
 
+# Copy the install scripts so tests can install from GA/PR without
+# downloading scripts from raw.githubusercontent.com.
+COPY eng/scripts/get-aspire-cli.sh /opt/aspire-scripts/
+COPY eng/scripts/get-aspire-cli-pr.sh /opt/aspire-scripts/
+RUN chmod +x /opt/aspire-scripts/*.sh
+
 # Copy the bundle archive from the build stage.
 # The archive is at artifacts/bundle/aspire-*-linux-x64.tar.gz
 # and extracts to provide bin/aspire plus runtime, dashboard, DCP, etc.

@@ -555,9 +555,9 @@ internal static class CliE2ETestHelpers
                     .WaitForSuccessPrompt(counter);
 
             case DockerInstallMode.GaRelease:
-                // Install the latest GA release from aspire.dev.
+                // Install the latest GA release using the script baked into the container image.
                 return builder
-                    .Type("curl -sSL https://aspire.dev/install.sh | bash")
+                    .Type("/opt/aspire-scripts/get-aspire-cli.sh")
                     .Enter()
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
                     .Type("export PATH=~/.aspire/bin:$PATH")
@@ -566,9 +566,14 @@ internal static class CliE2ETestHelpers
 
             case DockerInstallMode.PullRequest:
                 var prNumber = GetRequiredPrNumber();
-                builder.InstallAspireCliFromPullRequest(prNumber, counter);
-                builder.SourceAspireCliEnvironment(counter);
-                return builder;
+                // Use the local script instead of downloading from raw.githubusercontent.com.
+                return builder
+                    .Type($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber}")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300))
+                    .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(installMode));
