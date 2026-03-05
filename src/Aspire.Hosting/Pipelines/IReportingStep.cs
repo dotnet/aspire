@@ -26,11 +26,7 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="statusText">The initial Markdown-formatted status text for the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
-    Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(statusText);
-        return CreateTaskAsync(statusText.Value, cancellationToken);
-    }
+    Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Logs a message at the specified level within this step.
@@ -46,23 +42,14 @@ public interface IReportingStep : IAsyncDisposable
     /// </summary>
     /// <param name="logLevel">The log level for the message.</param>
     /// <param name="message">The plain-text message to log.</param>
-    void Log(LogLevel logLevel, string message)
-#pragma warning disable CS0618 // Type or member is obsolete
-        => Log(logLevel, message, enableMarkdown: false);
-#pragma warning restore CS0618
+    void Log(LogLevel logLevel, string message);
 
     /// <summary>
     /// Logs a Markdown-formatted message at the specified level within this step.
     /// </summary>
     /// <param name="logLevel">The log level for the message.</param>
     /// <param name="message">The Markdown-formatted message to log.</param>
-    void Log(LogLevel logLevel, MarkdownString message)
-    {
-        ArgumentNullException.ThrowIfNull(message);
-#pragma warning disable CS0618 // Type or member is obsolete
-        Log(logLevel, message.Value, enableMarkdown: true);
-#pragma warning restore CS0618
-    }
+    void Log(LogLevel logLevel, MarkdownString message);
 
     /// <summary>
     /// Completes the step with the specified completion text and state.
@@ -78,9 +65,5 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="completionText">The Markdown-formatted completion text for the step.</param>
     /// <param name="completionState">The completion state for the step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(completionText);
-        return CompleteAsync(completionText.Value, completionState, cancellationToken);
-    }
+    Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default);
 }

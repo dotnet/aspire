@@ -203,6 +203,37 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
                 _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
             }
         }
+
+        public void Log(LogLevel logLevel, string message)
+        {
+            lock (_reporter.LoggedMessages)
+            {
+                _reporter.LoggedMessages.Add((_title, logLevel, message));
+                _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
+            }
+        }
+
+        public void Log(LogLevel logLevel, MarkdownString message)
+        {
+            ArgumentNullException.ThrowIfNull(message);
+            lock (_reporter.LoggedMessages)
+            {
+                _reporter.LoggedMessages.Add((_title, logLevel, message.Value));
+                _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message.Value}");
+            }
+        }
+
+        public Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(statusText);
+            return CreateTaskAsync(statusText.Value, cancellationToken);
+        }
+
+        public Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(completionText);
+            return CompleteAsync(completionText.Value, completionState, cancellationToken);
+        }
     }
 
     private sealed class TestReportingTask : IReportingTask
