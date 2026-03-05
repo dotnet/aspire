@@ -28,6 +28,9 @@
   <ItemGroup Condition="'$(BuildBundleDepsOnly)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
+    <!-- Dashboard is invoked by dashboardpack via MSBuild task (not ProjectReference),
+         so it must be explicitly included to ensure restore generates its assets file. -->
+    <ProjectToBuild Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
   <!-- `$(BuildTestsOnly)` allows building only test projects, skipping the following directories:
