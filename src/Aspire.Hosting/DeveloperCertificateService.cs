@@ -74,21 +74,27 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 var trustedCerts = new List<X509Certificate2>();
                 foreach (var cert in bestCerts)
                 {
-                    if (chain.Build(cert))
+                    try
                     {
+                        if (!chain.Build(cert))
+                        {
+                            continue;
+                        }
+
                         // On Windows, also verify the certificate exists in the root store
                         if (rootCerts is not null &&
                             !rootCerts.Any(rc => rc.RawDataMemory.Span.SequenceEqual(cert.RawDataMemory.Span)))
                         {
-                            chain.Reset();
                             continue;
                         }
 
                         trustedCerts.Add(cert);
                     }
-
-                    // Reset the chain for the next certificate
-                    chain.Reset();
+                    finally
+                    {
+                        // Reset the chain for the next certificate regardless of branch taken.
+                        chain.Reset();
+                    }
                 }
 
                 // Dispose root store certificates after use

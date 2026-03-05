@@ -150,7 +150,7 @@ internal sealed class DcpHost
 
             // Check and warn if no trusted dev certs exist, or if a newer untrusted cert was detected
             var hasNewerUntrustedCert = _developerCertificateService.LatestCertificateIsUntrusted;
-            var hasNoTrustedCerts = _developerCertificateService.Certificates.Count == 0 && hasNewerUntrustedCert;
+            var hasNoTrustedCerts = _developerCertificateService.Certificates.Count == 0;
 
             if (hasNoTrustedCerts || hasNewerUntrustedCert)
             {
