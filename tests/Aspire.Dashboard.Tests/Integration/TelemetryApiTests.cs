@@ -3,7 +3,6 @@
 
 using System.Net;
 using System.Net.Http.Json;
-using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
@@ -126,7 +125,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
         Assert.NotNull(content.Data);
     }
@@ -152,7 +151,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
     }
 
@@ -217,7 +216,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
         Assert.NotNull(content.Data);
     }
@@ -239,7 +238,7 @@ public class TelemetryApiTests
 
         // Assert - returns 200 with empty data when no logs match the trace ID
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
         Assert.Equal(0, content.TotalCount);
     }
@@ -261,7 +260,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
     }
 
@@ -301,7 +300,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
     }
 
@@ -499,7 +498,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
         Assert.NotNull(content.Data);
     }
@@ -521,7 +520,7 @@ public class TelemetryApiTests
 
         // Assert - returns 200 with empty data when no traces match
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        var content = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         Assert.NotNull(content);
         Assert.Equal(0, content.TotalCount);
     }

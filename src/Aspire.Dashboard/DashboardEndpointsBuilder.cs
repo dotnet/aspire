@@ -153,7 +153,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/logs - List logs in OTLP JSON format (with optional streaming via ?follow=true)
@@ -184,7 +184,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/traces - List traces in OTLP JSON format (snapshot only, no streaming)
@@ -205,7 +205,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/traces/{traceId} - Get a specific trace with all spans in OTLP format
@@ -223,7 +223,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
     }
 

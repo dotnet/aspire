@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
@@ -145,9 +144,9 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void ToOtlpResources_ConvertsResourceInfoJsonToOtlpResources()
+    public void ToOtlpResources_ConvertsResourceInfoToOtlpResources()
     {
-        var resources = new ResourceInfoJson[]
+        var resources = new ResourceInfo[]
         {
             new() { Name = "frontend", InstanceId = "abc123" },
             new() { Name = "backend", InstanceId = null },

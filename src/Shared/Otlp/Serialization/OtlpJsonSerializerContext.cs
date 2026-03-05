@@ -5,10 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Shared.Model.Serialization;
-#if CLI
-using Aspire.Cli.Otlp;
-#else
-using Aspire.Dashboard.Api;
+#if !CLI
 using Aspire.Dashboard.Otlp.Model.Serialization;
 #endif
 
@@ -65,12 +62,11 @@ namespace Aspire.Otlp.Serialization;
 [JsonSerializable(typeof(OtlpExemplarJson))]
 // Resource model types
 [JsonSerializable(typeof(ResourceJson))]
-#if CLI
-// CLI-specific types
+// Telemetry API types
 [JsonSerializable(typeof(TelemetryApiResponse))]
-[JsonSerializable(typeof(ResourceInfoJson))]
-[JsonSerializable(typeof(ResourceInfoJson[]))]
-#else
+[JsonSerializable(typeof(ResourceInfo))]
+[JsonSerializable(typeof(ResourceInfo[]))]
+#if !CLI
 // Dashboard-specific types
 [JsonSerializable(typeof(OtlpExportTraceServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportTracePartialSuccessJson))]
@@ -79,9 +75,6 @@ namespace Aspire.Otlp.Serialization;
 [JsonSerializable(typeof(OtlpExportMetricsServiceRequestJson))]
 [JsonSerializable(typeof(OtlpExportMetricsServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportMetricsPartialSuccessJson))]
-[JsonSerializable(typeof(TelemetryApiResponse<OtlpTelemetryDataJson>))]
-[JsonSerializable(typeof(ResourceInfo))]
-[JsonSerializable(typeof(ResourceInfo[]))]
 #endif
 internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
 {

@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Cli.Commands;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Dashboard.Utils;
 using Aspire.Otlp.Serialization;
@@ -56,8 +55,8 @@ public class TelemetrySpansCommandTests(ITestOutputHelper outputHelper)
         var provider = TelemetryTestHelper.CreateTelemetryTestServices(workspace, outputHelper, outputWriter,
             resources:
             [
-                new ResourceInfoJson { Name = "frontend", InstanceId = null },
-                new ResourceInfoJson { Name = "backend", InstanceId = null },
+                new ResourceInfo { Name = "frontend", InstanceId = null },
+                new ResourceInfo { Name = "backend", InstanceId = null },
             ],
             telemetryEndpoints: new Dictionary<string, string>
             {
@@ -91,8 +90,8 @@ public class TelemetrySpansCommandTests(ITestOutputHelper outputHelper)
         var provider = TelemetryTestHelper.CreateTelemetryTestServices(workspace, outputHelper, outputWriter,
             resources:
             [
-                new ResourceInfoJson { Name = "apiservice", InstanceId = guid1.ToString() },
-                new ResourceInfoJson { Name = "apiservice", InstanceId = guid2.ToString() },
+                new ResourceInfo { Name = "apiservice", InstanceId = guid1.ToString() },
+                new ResourceInfo { Name = "apiservice", InstanceId = guid2.ToString() },
             ],
             telemetryEndpoints: new Dictionary<string, string>
             {
