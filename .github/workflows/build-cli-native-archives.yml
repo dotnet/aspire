@@ -10,6 +10,18 @@ on:
         required: false
         type: string
         default: Debug
+      targets:
+        description: >
+          JSON array of target objects to build. Each object must have 'os', 'runner', and 'rids' keys.
+          Defaults to all platforms (linux-x64, win-x64, osx-arm64).
+        required: false
+        type: string
+        default: >-
+          [
+            {"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"},
+            {"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"},
+            {"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}
+          ]
 
 jobs:
 
@@ -18,16 +30,7 @@ jobs:
     runs-on: ${{ matrix.targets.runner }}
     strategy:
       matrix:
-        targets:
-          - os: ubuntu-latest
-            runner: 8-core-ubuntu-latest
-            rids: linux-x64
-          - os: windows-latest
-            runner: windows-latest
-            rids: win-x64
-          - os: macos-latest
-            runner: macos-latest
-            rids: osx-arm64
+        targets: ${{ fromJson(inputs.targets) }}
 
     steps:
       - name: Checkout code
