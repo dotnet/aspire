@@ -90,7 +90,7 @@ internal sealed class ExportArchive
         {
             var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(name)}.txt");
             using var entryStream = entry.Open();
-            using var writer = new StreamWriter(entryStream, Encoding.UTF8);
+            using var writer = new StreamWriter(entryStream);
 
             foreach (var line in lines)
             {
