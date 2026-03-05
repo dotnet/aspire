@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// An Azure AI Foundry hosted agent resource.
+/// A Microsoft Foundry hosted agent resource.
 /// </summary>
 public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWithEnvironment
 {

@@ -1,6 +1,6 @@
 # Aspire.Hosting.Foundry library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure Azure AI Foundry.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Microsoft Foundry.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for an Aspire AppHost to con
 
 ### Install the package
 
-In your AppHost project, install the Aspire Azure AI Foundry Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Microsoft Foundry Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Foundry
@@ -35,7 +35,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, add an Azure AI Foundry deployment and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Microsoft Foundry deployment and consume the connection using the following methods:
 
 ```csharp
 var chat = builder.AddFoundry("foundry")
@@ -61,7 +61,7 @@ See the [Azure AI quota management](https://learn.microsoft.com/azure/ai-foundry
 
 In the _Program.cs_ file of `MyService`, the connection can be consumed using a client library like [Aspire.Azure.AI.Inference](https://www.nuget.org/packages/Aspire.Azure.AI.Inference) or [Aspire.OpenAI](https://www.nuget.org/packages/Aspire.OpenAI) if the model is compatible with the OpenAI API:
 
-Note: The `format` parameter of the `AddDeployment()` method can be found in the Azure AI Foundry portal in the details
+Note: The `format` parameter of the `AddDeployment()` method can be found in the Microsoft Foundry portal in the details
 page of the model, right after the `Quick facts` text.
 
 #### Inference client usage
@@ -87,26 +87,26 @@ var chat = builder.AddFoundry("foundry")
                   .AddDeployment("chat", "phi-3.5-mini", "1", "Microsoft");
 ```
 
-When the AppHost starts up the local foundry service also be started.
+When the AppHost starts up the local Microsoft Foundry service also be started.
 
 This requires the local machine to have the [Foundry Local](https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started) installed and running.
 
 ## Connection Properties
 
-When you reference Azure AI Foundry resources using `WithReference`, the following connection properties are made available to the consuming project:
+When you reference Microsoft Foundry resources using `WithReference`, the following connection properties are made available to the consuming project:
 
-### Azure AI Foundry resource
+### Microsoft Foundry resource
 
-The Azure AI Foundry resource exposes the following connection properties:
+The Microsoft Foundry resource exposes the following connection properties:
 
 | Property Name | Description |
 |---------------|-------------|
-| `Uri` | The endpoint URI for the Azure AI Foundry resource, with the format `https://<resource_name>.services.ai.azure.com/` or the emulator service URI when running Foundry Local (e.g., `http://127.0.0.1:61799/v1`) |
+| `Uri` | The endpoint URI for the Microsoft Foundry resource, with the format `https://<resource_name>.services.ai.azure.com/` or the emulator service URI when running Foundry Local (e.g., `http://127.0.0.1:61799/v1`) |
 | `Key` | The API key when using Foundry Local emulator |
 
-### Azure AI Foundry deployment
+### Microsoft Foundry deployment
 
-The Azure AI Foundry deployment resource inherits all properties from its parent Azure AI Foundry resource and adds:
+The Microsoft Foundry deployment resource inherits all properties from its parent Microsoft Foundry resource and adds:
 
 | Property Name | Description |
 |---------------|-------------|
@@ -114,9 +114,9 @@ The Azure AI Foundry deployment resource inherits all properties from its parent
 | `Format` | The deployment format, e.g., `OpenAI`, `Microsoft`, `xAi`, `Deepseek` |
 | `Version` | The deployment version, e.g., `1`, `2025-08-07` |
 
-### Azure AI Foundry project
+### Microsoft Foundry project
 
-The Azure AI Foundry project resource exposes the following connection properties:
+The Microsoft Foundry project resource exposes the following connection properties:
 
 | Property Name | Description |
 |---------------|-------------|
@@ -126,9 +126,9 @@ The Azure AI Foundry project resource exposes the following connection propertie
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
-## Foundry project usage
+## Microsoft Foundry project usage
 
-You can create an Azure AI Foundry project resource to organize agents and model deployments:
+You can create a Microsoft Foundry project resource to organize agents and model deployments:
 
 ```csharp
 var foundry = builder.AddFoundry("foundry");
@@ -153,7 +153,7 @@ var project = foundry.AddProject("my-project")
 
 ## Hosted agent usage
 
-To deploy a containerized application as a hosted agent in Azure AI Foundry:
+To deploy a containerized application as a hosted agent in Microsoft Foundry:
 
 ```csharp
 var foundry = builder.AddFoundry("foundry");
@@ -163,7 +163,7 @@ builder.AddPythonApp("agent", "./app", "main:app")
        .PublishAsHostedAgent(project);
 ```
 
-In run mode, the agent runs locally with health check endpoints and OpenTelemetry instrumentation. In publish mode, the agent is deployed as a hosted agent in Azure AI Foundry.
+In run mode, the agent runs locally with health check endpoints and OpenTelemetry instrumentation. In publish mode, the agent is deployed as a hosted agent in Microsoft Foundry.
 
 ## Additional documentation
 

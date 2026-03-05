@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// Describes a model that can be deployed to Azure AI Foundry.
+/// Describes a model that can be deployed to Microsoft Foundry.
 /// </summary>
 public partial class FoundryModel
 {

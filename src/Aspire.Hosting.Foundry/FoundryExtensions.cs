@@ -17,12 +17,12 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure AI Foundry resources to the application model.
+/// Provides extension methods for adding the Microsoft Foundry resources to the application model.
 /// </summary>
 public static class FoundryExtensions
 {
     /// <summary>
-    /// Adds an Azure OpenAI resource to the application model.
+    /// Adds a Microsoft Foundry resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -38,10 +38,10 @@ public static class FoundryExtensions
     }
 
     /// <summary>
-    /// Adds and returns an Azure AI Foundry Deployment resource (e.g. an AI model) to the application model.
+    /// Adds and returns a Microsoft Foundry Deployment resource (e.g. an AI model) to the application model.
     /// </summary>
-    /// <param name="builder">The Azure AI Foundry resource builder.</param>
-    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="builder">The Microsoft Foundry resource builder.</param>
+    /// <param name="name">The name of the Microsoft Foundry Deployment resource.</param>
     /// <param name="modelName">The name of the model to deploy.</param>
     /// <param name="modelVersion">The version of the model to deploy.</param>
     /// <param name="format">The format of the model to deploy.</param>
@@ -72,10 +72,10 @@ public static class FoundryExtensions
     }
 
     /// <summary>
-    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="FoundryModel"/>.
+    /// Adds and returns a Microsoft Foundry Deployment resource to the application model using a <see cref="FoundryModel"/>.
     /// </summary>
-    /// <param name="builder">The Azure AI Foundry resource builder.</param>
-    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="builder">The Microsoft Foundry resource builder.</param>
+    /// <param name="name">The name of the Microsoft Foundry Deployment resource.</param>
     /// <param name="model">The model descriptor, using the <see cref="FoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: FoundryModel.OpenAI.Gpt5Mini)</code></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -102,9 +102,9 @@ public static class FoundryExtensions
     }
 
     /// <summary>
-    /// Allows setting the properties of an Azure AI Foundry Deployment resource.
+    /// Allows setting the properties of a Microsoft Foundry Deployment resource.
     /// </summary>
-    /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>
+    /// <param name="builder">The Microsoft Foundry Deployment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="FoundryDeploymentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<FoundryDeploymentResource> WithProperties(this IResourceBuilder<FoundryDeploymentResource> builder, Action<FoundryDeploymentResource> configure)
@@ -163,10 +163,10 @@ public static class FoundryExtensions
 
     /// <summary>
     /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure AI Foundry resource. This replaces the default role assignments for the resource.
+    /// on the target Microsoft Foundry resource. This replaces the default role assignments for the resource.
     /// </summary>
     /// <param name="builder">The resource to which the specified roles will be assigned.</param>
-    /// <param name="target">The target Azure AI Foundry resource.</param>
+    /// <param name="target">The target Microsoft Foundry resource.</param>
     /// <param name="roles">The built-in Cognitive Services roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <remarks>

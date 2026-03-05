@@ -3,7 +3,7 @@
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// Generated strongly typed model descriptors for Azure AI Foundry.
+/// Generated strongly typed model descriptors for Microsoft Foundry.
 /// </summary>
 public partial class FoundryModel
 {

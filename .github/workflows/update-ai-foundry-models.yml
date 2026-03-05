@@ -1,4 +1,4 @@
-name: Update AI Foundry Models
+name: Update Microsoft Foundry Models
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Generate updated AIFoundry model descriptors
+      - name: Generate updated Microsoft Foundry model descriptors
         working-directory: src/Aspire.Hosting.Foundry/tools
         run: |
           set -e
@@ -29,9 +29,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-ai-foundry-models
           base: main
-          commit-message: "[Automated] Update AI Foundry Models"
+          commit-message: "[Automated] Update Microsoft Foundry Models"
           labels: |
             area-integrations
             area-engineering-systems
-          title: "[Automated] Update AI Foundry Models"
-          body: "Auto-generated update of Azure AI Foundry model descriptors (FoundryModel.Generated.cs)."
+          title: "[Automated] Update Microsoft Foundry Models"
+          body: "Auto-generated update of Microsoft Foundry model descriptors (FoundryModel.Generated.cs)."

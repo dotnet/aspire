@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// Built-in Azure rolesfor AI/ML/Foundry.
+/// Built-in Azure roles for Microsoft Foundry.
 /// </summary>
 public static class AIBuiltInRoles
 {

@@ -78,7 +78,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         if (db.IsEmulator())
         {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Cosmos DB instance.");
+            throw new InvalidOperationException("Cannot create a Microsoft Foundry project connection to an emulator Cosmos DB instance.");
         }
         return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AadAuthTypeConnectionProperties()
         {
@@ -115,7 +115,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         ArgumentNullException.ThrowIfNull(storage);
         if (storage.IsEmulator())
         {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Storage account.");
+            throw new InvalidOperationException("Cannot create a Microsoft Foundry project connection to an emulator Storage account.");
         }
         return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AadAuthTypeConnectionProperties()
         {
@@ -153,7 +153,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         ArgumentNullException.ThrowIfNull(registry);
         if (registry.IsEmulator())
         {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Container Registry");
+            throw new InvalidOperationException("Cannot create a Microsoft Foundry project connection to an emulator Container Registry");
         }
         return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new ManagedIdentityAuthTypeConnectionProperties()
         {
@@ -187,7 +187,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// Adds a Key Vault connection to the Azure Cognitive Services project.
     /// </summary>
     /// <remarks>
-    /// This connection allows the AI Foundry project to store secrets for various other connections.
+    /// This connection allows the Microsoft Foundry project to store secrets for various other connections.
     /// As such, we recommend adding this connection *before* any others, so that those connections
     /// can leverage the Key Vault connection for secret storage.
     /// </remarks>
@@ -199,7 +199,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         ArgumentNullException.ThrowIfNull(keyVault);
         if (keyVault.Resource.IsEmulator())
         {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Key Vault.");
+            throw new InvalidOperationException("Cannot create a Microsoft Foundry project connection to an emulator Key Vault.");
         }
         builder.WithRoleAssignments(keyVault, KeyVaultBuiltInRole.KeyVaultSecretsOfficer);
         // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/9551912af4d4fdb8ea73e996145e940a7e369c84/infrastructure/infrastructure-setup-bicep/01-connections/connection-key-vault.bicep

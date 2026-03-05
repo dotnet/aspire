@@ -29,7 +29,7 @@ public class AzureCognitiveServicesProjectResource :
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
-    /// <param name="parent">The parent Azure AI Foundry resource.</param>
+    /// <param name="parent">The parent Microsoft Foundry resource.</param>
     public AzureCognitiveServicesProjectResource([ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure, FoundryResource parent)
         : base(name, configureInfrastructure, parent)
     {
@@ -93,7 +93,7 @@ public class AzureCognitiveServicesProjectResource :
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Endpoint={Endpoint}");
 
     /// <summary>
-    /// Gets the Foundry project endpoint as a ReferenceExpression that can be used in environment variables or connection strings.
+    /// Gets the Microsoft Foundry project endpoint as a ReferenceExpression that can be used in environment variables or connection strings.
     ///
     /// This will be used to instantiate the AI project clients.
     ///
@@ -197,7 +197,7 @@ public class AzureCognitiveServicesProjectResource :
     }
 
     /// <summary>
-    /// This is the encoding that the Foundry web portal uses in their URLs, for some reason
+    /// This is the encoding that the Microsoft Foundry web portal uses in their URLs, for some reason
     /// </summary>
     internal static string EncodeSubscriptionId(string subscriptionId)
     {
@@ -258,7 +258,7 @@ public class CapabilityHostConfiguration(string name)
     public AzureSearchResource? Search { get; set; }
 
     /// <summary>
-    /// An OpenAI-type Foundry account to use for AI model calls, if any.
+    /// An OpenAI-type Microsoft Foundry account to use for AI model calls, if any.
     /// </summary>
     public FoundryResource? AzureOpenAI { get; set; }
 
@@ -326,9 +326,9 @@ public class CapabilityHostBuilder(IResourceBuilder<AzureCognitiveServicesProjec
     }
 
     /// <summary>
-    /// Configures an Azure OpenAI-type Foundry account for AI model calls.
+    /// Configures an Azure OpenAI-type Microsoft Foundry account for AI model calls.
     /// </summary>
-    /// <param name="openAI">The Azure AI Foundry resource builder.</param>
+    /// <param name="openAI">The Microsoft Foundry resource builder.</param>
     /// <returns>The capability host builder for chaining.</returns>
     public CapabilityHostBuilder WithAzureOpenAI(IResourceBuilder<FoundryResource> openAI)
     {

@@ -47,7 +47,7 @@ public static class AzureCognitiveServicesProjectExtensions
     /// <summary>
     /// Adds an Azure Cognitive Services project resource to the application model.
     ///
-    /// This will create a default foundry account resource.
+    /// This will create a default Microsoft Foundry account resource.
     /// This will also set the project as a deployment target for agents.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the parent Azure Cognitive Services account resource.</param>
@@ -178,7 +178,7 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Adds a model deployment to the parent foundry of the Azure Cognitive Services project.
+    /// Adds a model deployment to the parent Microsoft Foundry of the Azure Cognitive Services project.
     /// </summary>
     /// <param name="builder">Aspire resource builder for a project</param>
     /// <param name="name">Name to give the model deployment</param>
@@ -195,7 +195,7 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Adds a model deployment to the parent foundry of the Azure Cognitive Services project.
+    /// Adds a model deployment to the parent Microsoft Foundry of the Azure Cognitive Services project.
     /// </summary>
     public static IResourceBuilder<FoundryDeploymentResource> AddModelDeployment(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,

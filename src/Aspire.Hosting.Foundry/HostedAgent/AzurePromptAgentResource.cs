@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// An Azure AI Foundry prompt agent resource.
+/// A Microsoft Foundry prompt agent resource.
 ///
 /// TODO: Have this run locally as well
 /// </summary>

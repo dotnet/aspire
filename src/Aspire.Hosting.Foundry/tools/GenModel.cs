@@ -54,7 +54,7 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
     sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
     sb.AppendLine();
     sb.AppendLine("/// <summary>");
-    sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
+    sb.AppendLine("/// Generated strongly typed model descriptors for Microsoft Foundry.");
     sb.AppendLine("/// </summary>");
     sb.AppendLine("public partial class FoundryModel");
     sb.AppendLine("{");
@@ -119,7 +119,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
     sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
     sb.AppendLine();
     sb.AppendLine("/// <summary>");
-    sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
+    sb.AppendLine("/// Generated strongly typed model descriptors for Microsoft Foundry.");
     sb.AppendLine("/// </summary>");
     sb.AppendLine("public partial class FoundryModel");
     sb.AppendLine("{");

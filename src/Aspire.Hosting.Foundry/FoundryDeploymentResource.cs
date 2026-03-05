@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// Represents an Azure AI Foundry Deployment.
+/// Represents a Microsoft Foundry Deployment.
 /// </summary>
 public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryResource>, IResourceWithConnectionString
 {
@@ -23,7 +23,7 @@ public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryRe
     /// <param name="modelName">The name of the model.</param>
     /// <param name="modelVersion">The version of the model.</param>
     /// <param name="format">The format of the model.</param>
-    /// <param name="parent">The parent Azure AI Foundry resource.</param>
+    /// <param name="parent">The parent Microsoft Foundry resource.</param>
     public FoundryDeploymentResource(string name, string modelName, string modelVersion, string format, FoundryResource parent)
         : base(name)
     {
@@ -90,12 +90,12 @@ public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryRe
     public int SkuCapacity { get; set; } = DefaultSkuCapacity;
 
     /// <summary>
-    /// Gets the parent Azure AI Foundry resource.
+    /// Gets the parent Microsoft Foundry resource.
     /// </summary>
     public FoundryResource Parent { get; set; }
 
     /// <summary>
-    /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.
+    /// Gets the connection string expression for the Microsoft Foundry resource with model/deployment information.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.IsEmulator
         ? ReferenceExpression.Create($"{Parent};Model={ModelId ?? ModelName}")

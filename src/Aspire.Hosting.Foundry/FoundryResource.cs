@@ -8,8 +8,8 @@ using Azure.Provisioning.CognitiveServices;
 namespace Aspire.Hosting.Foundry;
 
 /// <summary>
-/// Represents an Azure AI Foundry resource. This corresponds to the Azure Cognitive Services account
-/// with AI Foundry capabilities enabled.
+/// Represents a Microsoft Foundry resource. This corresponds to the Azure Cognitive Services account
+/// with Microsoft Foundry capabilities enabled.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
@@ -21,12 +21,12 @@ public class FoundryResource(string name, Action<AzureResourceInfrastructure> co
     private readonly List<FoundryDeploymentResource> _deployments = [];
 
     /// <summary>
-    /// Gets the "aiFoundryApiEndpoint" output reference from the Azure AI Foundry resource.
+    /// Gets the "aiFoundryApiEndpoint" output reference from the Microsoft Foundry resource.
     /// </summary>
     public BicepOutputReference AIFoundryApiEndpoint => new("aiFoundryApiEndpoint", this);
 
     /// <summary>
-    /// Gets the "endpoint" output reference from the Azure AI Foundry resource.
+    /// Gets the "endpoint" output reference from the Microsoft Foundry resource.
     /// </summary>
     public BicepOutputReference Endpoint => new("endpoint", this);
 
@@ -36,11 +36,11 @@ public class FoundryResource(string name, Action<AzureResourceInfrastructure> co
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the connection URI expression for the AI Foundry endpoint.
+    /// Gets the connection URI expression for the Microsoft Foundry endpoint.
     /// </summary>
     /// <remarks>
     /// In emulator mode, resolves to the emulator service URI.
-    /// In Azure mode, resolves to the Azure AI Foundry endpoint.
+    /// In Azure mode, resolves to the Microsoft Foundry endpoint.
     /// </remarks>
     public ReferenceExpression UriExpression =>
         IsEmulator ?
@@ -58,7 +58,7 @@ public class FoundryResource(string name, Action<AzureResourceInfrastructure> co
         : ReferenceExpression.Create($"Endpoint={Endpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
 
     /// <summary>
-    /// Gets the list of deployment resources associated with the Azure AI Foundry.
+    /// Gets the list of deployment resources associated with the Microsoft Foundry.
     /// </summary>
     public IReadOnlyList<FoundryDeploymentResource> Deployments => _deployments;
 

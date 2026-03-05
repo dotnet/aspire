@@ -120,7 +120,7 @@ analysis-output/Aspire.Cli.md
 
 - Using the MicrosoftDocs MCP, search for existing documentation about the feature, starting with Aspire documentation.
 - Documentation can be referenced in multiple ways. If the doc is part of the aspire docset (learn.microsoft.com/dotnet/aspire/*) you can use a relative path (assume What's New is one level - ie ../ - below "root" dotnet/aspire/)
-- If the docset is on learn.microsoft.com, but not from Aspire, you can use an xref in the link path - for example, something under Azure docs (learn.microsoft.com/azure/ai-foundry/overview) would be [Azure AI Foundry documentation](xref:/azure/ai-foundry/overview)
+- If the docset is on learn.microsoft.com, but not from Aspire, you can use an xref in the link path - for example, something under Azure docs (learn.microsoft.com/azure/ai-foundry/overview) would be [Microsoft Foundry documentation](xref:/azure/ai-foundry/overview)
 - If a new API is explicitly called out, use an xref to the API docs via the fully qualified API namespace. For example, `Aspire.Hosting.ApplicationModel.BeforeStartEvent` or simply `BeforeStartEvent` becomes <xref:aspire.hosting.applicationmodel.beforestartevent>
 - Do NOT put links to docs or APIs in the sample code. Only put them in the brief description above to set context, or the explanation for follow up content and API docs.
 - Some conceptual docs may not exist yet. If you are unsure of if a link's content fits, or if something is relevant, do not add a link at all.

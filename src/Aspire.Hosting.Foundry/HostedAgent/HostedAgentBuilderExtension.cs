@@ -51,7 +51,7 @@ public static class HostedAgentResourceBuilderExtensions
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// In both run and publish modes, build, deploy, and run the containerized agent as a hosted agent in Azure AI Foundry.
+    /// In both run and publish modes, build, deploy, and run the containerized agent as a hosted agent in Microsoft Foundry.
     /// </summary>
     public static IResourceBuilder<T> AsHostedAgent<T>(
         this IResourceBuilder<T> builder, Action<HostedAgentConfiguration>? configure = null)
@@ -61,7 +61,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// In both run and publish modes, build, deploy, and run the containerized agent as a hosted agent in Azure AI Foundry.
+    /// In both run and publish modes, build, deploy, and run the containerized agent as a hosted agent in Microsoft Foundry.
     /// </summary>
     public static IResourceBuilder<T> AsHostedAgent<T>(
         this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource>? project = null, Action<HostedAgentConfiguration>? configure = null)
@@ -71,7 +71,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// In run mode, build, deploy, and run the containerized agent as a hosted agent in Azure AI Foundry.
+    /// In run mode, build, deploy, and run the containerized agent as a hosted agent in Microsoft Foundry.
     /// </summary>
     public static IResourceBuilder<T> RunAsHostedAgent<T>(
         this IResourceBuilder<T> builder, Action<HostedAgentConfiguration> configure)
@@ -81,7 +81,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// In run mode, build, deploy, and run the containerized agent as a hosted agent in Azure AI Foundry.
+    /// In run mode, build, deploy, and run the containerized agent as a hosted agent in Microsoft Foundry.
     /// </summary>
     public static IResourceBuilder<T> RunAsHostedAgent<T>(
         this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource>? project = null, Action<HostedAgentConfiguration>? configure = null)
@@ -95,7 +95,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Publish the containerized agent as a hosted agent in Azure AI Foundry.
+    /// Publish the containerized agent as a hosted agent in Microsoft Foundry.
     ///
     /// If a project resource is not provided, the method will attempt to find an existing
     /// Azure Cognitive Services Project resource in the application model. If none exists,
@@ -109,7 +109,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Publish the containerized agent as a hosted agent in Azure AI Foundry.
+    /// Publish the containerized agent as a hosted agent in Microsoft Foundry.
     ///
     /// If a project resource is not provided, the method will attempt to find an existing
     /// Azure Cognitive Services Project resource in the application model. If none exists,
@@ -260,7 +260,7 @@ public static class HostedAgentResourceBuilderExtensions
                     {
                         return;
                     }
-                    // The Foundry agentserver SDK expects the exporter to be at OTEL_EXPORTER_ENDPOINT instead.
+                    // The Microsoft Foundry agentserver SDK expects the exporter to be at OTEL_EXPORTER_ENDPOINT instead.
                     ctx.EnvironmentVariables["OTEL_EXPORTER_ENDPOINT"] = endpointVar.Value;
                 });
             return builder;
@@ -354,7 +354,7 @@ public static class HostedAgentResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Publish a simple prompt agent in Azure AI Foundry.
+    /// Publish a simple prompt agent in Microsoft Foundry.
     ///
     /// If a project resource is not provided, the method will attempt to find an existing
     /// Azure Cognitive Services Project resource in the application model.

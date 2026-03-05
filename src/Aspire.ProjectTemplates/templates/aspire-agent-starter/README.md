@@ -1,6 +1,6 @@
-# AGENT_NAME AI Foundry Hosted Agent-
+# AGENT_NAME Microsoft Foundry Hosted Agent-
 
-This is a starting point for building an AI chat application using Azure AI Foundry. It has a local Python agent that can be run with `aspire run`, whereupon Aspire will provision and connect to resources in Azure. When `aspire deploy` is run, this will deploy as a Hosted Agent to an Azure subscription and provision resources as needed.
+This is a starting point for building an AI chat application using Microsoft Foundry. It has a local Python agent that can be run with `aspire run`, whereupon Aspire will provision and connect to resources in Azure. When `aspire deploy` is run, this will deploy as a Hosted Agent to an Azure subscription and provision resources as needed.
 
 ## How to develop
 
