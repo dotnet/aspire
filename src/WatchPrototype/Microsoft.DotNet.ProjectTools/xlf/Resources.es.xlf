@@ -21,6 +21,21 @@ Make the profile names distinct.</source>
 Defina nombres de perfiles distintos.</target>
         <note />
       </trans-unit>
+      <trans-unit id="EmptyTempPath">
+        <source>Unable to determine a temporary directory path. Consider configuring the TEMP environment variable on Windows or local app data folder on Unix.</source>
+        <target state="translated">No se puede determinar una ruta de acceso temporal al directorio. Considere la posibilidad de configurar la variable de entorno TEMP en Windows o la carpeta de datos de la aplicación local en Unix.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExperimentalFeatureDisabled">
+        <source>This is an experimental feature, set MSBuild property '{0}' to 'true' to enable it.</source>
+        <target state="translated">Se trata de una característica experimental, establezca la propiedad "{0}" de MSBuild en "true" para habilitarla.</target>
+        <note>{Locked="MSBuild"}{Locked="true"}. {0} is MSBuild property name.</note>
+      </trans-unit>
+      <trans-unit id="IncludedFileNotFound">
+        <source>File included via #:include directive (or Compile item) not found: {0}</source>
+        <target state="translated">No se encuentra el archivo incluido mediante la directiva #:include (o elemento Compile): {0}</target>
+        <note>{Locked="#:include"}{Locked="Compile"}. {0} is file path.</note>
+      </trans-unit>
       <trans-unit id="LaunchProfileDoesNotExist">
         <source>A launch profile with the name '{0}' doesn't exist.</source>
         <target state="translated">No existe ningún perfil de inicio con el nombre "{0}".</target>

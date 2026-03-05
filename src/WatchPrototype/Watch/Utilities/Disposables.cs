@@ -3,15 +3,22 @@
 
 namespace Microsoft.DotNet.Watch;
 
-internal readonly record struct Disposables(List<IDisposable> disposables) : IDisposable
+internal readonly record struct Disposables(List<object> disposables) : IAsyncDisposable
 {
-    public List<IDisposable> Items => disposables;
+    public List<object> Items => disposables;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         foreach (var disposable in disposables)
         {
-            disposable.Dispose();
+            if (disposable is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync();
+            }
+            else
+            {
+                ((IDisposable)disposable).Dispose();
+            }
         }
     }
 }

@@ -14,12 +14,14 @@ dotnet_diagnostic.CA2008.severity = none # Do not create tasks without passing a
 
 # CS - C# compiler warnings/errors
 dotnet_diagnostic.CS1591.severity = none # Missing XML comment for publicly visible type or member
-dotnet_diagnostic.CS1573.severity = none # Parameter 'sourceFile' has no matching param tag in the XML comment
+dotnet_diagnostic.CS1573.severity = none # Parameter has no matching param tag in the XML comment
+dotnet_diagnostic.CS1572.severity = warning # XML comment has a param tag for '...', but there is no parameter by that name
 
 # IDE - IDE/Style warnings
 dotnet_diagnostic.IDE0005.severity = none # Using directive is unnecessary
 dotnet_diagnostic.IDE0011.severity = none # Add braces
 dotnet_diagnostic.IDE0036.severity = none # Order modifiers
+dotnet_diagnostic.IDE0044.severity = none # Make field readonly
 dotnet_diagnostic.IDE0060.severity = none # Remove unused parameter
 dotnet_diagnostic.IDE0073.severity = none # File header does not match required text
 dotnet_diagnostic.IDE0161.severity = none # Convert to file-scoped namespace

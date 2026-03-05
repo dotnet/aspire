@@ -1,0 +1,7 @@
+#nullable enable
+Microsoft.DotNet.ProjectTools.LaunchSettings
+Microsoft.DotNet.ProjectTools.VirtualProjectBuilder
+static Microsoft.DotNet.ProjectTools.LaunchSettings.TryFindLaunchSettingsFile(string! projectOrEntryPointFilePath, string? launchProfile, System.Action<string!, bool>! report) -> string?
+static Microsoft.DotNet.ProjectTools.VirtualProjectBuilder.CreateProjectInstance(string! entryPointFilePath, string! targetFramework, Microsoft.Build.Evaluation.ProjectCollection! projectCollection, System.Action<string!, int, string!>! errorReporter) -> Microsoft.Build.Execution.ProjectInstance!
+static Microsoft.DotNet.ProjectTools.VirtualProjectBuilder.GetVirtualProjectPath(string! entryPointFilePath) -> string!
+static Microsoft.DotNet.ProjectTools.VirtualProjectBuilder.IsValidEntryPointPath(string! entryPointFilePath) -> bool

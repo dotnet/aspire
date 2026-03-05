@@ -25,7 +25,7 @@ internal readonly struct BrowserConnection : IDisposable
     public ILogger ServerLogger { get; }
     public ILogger AgentLogger { get; }
 
-    public readonly TaskCompletionSource<VoidResult> Disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public readonly TaskCompletionSource<None> Disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public BrowserConnection(WebSocket clientSocket, string? sharedSecret, ILoggerFactory loggerFactory)
     {

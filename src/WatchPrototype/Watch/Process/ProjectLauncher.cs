@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Microsoft.Build.Graph;
 using Microsoft.DotNet.HotReload;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +12,7 @@ internal delegate ValueTask ProcessExitAction(int processId, int? exitCode);
 
 internal sealed class ProjectLauncher(
     DotNetWatchContext context,
-    ProjectNodeMap projectMap,
+    LoadedProjectGraph projectGraph,
     CompilationHandler compilationHandler,
     int iteration)
 {
@@ -26,44 +27,34 @@ internal sealed class ProjectLauncher(
     public EnvironmentOptions EnvironmentOptions
         => context.EnvironmentOptions;
 
+    public CompilationHandler CompilationHandler
+        => compilationHandler;
+
     public async ValueTask<RunningProject?> TryLaunchProcessAsync(
         ProjectOptions projectOptions,
-        CancellationTokenSource processTerminationSource,
         Action<OutputLine>? onOutput,
         ProcessExitAction? onExit,
         RestartOperation restartOperation,
         CancellationToken cancellationToken)
     {
-        var projectNode = projectMap.TryGetProjectNode(projectOptions.Representation.ProjectGraphPath, projectOptions.TargetFramework);
+        var projectNode = projectGraph.TryGetProjectNode(projectOptions.Representation.ProjectGraphPath, context.TargetFramework);
         if (projectNode == null)
         {
             // error already reported
             return null;
         }
 
-        if (!projectNode.IsNetCoreApp(Versions.Version6_0))
-        {
-            Logger.LogError($"Hot Reload based watching is only supported in .NET 6.0 or newer apps. Use --no-hot-reload switch or update the project's launchSettings.json to disable this feature.");
-            return null;
-        }
-
-        var appModel = HotReloadAppModel.InferFromProject(context, projectNode);
-
         // create loggers that include project name in messages:
         var projectDisplayName = projectNode.GetDisplayName();
         var clientLogger = context.LoggerFactory.CreateLogger(HotReloadDotNetWatcher.ClientLogComponentName, projectDisplayName);
         var agentLogger = context.LoggerFactory.CreateLogger(HotReloadDotNetWatcher.AgentLogComponentName, projectDisplayName);
 
-        var clients = await appModel.TryCreateClientsAsync(clientLogger, agentLogger, cancellationToken);
-        if (clients == null)
-        {
-            // error already reported
-            return null;
-        }
+        var appModel = HotReloadAppModel.InferFromProject(context, projectNode);
+        var clients = await appModel.CreateClientsAsync(clientLogger, agentLogger, cancellationToken);
 
         var processSpec = new ProcessSpec
         {
-            Executable = EnvironmentOptions.MuxerPath,
+            Executable = EnvironmentOptions.GetMuxerPath(),
             IsUserApplication = true,
             WorkingDirectory = projectOptions.WorkingDirectory,
             OnOutput = onOutput,
@@ -91,10 +82,10 @@ internal sealed class ProjectLauncher(
         environmentBuilder[EnvironmentVariables.Names.DotnetWatch] = "1";
         environmentBuilder[EnvironmentVariables.Names.DotnetWatchIteration] = (Iteration + 1).ToString(CultureInfo.InvariantCulture);
 
-        if (Logger.IsEnabled(LogLevel.Trace))
+        if (clients.IsManagedAgentSupported && Logger.IsEnabled(LogLevel.Trace))
         {
             environmentBuilder[EnvironmentVariables.Names.HotReloadDeltaClientLogMessages] =
-                (EnvironmentOptions.SuppressEmojis ? Emoji.Default : Emoji.Agent).GetLogMessagePrefix() + $"[{projectDisplayName}]";
+                (EnvironmentOptions.SuppressEmojis ? Emoji.Default : Emoji.Agent).GetLogMessagePrefix(EnvironmentOptions.LogMessagePrefix) + $"[{projectDisplayName}]";
         }
 
         clients.ConfigureLaunchEnvironment(environmentBuilder);
@@ -109,9 +100,9 @@ internal sealed class ProjectLauncher(
             projectNode,
             projectOptions,
             clients,
+            clientLogger,
             processSpec,
             restartOperation,
-            processTerminationSource,
             cancellationToken);
     }
 

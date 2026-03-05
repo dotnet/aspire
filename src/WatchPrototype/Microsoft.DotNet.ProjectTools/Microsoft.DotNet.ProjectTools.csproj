@@ -12,16 +12,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build" />
+    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="dotnet" />
-    <InternalsVisibleTo Include="dotnet-watch" />
     <InternalsVisibleTo Include="dotnet-watch.Tests" />
     <InternalsVisibleTo Include="dotnet.Tests" />
-    <InternalsVisibleTo Include="Microsoft.DotNet.HotReload.Watch" />
   </ItemGroup>
 
   <Import Project="..\Microsoft.DotNet.FileBasedPrograms\Microsoft.DotNet.FileBasedPrograms.projitems" Label="Shared" />

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DotNet.ProjectTools;
 
-public sealed class ExecutableLaunchProfile : LaunchProfile
+internal sealed class ExecutableLaunchProfile : LaunchProfile
 {
     public const string WorkingDirectoryPropertyName = "workingDirectory";
     public const string ExecutablePathPropertyName = "executablePath";

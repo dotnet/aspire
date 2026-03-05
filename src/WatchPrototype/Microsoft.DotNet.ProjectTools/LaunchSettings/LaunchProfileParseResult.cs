@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.DotNet.ProjectTools;
 
-public sealed class LaunchProfileParseResult
+internal sealed class LaunchProfileParseResult
 {
     public string? FailureReason { get; }
 

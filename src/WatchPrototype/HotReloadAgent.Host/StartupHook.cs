@@ -6,9 +6,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Pipes;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Threading;
@@ -21,7 +19,6 @@ using Microsoft.DotNet.HotReload;
 internal sealed class StartupHook
 {
     private static readonly string? s_standardOutputLogPrefix = Environment.GetEnvironmentVariable(AgentEnvironmentVariables.HotReloadDeltaClientLogMessages);
-    private static readonly string? s_namedPipeName = Environment.GetEnvironmentVariable(AgentEnvironmentVariables.DotNetWatchHotReloadNamedPipeName);
     private static readonly bool s_supportsConsoleColor = !OperatingSystem.IsAndroid()
                                                        && !OperatingSystem.IsIOS()
                                                        && !OperatingSystem.IsTvOS()
@@ -42,17 +39,19 @@ internal sealed class StartupHook
 
         Log($"Loaded into process: {processPath} ({typeof(StartupHook).Assembly.Location})");
 
+        var transport = Transport.TryCreate(Log);
+
         HotReloadAgent.ClearHotReloadEnvironmentVariables(typeof(StartupHook));
 
-        if (string.IsNullOrEmpty(s_namedPipeName))
+        if (transport == null)
         {
-            Log($"Environment variable {AgentEnvironmentVariables.DotNetWatchHotReloadNamedPipeName} has no value");
+            Log($"No hot reload endpoint configured. Set {AgentEnvironmentVariables.DotNetWatchHotReloadNamedPipeName} or {AgentEnvironmentVariables.DotNetWatchHotReloadWebSocketEndpoint}");
             return;
         }
 
         RegisterSignalHandlers();
 
-        PipeListener? listener = null;
+        Listener? listener = null;
 
         var agent = new HotReloadAgent(
             assemblyResolvingHandler: (_, args) =>
@@ -94,7 +93,7 @@ internal sealed class StartupHook
                 }
             });
 
-        listener = new PipeListener(s_namedPipeName, agent, Log);
+        listener = new Listener(transport, agent, Log);
 
         // fire and forget:
         _ = listener.Listen(CancellationToken.None);

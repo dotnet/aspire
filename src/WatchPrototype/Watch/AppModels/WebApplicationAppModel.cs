@@ -16,25 +16,24 @@ internal abstract class WebApplicationAppModel(DotNetWatchContext context) : Hot
 
     public DotNetWatchContext Context => context;
 
-    public abstract bool RequiresBrowserRefresh { get; }
+    public abstract bool ManagedHotReloadRequiresBrowserRefresh { get; }
 
     /// <summary>
     /// Project that's used for launching the application.
     /// </summary>
     public abstract ProjectGraphNode LaunchingProject { get; }
 
-    protected abstract HotReloadClients CreateClients(ILogger clientLogger, ILogger agentLogger, BrowserRefreshServer? browserRefreshServer);
+    protected abstract ImmutableArray<(HotReloadClient client, string name)> CreateManagedClients(ILogger clientLogger, ILogger agentLogger, BrowserRefreshServer? browserRefreshServer);
 
-    public async sealed override ValueTask<HotReloadClients?> TryCreateClientsAsync(ILogger clientLogger, ILogger agentLogger, CancellationToken cancellationToken)
+    public async sealed override ValueTask<HotReloadClients> CreateClientsAsync(ILogger clientLogger, ILogger agentLogger, CancellationToken cancellationToken)
     {
         var browserRefreshServer = await context.BrowserRefreshServerFactory.GetOrCreateBrowserRefreshServerAsync(LaunchingProject, this, cancellationToken);
-        if (RequiresBrowserRefresh && browserRefreshServer == null)
-        {
-            // Error has been reported
-            return null;
-        }
 
-        return CreateClients(clientLogger, agentLogger, browserRefreshServer);
+        var managedClients = (!ManagedHotReloadRequiresBrowserRefresh || browserRefreshServer != null) && IsManagedAgentSupported(LaunchingProject, clientLogger)
+            ? CreateManagedClients(clientLogger, agentLogger, browserRefreshServer)
+            : [];
+
+        return new HotReloadClients(managedClients, browserRefreshServer, useRefreshServerToApplyStaticAssets: true);
     }
 
     protected WebAssemblyHotReloadClient CreateWebAssemblyClient(ILogger clientLogger, ILogger agentLogger, BrowserRefreshServer browserRefreshServer, ProjectGraphNode clientProject)
@@ -58,9 +57,8 @@ internal abstract class WebApplicationAppModel(DotNetWatchContext context) : Hot
                 logger,
                 context.LoggerFactory,
                 middlewareAssemblyPath: GetMiddlewareAssemblyPath(),
-                dotnetPath: context.EnvironmentOptions.MuxerPath,
-                autoReloadWebSocketHostName: context.EnvironmentOptions.AutoReloadWebSocketHostName,
-                autoReloadWebSocketPort: context.EnvironmentOptions.AutoReloadWebSocketPort,
+                dotnetPath: context.EnvironmentOptions.GetMuxerPath(),
+                webSocketConfig: context.EnvironmentOptions.BrowserWebSocketConfig,
                 suppressTimeouts: context.EnvironmentOptions.TestFlags != TestFlags.None);
         }
 
@@ -71,13 +69,29 @@ internal abstract class WebApplicationAppModel(DotNetWatchContext context) : Hot
     {
         if (context.EnvironmentOptions.SuppressBrowserRefresh)
         {
-            logger.Log(MessageDescriptor.SkippingConfiguringBrowserRefresh_SuppressedViaEnvironmentVariable.WithLevelWhen(LogLevel.Error, RequiresBrowserRefresh), EnvironmentVariables.Names.SuppressBrowserRefresh);
+            if (ManagedHotReloadRequiresBrowserRefresh)
+            {
+                logger.Log(MessageDescriptor.BrowserRefreshSuppressedViaEnvironmentVariable_ApplicationWillBeRestarted, EnvironmentVariables.Names.SuppressBrowserRefresh);
+            }
+            else
+            {
+                logger.Log(MessageDescriptor.BrowserRefreshSuppressedViaEnvironmentVariable_ManualRefreshRequired, EnvironmentVariables.Names.SuppressBrowserRefresh);
+            }
+
             return false;
         }
 
         if (!projectNode.IsNetCoreApp(minVersion: s_minimumSupportedVersion))
         {
-            logger.Log(MessageDescriptor.SkippingConfiguringBrowserRefresh_TargetFrameworkNotSupported.WithLevelWhen(LogLevel.Error, RequiresBrowserRefresh));
+            if (ManagedHotReloadRequiresBrowserRefresh)
+            {
+                logger.Log(MessageDescriptor.BrowserRefreshNotSupportedByProjectTargetFramework_ApplicationWillBeRestarted);
+            }
+            else
+            {
+                logger.Log(MessageDescriptor.BrowserRefreshNotSupportedByProjectTargetFramework_ManualRefreshRequired);
+            }
+
             return false;
         }
 

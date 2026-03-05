@@ -5,13 +5,20 @@ namespace Microsoft.DotNet.Watch;
 
 internal sealed record ProjectOptions
 {
-    public required bool IsRootProject { get; init; }
     public required ProjectRepresentation Representation { get; init; }
+
+    /// <summary>
+    /// True if the project has been launched by watch in the main iteration loop.
+    /// </summary>
+    public required bool IsMainProject { get; init; }
+
     public required string WorkingDirectory { get; init; }
-    public required string? TargetFramework { get; init; }
-    public required IReadOnlyList<string> BuildArguments { get; init; }
-    public required bool NoLaunchProfile { get; init; }
-    public required string? LaunchProfileName { get; init; }
+
+    /// <summary>
+    /// No value indicates that no launch profile should be used.
+    /// Null value indicates that the default launch profile should be used.
+    /// </summary>
+    public required Optional<string?> LaunchProfileName { get; init; }
 
     /// <summary>
     /// Command to use to launch the project.

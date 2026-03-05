@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Microsoft.DotNet.HotReload;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch
@@ -27,8 +28,9 @@ namespace Microsoft.DotNet.Watch
 
     internal sealed record EnvironmentOptions(
         string WorkingDirectory,
-        string MuxerPath,
-        TimeSpan? ProcessCleanupTimeout,
+        string? SdkDirectory,
+        string LogMessagePrefix,
+        TimeSpan? ProcessCleanupTimeout = null,
         bool IsPollingEnabled = false,
         bool SuppressHandlingStaticWebAssets = false,
         bool SuppressMSBuildIncrementalism = false,
@@ -37,16 +39,17 @@ namespace Microsoft.DotNet.Watch
         bool SuppressEmojis = false,
         bool RestartOnRudeEdit = false,
         LogLevel? CliLogLevel = null,
-        string? AutoReloadWebSocketHostName = null,
-        int? AutoReloadWebSocketPort = null,
         string? BrowserPath = null,
+        WebSocketConfig BrowserWebSocketConfig = default,
+        WebSocketConfig AgentWebSocketConfig = default,
         TestFlags TestFlags = TestFlags.None,
         string TestOutput = "")
     {
-        public static EnvironmentOptions FromEnvironment(string muxerPath) => new
+        public static EnvironmentOptions FromEnvironment(string? sdkDirectory, string logMessagePrefix) => new
         (
             WorkingDirectory: Directory.GetCurrentDirectory(),
-            MuxerPath: ValidateMuxerPath(muxerPath),
+            SdkDirectory: sdkDirectory,
+            LogMessagePrefix: logMessagePrefix,
             ProcessCleanupTimeout: EnvironmentVariables.ProcessCleanupTimeout,
             IsPollingEnabled: EnvironmentVariables.IsPollingEnabled,
             SuppressHandlingStaticWebAssets: EnvironmentVariables.SuppressHandlingStaticWebAssets,
@@ -56,9 +59,9 @@ namespace Microsoft.DotNet.Watch
             SuppressEmojis: EnvironmentVariables.SuppressEmojis,
             RestartOnRudeEdit: EnvironmentVariables.RestartOnRudeEdit,
             CliLogLevel: EnvironmentVariables.CliLogLevel,
-            AutoReloadWebSocketHostName: EnvironmentVariables.AutoReloadWSHostName,
-            AutoReloadWebSocketPort: EnvironmentVariables.AutoReloadWSPort,
             BrowserPath: EnvironmentVariables.BrowserPath,
+            BrowserWebSocketConfig: new(EnvironmentVariables.BrowserWebSocketPort, EnvironmentVariables.BrowserWebSocketSecurePort, EnvironmentVariables.BrowserWebSocketHostName),
+            AgentWebSocketConfig: new(EnvironmentVariables.AgentWebSocketPort, EnvironmentVariables.AgentWebSocketSecurePort, hostName: null),
             TestFlags: EnvironmentVariables.TestFlags,
             TestOutput: EnvironmentVariables.TestOutputDir
         );
@@ -67,15 +70,16 @@ namespace Microsoft.DotNet.Watch
             // Allow sufficient time for the process to exit gracefully and release resources (e.g., network ports).
             => ProcessCleanupTimeout ?? TimeSpan.FromSeconds(5);
 
+        private readonly string? _muxerPath = SdkDirectory != null
+            ? Path.GetFullPath(Path.Combine(SdkDirectory, "..", "..", "dotnet" + PathUtilities.ExecutableExtension))
+            : null;
+
+        public string GetMuxerPath()
+            => _muxerPath ?? throw new InvalidOperationException("SDK directory is required to determine muxer path.");
+
         private int _uniqueLogId;
 
         public bool RunningAsTest { get => (TestFlags & TestFlags.RunningAsTest) != TestFlags.None; }
-
-        private static string ValidateMuxerPath(string path)
-        {
-            Debug.Assert(Path.GetFileNameWithoutExtension(path) == "dotnet");
-            return path;
-        }
 
         public string? GetBinLogPath(string projectPath, string operationName, GlobalOptions options)
             => options.BinaryLogPath != null

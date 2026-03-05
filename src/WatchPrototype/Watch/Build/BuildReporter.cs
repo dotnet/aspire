@@ -14,12 +14,13 @@ namespace Microsoft.DotNet.Watch;
 internal sealed class BuildReporter(ILogger logger, GlobalOptions options, EnvironmentOptions environmentOptions)
 {
     public ILogger Logger => logger;
+    public GlobalOptions GlobalOptions => options;
     public EnvironmentOptions EnvironmentOptions => environmentOptions;
 
     public Loggers GetLoggers(string projectPath, string operationName)
         => new(logger, environmentOptions.GetBinLogPath(projectPath, operationName, options));
 
-    public void ReportWatchedFiles(Dictionary<string, FileItem> fileItems)
+    public static void ReportWatchedFiles(ILogger logger, IReadOnlyDictionary<string, FileItem> fileItems)
     {
         logger.Log(MessageDescriptor.WatchingFilesForChanges, fileItems.Count);
 

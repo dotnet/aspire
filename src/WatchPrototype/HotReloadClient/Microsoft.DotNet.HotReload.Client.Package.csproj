@@ -5,7 +5,7 @@
       Used in in-proc VS and VS Code.
       We also need to target $(SdkTargetFramework) to allow tests to run.
     -->
-    <TargetFrameworks>$(VisualStudioServiceTargetFramework);$(SdkTargetFramework)<!--;$(VisualStudioTargetFramework)--></TargetFrameworks>
+    <TargetFrameworks>$(VisualStudioServiceTargetFramework);$(SdkTargetFramework);$(VisualStudioTargetFramework)</TargetFrameworks>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <DebugType>none</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>

@@ -32,7 +32,7 @@ internal abstract class AbstractBrowserRefreshServer(string middlewareAssemblyPa
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new(JsonSerializerDefaults.Web);
 
     private readonly List<BrowserConnection> _activeConnections = [];
-    private readonly TaskCompletionSource<VoidResult> _browserConnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<None> _browserConnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SharedSecretProvider _sharedSecretProvider = new();
 
@@ -241,7 +241,7 @@ internal abstract class AbstractBrowserRefreshServer(string middlewareAssemblyPa
 
     private async ValueTask SendAsync(ReadOnlyMemory<byte> messageBytes, CancellationToken cancellationToken)
     {
-        await SendAndReceiveAsync<ReadOnlyMemory<byte>, VoidResult>(request: _ => messageBytes, response: null, cancellationToken);
+        await SendAndReceiveAsync<ReadOnlyMemory<byte>, None>(request: _ => messageBytes, response: null, cancellationToken);
     }
 
     public async ValueTask<TResult?> SendAndReceiveAsync<TRequest, TResult>(
