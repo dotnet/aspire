@@ -350,6 +350,8 @@ public static class OrleansServiceExtensions
     public static IResourceBuilder<T> WithOrleansProviderType<T>(this IResourceBuilder<T> builder, string providerType)
         where T : IResource
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerType);
+
         return builder.WithAnnotation(new OrleansProviderTypeAnnotation { ProviderType = providerType });
     }
 

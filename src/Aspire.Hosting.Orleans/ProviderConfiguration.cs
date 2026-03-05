@@ -10,6 +10,26 @@ namespace Aspire.Hosting.Orleans;
 /// </summary>
 internal sealed class ProviderConfiguration(string providerType, string? serviceKey = null, IResourceBuilder<IResourceWithConnectionString>? resource = null) : IProviderConfiguration
 {
+    private static string GetProviderType(IResourceBuilder<IResourceWithConnectionString> resourceBuilder)
+    {
+        string providerType;
+
+        if (resourceBuilder.Resource.TryGetAnnotationsOfType<OrleansProviderTypeAnnotation>(out var annotations) && annotations.FirstOrDefault() is OrleansProviderTypeAnnotation annotation)
+        {
+            providerType = annotation.ProviderType;
+        }
+        else
+        {
+            const string resource = "Resource";
+            var resourceType = resourceBuilder.Resource.GetType().Name;
+
+            // Use a simple transformation to get the provider type: remove the "Resource" suffix if it exists.
+            providerType = resourceType.EndsWith(resource) ? resourceType[..^resource.Length] : resourceType;
+        }
+
+        return providerType;
+    }
+
     /// <summary>
     /// Initializes a new instance of <see cref="ProviderConfiguration"/>.
     /// </summary>
@@ -18,17 +38,7 @@ internal sealed class ProviderConfiguration(string providerType, string? service
     internal static ProviderConfiguration Create(IResourceBuilder<IResourceWithConnectionString> resourceBuilder)
     {
         var serviceKey = resourceBuilder.Resource.Name;
-
-        if (resourceBuilder.Resource.TryGetAnnotationsOfType<OrleansProviderTypeAnnotation>(out var annotations) && annotations.FirstOrDefault() is OrleansProviderTypeAnnotation annotation)
-        {
-            return new(annotation.ProviderType, serviceKey, resourceBuilder);
-        }
-
-        const string resource = "Resource";
-        var resourceType = resourceBuilder.Resource.GetType().Name;
-
-        // Use a simple transformation to get the provider type: remove the "Resource" suffix if it exists.
-        var providerType = resourceType.EndsWith(resource) ? resourceType[..^resource.Length] : resourceType;
+        var providerType = GetProviderType(resourceBuilder);
 
         return new(providerType, serviceKey, resourceBuilder);
     }
