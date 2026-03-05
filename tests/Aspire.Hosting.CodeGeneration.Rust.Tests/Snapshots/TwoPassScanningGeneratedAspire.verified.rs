@@ -2241,6 +2241,32 @@ impl IConfiguration {
     }
 }
 
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource
+pub struct IContainerFilesDestinationResource {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IContainerFilesDestinationResource {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IContainerFilesDestinationResource {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder
 pub struct IDistributedApplicationBuilder {
     handle: Handle,
@@ -2581,6 +2607,32 @@ impl HasHandle for IResourceWithConnectionString {
 }
 
 impl IResourceWithConnectionString {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles
+pub struct IResourceWithContainerFiles {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IResourceWithContainerFiles {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IResourceWithContainerFiles {
     pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
         Self { handle, client }
     }
@@ -3400,6 +3452,17 @@ impl ProjectResource {
         let result = self.client.invoke_capability("Aspire.Hosting/withUrlForEndpointFactory", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
+    }
+
+    /// Configures the resource to copy container files from the specified source during publishing
+    pub fn publish_with_container_files(&self, source: &IResourceWithContainerFiles, destination_path: &str) -> Result<IContainerFilesDestinationResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("source".to_string(), source.handle().to_json());
+        args.insert("destinationPath".to_string(), serde_json::to_value(&destination_path).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/publishWithContainerFiles", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IContainerFilesDestinationResource::new(handle, self.client.clone()))
     }
 
     /// Waits for another resource to be ready

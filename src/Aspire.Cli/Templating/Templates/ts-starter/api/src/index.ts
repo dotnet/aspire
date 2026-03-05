@@ -1,4 +1,6 @@
 import express from "express";
+import { existsSync } from "fs";
+import { join } from "path";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,6 +22,13 @@ app.get("/api/weatherforecast", (_req, res) => {
 app.get("/health", (_req, res) => {
   res.send("Healthy");
 });
+
+// Serve static files from the "static" directory if it exists (used in publish/deploy mode
+// when the frontend's build output is bundled into this container via publishWithContainerFiles)
+const staticDir = join(import.meta.dirname, "..", "static");
+if (existsSync(staticDir)) {
+  app.use(express.static(staticDir));
+}
 
 app.listen(port, () => {
   console.log(`API server listening on port ${port}`);
