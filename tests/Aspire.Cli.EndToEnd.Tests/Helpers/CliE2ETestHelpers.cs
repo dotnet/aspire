@@ -579,4 +579,26 @@ internal static class CliE2ETestHelpers
                 throw new ArgumentOutOfRangeException(nameof(installMode));
         }
     }
+
+    /// <summary>
+    /// Walks up from the test assembly directory to find the repo root (contains Aspire.slnx).
+    /// </summary>
+    internal static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
+            {
+                return dir.FullName;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "Could not find repo root (directory containing Aspire.slnx) " +
+            $"by walking up from {AppContext.BaseDirectory}");
+    }
 }

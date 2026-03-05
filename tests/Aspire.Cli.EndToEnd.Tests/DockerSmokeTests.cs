@@ -22,7 +22,7 @@ public sealed class DockerSmokeTests(ITestOutputHelper output)
 
         // The repo root is the Docker build context — needed for multi-stage Dockerfile
         // to COPY source files when building from source.
-        var repoRoot = GetRepoRoot();
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
 
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode);
@@ -55,27 +55,5 @@ public sealed class DockerSmokeTests(ITestOutputHelper output)
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
 
         await pendingRun;
-    }
-
-    /// <summary>
-    /// Walks up from the test assembly directory to find the repo root (contains Aspire.slnx).
-    /// </summary>
-    private static string GetRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            "Could not find repo root (directory containing Aspire.slnx) " +
-            $"by walking up from {AppContext.BaseDirectory}");
     }
 }
