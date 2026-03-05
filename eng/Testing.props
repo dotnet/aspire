@@ -14,7 +14,8 @@
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
-    <RunOnGithubActionsMacOS>true</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsMacOS Condition="'$(RunOnGithubActionsMacOS)' == '' and $(MSBuildProjectName.StartsWith('Aspire.')) and !$(MSBuildProjectName.StartsWith('Aspire.Cli'))">false</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsMacOS Condition="'$(RunOnGithubActionsMacOS)' == ''">true</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>true</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
     <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>
