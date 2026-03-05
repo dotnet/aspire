@@ -34,7 +34,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
-    private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
+    internal static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
 
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
