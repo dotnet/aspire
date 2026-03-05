@@ -135,6 +135,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
                 promptText,
                 sortedApplicators,
                 applicator => applicator.Description,
+                notRequired: true,
                 cancellationToken);
 
             selectedApplicators.AddRange(selected);

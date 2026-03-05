@@ -66,7 +66,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         return Task.FromResult(choices.First());
     }
 
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, bool notRequired = false, CancellationToken cancellationToken = default) where T : notnull
     {
         if (!choices.Any())
         {
