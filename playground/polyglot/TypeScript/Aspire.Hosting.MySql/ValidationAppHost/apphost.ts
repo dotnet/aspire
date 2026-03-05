@@ -20,4 +20,13 @@ await mysql.withPhpMyAdmin({
 const db = await mysql.addDatabase('appdb', { databaseName: 'appdb' });
 await db.withCreationScript('CREATE DATABASE IF NOT EXISTS appdb;');
 
+// ---- Property access on MySqlServerResource ----
+const _endpoint = await mysql.primaryEndpoint.get();
+const _host = await mysql.host.get();
+const _port = await mysql.port.get();
+const _uri = await mysql.uriExpression.get();
+const _jdbc = await mysql.jdbcConnectionString.get();
+
+const _cstr = await mysql.connectionStringExpression.get();
+const _databases = mysql.databases;
 await builder.build().run();

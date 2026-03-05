@@ -359,6 +359,11 @@ export interface WithCommandOptions {
     commandOptions?: CommandOptions;
 }
 
+export interface WithDataVolumeOptions {
+    name?: string;
+    isReadOnly?: boolean;
+}
+
 export interface WithDescriptionOptions {
     enableMarkdown?: boolean;
 }
@@ -7490,6 +7495,25 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withMultiParamHandleCallbackInternal(callback));
     }
 
+    /** @internal */
+    private async _withDataVolumeInternal(name?: string, isReadOnly?: boolean): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (name !== undefined) rpcArgs.name = name;
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDataVolume',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        const name = options?.name;
+        const isReadOnly = options?.isReadOnly;
+        return new TestRedisResourcePromise(this._withDataVolumeInternal(name, isReadOnly));
+    }
+
 }
 
 /**
@@ -7830,6 +7854,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Tests multi-param callback destructuring */
     withMultiParamHandleCallback(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withMultiParamHandleCallback(callback)));
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
 }

@@ -1016,7 +1016,7 @@ export class DistributedApplicationBuilder {
         return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
     }
 
-    /** Exports AddQdrant for polyglot app hosts. */
+    /** Adds a Qdrant resource to the application. A container is used for local development. */
     /** @internal */
     async _addQdrantInternal(name: string, apiKey?: ParameterResource, grpcPort?: number, httpPort?: number): Promise<QdrantServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -1082,7 +1082,7 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
-    /** Exports AddQdrant for polyglot app hosts. */
+    /** Adds a Qdrant resource to the application. A container is used for local development. */
     addQdrant(name: string, options?: AddQdrantOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.addQdrant(name, options)));
     }
@@ -3559,6 +3559,158 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         super(handle, client);
     }
 
+    /** Gets the PrimaryEndpoint property */
+    primaryEndpoint = {
+        get: async (): Promise<EndpointReference> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.primaryEndpoint',
+                { context: this._handle }
+            );
+            return new EndpointReference(handle, this._client);
+        },
+    };
+
+    /** Gets the GrpcHost property */
+    grpcHost = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.grpcHost',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the GrpcPort property */
+    grpcPort = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.grpcPort',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the HttpEndpoint property */
+    httpEndpoint = {
+        get: async (): Promise<EndpointReference> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpEndpoint',
+                { context: this._handle }
+            );
+            return new EndpointReference(handle, this._client);
+        },
+    };
+
+    /** Gets the HttpHost property */
+    httpHost = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpHost',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the HttpPort property */
+    httpPort = {
+        get: async (): Promise<EndpointReferenceExpression> => {
+            const handle = await this._client.invokeCapability<EndpointReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpPort',
+                { context: this._handle }
+            );
+            return new EndpointReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the ConnectionStringExpression property */
+    connectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.connectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the UriExpression property */
+    uriExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.uriExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the HttpConnectionStringExpression property */
+    httpConnectionStringExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpConnectionStringExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the HttpUriExpression property */
+    httpUriExpression = {
+        get: async (): Promise<ReferenceExpression> => {
+            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpUriExpression',
+                { context: this._handle }
+            );
+            return new ReferenceExpression(handle, this._client);
+        },
+    };
+
+    /** Gets the Entrypoint property */
+    entrypoint = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.entrypoint',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.setEntrypoint',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the ShellExecution property */
+    shellExecution = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.shellExecution',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.setShellExecution',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/QdrantServerResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** @internal */
     private async _withBindMountInternal(source: string, target: string, isReadOnly?: boolean): Promise<QdrantServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source, target };
@@ -4250,7 +4402,7 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         return new QdrantServerResource(result, this._client);
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a named volume for the data folder to a Qdrant container resource. */
     withDataVolume(options?: WithDataVolumeOptions): QdrantServerResourcePromise {
         const name = options?.name;
         const isReadOnly = options?.isReadOnly;
@@ -4268,7 +4420,7 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         return new QdrantServerResource(result, this._client);
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         const isReadOnly = options?.isReadOnly;
         return new QdrantServerResourcePromise(this._withDataBindMountInternal(source, isReadOnly));
@@ -4486,12 +4638,12 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
         return this._promise.then(obj => obj.getResourceName());
     }
 
-    /** Exports WithDataVolume for polyglot app hosts. */
+    /** Adds a named volume for the data folder to a Qdrant container resource. */
     withDataVolume(options?: WithDataVolumeOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
-    /** Exports WithDataBindMount for polyglot app hosts. */
+    /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
     }

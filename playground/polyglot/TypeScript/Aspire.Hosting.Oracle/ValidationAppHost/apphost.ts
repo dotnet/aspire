@@ -58,11 +58,13 @@ const _port = await oracle.port.get();
 const _userNameRef = await oracle.userNameReference.get();
 const _uri = await oracle.uriExpression.get();
 const _jdbc = await oracle.jdbcConnectionString.get();
+const _cstr = await oracle.connectionStringExpression.get();
 
 // ---- Property access on OracleDatabaseResource ----
 const _dbName: string = await db.databaseName.get();
 const _dbUri = await db.uriExpression.get();
 const _dbJdbc = await db.jdbcConnectionString.get();
 const _dbParent = await db.parent.get();
+const _dbCstr = await db.connectionStringExpression.get();
 
 await builder.build().run();

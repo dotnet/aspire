@@ -4227,6 +4227,19 @@ class TestRedisResource extends ResourceBuilderBase {
         return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withMultiParamHandleCallback", reqArgs);
     }
 
+    /** Adds a data volume with persistence */
+    public TestRedisResource withDataVolume(String name, Boolean isReadOnly) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
+        if (isReadOnly != null) {
+            reqArgs.put("isReadOnly", AspireClient.serializeValue(isReadOnly));
+        }
+        return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDataVolume", reqArgs);
+    }
+
 }
 
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext. */

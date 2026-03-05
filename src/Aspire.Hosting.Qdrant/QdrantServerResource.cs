@@ -6,6 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a Qdrant database.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class QdrantServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "grpc";

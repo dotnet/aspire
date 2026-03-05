@@ -648,6 +648,34 @@ public static class TestExtensions
         return builder;
     }
 
+    // ===== Options Interface Merging Tests =====
+
+    /// <summary>
+    /// WithDataVolume on TestRedisResource — has both name and isReadOnly parameters.
+    /// Tests that options interfaces merge parameters across overloads targeting different types.
+    /// </summary>
+    [AspireExport("withDataVolume", Description = "Adds a data volume with persistence")]
+    public static IResourceBuilder<TestRedisResource> WithDataVolume(
+        this IResourceBuilder<TestRedisResource> builder,
+        string? name = null,
+        bool isReadOnly = false)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// WithDataVolume on TestDatabaseResource — has only name parameter.
+    /// When combined with the TestRedisResource overload, the generated WithDataVolumeOptions
+    /// interface must include both name and isReadOnly (the union of all parameters).
+    /// </summary>
+    [AspireExport("withDataVolume", Description = "Adds a data volume")]
+    public static IResourceBuilder<TestDatabaseResource> WithDataVolume(
+        this IResourceBuilder<TestDatabaseResource> builder,
+        string? name = null)
+    {
+        return builder;
+    }
+
     // ===== Duplicate Class Name Tests =====
 
     /// <summary>

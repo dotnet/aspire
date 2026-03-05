@@ -30,5 +30,15 @@ const sqlChained = await builder.addSqlServer("sql-chained")
 await sqlChained.addDatabase("db1");
 await sqlChained.addDatabase("db2", { databaseName: "customdb2" });
 
+// ---- Property access on SqlServerServerResource ----
+const _endpoint = await sqlServer.primaryEndpoint.get();
+const _host = await sqlServer.host.get();
+const _port = await sqlServer.port.get();
+const _uri = await sqlServer.uriExpression.get();
+const _jdbc = await sqlServer.jdbcConnectionString.get();
+const _userName = await sqlServer.userNameReference.get();
+
 // Build and run the app
+const _cstr = await sqlServer.connectionStringExpression.get();
+const _databases = sqlServer.databases;
 await builder.build().run();

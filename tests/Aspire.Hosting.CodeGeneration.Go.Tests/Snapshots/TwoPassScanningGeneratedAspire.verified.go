@@ -5582,6 +5582,20 @@ func (s *TestRedisResource) WithMultiParamHandleCallback(callback func(...any) a
 	return result.(*TestRedisResource), nil
 }
 
+// WithDataVolume adds a data volume with persistence
+func (s *TestRedisResource) WithDataVolume(name string, isReadOnly bool) (*TestRedisResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["isReadOnly"] = SerializeValue(isReadOnly)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withDataVolume", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestRedisResource), nil
+}
+
 // TestResourceContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext.
 type TestResourceContext struct {
 	HandleWrapperBase

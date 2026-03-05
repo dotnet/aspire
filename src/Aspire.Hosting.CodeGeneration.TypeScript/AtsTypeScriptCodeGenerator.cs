@@ -673,6 +673,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             _optionsInterfacesToGenerate[interfaceName] = optionalParams;
         }
+        else if (_optionsInterfacesToGenerate.TryGetValue(interfaceName, out var existing))
+        {
+            // Merge: add any parameters from this registration that aren't already present.
+            var existingNames = new HashSet<string>(existing.Select(p => p.Name));
+            foreach (var param in optionalParams)
+            {
+                if (existingNames.Add(param.Name))
+                {
+                    existing.Add(param);
+                }
+            }
+        }
     }
 
     /// <summary>
