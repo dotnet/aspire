@@ -76,7 +76,4 @@
   <data name="NoResourcesFound" xml:space="preserve">
     <value>No resources found.</value>
   </data>
-  <data name="WritingExportFile" xml:space="preserve">
-    <value>Writing export file...</value>
-  </data>
 </root>

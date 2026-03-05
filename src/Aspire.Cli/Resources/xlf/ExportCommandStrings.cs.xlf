@@ -62,11 +62,6 @@
         <target state="new">export data from</target>
         <note />
       </trans-unit>
-      <trans-unit id="WritingExportFile">
-        <source>Writing export file...</source>
-        <target state="new">Writing export file...</target>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

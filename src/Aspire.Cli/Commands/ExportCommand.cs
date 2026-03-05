@@ -27,9 +27,9 @@ internal sealed class ExportCommand : BaseCommand
 
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
-    private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<ExportCommand> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly TimeProvider _timeProvider;
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
@@ -52,12 +52,13 @@ internal sealed class ExportCommand : BaseCommand
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
         IHttpClientFactory httpClientFactory,
+        TimeProvider timeProvider,
         ILogger<ExportCommand> logger)
         : base("export", ExportCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
-        _backchannelMonitor = backchannelMonitor;
         _httpClientFactory = httpClientFactory;
+        _timeProvider = timeProvider;
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
@@ -104,7 +105,7 @@ internal sealed class ExportCommand : BaseCommand
         // Default file name if not specified
         if (string.IsNullOrEmpty(outputPath))
         {
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            var timestamp = _timeProvider.GetLocalNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             outputPath = $"aspire-export-{timestamp}.zip";
         }
 
@@ -187,9 +188,9 @@ internal sealed class ExportCommand : BaseCommand
             _interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.ExportComplete, fullPath));
             return ExitCodeConstants.Success;
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch telemetry data during export");
+            _logger.LogError(ex, "Failed to export telemetry data");
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.FailedToExport, ex.Message));
             return ExitCodeConstants.DashboardFailure;
         }

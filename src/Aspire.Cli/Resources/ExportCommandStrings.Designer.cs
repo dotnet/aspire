@@ -192,15 +192,4 @@ internal class ExportCommandStrings
             return ResourceManager.GetString("NoResourcesFound", resourceCulture)!;
         }
     }
-
-    /// <summary>
-    ///   Looks up a localized string similar to Writing export file....
-    /// </summary>
-    public static string WritingExportFile
-    {
-        get
-        {
-            return ResourceManager.GetString("WritingExportFile", resourceCulture)!;
-        }
-    }
 }
