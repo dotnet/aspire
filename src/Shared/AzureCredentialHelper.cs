@@ -24,7 +24,7 @@ internal static class AzureCredentialHelper
             // we just use ManagedIdentityCredential because that's the only credential type that
             // Aspire Hosting enables by default.
             // If this doesn't work for applications, they can override the TokenCredential in their settings.
-            return new ManagedIdentityCredential();
+            return new ManagedIdentityCredential(new ManagedIdentityCredentialOptions());
         }
 
         // when we can't detect a known Azure environment, fall back to the development credential
