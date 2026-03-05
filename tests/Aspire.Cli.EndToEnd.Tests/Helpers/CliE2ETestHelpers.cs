@@ -576,6 +576,20 @@ internal static class CliE2ETestHelpers
                     // Skip the source build stage when we'll install via script instead.
                     c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
                 }
+
+                if (installMode == DockerInstallMode.PullRequest)
+                {
+                    // Forward CI environment variables so get-aspire-cli-pr.sh can
+                    // authenticate with the GitHub API and download PR artifacts.
+                    var ghToken = Environment.GetEnvironmentVariable("GH_TOKEN");
+                    if (!string.IsNullOrEmpty(ghToken))
+                    {
+                        c.Environment["GH_TOKEN"] = ghToken;
+                    }
+
+                    c.Environment["GITHUB_PR_NUMBER"] = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "";
+                    c.Environment["GITHUB_PR_HEAD_SHA"] = Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA") ?? "";
+                }
             });
 
         return builder.Build();
