@@ -1,9 +1,7 @@
 import express from "express";
 import { existsSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -27,7 +25,7 @@ app.get("/health", (_req, res) => {
 
 // Serve static files from the "static" directory if it exists (used in publish/deploy mode
 // when the frontend's build output is bundled into this container via publishWithContainerFiles)
-const staticDir = join(__dirname, "..", "static");
+const staticDir = join(import.meta.dirname, "..", "static");
 if (existsSync(staticDir)) {
   app.use(express.static(staticDir));
 }
