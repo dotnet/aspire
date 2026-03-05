@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
@@ -73,6 +74,18 @@ internal sealed partial class CliTemplateFactory
                     {
                         _interactionService.DisplaySubtleMessage("npm install had warnings or errors. You may need to run 'npm install' manually after dependencies are available.");
                         DisplayProcessOutput(npmInstallResult, treatStandardErrorAsError: false);
+                    }
+
+                    // Write channel to settings.json if available so that aspire add
+                    // knows which channel to use for package resolution
+                    if (!string.IsNullOrEmpty(inputs.Channel))
+                    {
+                        var config = AspireJsonConfiguration.Load(outputPath);
+                        if (config is not null)
+                        {
+                            config.Channel = inputs.Channel;
+                            config.Save(outputPath);
+                        }
                     }
 
                     return new TemplateResult(ExitCodeConstants.Success, outputPath);

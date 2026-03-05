@@ -259,6 +259,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         public string? Version { get; init; }
 
+        public string? ChannelName { get; init; }
+
         [MemberNotNullWhen(true, nameof(Version))]
         [MemberNotNullWhen(false, nameof(ErrorMessage))]
         public bool Success => Version is not null;
@@ -304,7 +306,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
                 }
 
-                return new ResolveTemplateVersionResult { Version = package.Version };
+                // Only persist explicit channel names (e.g. local, daily) — implicit channels
+                // (stable/nuget.org) should not be written so aspire add uses its default behavior.
+                var channelName = selectedChannel.Type is PackageChannelType.Explicit ? selectedChannel.Name : null;
+
+                return new ResolveTemplateVersionResult { Version = package.Version, ChannelName = channelName };
             });
     }
 
@@ -330,6 +336,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         var version = parseResult.GetValue(s_versionOption);
+        string? resolvedChannelName = null;
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
@@ -341,6 +348,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             version = resolveResult.Version;
+            resolvedChannelName = resolveResult.ChannelName;
         }
 
         var inputs = new TemplateInputs
@@ -349,7 +357,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Output = parseResult.GetValue(s_outputOption),
             Source = parseResult.GetValue(s_sourceOption),
             Version = version,
-            Channel = parseResult.GetValue(_channelOption),
+            Channel = parseResult.GetValue(_channelOption) ?? resolvedChannelName,
             Language = selectedLanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
