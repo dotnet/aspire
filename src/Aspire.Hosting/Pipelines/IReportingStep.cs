@@ -27,7 +27,10 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
     Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
-        => CreateTaskAsync(statusText.Value, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(statusText);
+        return CreateTaskAsync(statusText.Value, cancellationToken);
+    }
 
     /// <summary>
     /// Logs a message at the specified level within this step.
@@ -54,9 +57,12 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="logLevel">The log level for the message.</param>
     /// <param name="message">The Markdown-formatted message to log.</param>
     void Log(LogLevel logLevel, MarkdownString message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
 #pragma warning disable CS0618 // Type or member is obsolete
-        => Log(logLevel, message.Value, enableMarkdown: true);
+        Log(logLevel, message.Value, enableMarkdown: true);
 #pragma warning restore CS0618
+    }
 
     /// <summary>
     /// Completes the step with the specified completion text and state.
@@ -73,5 +79,8 @@ public interface IReportingStep : IAsyncDisposable
     /// <param name="completionState">The completion state for the step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
-        => CompleteAsync(completionText.Value, completionState, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(completionText);
+        return CompleteAsync(completionText.Value, completionState, cancellationToken);
+    }
 }

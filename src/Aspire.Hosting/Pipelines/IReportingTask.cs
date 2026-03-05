@@ -24,7 +24,10 @@ public interface IReportingTask : IAsyncDisposable
     /// <param name="statusText">The new Markdown-formatted status text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task UpdateAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
-        => UpdateAsync(statusText.Value, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(statusText);
+        return UpdateAsync(statusText.Value, cancellationToken);
+    }
 
     /// <summary>
     /// Completes the task with the specified completion message.
@@ -41,5 +44,8 @@ public interface IReportingTask : IAsyncDisposable
     /// <param name="completionState">The completion state of the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task CompleteAsync(MarkdownString completionMessage, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
-        => CompleteAsync(completionMessage.Value, completionState, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(completionMessage);
+        return CompleteAsync(completionMessage.Value, completionState, cancellationToken);
+    }
 }

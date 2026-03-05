@@ -104,6 +104,8 @@ internal sealed class ReportingStep : IReportingStep
     /// <inheritdoc />
     public async Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(statusText);
+
         if (Reporter is null)
         {
             throw new InvalidOperationException("Cannot create task: Reporter is not set.");
@@ -139,6 +141,8 @@ internal sealed class ReportingStep : IReportingStep
     /// <inheritdoc />
     public void Log(LogLevel logLevel, MarkdownString message)
     {
+        ArgumentNullException.ThrowIfNull(message);
+
         if (Reporter is null)
         {
             return;
@@ -161,6 +165,8 @@ internal sealed class ReportingStep : IReportingStep
     /// <inheritdoc />
     public async Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(completionText);
+
         if (Reporter is null)
         {
             throw new InvalidOperationException("Cannot complete step: Reporter is not set.");

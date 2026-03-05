@@ -60,6 +60,7 @@ internal sealed class ReportingTask : IReportingTask
     /// <inheritdoc />
     public async Task UpdateAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(statusText);
         await ParentStep.Reporter.UpdateTaskAsync(this, statusText.Value, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
     }
 
@@ -72,6 +73,7 @@ internal sealed class ReportingTask : IReportingTask
     /// <inheritdoc />
     public async Task CompleteAsync(MarkdownString completionMessage, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(completionMessage);
         await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage.Value, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
     }
 
