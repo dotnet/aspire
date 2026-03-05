@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections;
-using System.Text;
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
 using Azure.Search.Documents.Indexes;
@@ -103,20 +101,4 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
 
     protected override void TriggerActivity(SearchIndexClient service)
         => service.GetIndex("my-index");
-
-    [Fact]
-    public void DumpEnvironmentVariablesForDiag()
-    {
-        var variableString = new StringBuilder();
-        variableString.AppendLine("ERIC:");
-        foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
-        {
-            variableString.AppendLine($"{entry.Key}: {entry.Value}");
-        }
-        var message = variableString.ToString();
-
-        Output?.WriteLine(message);
-
-        Assert.Fail(message);
-    }
 }
