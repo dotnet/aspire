@@ -4,7 +4,8 @@ const builder = await createBuilder();
 
 const api = await builder
     .addNodeApp("api", "./api", "src/index.ts")
-    .withHttpEndpoint({ env: "PORT" });
+    .withHttpEndpoint({ env: "PORT" })
+    .withExternalHttpEndpoints();
 
 const frontend = await builder
     .addViteApp("frontend", "./frontend")
