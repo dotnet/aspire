@@ -12,9 +12,9 @@
         <target state="new">Export saved to {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToFetchTelemetry">
-        <source>Failed to fetch telemetry data: {0}</source>
-        <target state="new">Failed to fetch telemetry data: {0}</target>
+      <trans-unit id="FailedToExport">
+        <source>Failed to export resource and telemetry data: {0}</source>
+        <target state="new">Failed to export resource and telemetry data: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="GatheringConsoleLogs">

@@ -73,8 +73,9 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
             entry => Assert.Equal("consolelogs/redis.txt", entry),
             entry => Assert.Equal("resources/apiservice.json", entry),
             entry => Assert.Equal("resources/redis.json", entry),
-            entry => Assert.Equal("structuredlogs/structured-logs.json", entry),
-            entry => Assert.Equal("traces/traces.json", entry));
+            entry => Assert.Equal("structuredlogs/apiservice.json", entry),
+            entry => Assert.Equal("structuredlogs/redis.json", entry),
+            entry => Assert.Equal("traces/apiservice.json", entry));
 
         // Verify console log content
         var redisConsoleLog = ReadEntryText(archive, "consolelogs/redis.txt");
@@ -89,14 +90,19 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("redis", redisResourceJson);
         Assert.Contains("Container", redisResourceJson);
 
-        // Verify structured logs content is valid JSON
-        var structuredLogsJson = ReadEntryText(archive, "structuredlogs/structured-logs.json");
-        var structuredLogsData = JsonSerializer.Deserialize(structuredLogsJson, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
-        Assert.NotNull(structuredLogsData?.ResourceLogs);
-        Assert.NotEmpty(structuredLogsData.ResourceLogs);
+        // Verify structured logs content is valid JSON (per resource)
+        var apiStructuredLogsJson = ReadEntryText(archive, "structuredlogs/apiservice.json");
+        var apiStructuredLogsData = JsonSerializer.Deserialize(apiStructuredLogsJson, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(apiStructuredLogsData?.ResourceLogs);
+        Assert.NotEmpty(apiStructuredLogsData.ResourceLogs);
 
-        // Verify traces content is valid JSON
-        var tracesContent = ReadEntryText(archive, "traces/traces.json");
+        var redisStructuredLogsJson = ReadEntryText(archive, "structuredlogs/redis.json");
+        var redisStructuredLogsData = JsonSerializer.Deserialize(redisStructuredLogsJson, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(redisStructuredLogsData?.ResourceLogs);
+        Assert.NotEmpty(redisStructuredLogsData.ResourceLogs);
+
+        // Verify traces content is valid JSON (per resource)
+        var tracesContent = ReadEntryText(archive, "traces/apiservice.json");
         var tracesData = JsonSerializer.Deserialize(tracesContent, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         Assert.NotNull(tracesData?.ResourceSpans);
         Assert.NotEmpty(tracesData.ResourceSpans);
@@ -287,6 +293,133 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
             entry => Assert.Equal("resources/target-resource.json", entry));
         var logContent = ReadEntryText(archive, "consolelogs/target-resource.txt");
         Assert.Contains("Target resource log", logContent);
+    }
+
+    [Fact]
+    public async Task ExportCommand_ReplicaResources_GroupsDataByResolvedResourceName()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        // 3 telemetry resources: redis (singleton) + apiservice with 2 replicas
+        var resources = new[]
+        {
+            new ResourceInfoJson { Name = "redis", InstanceId = null },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "abc" },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "def" },
+        };
+
+        // Structured logs from all 3 resources
+        var logsJson = BuildLogsJson(
+            ("redis", null, 9, "Information", "Cache ready", s_testTime),
+            ("apiservice", "abc", 9, "Information", "Replica 1 started", s_testTime.AddSeconds(1)),
+            ("apiservice", "def", 13, "Warning", "Replica 2 slow startup", s_testTime.AddSeconds(2)));
+
+        // Traces from both replicas (redis has no traces)
+        var tracesJson = BuildTracesJson(
+            ("apiservice", "abc", "span001", "GET /api/products", s_testTime, s_testTime.AddMilliseconds(50), false),
+            ("apiservice", "def", "span002", "GET /api/orders", s_testTime.AddSeconds(1), s_testTime.AddSeconds(1).AddMilliseconds(80), false));
+
+        var provider = CreateExportTestServices(workspace, outputWriter, resources,
+            telemetryEndpoints: new Dictionary<string, string>
+            {
+                ["/api/telemetry/logs"] = logsJson,
+                ["/api/telemetry/traces"] = tracesJson,
+            },
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice-abc", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice-def", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+            ],
+            logLines:
+            [
+                new ResourceLogLine { ResourceName = "redis", LineNumber = 1, Content = "Redis ready" },
+                new ResourceLogLine { ResourceName = "apiservice-abc", LineNumber = 1, Content = "Replica 1 console log" },
+                new ResourceLogLine { ResourceName = "apiservice-def", LineNumber = 1, Content = "Replica 2 console log" },
+            ]);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"export --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.True(File.Exists(outputPath), "Export zip file should be created");
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(n => n).ToList();
+
+        // Replicas should produce separate files with resolved names (apiservice-abc, apiservice-def)
+        Assert.Collection(entryNames,
+            entry => Assert.Equal("consolelogs/apiservice-abc.txt", entry),
+            entry => Assert.Equal("consolelogs/apiservice-def.txt", entry),
+            entry => Assert.Equal("consolelogs/redis.txt", entry),
+            entry => Assert.Equal("resources/apiservice-abc.json", entry),
+            entry => Assert.Equal("resources/apiservice-def.json", entry),
+            entry => Assert.Equal("resources/redis.json", entry),
+            entry => Assert.Equal("structuredlogs/apiservice-abc.json", entry),
+            entry => Assert.Equal("structuredlogs/apiservice-def.json", entry),
+            entry => Assert.Equal("structuredlogs/redis.json", entry),
+            entry => Assert.Equal("traces/apiservice-abc.json", entry),
+            entry => Assert.Equal("traces/apiservice-def.json", entry));
+
+        // Verify console logs are separated by replica
+        var replica1Console = ReadEntryText(archive, "consolelogs/apiservice-abc.txt").Trim();
+        Assert.Equal("Replica 1 console log", replica1Console);
+
+        var replica2Console = ReadEntryText(archive, "consolelogs/apiservice-def.txt").Trim();
+        Assert.Equal("Replica 2 console log", replica2Console);
+
+        // Verify structured logs are grouped per resource
+        var replica1Logs = JsonSerializer.Deserialize(
+            ReadEntryText(archive, "structuredlogs/apiservice-abc.json"),
+            OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(replica1Logs?.ResourceLogs);
+        Assert.Single(replica1Logs.ResourceLogs);
+        Assert.Equal("apiservice", replica1Logs.ResourceLogs[0].Resource?.GetServiceName());
+        Assert.Equal("abc", replica1Logs.ResourceLogs[0].Resource?.GetServiceInstanceId());
+
+        var replica2Logs = JsonSerializer.Deserialize(
+            ReadEntryText(archive, "structuredlogs/apiservice-def.json"),
+            OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(replica2Logs?.ResourceLogs);
+        Assert.Single(replica2Logs.ResourceLogs);
+        Assert.Equal("def", replica2Logs.ResourceLogs[0].Resource?.GetServiceInstanceId());
+
+        var redisLogs = JsonSerializer.Deserialize(
+            ReadEntryText(archive, "structuredlogs/redis.json"),
+            OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(redisLogs?.ResourceLogs);
+        Assert.Single(redisLogs.ResourceLogs);
+        Assert.Equal("redis", redisLogs.ResourceLogs[0].Resource?.GetServiceName());
+
+        // Verify traces are grouped per replica (redis has no traces)
+        var replica1Traces = JsonSerializer.Deserialize(
+            ReadEntryText(archive, "traces/apiservice-abc.json"),
+            OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(replica1Traces?.ResourceSpans);
+        Assert.Single(replica1Traces.ResourceSpans);
+        var replica1Span = Assert.Single(replica1Traces.ResourceSpans[0].ScopeSpans![0].Spans!);
+        Assert.Equal("GET /api/products", replica1Span.Name);
+
+        var replica2Traces = JsonSerializer.Deserialize(
+            ReadEntryText(archive, "traces/apiservice-def.json"),
+            OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+        Assert.NotNull(replica2Traces?.ResourceSpans);
+        Assert.Single(replica2Traces.ResourceSpans);
+        var replica2Span = Assert.Single(replica2Traces.ResourceSpans[0].ScopeSpans![0].Spans!);
+        Assert.Equal("GET /api/orders", replica2Span.Name);
+
+        // Verify resource JSON has correct types for replicas
+        var replica1ResourceData = JsonSerializer.Deserialize(ReadEntryText(archive, "resources/apiservice-abc.json"), OtlpJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(replica1ResourceData);
+        Assert.Equal("Project", replica1ResourceData.ResourceType);
+
+        var redisResourceData = JsonSerializer.Deserialize(ReadEntryText(archive, "resources/redis.json"), OtlpJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(redisResourceData);
+        Assert.Equal("Container", redisResourceData.ResourceType);
     }
 
     /// <summary>

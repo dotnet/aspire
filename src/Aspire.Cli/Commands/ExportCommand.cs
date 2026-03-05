@@ -10,6 +10,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.Otlp.Serialization;
 using Aspire.Shared.Export;
@@ -126,24 +127,23 @@ internal sealed class ExportCommand : BaseCommand
                 return (resources, snaps);
             });
 
-            // Filter by resource name if specified
+            // Validate resource name exists (match by Name or DisplayName since users may pass either)
             if (resourceName is not null)
             {
-                snapshots = snapshots.Where(s =>
-                    string.Equals(s.Name, resourceName, StringComparisons.ResourceName) ||
-                    string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName)).ToList();
-
-                if (snapshots.Count == 0)
+                if (!snapshots.Any(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)
+                                     || string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName)))
                 {
                     _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.ResourceNotFound, resourceName));
                     return ExitCodeConstants.InvalidCommand;
                 }
             }
-
-            if (snapshots.Count == 0)
+            else
             {
-                _interactionService.DisplayMessage(KnownEmojis.Information, ExportCommandStrings.NoResourcesFound);
-                return ExitCodeConstants.Success;
+                if (snapshots.Count == 0)
+                {
+                    _interactionService.DisplayMessage(KnownEmojis.Information, ExportCommandStrings.NoResourcesFound);
+                    return ExitCodeConstants.Success;
+                }
             }
 
             // Resolve which telemetry resources match the filter
@@ -152,6 +152,8 @@ internal sealed class ExportCommand : BaseCommand
             {
                 TelemetryCommandHelpers.TryResolveResourceNames(resourceName, telemetryResources, out resolvedTelemetryResources);
             }
+
+            var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(telemetryResources);
 
             var exportArchive = new ExportArchive();
 
@@ -168,27 +170,27 @@ internal sealed class ExportCommand : BaseCommand
             // 3. Export structured logs from Dashboard API
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringStructuredLogs, async () =>
             {
-                await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
+                await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
                 return true;
             });
 
             // 4. Export traces from Dashboard API
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringTraces, async () =>
             {
-                await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, cancellationToken).ConfigureAwait(false);
+                await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
                 return true;
             });
 
-            exportArchive.WriteToFile(outputPath);
-
             var fullPath = Path.GetFullPath(outputPath);
+            exportArchive.WriteToFile(fullPath);
+
             _interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.ExportComplete, fullPath));
             return ExitCodeConstants.Success;
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Failed to fetch telemetry data during export");
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.FailedToFetchTelemetry, ex.Message));
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.FailedToExport, ex.Message));
             return ExitCodeConstants.DashboardFailure;
         }
     }
@@ -239,6 +241,7 @@ internal sealed class ExportCommand : BaseCommand
         HttpClient client,
         string baseUrl,
         List<string>? resolvedResources,
+        IReadOnlyList<IOtlpResource> allOtlpResources,
         CancellationToken cancellationToken)
     {
         var url = DashboardUrls.TelemetryLogsApiUrl(baseUrl, resolvedResources);
@@ -250,10 +253,17 @@ internal sealed class ExportCommand : BaseCommand
 
         if (apiResponse?.Data?.ResourceLogs is { Length: > 0 })
         {
-            exportArchive.StructuredLogs["structured-logs"] = new OtlpTelemetryDataJson
+            // Group by resolved resource name so each resource gets its own file
+            var groups = apiResponse.Data.ResourceLogs
+                .GroupBy(rl => TelemetryCommandHelpers.ResolveResourceName(rl.Resource, allOtlpResources));
+
+            foreach (var group in groups)
             {
-                ResourceLogs = apiResponse.Data.ResourceLogs
-            };
+                exportArchive.StructuredLogs[group.Key] = new OtlpTelemetryDataJson
+                {
+                    ResourceLogs = group.ToArray()
+                };
+            }
         }
     }
 
@@ -262,6 +272,7 @@ internal sealed class ExportCommand : BaseCommand
         HttpClient client,
         string baseUrl,
         List<string>? resolvedResources,
+        IReadOnlyList<IOtlpResource> allOtlpResources,
         CancellationToken cancellationToken)
     {
         var url = DashboardUrls.TelemetryTracesApiUrl(baseUrl, resolvedResources);
@@ -273,10 +284,17 @@ internal sealed class ExportCommand : BaseCommand
 
         if (apiResponse?.Data?.ResourceSpans is { Length: > 0 })
         {
-            exportArchive.Traces["traces"] = new OtlpTelemetryDataJson
+            // Group by resolved resource name so each resource gets its own file
+            var groups = apiResponse.Data.ResourceSpans
+                .GroupBy(rs => TelemetryCommandHelpers.ResolveResourceName(rs.Resource, allOtlpResources));
+
+            foreach (var group in groups)
             {
-                ResourceSpans = apiResponse.Data.ResourceSpans
-            };
+                exportArchive.Traces[group.Key] = new OtlpTelemetryDataJson
+                {
+                    ResourceSpans = group.ToArray()
+                };
+            }
         }
     }
 }

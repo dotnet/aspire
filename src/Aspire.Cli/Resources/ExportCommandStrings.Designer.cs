@@ -161,13 +161,13 @@ internal class ExportCommandStrings
     }
 
     /// <summary>
-    ///   Looks up a localized string similar to Failed to fetch telemetry data: {0}.
+    ///   Looks up a localized string similar to Failed to export resource and telemetry data: {0}.
     /// </summary>
-    public static string FailedToFetchTelemetry
+    public static string FailedToExport
     {
         get
         {
-            return ResourceManager.GetString("FailedToFetchTelemetry", resourceCulture)!;
+            return ResourceManager.GetString("FailedToExport", resourceCulture)!;
         }
     }
 

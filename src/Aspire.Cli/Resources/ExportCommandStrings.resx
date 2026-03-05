@@ -67,8 +67,8 @@
   <data name="ExportComplete" xml:space="preserve">
     <value>Export saved to {0}</value>
   </data>
-  <data name="FailedToFetchTelemetry" xml:space="preserve">
-    <value>Failed to fetch telemetry data: {0}</value>
+  <data name="FailedToExport" xml:space="preserve">
+    <value>Failed to export resource and telemetry data: {0}</value>
   </data>
   <data name="ResourceNotFound" xml:space="preserve">
     <value>Resource '{0}' not found.</value>
