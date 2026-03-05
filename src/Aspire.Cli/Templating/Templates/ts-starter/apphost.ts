@@ -12,6 +12,6 @@ const frontend = await builder
     .withServiceReference(app)
     .waitFor(app);
 
-app.publishWithContainerFiles(frontend, "./static");
+await app.publishWithContainerFiles(frontend, "./static");
 
 await builder.build().run();
