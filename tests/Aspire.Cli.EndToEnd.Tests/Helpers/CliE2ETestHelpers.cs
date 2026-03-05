@@ -456,9 +456,10 @@ internal static class CliE2ETestHelpers
             return DockerInstallMode.PullRequest;
         }
 
-        // Check if local build artifacts exist (developer has built the CLI locally).
-        var cliPublishDir = Path.Combine(repoRoot, "artifacts", "bin", "Aspire.Cli");
-        if (Directory.Exists(cliPublishDir))
+        // Check if a local bundle archive exists (developer has run ./build.sh --bundle).
+        var bundleDir = Path.Combine(repoRoot, "artifacts", "bundle");
+        if (Directory.Exists(bundleDir) &&
+            Directory.GetFiles(bundleDir, "aspire-*-linux-x64.tar.gz").Length > 0)
         {
             return DockerInstallMode.SourceBuild;
         }
