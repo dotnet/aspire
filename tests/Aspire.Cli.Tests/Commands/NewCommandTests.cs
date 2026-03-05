@@ -539,15 +539,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommand_EmptyPackageList_DisplaysErrorMessage()
     {
-        string? displayedErrorMessage = null;
+        TestInteractionService? testInteractionService = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) => {
-                    displayedErrorMessage = message;
-                };
+                testInteractionService = new TestInteractionService();
                 return testInteractionService;
             };
 
@@ -568,7 +565,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
-        Assert.Contains(TemplatingStrings.NoTemplateVersionsFound, displayedErrorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.Contains(testInteractionService.DisplayedErrors, e => e.Contains(TemplatingStrings.NoTemplateVersionsFound));
     }
 
     [Fact]

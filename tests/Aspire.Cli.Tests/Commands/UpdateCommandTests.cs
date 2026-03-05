@@ -624,8 +624,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        var errorDisplayed = false;
-        string? errorMessage = null;
+        TestInteractionService? testInteractionService = null;
         
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -637,13 +636,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.InteractionServiceFactory = _ => new TestInteractionService()
+            options.InteractionServiceFactory = _ =>
             {
-                DisplayErrorCallback = (message) =>
-                {
-                    errorDisplayed = true;
-                    errorMessage = message;
-                }
+                testInteractionService = new TestInteractionService();
+                return testInteractionService;
             };
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
@@ -671,8 +667,9 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
-        Assert.True(errorDisplayed, "Error should be displayed for invalid quality");
-        Assert.NotNull(errorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.NotEmpty(testInteractionService.DisplayedErrors);
+        var errorMessage = Assert.Single(testInteractionService.DisplayedErrors);
         Assert.Contains("invalid", errorMessage);
         Assert.Contains("stable", errorMessage);
         Assert.Contains("daily", errorMessage);

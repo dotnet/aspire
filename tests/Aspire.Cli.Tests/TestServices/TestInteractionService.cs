@@ -17,7 +17,6 @@ internal sealed class TestInteractionService : IInteractionService
     public ConsoleOutput Console { get; set; }
 
     // Callback hooks
-    public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
@@ -137,7 +136,6 @@ internal sealed class TestInteractionService : IInteractionService
     public void DisplayError(string errorMessage)
     {
         DisplayedErrors.Add(errorMessage);
-        DisplayErrorCallback?.Invoke(errorMessage);
     }
 
     public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)

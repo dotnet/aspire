@@ -408,18 +408,14 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommand_EmptyPackageList_DisplaysErrorMessage()
     {
-        string? displayedErrorMessage = null;
+        TestInteractionService? testInteractionService = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new TestInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) =>
-                {
-                    displayedErrorMessage = message;
-                };
+                testInteractionService = new TestInteractionService();
                 return testInteractionService;
             };
 
@@ -443,7 +439,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
-        Assert.Contains(AddCommandStrings.NoIntegrationPackagesFound, displayedErrorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.Contains(testInteractionService.DisplayedErrors, e => e.Contains(AddCommandStrings.NoIntegrationPackagesFound));
     }
 
     [Fact]

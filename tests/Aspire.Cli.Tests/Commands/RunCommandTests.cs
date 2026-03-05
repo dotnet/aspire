@@ -386,7 +386,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenDashboardFailsToStart_ReturnsNonZeroExitCodeWithClearErrorMessage()
     {
-        var errorMessages = new List<string>();
 
         var backchannelFactory = (IServiceProvider sp) =>
         {
@@ -437,12 +436,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             options.ProjectLocatorFactory = projectLocatorFactory;
             options.AppHostBackchannelFactory = backchannelFactory;
             options.DotNetCliRunnerFactory = runnerFactory;
-            options.InteractionServiceFactory = (sp) =>
-            {
-                var interactionService = new TestInteractionService();
-                interactionService.DisplayErrorCallback = errorMessages.Add;
-                return interactionService;
-            };
+            options.InteractionServiceFactory = (sp) => new TestInteractionService();
         });
 
         var provider = services.BuildServiceProvider();
