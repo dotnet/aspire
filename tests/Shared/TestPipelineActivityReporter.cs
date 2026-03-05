@@ -83,7 +83,7 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     /// <summary>
     /// Gets the pipeline summary passed to <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/>.
     /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; private set; }
+    public IReadOnlyList<PipelineSummaryItem>? PipelineSummary { get; private set; }
 
     /// <summary>
     /// Clears all captured state to allow reuse between pipeline runs.
@@ -127,7 +127,7 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletionMessage = options?.CompletionMessage;
         ResultCompletionState = options?.CompletionState;
         PipelineSummary = options?.PipelineSummary;
-        var summaryStr = options?.PipelineSummary != null ? string.Join(", ", options.PipelineSummary.Select(kvp => $"{kvp.Key}={kvp.Value}")) : null;
+        var summaryStr = options?.PipelineSummary != null ? string.Join(", ", options.PipelineSummary.Select(item => $"{item.Key}={item.Value}")) : null;
         _testOutputHelper.WriteLine($"[CompletePublish] {options?.CompletionMessage} (State: {options?.CompletionState}) (Summary: {summaryStr})");
 
         return Task.CompletedTask;
