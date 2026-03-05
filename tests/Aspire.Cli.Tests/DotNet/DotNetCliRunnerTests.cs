@@ -613,12 +613,16 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
                 var versionFlagIndex = Array.IndexOf(args, "--version");
                 var versionValueIndex = Array.IndexOf(args, "9.2.0");
+                var sourceFlagIndex = Array.IndexOf(args, "--source");
+                var sourceValueIndex = Array.IndexOf(args, "https://api.nuget.org/v3/index.json");
 
                 Assert.True(addIndex < projectIndex);
                 Assert.True(projectIndex < packageIndex);
                 Assert.True(packageIndex < packageNameIndex);
                 Assert.True(packageNameIndex < versionFlagIndex);
                 Assert.True(versionFlagIndex < versionValueIndex);
+                Assert.True(packageNameIndex < sourceFlagIndex);
+                Assert.True(sourceFlagIndex < sourceValueIndex);
 
                 // Should NOT contain --file or the @version format
                 Assert.DoesNotContain("--file", args);
@@ -680,7 +684,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 Assert.True(packageIndex < packageNameIndex);
                 Assert.True(packageNameIndex < versionFlagIndex);
                 Assert.True(versionFlagIndex < versionValueIndex);
-                Assert.True(versionValueIndex < noRestoreIndex);
+                Assert.True(packageNameIndex < noRestoreIndex);
 
                 // Should NOT contain --file, --source, or the @version format
                 Assert.DoesNotContain("--file", args);
@@ -694,7 +698,76 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             "Aspire.Hosting.Redis",
             "9.2.0",
             null,
-            true, // should use --no-restore
+            true,
+            options,
+            CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task AddPackageAsyncWithSourceAndNoRestoreHasArgumentSourceAndNoRestore()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = DotNetCliRunnerTestHelper.Create(
+            provider,
+            executionContext,
+            (args, _, _, _) =>
+            {
+                // Verify arguments are correct for .csproj file with --no-restore (no source provided)
+                Assert.Contains("add", args);
+                Assert.Contains("package", args);
+                Assert.Contains(projectFile.FullName, args);
+                Assert.Contains("Aspire.Hosting.Redis", args);
+                Assert.Contains("--version", args);
+                Assert.Contains("9.2.0", args);
+                Assert.Contains("--source", args);
+                Assert.Contains("https://api.nuget.org/v3/index.json", args);
+                Assert.Contains("--no-restore", args);
+
+                // Verify the order: add ProjectFile package PackageName --version Version --no-restore
+                var addIndex = Array.IndexOf(args, "add");
+                var projectIndex = Array.IndexOf(args, projectFile.FullName);
+                var packageIndex = Array.IndexOf(args, "package");
+                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
+                var versionFlagIndex = Array.IndexOf(args, "--version");
+                var versionValueIndex = Array.IndexOf(args, "9.2.0");
+                var sourceFlagIndex = Array.IndexOf(args, "--source");
+                var sourceValueIndex = Array.IndexOf(args, "https://api.nuget.org/v3/index.json");
+                var noRestoreIndex = Array.IndexOf(args, "--no-restore");
+
+                Assert.True(addIndex < projectIndex);
+                Assert.True(projectIndex < packageIndex);
+                Assert.True(packageIndex < packageNameIndex);
+                Assert.True(packageNameIndex < versionFlagIndex);
+                Assert.True(versionFlagIndex < versionValueIndex);
+                Assert.True(packageNameIndex < noRestoreIndex);
+                Assert.True(packageNameIndex < sourceFlagIndex);
+                Assert.True(sourceFlagIndex < sourceValueIndex);
+                Assert.True(packageNameIndex < noRestoreIndex);
+
+                // Should NOT contain --file, --source, or the @version format
+                Assert.DoesNotContain("--file", args);
+                Assert.DoesNotContain("Aspire.Hosting.Redis@9.2.0", args);
+            },
+            0);
+
+        var exitCode = await runner.AddPackageAsync(
+            projectFile,
+            "Aspire.Hosting.Redis",
+            "9.2.0",
+            "https://api.nuget.org/v3/index.json", // provide source, should use --source
+            true,
             options,
             CancellationToken.None
             );
