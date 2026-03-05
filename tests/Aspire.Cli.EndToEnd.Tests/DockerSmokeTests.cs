@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
-using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
@@ -10,30 +9,25 @@ namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
 /// Smoke tests that run inside a Docker container using Hex1b's WithDockerContainer API.
-/// These tests install the GA release of Aspire CLI from aspire.dev and verify it works
-/// in an isolated container environment.
+/// The test environment is built from a Dockerfile that can either compile the CLI from
+/// source (local dev) or accept pre-built artifacts (CI). The test code detects the
+/// environment and installs the CLI accordingly.
 /// </summary>
 public sealed class DockerSmokeTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task InstallAndVerifyAspireGAInDockerContainer()
+    public async Task InstallAndVerifyAspireInDockerContainer()
     {
-        _ = output; // Reserved for future logging use.
+        _ = output;
 
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(InstallAndVerifyAspireGAInDockerContainer));
+        // The repo root is the Docker build context — needed for multi-stage Dockerfile
+        // to COPY source files when building from source.
+        var repoRoot = GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
 
-        using var terminal = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithDockerContainer()
-            .Build();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // The Docker container runs as root, so the bash prompt uses '#' instead of '$'.
-        var waitingForContainerReady = new CellPatternSearcher()
-            .Find("# ");
 
         var waitingForAspireVersion = new CellPatternSearcher()
             .FindPattern(@"\d+\.\d+\.\d+");
@@ -41,36 +35,17 @@ public sealed class DockerSmokeTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        // Wait for the container to start and bash to show a prompt.
-        sequenceBuilder
-            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Wait(500);
+        // Set up prompt tracking inside the Docker container (handles root # prompt).
+        sequenceBuilder.PrepareDockerEnvironment(counter);
 
-        // Set up prompt tracking (same mechanism as PrepareEnvironment but without
-        // changing to a host workspace directory that doesn't exist in the container).
-        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
-        sequenceBuilder
-            .Type(promptSetup)
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        // Install the CLI using the method appropriate for the current environment.
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
-        // Install the GA release of Aspire CLI from aspire.dev.
-        sequenceBuilder
-            .Type("curl -sSL https://aspire.dev/install.sh | bash")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
-
-        // Add the Aspire CLI to PATH.
-        sequenceBuilder
-            .Type("export PATH=~/.aspire/bin:$PATH")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Verify the Aspire CLI is installed and reports a version.
+        // Verify the CLI reports a version number.
         sequenceBuilder
             .Type("aspire --version")
             .Enter()
-            .WaitUntil(s => waitingForAspireVersion.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitingForAspireVersion.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter)
             .Type("exit")
             .Enter();
@@ -80,5 +55,27 @@ public sealed class DockerSmokeTests(ITestOutputHelper output)
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
 
         await pendingRun;
+    }
+
+    /// <summary>
+    /// Walks up from the test assembly directory to find the repo root (contains Aspire.slnx).
+    /// </summary>
+    private static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
+            {
+                return dir.FullName;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "Could not find repo root (directory containing Aspire.slnx) " +
+            $"by walking up from {AppContext.BaseDirectory}");
     }
 }

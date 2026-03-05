@@ -497,4 +497,155 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
+
+    /// <summary>
+    /// Specifies how the Aspire CLI should be installed inside a Docker container.
+    /// </summary>
+    internal enum DockerInstallMode
+    {
+        /// <summary>
+        /// The CLI was built from source by the Dockerfile and is already on PATH.
+        /// </summary>
+        SourceBuild,
+
+        /// <summary>
+        /// Install the latest GA release from aspire.dev.
+        /// </summary>
+        GaRelease,
+
+        /// <summary>
+        /// Install from PR artifacts using the get-aspire-cli-pr.sh script.
+        /// </summary>
+        PullRequest,
+    }
+
+    /// <summary>
+    /// Detects the install mode for Docker-based tests based on the current environment.
+    /// </summary>
+    /// <param name="repoRoot">The repo root directory on the host.</param>
+    /// <returns>The detected <see cref="DockerInstallMode"/>.</returns>
+    internal static DockerInstallMode DetectDockerInstallMode(string repoRoot)
+    {
+        if (IsRunningInCI)
+        {
+            return DockerInstallMode.PullRequest;
+        }
+
+        // Check if local build artifacts exist (developer has built the CLI locally).
+        var cliPublishDir = Path.Combine(repoRoot, "artifacts", "bin", "Aspire.Cli");
+        if (Directory.Exists(cliPublishDir))
+        {
+            return DockerInstallMode.SourceBuild;
+        }
+
+        return DockerInstallMode.GaRelease;
+    }
+
+    /// <summary>
+    /// Creates a Hex1b terminal that runs inside a Docker container built from the E2E Dockerfile.
+    /// The Dockerfile builds the CLI from source (local dev) or accepts pre-built artifacts (CI).
+    /// </summary>
+    /// <param name="repoRoot">The repo root directory, used as the Docker build context.</param>
+    /// <param name="installMode">The detected install mode, controlling Docker build args and volumes.</param>
+    /// <param name="width">Terminal width in columns.</param>
+    /// <param name="height">Terminal height in rows.</param>
+    /// <param name="testName">The test name for the recording file path.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/>. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateDockerTestTerminal(
+        string repoRoot,
+        DockerInstallMode installMode,
+        int width = 160,
+        int height = 48,
+        [CallerMemberName] string testName = "")
+    {
+        var recordingPath = GetTestResultsRecordingPath(testName);
+        var dockerfilePath = Path.Combine(repoRoot, "tests", "Aspire.Cli.EndToEnd.Tests", "docker", "Dockerfile.e2e");
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithDimensions(width, height)
+            .WithAsciinemaRecording(recordingPath)
+            .WithDockerContainer(c =>
+            {
+                c.DockerfilePath = dockerfilePath;
+                c.BuildContext = repoRoot;
+
+                if (installMode != DockerInstallMode.SourceBuild)
+                {
+                    // Skip the source build stage when we'll install via script instead.
+                    c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
+                }
+            });
+
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Sets up the bash prompt tracking inside a Docker container.
+    /// Docker containers run as root, so the default prompt uses '#' instead of '$'.
+    /// This method waits for the container prompt and configures the sequence counter.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder PrepareDockerEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Docker containers run as root, so bash shows '# ' (not '$ ').
+        // With --norc, the prompt may be 'bash-X.Y# ' or 'root@host:/# '.
+        var waitingForContainerReady = new CellPatternSearcher()
+            .Find("# ");
+
+        builder
+            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Wait(500);
+
+        // Set up the same prompt counting mechanism used by all E2E tests.
+        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
+
+        return builder
+            .Type(promptSetup)
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI inside a Docker container based on the detected install mode.
+    /// For <see cref="DockerInstallMode.SourceBuild"/>, the CLI is already installed by the Dockerfile.
+    /// For <see cref="DockerInstallMode.GaRelease"/>, downloads and installs from aspire.dev.
+    /// For <see cref="DockerInstallMode.PullRequest"/>, uses the PR install script.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireCliInDocker(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        DockerInstallMode installMode,
+        SequenceCounter counter)
+    {
+        switch (installMode)
+        {
+            case DockerInstallMode.SourceBuild:
+                // CLI was built from source by the Dockerfile and is already on PATH.
+                // Just verify it's accessible.
+                return builder
+                    .Type("which aspire")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+            case DockerInstallMode.GaRelease:
+                // Install the latest GA release from aspire.dev.
+                return builder
+                    .Type("curl -sSL https://aspire.dev/install.sh | bash")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
+                    .Type("export PATH=~/.aspire/bin:$PATH")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+            case DockerInstallMode.PullRequest:
+                var prNumber = GetRequiredPrNumber();
+                builder.InstallAspireCliFromPullRequest(prNumber, counter);
+                builder.SourceAspireCliEnvironment(counter);
+                return builder;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(installMode));
+        }
+    }
 }
