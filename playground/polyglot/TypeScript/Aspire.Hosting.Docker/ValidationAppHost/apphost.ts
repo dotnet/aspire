@@ -3,6 +3,7 @@ import { createBuilder } from './.modules/aspire.js';
 const builder = await createBuilder();
 
 const compose = await builder.addDockerComposeEnvironment("compose");
+const api = await builder.addContainer("api", "nginx:alpine");
 
 await compose.withProperties(async (environment) => {
     await environment.defaultNetworkName.set("validation-network");
@@ -30,6 +31,20 @@ await compose.configureDashboard(async (dashboard) => {
     const otlpGrpcEndpoint = await dashboard.otlpGrpcEndpoint.get();
     const _otlpGrpcUrl: string = await otlpGrpcEndpoint.url.get();
     const _otlpGrpcPort: number = await otlpGrpcEndpoint.port.get();
+});
+
+await api.publishAsDockerComposeService(async (composeService, service) => {
+    await service.containerName.set("validation-api");
+    await service.pullPolicy.set("always");
+    await service.restart.set("unless-stopped");
+
+    const _composeServiceName: string = await composeService.name.get();
+    const composeEnvironment = await composeService.parent.get();
+    const _composeEnvironmentName: string = await composeEnvironment.name.get();
+
+    const _serviceContainerName: string = await service.containerName.get();
+    const _servicePullPolicy: string = await service.pullPolicy.get();
+    const _serviceRestart: string = await service.restart.get();
 });
 
 const resolvedCompose = await compose;

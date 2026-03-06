@@ -32,6 +32,12 @@ type DockerComposeAspireDashboardResourceHandle = Handle<'Aspire.Hosting.Docker/
 /** Handle to DockerComposeEnvironmentResource */
 type DockerComposeEnvironmentResourceHandle = Handle<'Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeEnvironmentResource'>;
 
+/** Handle to DockerComposeServiceResource */
+type DockerComposeServiceResourceHandle = Handle<'Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeServiceResource'>;
+
+/** Handle to Service */
+type ServiceHandle = Handle<'Aspire.Hosting.Docker/Aspire.Hosting.Docker.Resources.ComposeNodes.Service'>;
+
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
 
@@ -52,6 +58,9 @@ type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicatio
 
 /** Handle to ExecuteCommandContext */
 type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
+
+/** Handle to IComputeResource */
+type IComputeResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource'>;
 
 /** Handle to IContainerFilesDestinationResource */
 type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
@@ -884,6 +893,651 @@ export class ResourceUrlsCallbackContext {
 }
 
 // ============================================================================
+// Service
+// ============================================================================
+
+/**
+ * Type class for Service.
+ */
+export class Service {
+    constructor(private _handle: ServiceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Image property */
+    image = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.image',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setImage',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the PullPolicy property */
+    pullPolicy = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.pullPolicy',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setPullPolicy',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the ContainerName property */
+    containerName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.containerName',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setContainerName',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Command property */
+    private _command?: AspireList<string>;
+    get command(): AspireList<string> {
+        if (!this._command) {
+            this._command = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.command',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.command'
+            );
+        }
+        return this._command;
+    }
+
+    /** Gets the Entrypoint property */
+    private _entrypoint?: AspireList<string>;
+    get entrypoint(): AspireList<string> {
+        if (!this._entrypoint) {
+            this._entrypoint = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.entrypoint',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.entrypoint'
+            );
+        }
+        return this._entrypoint;
+    }
+
+    /** Gets the Environment property */
+    private _environment?: AspireDict<string, string>;
+    get environment(): AspireDict<string, string> {
+        if (!this._environment) {
+            this._environment = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.environment',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.environment'
+            );
+        }
+        return this._environment;
+    }
+
+    /** Gets the EnvFile property */
+    private _envFile?: AspireList<string>;
+    get envFile(): AspireList<string> {
+        if (!this._envFile) {
+            this._envFile = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.envFile',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.envFile'
+            );
+        }
+        return this._envFile;
+    }
+
+    /** Gets the WorkingDir property */
+    workingDir = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.workingDir',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setWorkingDir',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Ports property */
+    private _ports?: AspireList<string>;
+    get ports(): AspireList<string> {
+        if (!this._ports) {
+            this._ports = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.ports',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.ports'
+            );
+        }
+        return this._ports;
+    }
+
+    /** Gets the Expose property */
+    private _expose?: AspireList<string>;
+    get expose(): AspireList<string> {
+        if (!this._expose) {
+            this._expose = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.expose',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.expose'
+            );
+        }
+        return this._expose;
+    }
+
+    /** Gets the User property */
+    user = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.user',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setUser',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Networks property */
+    private _networks?: AspireList<string>;
+    get networks(): AspireList<string> {
+        if (!this._networks) {
+            this._networks = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.networks',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.networks'
+            );
+        }
+        return this._networks;
+    }
+
+    /** Gets the Restart property */
+    restart = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.restart',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setRestart',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Labels property */
+    private _labels?: AspireDict<string, string>;
+    get labels(): AspireDict<string, string> {
+        if (!this._labels) {
+            this._labels = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.labels',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.labels'
+            );
+        }
+        return this._labels;
+    }
+
+    /** Gets the DomainName property */
+    domainName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.domainName',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setDomainName',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Hostname property */
+    hostname = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.hostname',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setHostname',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Isolation property */
+    isolation = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.isolation',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setIsolation',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Ipc property */
+    ipc = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.ipc',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setIpc',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the MacAddress property */
+    macAddress = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.macAddress',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setMacAddress',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Pid property */
+    pid = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.pid',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setPid',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the CapAdd property */
+    private _capAdd?: AspireList<string>;
+    get capAdd(): AspireList<string> {
+        if (!this._capAdd) {
+            this._capAdd = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.capAdd',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.capAdd'
+            );
+        }
+        return this._capAdd;
+    }
+
+    /** Gets the CapDrop property */
+    private _capDrop?: AspireList<string>;
+    get capDrop(): AspireList<string> {
+        if (!this._capDrop) {
+            this._capDrop = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.capDrop',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.capDrop'
+            );
+        }
+        return this._capDrop;
+    }
+
+    /** Gets the CgroupParent property */
+    cgroupParent = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.cgroupParent',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setCgroupParent',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Devices property */
+    private _devices?: AspireList<string>;
+    get devices(): AspireList<string> {
+        if (!this._devices) {
+            this._devices = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.devices',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.devices'
+            );
+        }
+        return this._devices;
+    }
+
+    /** Gets the Dns property */
+    private _dns?: AspireList<string>;
+    get dns(): AspireList<string> {
+        if (!this._dns) {
+            this._dns = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.dns',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.dns'
+            );
+        }
+        return this._dns;
+    }
+
+    /** Gets the DnsSearch property */
+    private _dnsSearch?: AspireList<string>;
+    get dnsSearch(): AspireList<string> {
+        if (!this._dnsSearch) {
+            this._dnsSearch = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.dnsSearch',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.dnsSearch'
+            );
+        }
+        return this._dnsSearch;
+    }
+
+    /** Gets the ExtraHosts property */
+    private _extraHosts?: AspireDict<string, string>;
+    get extraHosts(): AspireDict<string, string> {
+        if (!this._extraHosts) {
+            this._extraHosts = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.extraHosts',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.extraHosts'
+            );
+        }
+        return this._extraHosts;
+    }
+
+    /** Gets the GroupAdd property */
+    private _groupAdd?: AspireList<string>;
+    get groupAdd(): AspireList<string> {
+        if (!this._groupAdd) {
+            this._groupAdd = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.groupAdd',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.groupAdd'
+            );
+        }
+        return this._groupAdd;
+    }
+
+    /** Gets the Init property */
+    init = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.init',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setInit',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Links property */
+    private _links?: AspireList<string>;
+    get links(): AspireList<string> {
+        if (!this._links) {
+            this._links = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.links',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.links'
+            );
+        }
+        return this._links;
+    }
+
+    /** Gets the ExternalLinks property */
+    private _externalLinks?: AspireList<string>;
+    get externalLinks(): AspireList<string> {
+        if (!this._externalLinks) {
+            this._externalLinks = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.externalLinks',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.externalLinks'
+            );
+        }
+        return this._externalLinks;
+    }
+
+    /** Gets the NetworkMode property */
+    networkMode = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.networkMode',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setNetworkMode',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Profiles property */
+    private _profiles?: AspireList<string>;
+    get profiles(): AspireList<string> {
+        if (!this._profiles) {
+            this._profiles = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.profiles',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.profiles'
+            );
+        }
+        return this._profiles;
+    }
+
+    /** Gets the ReadOnly property */
+    readOnly = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.readOnly',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setReadOnly',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the SecurityOpt property */
+    private _securityOpt?: AspireList<string>;
+    get securityOpt(): AspireList<string> {
+        if (!this._securityOpt) {
+            this._securityOpt = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.securityOpt',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.securityOpt'
+            );
+        }
+        return this._securityOpt;
+    }
+
+    /** Gets the StopGracePeriod property */
+    stopGracePeriod = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.stopGracePeriod',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setStopGracePeriod',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the StopSignal property */
+    stopSignal = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.stopSignal',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setStopSignal',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Sysctls property */
+    private _sysctls?: AspireDict<string, string>;
+    get sysctls(): AspireDict<string, string> {
+        if (!this._sysctls) {
+            this._sysctls = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.sysctls',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.sysctls'
+            );
+        }
+        return this._sysctls;
+    }
+
+    /** Gets the Tmpfs property */
+    private _tmpfs?: AspireList<string>;
+    get tmpfs(): AspireList<string> {
+        if (!this._tmpfs) {
+            this._tmpfs = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.tmpfs',
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.tmpfs'
+            );
+        }
+        return this._tmpfs;
+    }
+
+    /** Gets the StdinOpen property */
+    stdinOpen = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.stdinOpen',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setStdinOpen',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Tty property */
+    tty = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.tty',
+                { context: this._handle }
+            );
+        },
+        set: async (value: boolean): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setTty',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.name',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Docker.Resources.ComposeNodes/Service.setName',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+}
+
+// ============================================================================
 // DistributedApplicationBuilder
 // ============================================================================
 
@@ -1669,6 +2323,29 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         );
     }
 
+    /** @internal */
+    private async _publishAsDockerComposeServiceInternal(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): Promise<ContainerResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as DockerComposeServiceResourceHandle;
+            const arg1 = new DockerComposeServiceResource(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as ServiceHandle;
+            const arg2 = new Service(arg2Handle, this._client);
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Docker/publishAsDockerComposeService',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsDockerComposeServiceInternal(configure));
+    }
+
 }
 
 /**
@@ -1829,6 +2506,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsDockerComposeService(configure)));
     }
 
 }
@@ -2619,6 +3301,29 @@ export class DockerComposeAspireDashboardResource extends ResourceBuilderBase<Do
         return new DockerComposeAspireDashboardResourcePromise(this._withForwardedHeadersInternal(enabled));
     }
 
+    /** @internal */
+    private async _publishAsDockerComposeServiceInternal(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): Promise<DockerComposeAspireDashboardResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as DockerComposeServiceResourceHandle;
+            const arg1 = new DockerComposeServiceResource(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as ServiceHandle;
+            const arg2 = new Service(arg2Handle, this._client);
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<DockerComposeAspireDashboardResourceHandle>(
+            'Aspire.Hosting.Docker/publishAsDockerComposeService',
+            rpcArgs
+        );
+        return new DockerComposeAspireDashboardResource(result, this._client);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): DockerComposeAspireDashboardResourcePromise {
+        return new DockerComposeAspireDashboardResourcePromise(this._publishAsDockerComposeServiceInternal(configure));
+    }
+
 }
 
 /**
@@ -2839,6 +3544,11 @@ export class DockerComposeAspireDashboardResourcePromise implements PromiseLike<
     /** Enables or disables forwarded headers support for the Aspire dashboard */
     withForwardedHeaders(options?: WithForwardedHeadersOptions): DockerComposeAspireDashboardResourcePromise {
         return new DockerComposeAspireDashboardResourcePromise(this._promise.then(obj => obj.withForwardedHeaders(options)));
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): DockerComposeAspireDashboardResourcePromise {
+        return new DockerComposeAspireDashboardResourcePromise(this._promise.then(obj => obj.publishAsDockerComposeService(configure)));
     }
 
 }
@@ -3200,6 +3910,274 @@ export class DockerComposeEnvironmentResourcePromise implements PromiseLike<Dock
     /** Configures the Aspire dashboard resource for the Docker Compose environment */
     configureDashboard(configure: (obj: DockerComposeAspireDashboardResource) => Promise<void>): DockerComposeEnvironmentResourcePromise {
         return new DockerComposeEnvironmentResourcePromise(this._promise.then(obj => obj.configureDashboard(configure)));
+    }
+
+}
+
+// ============================================================================
+// DockerComposeServiceResource
+// ============================================================================
+
+export class DockerComposeServiceResource extends ResourceBuilderBase<DockerComposeServiceResourceHandle> {
+    constructor(handle: DockerComposeServiceResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** Gets the Parent property */
+    parent = {
+        get: async (): Promise<DockerComposeEnvironmentResource> => {
+            const handle = await this._client.invokeCapability<DockerComposeEnvironmentResourceHandle>(
+                'Aspire.Hosting.Docker/DockerComposeServiceResource.parent',
+                { context: this._handle }
+            );
+            return new DockerComposeEnvironmentResource(handle, this._client);
+        },
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Docker/DockerComposeServiceResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<DockerComposeServiceResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<DockerComposeServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<DockerComposeServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): DockerComposeServiceResourcePromise {
+        const displayText = options?.displayText;
+        return new DockerComposeServiceResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<DockerComposeServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): DockerComposeServiceResourcePromise {
+        const displayText = options?.displayText;
+        return new DockerComposeServiceResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<DockerComposeServiceResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<DockerComposeServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<DockerComposeServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<DockerComposeServiceResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): DockerComposeServiceResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new DockerComposeServiceResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<DockerComposeServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<DockerComposeServiceResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new DockerComposeServiceResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for DockerComposeServiceResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class DockerComposeServiceResourcePromise implements PromiseLike<DockerComposeServiceResource> {
+    constructor(private _promise: Promise<DockerComposeServiceResource>) {}
+
+    then<TResult1 = DockerComposeServiceResource, TResult2 = never>(
+        onfulfilled?: ((value: DockerComposeServiceResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DockerComposeServiceResourcePromise {
+        return new DockerComposeServiceResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
     }
 
 }
@@ -3764,6 +4742,29 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         );
     }
 
+    /** @internal */
+    private async _publishAsDockerComposeServiceInternal(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as DockerComposeServiceResourceHandle;
+            const arg1 = new DockerComposeServiceResource(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as ServiceHandle;
+            const arg2 = new Service(arg2Handle, this._client);
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Docker/publishAsDockerComposeService',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsDockerComposeServiceInternal(configure));
+    }
+
 }
 
 /**
@@ -3934,6 +4935,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsDockerComposeService(configure)));
     }
 
 }
@@ -4767,6 +5773,29 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         );
     }
 
+    /** @internal */
+    private async _publishAsDockerComposeServiceInternal(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): Promise<ProjectResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as DockerComposeServiceResourceHandle;
+            const arg1 = new DockerComposeServiceResource(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as ServiceHandle;
+            const arg2 = new Service(arg2Handle, this._client);
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Docker/publishAsDockerComposeService',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsDockerComposeServiceInternal(configure));
+    }
+
 }
 
 /**
@@ -4937,6 +5966,67 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsDockerComposeService(configure)));
+    }
+
+}
+
+// ============================================================================
+// ComputeResource
+// ============================================================================
+
+export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle> {
+    constructor(handle: IComputeResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishAsDockerComposeServiceInternal(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): Promise<ComputeResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as DockerComposeServiceResourceHandle;
+            const arg1 = new DockerComposeServiceResource(arg1Handle, this._client);
+            const arg2Handle = wrapIfHandle(args.p1) as ServiceHandle;
+            const arg2 = new Service(arg2Handle, this._client);
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Docker/publishAsDockerComposeService',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._publishAsDockerComposeServiceInternal(configure));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ComputeResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
+    constructor(private _promise: Promise<ComputeResource>) {}
+
+    then<TResult1 = ComputeResource, TResult2 = never>(
+        onfulfilled?: ((value: ComputeResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Publishes the resource as a Docker Compose service with custom service configuration */
+    publishAsDockerComposeService(configure: (arg1: DockerComposeServiceResource, arg2: Service) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsDockerComposeService(configure)));
     }
 
 }
@@ -5993,14 +7083,17 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointRe
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.Resources.ComposeNodes.Service', (handle, client) => new Service(handle as ServiceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeAspireDashboardResource', (handle, client) => new DockerComposeAspireDashboardResource(handle as DockerComposeAspireDashboardResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeEnvironmentResource', (handle, client) => new DockerComposeEnvironmentResource(handle as DockerComposeEnvironmentResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeServiceResource', (handle, client) => new DockerComposeServiceResource(handle as DockerComposeServiceResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource', (handle, client) => new ComputeResource(handle as IComputeResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
