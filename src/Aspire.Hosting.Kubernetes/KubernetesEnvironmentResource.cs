@@ -23,14 +23,6 @@ namespace Aspire.Hosting.Kubernetes;
 public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmentResource
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="KubernetesEnvironmentResource"/> class.
-    /// </summary>
-    /// <param name="name">The name of the Kubernetes environment resource.</param>
-    public KubernetesEnvironmentResource(string name) : base(name)
-    {
-    }
-
-    /// <summary>
     /// Gets or sets the name of the Helm chart to be generated.
     /// </summary>
     public string HelmChartName { get; set; } = "aspire";
@@ -95,6 +87,9 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     internal IPortAllocator PortAllocator { get; } = new PortAllocator();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KubernetesEnvironmentResource"/> class.
+    /// </summary>
     /// <param name="name">The name of the Kubernetes environment.</param>
     public KubernetesEnvironmentResource(string name) : base(name)
     {
