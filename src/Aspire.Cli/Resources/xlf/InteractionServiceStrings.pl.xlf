@@ -104,12 +104,12 @@
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
         <source>The --apphost option specified a project that does not exist.</source>
-        <target state="new">The --apphost option specified a project that does not exist.</target>
+        <target state="translated">Opcja --apphost określiła projekt, który nie istnieje.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --apphost option was not specified and multiple app host project files were detected.</source>
-        <target state="new">The --apphost option was not specified and multiple app host project files were detected.</target>
+        <target state="translated">Nie określono opcji --apphost i wykryto wiele plików projektu hosta aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
