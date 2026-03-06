@@ -4233,6 +4233,36 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     }
 
     /** @internal */
+    private async _withScriptDebuggingInternal(scriptPath: string): Promise<NodeAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, scriptPath };
+        const result = await this._client.invokeCapability<NodeAppResourceHandle>(
+            'Aspire.Hosting.JavaScript/withScriptDebugging',
+            rpcArgs
+        );
+        return new NodeAppResource(result, this._client);
+    }
+
+    /** Enables debugging support for a Node.js application with an explicit script path */
+    withScriptDebugging(scriptPath: string): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._withScriptDebuggingInternal(scriptPath));
+    }
+
+    /** @internal */
+    private async _withDebuggingInternal(): Promise<NodeAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<NodeAppResourceHandle>(
+            'Aspire.Hosting.JavaScript/withDebugging',
+            rpcArgs
+        );
+        return new NodeAppResource(result, this._client);
+    }
+
+    /** Enables debugging support for a JavaScript application */
+    withDebugging(): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._withDebuggingInternal());
+    }
+
+    /** @internal */
     private async _withBrowserDebuggerInternal(browser?: string): Promise<NodeAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (browser !== undefined) rpcArgs.browser = browser;
@@ -4454,6 +4484,16 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
     /** Specifies an npm script to run during development */
     withRunScript(scriptName: string, options?: WithRunScriptOptions): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._promise.then(obj => obj.withRunScript(scriptName, options)));
+    }
+
+    /** Enables debugging support for a Node.js application with an explicit script path */
+    withScriptDebugging(scriptPath: string): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._promise.then(obj => obj.withScriptDebugging(scriptPath)));
+    }
+
+    /** Enables debugging support for a JavaScript application */
+    withDebugging(): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._promise.then(obj => obj.withDebugging()));
     }
 
     /** Configures browser debugging support */
@@ -6154,6 +6194,21 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     }
 
     /** @internal */
+    private async _withDebuggingInternal(): Promise<ViteAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ViteAppResourceHandle>(
+            'Aspire.Hosting.JavaScript/withDebugging',
+            rpcArgs
+        );
+        return new ViteAppResource(result, this._client);
+    }
+
+    /** Enables debugging support for a JavaScript application */
+    withDebugging(): ViteAppResourcePromise {
+        return new ViteAppResourcePromise(this._withDebuggingInternal());
+    }
+
+    /** @internal */
     private async _withBrowserDebuggerInternal(browser?: string): Promise<ViteAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (browser !== undefined) rpcArgs.browser = browser;
@@ -6375,6 +6430,11 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
     /** Specifies an npm script to run during development */
     withRunScript(scriptName: string, options?: WithRunScriptOptions): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._promise.then(obj => obj.withRunScript(scriptName, options)));
+    }
+
+    /** Enables debugging support for a JavaScript application */
+    withDebugging(): ViteAppResourcePromise {
+        return new ViteAppResourcePromise(this._promise.then(obj => obj.withDebugging()));
     }
 
     /** Configures browser debugging support */

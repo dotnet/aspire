@@ -957,12 +957,9 @@ public static class JavaScriptHostingExtensions
     /// This method is called automatically by <see cref="AddNodeApp"/>. It only needs to be called
     /// explicitly when creating custom Node.js resources or when you want to override the script path.
     /// </para>
-    /// <para>
-    /// This overload is not available in polyglot app hosts.
-    /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Polyglot code generation does not currently support this overloaded debugging helper for JavaScript hosting resources.")]
+    [AspireExport("withScriptDebugging", Description = "Enables debugging support for a Node.js application with an explicit script path")]
     public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
         where T : NodeAppResource
     {
@@ -984,12 +981,9 @@ public static class JavaScriptHostingExtensions
     /// <para>
     /// This method is called automatically by <see cref="AddJavaScriptApp"/> and <see cref="AddViteApp"/>.
     /// </para>
-    /// <para>
-    /// This overload is not available in polyglot app hosts.
-    /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Polyglot code generation does not currently support this overloaded debugging helper for JavaScript hosting resources.")]
+    [AspireExport("withDebugging", Description = "Enables debugging support for a JavaScript application")]
     public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
         where T : JavaScriptAppResource
     {
