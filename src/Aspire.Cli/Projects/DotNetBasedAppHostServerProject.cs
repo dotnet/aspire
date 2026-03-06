@@ -377,7 +377,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create the project file
         var doc = CreateProjectFile(integrations);
 
-        // Add channel sources to the project so project references can resolve packages
+        // Add channel sources to the project
         if (channelSources.Count > 0)
         {
             var sourceList = string.Join(";", channelSources);
@@ -394,6 +394,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create Directory.Packages.props to enable central package management
         // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
         var repoDirectoryPackagesProps = Path.Combine(_repoRoot, "Directory.Packages.props");
+
         var directoryPackagesProps = $"""
             <Project>
               <PropertyGroup>
