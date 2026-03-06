@@ -19,7 +19,8 @@ await compose.withDashboard({ enabled: false });
 await compose.withDashboard();
 
 await compose.configureDashboard(async (dashboard) => {
-    await dashboard.withHostPort({ port: 18888 }).withForwardedHeaders({ enabled: true });
+    await dashboard.withHostPort({ port: 18888 });
+    await dashboard.withForwardedHeaders({ enabled: true });
 
     const _dashboardName: string = await dashboard.name.get();
 
@@ -47,9 +48,8 @@ await api.publishAsDockerComposeService(async (composeService, service) => {
     const _serviceRestart: string = await service.restart.get();
 });
 
-const resolvedCompose = await compose;
-const _resolvedDefaultNetworkName: string = await resolvedCompose.defaultNetworkName.get();
-const _resolvedDashboardEnabled: boolean = await resolvedCompose.dashboardEnabled.get();
-const _resolvedName: string = await resolvedCompose.name.get();
+const _resolvedDefaultNetworkName: string = await compose.defaultNetworkName.get();
+const _resolvedDashboardEnabled: boolean = await compose.dashboardEnabled.get();
+const _resolvedName: string = await compose.name.get();
 
 await builder.build().run();
