@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Aspire.TestUtilities;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -17,7 +16,7 @@ namespace Aspire.Cli.Tests.Mcp.E2E;
 /// These tests require network access to fetch documentation from aspire.dev.
 /// They are marked as outerloop tests to avoid slowing down regular CI.
 /// </remarks>
-[OuterloopTest("Requires network access to fetch aspire.dev documentation")]
+[OuterLoop("Requires network access to fetch aspire.dev documentation")]
 public partial class McpDocsE2ETests : IAsyncLifetime
 {
     private McpClient? _mcpClient;

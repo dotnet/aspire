@@ -1531,7 +1531,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [OuterloopTest("Long-running endpoint proxy test")]
+    [OuterLoop("Long-running endpoint proxy test")]
     [RequiresFeature(TestFeature.SSLCertificate)]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
@@ -1601,7 +1601,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [OuterloopTest("Long-running container test")]
+    [OuterLoop("Long-running container test")]
     [RequiresFeature(TestFeature.Docker)]
     public async Task ProxylessContainerCanBeReferenced()
     {
@@ -1674,7 +1674,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [OuterloopTest("Long-running endpoint proxy test")]
+    [OuterLoop("Long-running endpoint proxy test")]
     [RequiresFeature(TestFeature.Docker)]
     public async Task WithEndpointProxySupportDisablesProxies()
     {
