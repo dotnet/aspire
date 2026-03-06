@@ -206,6 +206,28 @@ enum IconVariant {
     }
 }
 
+/** ProbeType enum. */
+enum ProbeType {
+    STARTUP("Startup"),
+    READINESS("Readiness"),
+    LIVENESS("Liveness");
+
+    private final String value;
+
+    ProbeType(String value) {
+        this.value = value;
+    }
+
+    public String getValue() { return value; }
+
+    public static ProbeType fromValue(String value) {
+        for (ProbeType e : values()) {
+            if (e.value.equals(value)) return e;
+        }
+        throw new IllegalArgumentException("Unknown value: " + value);
+    }
+}
+
 /** EndpointProperty enum. */
 enum EndpointProperty {
     URL("Url"),
@@ -1794,6 +1816,35 @@ class ContainerResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
     }
 
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
+    }
+
     /** Excludes the resource from MCP server exposure */
     public IResource excludeFromMcp() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -2645,6 +2696,35 @@ class DotnetToolResource extends ResourceBuilderBase {
             reqArgs.put("iconVariant", AspireClient.serializeValue(iconVariant));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -3507,6 +3587,35 @@ class ExecutableResource extends ResourceBuilderBase {
             reqArgs.put("iconVariant", AspireClient.serializeValue(iconVariant));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -5235,6 +5344,35 @@ class ProjectResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
     }
 
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
+    }
+
     /** Excludes the resource from MCP server exposure */
     public IResource excludeFromMcp() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -6285,6 +6423,35 @@ class TestDatabaseResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
     }
 
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
+    }
+
     /** Excludes the resource from MCP server exposure */
     public IResource excludeFromMcp() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -7216,6 +7383,35 @@ class TestRedisResource extends ResourceBuilderBase {
             reqArgs.put("iconVariant", AspireClient.serializeValue(iconVariant));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -8252,6 +8448,35 @@ class TestVaultResource extends ResourceBuilderBase {
             reqArgs.put("iconVariant", AspireClient.serializeValue(iconVariant));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withIconName", reqArgs);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    public IResourceWithEndpoints withHttpProbe(ProbeType probeType, String path, Double initialDelaySeconds, Double periodSeconds, Double timeoutSeconds, Double failureThreshold, Double successThreshold, String endpointName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("probeType", AspireClient.serializeValue(probeType));
+        if (path != null) {
+            reqArgs.put("path", AspireClient.serializeValue(path));
+        }
+        if (initialDelaySeconds != null) {
+            reqArgs.put("initialDelaySeconds", AspireClient.serializeValue(initialDelaySeconds));
+        }
+        if (periodSeconds != null) {
+            reqArgs.put("periodSeconds", AspireClient.serializeValue(periodSeconds));
+        }
+        if (timeoutSeconds != null) {
+            reqArgs.put("timeoutSeconds", AspireClient.serializeValue(timeoutSeconds));
+        }
+        if (failureThreshold != null) {
+            reqArgs.put("failureThreshold", AspireClient.serializeValue(failureThreshold));
+        }
+        if (successThreshold != null) {
+            reqArgs.put("successThreshold", AspireClient.serializeValue(successThreshold));
+        }
+        if (endpointName != null) {
+            reqArgs.put("endpointName", AspireClient.serializeValue(endpointName));
+        }
+        return (IResourceWithEndpoints) getClient().invokeCapability("Aspire.Hosting/withHttpProbe", reqArgs);
     }
 
     /** Excludes the resource from MCP server exposure */

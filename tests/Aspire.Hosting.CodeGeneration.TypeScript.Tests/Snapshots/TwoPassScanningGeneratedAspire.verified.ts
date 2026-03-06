@@ -220,6 +220,13 @@ export enum OtlpProtocol {
     HttpJson = "HttpJson",
 }
 
+/** Enum type for ProbeType */
+export enum ProbeType {
+    Startup = "Startup",
+    Readiness = "Readiness",
+    Liveness = "Liveness",
+}
+
 /** Enum type for ProtocolType */
 export enum ProtocolType {
     IP = "IP",
@@ -445,6 +452,16 @@ export interface WithHttpEndpointOptions {
 export interface WithHttpHealthCheckOptions {
     path?: string;
     statusCode?: number;
+    endpointName?: string;
+}
+
+export interface WithHttpProbeOptions {
+    path?: string;
+    initialDelaySeconds?: number;
+    periodSeconds?: number;
+    timeoutSeconds?: number;
+    failureThreshold?: number;
+    successThreshold?: number;
     endpointName?: string;
 }
 
@@ -4118,6 +4135,35 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ContainerResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new ContainerResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -4691,6 +4737,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -5806,6 +5857,35 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<DotnetToolResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): DotnetToolResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new DotnetToolResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
@@ -6424,6 +6504,11 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -7404,6 +7489,35 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ExecutableResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new ExecutableResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -7977,6 +8091,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -10478,6 +10597,35 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ProjectResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new ProjectResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -11066,6 +11214,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -12309,6 +12462,35 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<TestDatabaseResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestDatabaseResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new TestDatabaseResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
@@ -12986,6 +13168,11 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -14264,6 +14451,35 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestRedisResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new TestRedisResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -15123,6 +15339,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -16431,6 +16652,35 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestVaultResourcePromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new TestVaultResourcePromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
+    /** @internal */
     private async _excludeFromMcpInternal(): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
@@ -17123,6 +17373,11 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     /** Sets the icon for the resource */
     withIconName(iconName: string, options?: WithIconNameOptions): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withIconName(iconName, options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
     /** Excludes the resource from MCP server exposure */
@@ -18458,6 +18713,35 @@ export class ResourceWithEndpoints extends ResourceBuilderBase<IResourceWithEndp
         return new ResourceWithEndpointsPromise(this._withHttpHealthCheckInternal(path, statusCode, endpointName));
     }
 
+    /** @internal */
+    private async _withHttpProbeInternal(probeType: ProbeType, path?: string, initialDelaySeconds?: number, periodSeconds?: number, timeoutSeconds?: number, failureThreshold?: number, successThreshold?: number, endpointName?: string): Promise<ResourceWithEndpoints> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, probeType };
+        if (path !== undefined) rpcArgs.path = path;
+        if (initialDelaySeconds !== undefined) rpcArgs.initialDelaySeconds = initialDelaySeconds;
+        if (periodSeconds !== undefined) rpcArgs.periodSeconds = periodSeconds;
+        if (timeoutSeconds !== undefined) rpcArgs.timeoutSeconds = timeoutSeconds;
+        if (failureThreshold !== undefined) rpcArgs.failureThreshold = failureThreshold;
+        if (successThreshold !== undefined) rpcArgs.successThreshold = successThreshold;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+            'Aspire.Hosting/withHttpProbe',
+            rpcArgs
+        );
+        return new ResourceWithEndpoints(result, this._client);
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ResourceWithEndpointsPromise {
+        const path = options?.path;
+        const initialDelaySeconds = options?.initialDelaySeconds;
+        const periodSeconds = options?.periodSeconds;
+        const timeoutSeconds = options?.timeoutSeconds;
+        const failureThreshold = options?.failureThreshold;
+        const successThreshold = options?.successThreshold;
+        const endpointName = options?.endpointName;
+        return new ResourceWithEndpointsPromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
+    }
+
 }
 
 /**
@@ -18518,6 +18802,11 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ResourceWithEndpointsPromise {
         return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+    }
+
+    /** Adds an HTTP health probe to the resource */
+    withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
     }
 
 }

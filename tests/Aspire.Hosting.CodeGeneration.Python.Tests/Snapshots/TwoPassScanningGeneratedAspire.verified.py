@@ -76,6 +76,11 @@ class IconVariant(str, Enum):
     REGULAR = "Regular"
     FILLED = "Filled"
 
+class ProbeType(str, Enum):
+    STARTUP = "Startup"
+    READINESS = "Readiness"
+    LIVENESS = "Liveness"
+
 class EndpointProperty(str, Enum):
     URL = "Url"
     HOST = "Host"
@@ -1174,6 +1179,26 @@ class ContainerResource(ResourceBuilderBase):
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
 
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
+
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -1798,6 +1823,26 @@ class DotnetToolResource(ResourceBuilderBase):
         args["iconName"] = serialize_value(icon_name)
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
+
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
 
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
@@ -2430,6 +2475,26 @@ class ExecutableResource(ResourceBuilderBase):
         args["iconName"] = serialize_value(icon_name)
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
+
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
 
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
@@ -3699,6 +3764,26 @@ class ProjectResource(ResourceBuilderBase):
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
 
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
+
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -4490,6 +4575,26 @@ class TestDatabaseResource(ResourceBuilderBase):
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
 
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
+
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -5172,6 +5277,26 @@ class TestRedisResource(ResourceBuilderBase):
         args["iconName"] = serialize_value(icon_name)
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
+
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
 
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""
@@ -5939,6 +6064,26 @@ class TestVaultResource(ResourceBuilderBase):
         args["iconName"] = serialize_value(icon_name)
         args["iconVariant"] = serialize_value(icon_variant)
         return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
+
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
 
     def exclude_from_mcp(self) -> IResource:
         """Excludes the resource from MCP server exposure"""

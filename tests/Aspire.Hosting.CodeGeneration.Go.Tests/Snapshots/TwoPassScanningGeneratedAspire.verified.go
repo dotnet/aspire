@@ -104,6 +104,15 @@ const (
 	IconVariantFilled IconVariant = "Filled"
 )
 
+// ProbeType represents ProbeType.
+type ProbeType string
+
+const (
+	ProbeTypeStartup ProbeType = "Startup"
+	ProbeTypeReadiness ProbeType = "Readiness"
+	ProbeTypeLiveness ProbeType = "Liveness"
+)
+
 // EndpointProperty represents EndpointProperty.
 type EndpointProperty string
 
@@ -2119,6 +2128,26 @@ func (s *ContainerResource) WithIconName(iconName string, iconVariant IconVarian
 	return result.(*IResource), nil
 }
 
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *ContainerResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
 // ExcludeFromMcp excludes the resource from MCP server exposure
 func (s *ContainerResource) ExcludeFromMcp() (*IResource, error) {
 	reqArgs := map[string]any{
@@ -3348,6 +3377,26 @@ func (s *DotnetToolResource) WithIconName(iconName string, iconVariant IconVaria
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *DotnetToolResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
 }
 
 // ExcludeFromMcp excludes the resource from MCP server exposure
@@ -4598,6 +4647,26 @@ func (s *ExecutableResource) WithIconName(iconName string, iconVariant IconVaria
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *ExecutableResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
 }
 
 // ExcludeFromMcp excludes the resource from MCP server exposure
@@ -7122,6 +7191,26 @@ func (s *ProjectResource) WithIconName(iconName string, iconVariant IconVariant)
 	return result.(*IResource), nil
 }
 
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *ProjectResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
 // ExcludeFromMcp excludes the resource from MCP server exposure
 func (s *ProjectResource) ExcludeFromMcp() (*IResource, error) {
 	reqArgs := map[string]any{
@@ -8614,6 +8703,26 @@ func (s *TestDatabaseResource) WithIconName(iconName string, iconVariant IconVar
 	return result.(*IResource), nil
 }
 
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *TestDatabaseResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
 // ExcludeFromMcp excludes the resource from MCP server exposure
 func (s *TestDatabaseResource) ExcludeFromMcp() (*IResource, error) {
 	reqArgs := map[string]any{
@@ -9955,6 +10064,26 @@ func (s *TestRedisResource) WithIconName(iconName string, iconVariant IconVarian
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *TestRedisResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
 }
 
 // ExcludeFromMcp excludes the resource from MCP server exposure
@@ -11431,6 +11560,26 @@ func (s *TestVaultResource) WithIconName(iconName string, iconVariant IconVarian
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithHttpProbe adds an HTTP health probe to the resource
+func (s *TestVaultResource) WithHttpProbe(probeType ProbeType, path string, initialDelaySeconds float64, periodSeconds float64, timeoutSeconds float64, failureThreshold float64, successThreshold float64, endpointName string) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["probeType"] = SerializeValue(probeType)
+	reqArgs["path"] = SerializeValue(path)
+	reqArgs["initialDelaySeconds"] = SerializeValue(initialDelaySeconds)
+	reqArgs["periodSeconds"] = SerializeValue(periodSeconds)
+	reqArgs["timeoutSeconds"] = SerializeValue(timeoutSeconds)
+	reqArgs["failureThreshold"] = SerializeValue(failureThreshold)
+	reqArgs["successThreshold"] = SerializeValue(successThreshold)
+	reqArgs["endpointName"] = SerializeValue(endpointName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withHttpProbe", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
 }
 
 // ExcludeFromMcp excludes the resource from MCP server exposure

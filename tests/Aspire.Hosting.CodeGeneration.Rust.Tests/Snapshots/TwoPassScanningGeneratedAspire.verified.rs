@@ -256,6 +256,28 @@ impl std::fmt::Display for IconVariant {
     }
 }
 
+/// ProbeType
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProbeType {
+    #[default]
+    #[serde(rename = "Startup")]
+    Startup,
+    #[serde(rename = "Readiness")]
+    Readiness,
+    #[serde(rename = "Liveness")]
+    Liveness,
+}
+
+impl std::fmt::Display for ProbeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Startup => write!(f, "Startup"),
+            Self::Readiness => write!(f, "Readiness"),
+            Self::Liveness => write!(f, "Liveness"),
+        }
+    }
+}
+
 /// EndpointProperty
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EndpointProperty {
@@ -2128,6 +2150,37 @@ impl ContainerResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
+    }
+
     /// Excludes the resource from MCP server exposure
     pub fn exclude_from_mcp(&self) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -3241,6 +3294,37 @@ impl DotnetToolResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
+    }
+
     /// Excludes the resource from MCP server exposure
     pub fn exclude_from_mcp(&self) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -4318,6 +4402,37 @@ impl ExecutableResource {
         let result = self.client.invoke_capability("Aspire.Hosting/withIconName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
     }
 
     /// Excludes the resource from MCP server exposure
@@ -6734,6 +6849,37 @@ impl ProjectResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
+    }
+
     /// Excludes the resource from MCP server exposure
     pub fn exclude_from_mcp(&self) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -8063,6 +8209,37 @@ impl TestDatabaseResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
+    }
+
     /// Excludes the resource from MCP server exposure
     pub fn exclude_from_mcp(&self) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -9205,6 +9382,37 @@ impl TestRedisResource {
         let result = self.client.invoke_capability("Aspire.Hosting/withIconName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
     }
 
     /// Excludes the resource from MCP server exposure
@@ -10458,6 +10666,37 @@ impl TestVaultResource {
         let result = self.client.invoke_capability("Aspire.Hosting/withIconName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds an HTTP health probe to the resource
+    pub fn with_http_probe(&self, probe_type: ProbeType, path: Option<&str>, initial_delay_seconds: Option<f64>, period_seconds: Option<f64>, timeout_seconds: Option<f64>, failure_threshold: Option<f64>, success_threshold: Option<f64>, endpoint_name: Option<&str>) -> Result<IResourceWithEndpoints, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("probeType".to_string(), serde_json::to_value(&probe_type).unwrap_or(Value::Null));
+        if let Some(ref v) = path {
+            args.insert("path".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = initial_delay_seconds {
+            args.insert("initialDelaySeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = period_seconds {
+            args.insert("periodSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = timeout_seconds {
+            args.insert("timeoutSeconds".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = failure_threshold {
+            args.insert("failureThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = success_threshold {
+            args.insert("successThreshold".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = endpoint_name {
+            args.insert("endpointName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withHttpProbe", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResourceWithEndpoints::new(handle, self.client.clone()))
     }
 
     /// Excludes the resource from MCP server exposure

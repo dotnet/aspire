@@ -3184,7 +3184,6 @@ public static class ResourceBuilderExtensions
     /// <para>This method is not available in polyglot app hosts. The parameter name 'type' is a reserved keyword in Go and Rust.</para>
     /// </remarks>
     [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Parameter name 'type' is a reserved keyword in Go and Rust, causing codegen compilation errors.")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
@@ -3195,6 +3194,18 @@ public static class ResourceBuilderExtensions
             : NamedEndpointSelector(builder, s_httpSchemes, "HTTP probe");
 
         return builder.WithHttpProbe(type, endpointSelector, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold);
+    }
+
+    /// <summary>
+    /// ATS export stub for <see cref="WithHttpProbe{T}(IResourceBuilder{T}, ProbeType, string?, int?, int?, int?, int?, int?, string?)"/>
+    /// with renamed parameter to avoid reserved keyword conflicts in Go and Rust.
+    /// </summary>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExport("withHttpProbe", Description = "Adds an HTTP health probe to the resource")]
+    internal static IResourceBuilder<T> WithHttpProbeExport<T>(this IResourceBuilder<T> builder, ProbeType probeType, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
+        where T : IResourceWithEndpoints, IResourceWithProbes
+    {
+        return builder.WithHttpProbe(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName);
     }
 
     /// <summary>
