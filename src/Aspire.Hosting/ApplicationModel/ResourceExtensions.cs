@@ -698,7 +698,7 @@ public static class ResourceExtensions
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
     {
         var endpoint = resource.TryGetEndpoints(out var endpoints) ?
-            endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)) :
+            endpoints.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparisons.EndpointAnnotationName)) :
             null;
         if (endpoint is null)
         {
@@ -721,7 +721,7 @@ public static class ResourceExtensions
     {
 
         var endpoint = resource.TryGetEndpoints(out var endpoints) ?
-            endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)) :
+            endpoints.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparisons.EndpointAnnotationName)) :
             null;
         if (endpoint is null)
         {

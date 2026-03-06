@@ -389,7 +389,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(endpointName);
 
         var portResource = tunnelBuilder.Resource.Ports
-            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, endpointName));
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && string.Equals(p.TargetEndpoint.EndpointName, endpointName, StringComparisons.EndpointAnnotationName));
 
         if (portResource is null)
         {
@@ -413,7 +413,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         var portResource = tunnelBuilder.Resource.Ports
             .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource
-                && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName));
+                && string.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName, StringComparisons.EndpointAnnotationName));
 
         if (portResource is null)
         {
@@ -525,7 +525,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         }
 
         if (targetEndpoint.Resource.Annotations.OfType<EndpointAnnotation>()
-            .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, targetEndpoint.EndpointName)) is { } targetEndpointAnnotation)
+            .SingleOrDefault(a => string.Equals(a.Name, targetEndpoint.EndpointName, StringComparisons.EndpointAnnotationName)) is { } targetEndpointAnnotation)
         {
             // The target endpoint already exists so let's ensure it's target is localhost
             if (!EndpointHostHelpers.IsLocalhostOrLocalhostTld(targetEndpointAnnotation.TargetHost))
