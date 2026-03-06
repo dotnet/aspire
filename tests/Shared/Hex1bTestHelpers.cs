@@ -276,8 +276,10 @@ internal static class Hex1bTestHelpers
     }
 
     /// <summary>
-    /// Handles the agent init confirmation prompt that appears after <c>aspire init</c> or <c>aspire new</c>.
-    /// Declines the prompt so the command exits cleanly.
+    /// Declines the agent init confirmation prompt that appears after <c>aspire init</c> or <c>aspire new</c>.
+    /// Does NOT wait for the shell success prompt — callers must chain their own
+    /// <see cref="WaitForSuccessPrompt"/> when using this overload.
+    /// Used by deployment tests that need custom timeouts for WaitForSuccessPrompt.
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder DeclineAgentInitPrompt(
         this Hex1bTerminalInputSequenceBuilder builder)
@@ -287,9 +289,74 @@ internal static class Hex1bTestHelpers
 
         return builder
             .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Wait(500)
             .Type("n")
             .Enter();
+    }
+
+    /// <summary>
+    /// Handles the agent init confirmation prompt that appears after <c>aspire init</c> or <c>aspire new</c>,
+    /// then waits for the shell success prompt. Supports CLI versions both with and without agent init chaining.
+    /// Replaces the separate <c>.DeclineAgentInitPrompt().WaitForSuccessPrompt(counter)</c> pattern.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <param name="timeout">
+    /// Maximum time to wait for the command to complete. Defaults to 500 seconds to match
+    /// <see cref="WaitForSuccessPrompt"/>. Must be long enough to cover project creation time.
+    /// </param>
+    internal static Hex1bTerminalInputSequenceBuilder DeclineAgentInitPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        var agentInitPrompt = new CellPatternSearcher()
+            .Find("configure AI agent environments");
+
+        var agentInitFound = false;
+
+        return builder
+            // Wait for either the agent init prompt (new CLI) or the success prompt (old CLI).
+            // Uses the full timeout since aspire new project creation can take minutes.
+            .WaitUntil(s =>
+            {
+                if (agentInitPrompt.Search(s).Count > 0)
+                {
+                    agentInitFound = true;
+                    return true;
+                }
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+                return successSearcher.Search(s).Count > 0;
+            }, effectiveTimeout)
+            .Wait(500)
+            // Type 'n' + Enter unconditionally:
+            // - Agent init: declines the prompt, CLI exits, success prompt appears
+            // - No agent init: 'n' runs at bash (command not found), produces error prompt
+            .Type("n")
+            .Enter()
+            // Wait for the aspire command's success prompt (already on screen or appears after decline)
+            .WaitUntil(s =>
+            {
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+                return successSearcher.Search(s).Count > 0;
+            }, effectiveTimeout)
+            // Increment counter correctly for both cases:
+            // - Agent init: one increment for the aspire command
+            // - No agent init: two increments (aspire command + the 'n' error command)
+            .WaitUntil(_ =>
+            {
+                if (!agentInitFound)
+                {
+                    counter.Increment();
+                }
+                counter.Increment();
+                return true;
+            }, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -419,10 +486,7 @@ internal static class Hex1bTestHelpers
                 .Enter(); // Accept default "No"
         }
 
-        // Step 8: Decline the agent init prompt
-        builder.DeclineAgentInitPrompt();
-
-        // Wait for project creation to complete
-        return builder.WaitForSuccessPrompt(counter);
+        // Step 8: Decline the agent init prompt and wait for success
+        return builder.DeclineAgentInitPrompt(counter);
     }
 }
