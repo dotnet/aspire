@@ -34,9 +34,7 @@ public static class ExistingAzureResourceExtensions
     [AspireExport("isExisting", Description = "Determines whether a resource is marked as existing")]
     internal static bool IsExistingForPolyglot(this IAzureResource resource)
     {
-        ArgumentNullException.ThrowIfNull(resource);
-
-        return ((IResource)resource).Annotations.OfType<ExistingAzureResourceAnnotation>().LastOrDefault() is not null;
+        return ((IResource)resource).IsExisting();
     }
 
     /// <summary>

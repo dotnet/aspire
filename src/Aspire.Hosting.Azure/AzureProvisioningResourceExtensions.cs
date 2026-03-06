@@ -20,7 +20,7 @@ public static class AzureProvisioningResourceExtensions
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureInfrastructure">A callback used to configure the infrastructure resource.</param>
-    /// <returns></returns>
+    /// <returns>A resource builder for the <see cref="AzureProvisioningResource"/> that can be used for further configuration.</returns>
     [AspireExport("addAzureInfrastructure", Description = "Adds an Azure provisioning resource to the application model")]
     public static IResourceBuilder<AzureProvisioningResource> AddAzureInfrastructure(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     {
@@ -135,12 +135,15 @@ public static class AzureProvisioningResourceExtensions
 
     /// <summary>
     /// Creates a new <see cref="ProvisioningParameter"/> in <paramref name="infrastructure"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to the given <paramref name="manifestExpressionProvider"/>.
     /// </summary>
     /// <param name="manifestExpressionProvider">The <see cref="IManifestExpressionProvider"/> that represents the value to use for the <see cref="ProvisioningParameter"/>. </param>
     /// <param name="infrastructure">The <see cref="AzureResourceInfrastructure"/> that contains the <see cref="ProvisioningParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="isSecure">Indicates whether the parameter is secure.</param>
-    /// <returns></returns>
+    /// <returns>
+    /// The corresponding <see cref="ProvisioningParameter"/> that was found or newly created.
+    /// </returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [AspireExportIgnore(Reason = "ProvisioningParameter is an Azure.Provisioning type not compatible with ATS.")]
     public static ProvisioningParameter AsProvisioningParameter(this IManifestExpressionProvider manifestExpressionProvider, AzureResourceInfrastructure infrastructure, string? parameterName = null, bool? isSecure = null)

@@ -47,7 +47,7 @@ public static class AzureBicepResourceExtensions
     }
 
     /// <summary>
-    /// Gets a reference to a  output from a bicep template.
+    /// Gets a reference to an output from a bicep template.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">Name of the output.</param>

@@ -16,8 +16,8 @@ namespace Aspire.Hosting;
 public static class AzureProvisionerExtensions
 {
     /// <summary>
-    /// Adds support for generating azure resources dynamically during application startup.
-    /// The application must configure the appropriate subscription, location.
+    /// Adds support for generating Azure resources dynamically during application startup.
+    /// The application must configure the appropriate Azure subscription and location before resources can be provisioned.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <returns>The distributed application builder.</returns>
