@@ -65,21 +65,22 @@ var api = builder.AddProject<Projects.Api>("api");
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations", 
     configureToolResource: tool =>
     {
-        tool.WithVersion("9.0.0");
-    });
-
-// Use a custom NuGet source
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
-    configureToolResource: tool =>
-    {
-        tool.WithSources("https://api.nuget.org/v3/index.json", "https://my-feed.example.com/v3/index.json");
+        tool.WithToolVersion("10.0.0");
     });
 
 // Allow prerelease versions
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
     configureToolResource: tool =>
     {
-        tool.WithPrerelease();
+        tool.WithToolPrerelease();
+    });
+
+// Use a custom NuGet source
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
+    configureToolResource: tool =>
+    {
+        tool.WithToolSource("https://api.nuget.org/v3/index.json")
+            .WithToolSource("https://my-feed.example.com/v3/index.json");
     });
 ```
 
