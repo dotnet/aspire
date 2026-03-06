@@ -3,6 +3,7 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
+using Aspire.TestUtilities;
 using Hex1b.Automation;
 using Xunit;
 
@@ -15,6 +16,7 @@ namespace Aspire.Cli.EndToEnd.Tests;
 public sealed class WaitCommandTests(ITestOutputHelper output)
 {
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/14993")]
     public async Task CreateStartWaitAndStopAspireProject()
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
