@@ -73,6 +73,16 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             // If an API key is configured, default to ApiKey auth mode instead of Unsecured.
             options.Mcp.AuthMode ??= string.IsNullOrEmpty(options.Mcp.PrimaryApiKey) ? McpAuthMode.Unsecured : McpAuthMode.ApiKey;
             options.Api.AuthMode ??= string.IsNullOrEmpty(options.Api.PrimaryApiKey) ? ApiAuthMode.Unsecured : ApiAuthMode.ApiKey;
+
+            // When the frontend requires authentication (e.g. OpenID Connect or BrowserToken) but the API
+            // has no key configured (and would therefore default to Unsecured), disable the API by default
+            // to prevent unauthenticated access to telemetry data on the same port.
+            if (options.Api.Enabled is null &&
+                options.Frontend.AuthMode is not FrontendAuthMode.Unsecured &&
+                options.Api.AuthMode is ApiAuthMode.Unsecured)
+            {
+                options.Api.Enabled = false;
+            }
         }
 
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))

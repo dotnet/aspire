@@ -49,7 +49,7 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| `Enabled` | `true`, `false` | `true` | Whether the Telemetry HTTP API is enabled |
+| `Enabled` | `true`, `false` | `true` when frontend is unsecured or an API key is configured; `false` when the frontend requires authentication and no API key is set | Whether the Telemetry HTTP API is enabled |
 | `AuthMode` | `ApiKey`, `Unsecured` | `Unsecured` | Authentication mode for the API |
 | `PrimaryApiKey` | string | - | API key for authentication (required when `AuthMode=ApiKey`) |
 | `SecondaryApiKey` | string | - | Optional secondary API key for key rotation |
@@ -58,6 +58,7 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 
 - The API shares the same port as the Dashboard frontend (default: 18888).
 - Hosters may set `Enabled: false` to disable the API for security.
+- When the frontend requires authentication (e.g., OpenID Connect) and no API key is configured, the API is disabled by default. Set `Enabled: true` explicitly to override.
 - API keys are shared with MCP configuration—setting either configures both.
 - When running in unsecured mode, a warning is logged on first API request.
 
