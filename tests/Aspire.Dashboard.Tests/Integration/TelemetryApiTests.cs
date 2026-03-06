@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Net.Http.Json;
+using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
