@@ -211,6 +211,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
                 .Enter() // Select "Yes" for Redis Cache (first/default option)
                 .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
                 .Enter() // Select "No" for test project (default)
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 12: Navigate to project directory

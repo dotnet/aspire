@@ -78,6 +78,7 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
             .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // select "No" for localhost URLs (default)
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Navigate into the project and start it in background with JSON output

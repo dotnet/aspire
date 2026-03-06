@@ -121,6 +121,7 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
                 .Enter() // No for Redis
                 .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
                 .Enter() // No for test project
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory

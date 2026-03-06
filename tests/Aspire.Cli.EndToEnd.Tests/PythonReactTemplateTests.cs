@@ -86,6 +86,7 @@ public sealed class PythonReactTemplateTests(ITestOutputHelper output)
             // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Enter() // select "No" for Redis Cache
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter)
             .Type("aspire run")
             .Enter()

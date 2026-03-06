@@ -119,6 +119,7 @@ public sealed class VnetKeyVaultConnectivityDeploymentTests(ITestOutputHelper ou
                 .Enter()
                 .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
                 .Enter()
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory

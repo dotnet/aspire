@@ -86,6 +86,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Navigate to the AppHost directory
@@ -200,6 +201,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Clear screen before second project creation
@@ -221,6 +223,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Start first AppHost in background
@@ -339,6 +342,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Clear screen before second project creation
@@ -360,6 +364,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Start first AppHost in background
@@ -488,6 +493,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Clear screen before second project creation
@@ -509,6 +515,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Start first AppHost in background

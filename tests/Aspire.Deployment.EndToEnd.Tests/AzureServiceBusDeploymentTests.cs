@@ -103,6 +103,7 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
                 .Wait(TimeSpan.FromSeconds(5))
                 .Enter()  // Dismiss NuGet.config prompt if present (no-op if already auto-accepted)
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)

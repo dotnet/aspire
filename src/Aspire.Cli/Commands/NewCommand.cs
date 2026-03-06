@@ -28,6 +28,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly AgentInitCommand _agentInitCommand;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     private static readonly Option<string> s_nameOption = new("--name", "-n")
     {
@@ -72,7 +74,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IPackagingService packagingService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        AgentInitCommand agentInitCommand,
+        ICliHostEnvironment hostEnvironment)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _prompter = prompter;
@@ -80,6 +84,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _agentInitCommand = agentInitCommand;
+        _hostEnvironment = hostEnvironment;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
@@ -366,7 +372,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
-        return templateResult.ExitCode;
+        var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, templateResult.ExitCode, workspaceRoot, cancellationToken);
     }
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)

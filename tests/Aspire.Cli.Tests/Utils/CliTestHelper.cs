@@ -369,7 +369,7 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, ICliHostEnvironment> CliHostEnvironmentFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new CliHostEnvironment(configuration, nonInteractive: false);
+        return new CliHostEnvironment(configuration, nonInteractive: true);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>

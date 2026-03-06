@@ -73,6 +73,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         sequenceBuilder.ClearScreen(counter);

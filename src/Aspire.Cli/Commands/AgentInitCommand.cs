@@ -62,7 +62,47 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         return ExecuteAsync(parseResult, cancellationToken);
     }
 
+    /// <summary>
+    /// Prompts the user to run agent init after a successful command, then chains into agent init if accepted.
+    /// Used by commands (e.g. <c>aspire init</c>, <c>aspire new</c>) to offer agent init as a follow-up step.
+    /// </summary>
+    internal async Task<int> PromptAndChainAsync(
+        ICliHostEnvironment hostEnvironment,
+        IInteractionService interactionService,
+        int previousResultExitCode,
+        DirectoryInfo workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        if (previousResultExitCode != ExitCodeConstants.Success)
+        {
+            return previousResultExitCode;
+        }
+
+        if (!hostEnvironment.SupportsInteractiveInput)
+        {
+            return ExitCodeConstants.Success;
+        }
+
+        var runAgentInit = await interactionService.ConfirmAsync(
+            SharedCommandStrings.PromptRunAgentInit,
+            defaultValue: true,
+            cancellationToken: cancellationToken);
+
+        if (runAgentInit)
+        {
+            return await ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+        }
+
+        return ExitCodeConstants.Success;
+    }
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var workspaceRoot = await PromptForWorkspaceRootAsync(cancellationToken);
+        return await ExecuteAgentInitAsync(workspaceRoot, cancellationToken);
+    }
+
+    private async Task<DirectoryInfo> PromptForWorkspaceRootAsync(CancellationToken cancellationToken)
     {
         // Try to discover the git repository root to use as the default workspace root
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
@@ -89,8 +129,11 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
             directory: true,
             cancellationToken: cancellationToken);
 
-        var workspaceRoot = new DirectoryInfo(workspaceRootPath);
+        return new DirectoryInfo(workspaceRootPath);
+    }
 
+    private async Task<int> ExecuteAgentInitAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    {
         var context = new AgentEnvironmentScanContext
         {
             WorkingDirectory = ExecutionContext.WorkingDirectory,

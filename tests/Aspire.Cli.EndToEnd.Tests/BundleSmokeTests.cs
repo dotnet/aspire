@@ -81,6 +81,7 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter)
             // Start AppHost in detached mode and capture JSON output
             .Type("aspire run --detach --format json | tee /tmp/aspire-detach.json")
