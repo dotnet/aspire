@@ -531,7 +531,10 @@ internal static class CliE2ETestHelpers
 
                 if (workspace is not null)
                 {
-                    c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace");
+                    // Mount using the same directory name so that
+                    // workspace.WorkspaceRoot.Name matches inside the container
+                    // (e.g., aspire CLI uses the dir name as the default project name).
+                    c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace/{workspace.WorkspaceRoot.Name}");
                 }
 
                 if (installMode != DockerInstallMode.SourceBuild)
@@ -587,7 +590,7 @@ internal static class CliE2ETestHelpers
         if (workspace is not null)
         {
             builder
-                .Type("cd /workspace")
+                .Type($"cd /workspace/{workspace.WorkspaceRoot.Name}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
         }
@@ -666,16 +669,16 @@ internal static class CliE2ETestHelpers
 
     /// <summary>
     /// Converts a host-side path (under the workspace root) to the corresponding
-    /// container-side path (under /workspace). Use this when a path constructed from
-    /// <see cref="TemporaryWorkspace.WorkspaceRoot"/> needs to be used in a command
-    /// typed into the Docker container terminal.
+    /// container-side path (under /workspace/{workspaceName}). Use this when a path
+    /// constructed from <see cref="TemporaryWorkspace.WorkspaceRoot"/> needs to be
+    /// used in a command typed into the Docker container terminal.
     /// </summary>
     /// <param name="hostPath">The full host-side path.</param>
-    /// <param name="workspace">The workspace whose root is mounted at /workspace.</param>
+    /// <param name="workspace">The workspace whose root is mounted at /workspace/{name}.</param>
     /// <returns>The equivalent path inside the container.</returns>
     internal static string ToContainerPath(string hostPath, TemporaryWorkspace workspace)
     {
         var relativePath = Path.GetRelativePath(workspace.WorkspaceRoot.FullName, hostPath);
-        return "/workspace/" + relativePath.Replace('\\', '/');
+        return $"/workspace/{workspace.WorkspaceRoot.Name}/" + relativePath.Replace('\\', '/');
     }
 }

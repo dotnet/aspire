@@ -40,6 +40,12 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
+        // Generate dev certs inside the container (Docker images don't have them by default)
+        sequenceBuilder
+            .Type("dotnet dev-certs https")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // Unset SSL_CERT_DIR to trigger partial trust detection on Linux
         sequenceBuilder
             .ClearSslCertDir(counter)
@@ -92,6 +98,12 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
         sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Generate dev certs inside the container (Docker images don't have them by default)
+        sequenceBuilder
+            .Type("dotnet dev-certs https")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
 
         // Set SSL_CERT_DIR to include dev-certs trust path for full trust
         sequenceBuilder
