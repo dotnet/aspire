@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Projects;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils.EnvironmentChecker;
@@ -9,7 +10,15 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// <summary>
 /// Checks if the .NET SDK is installed and meets the minimum version requirement.
 /// </summary>
-internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<DotNetSdkCheck> logger) : IEnvironmentCheck
+/// <remarks>
+/// This check is skipped when the detected AppHost is a non-.NET project (e.g., TypeScript, Python, Go),
+/// since .NET SDK is not required for polyglot scenarios.
+/// </remarks>
+internal sealed class DotNetSdkCheck(
+    IDotNetSdkInstaller sdkInstaller,
+    IProjectLocator projectLocator,
+    ILanguageDiscovery languageDiscovery,
+    ILogger<DotNetSdkCheck> logger) : IEnvironmentCheck
 {
     public int Order => 30; // File system check - slightly more expensive
 
@@ -17,6 +26,12 @@ internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<D
     {
         try
         {
+            if (await IsNonDotNetAppHostAsync(cancellationToken))
+            {
+                logger.LogDebug("Skipping .NET SDK check because a non-.NET AppHost was detected");
+                return [];
+            }
+
             var (success, highestVersion, minimumRequiredVersion) = await sdkInstaller.CheckAsync(cancellationToken);
 
             if (!success)
@@ -62,6 +77,43 @@ internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<D
                 Message = "Error checking .NET SDK",
                 Details = ex.Message
             }];
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the current directory contains a non-.NET AppHost, making the .NET SDK check unnecessary.
+    /// Uses a silent settings-only lookup to avoid interaction output and recursive filesystem scanning.
+    /// </summary>
+    private async Task<bool> IsNonDotNetAppHostAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Use the silent settings-only lookup to find the apphost without
+            // emitting interaction output or performing recursive filesystem scans.
+            var appHostFile = await projectLocator.GetAppHostFromSettingsAsync(cancellationToken);
+
+            if (appHostFile is null)
+            {
+                // No apphost configured in settings — can't determine language, run .NET check
+                return false;
+            }
+
+            var language = languageDiscovery.GetLanguageByFile(appHostFile);
+            if (language is null)
+            {
+                return false;
+            }
+
+            return !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error detecting AppHost language, falling back to .NET SDK check");
+            return false;
         }
     }
 }
