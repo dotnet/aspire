@@ -183,15 +183,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
             aspireConfigFile.AppHost ??= new AspireConfigAppHost();
             aspireConfigFile.AppHost.Language = language.LanguageId;
             aspireConfigFile.Save(directory.FullName);
-
-            // Also save legacy settings.json for backward compatibility
-            if (prepareResult.ChannelName is not null)
-            {
-                config.Channel = prepareResult.ChannelName;
-            }
-
-            config.Language = language.LanguageId;
-            config.Save(directory.FullName);
         }
         finally
         {
