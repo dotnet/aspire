@@ -29,4 +29,8 @@ await builder.addContainer("consumer", "nginx")
     .withServiceReference(keycloak)
     .withServiceReference(keycloak2);
 
+const _keycloakName = await keycloak.name.get();
+const _keycloakEntrypoint = await keycloak.entrypoint.get();
+const _keycloakShellExecution = await keycloak.shellExecution.get();
+
 await builder.build().run();
