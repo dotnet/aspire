@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Ats;
@@ -907,6 +908,10 @@ internal static class AtsCapabilityScanner
         var typeId = AtsTypeMapping.DeriveTypeId(type);
         var typeName = type.Name;
 
+        // Load XML documentation for descriptions
+        var xmlDoc = LoadXmlDocumentation(type.Assembly);
+        var typeDescription = GetXmlDocSummary(xmlDoc, $"T:{type.FullName}");
+
         // Collect public properties for the DTO interface
         var properties = new List<AtsDtoPropertyInfo>();
 
@@ -924,11 +929,14 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
+            var propDescription = GetXmlDocSummary(xmlDoc, $"P:{type.FullName}.{prop.Name}");
+
             properties.Add(new AtsDtoPropertyInfo
             {
                 Name = prop.Name,
                 Type = propTypeRef,
-                IsOptional = !prop.CanWrite // If no setter, it's likely init-only and required
+                IsOptional = !prop.CanWrite, // If no setter, it's likely init-only and required
+                Description = propDescription
             });
         }
 
@@ -937,6 +945,7 @@ internal static class AtsCapabilityScanner
             TypeId = typeId,
             Name = typeName,
             ClrType = type,
+            Description = typeDescription,
             Properties = properties
         };
     }
@@ -2567,6 +2576,76 @@ internal static class AtsCapabilityScanner
             return name;
         }
         return char.ToLowerInvariant(name[0]) + name[1..];
+    }
+
+    /// <summary>
+    /// Cache of loaded XML documentation indexed by assembly location.
+    /// </summary>
+    private static readonly Dictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Loads the XML documentation file (.xml) for the given assembly, if available.
+    /// </summary>
+    internal static XDocument? LoadXmlDocumentation(Assembly assembly)
+    {
+        var assemblyLocation = assembly.Location;
+        if (string.IsNullOrEmpty(assemblyLocation))
+        {
+            return null;
+        }
+
+        if (s_xmlDocCache.TryGetValue(assemblyLocation, out var cached))
+        {
+            return cached;
+        }
+
+        var xmlPath = Path.ChangeExtension(assemblyLocation, ".xml");
+        XDocument? doc = null;
+
+        if (File.Exists(xmlPath))
+        {
+            try
+            {
+                doc = XDocument.Load(xmlPath);
+            }
+            catch
+            {
+                // Silently ignore malformed XML doc files
+            }
+        }
+
+        s_xmlDocCache[assemblyLocation] = doc;
+        return doc;
+    }
+
+    /// <summary>
+    /// Extracts the summary text for a given member from the XML documentation.
+    /// </summary>
+    /// <param name="xmlDoc">The loaded XML documentation, or null.</param>
+    /// <param name="memberName">The documentation member name (e.g., "T:Namespace.TypeName" or "P:Namespace.TypeName.Property").</param>
+    internal static string? GetXmlDocSummary(XDocument? xmlDoc, string memberName)
+    {
+        if (xmlDoc is null)
+        {
+            return null;
+        }
+
+        var memberElement = xmlDoc.Descendants("member")
+            .FirstOrDefault(m => m.Attribute("name")?.Value == memberName);
+
+        var summary = memberElement?.Element("summary");
+        if (summary is null)
+        {
+            return null;
+        }
+
+        // Normalize whitespace: collapse inner whitespace from multiline XML doc comments
+        var text = string.Join(" ", summary.Value
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0));
+
+        return text.Length > 0 ? text : null;
     }
 
 }

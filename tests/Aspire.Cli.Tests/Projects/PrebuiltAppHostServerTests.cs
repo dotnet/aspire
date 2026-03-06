@@ -118,4 +118,31 @@ public class PrebuiltAppHostServerTests
         var ns = doc.Root!.GetDefaultNamespace();
         Assert.Equal("net10.0", doc.Descendants(ns + "TargetFramework").FirstOrDefault()?.Value);
     }
+
+    [Fact]
+    public void GenerateIntegrationProjectFile_WithAdditionalSources_SetsRestoreAdditionalProjectSources()
+    {
+        var sources = new[] { "/local/packages", "https://my-feed/v3/index.json" };
+
+        var xml = PrebuiltAppHostServer.GenerateIntegrationProjectFile([], [], "/tmp/libs", sources);
+        var doc = XDocument.Parse(xml);
+
+        var ns = doc.Root!.GetDefaultNamespace();
+        var restoreSources = doc.Descendants(ns + "RestoreAdditionalProjectSources").FirstOrDefault()?.Value;
+        Assert.NotNull(restoreSources);
+        Assert.Contains("/local/packages", restoreSources);
+        Assert.Contains("https://my-feed/v3/index.json", restoreSources);
+    }
+
+    [Fact]
+    public void GenerateIntegrationProjectFile_WithEmptyAdditionalSources_DoesNotSetRestoreAdditionalProjectSources()
+    {
+        var xml = PrebuiltAppHostServer.GenerateIntegrationProjectFile([], [], "/tmp/libs", Enumerable.Empty<string>());
+        var doc = XDocument.Parse(xml);
+
+        var ns = doc.Root!.GetDefaultNamespace();
+        var restoreSources = doc.Descendants(ns + "RestoreAdditionalProjectSources").FirstOrDefault();
+        Assert.Null(restoreSources);
+    }
+
 }

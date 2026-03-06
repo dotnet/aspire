@@ -233,8 +233,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         {
             doc.Root!.Add(new XElement("ItemGroup",
                 otherPackages.Select(p => new XElement("PackageReference",
-                    new XAttribute("Include", p.Name),
-                    new XAttribute("Version", p.Version)))));
+                    new XAttribute("Include", p.Name)))));
         }
 
         // Add imports for in-repo AppHost building
@@ -377,10 +376,12 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create the project file
         var doc = CreateProjectFile(integrations);
 
-        // Add channel sources to the project so project references can resolve packages
-        if (channelSources.Count > 0)
+        // Add channel sources to the project
+        var allAdditionalSources = new List<string>(channelSources);
+
+        if (allAdditionalSources.Count > 0)
         {
-            var sourceList = string.Join(";", channelSources);
+            var sourceList = string.Join(";", allAdditionalSources);
             doc.Root!.Descendants("PropertyGroup").First()
                 .Add(new XElement("RestoreAdditionalProjectSources", sourceList));
         }
@@ -394,6 +395,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create Directory.Packages.props to enable central package management
         // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
         var repoDirectoryPackagesProps = Path.Combine(_repoRoot, "Directory.Packages.props");
+
         var directoryPackagesProps = $"""
             <Project>
               <PropertyGroup>
