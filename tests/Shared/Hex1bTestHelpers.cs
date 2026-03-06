@@ -305,18 +305,13 @@ internal static class Hex1bTestHelpers
     /// Whether to enable Redis Cache. Defaults to <c>true</c> (the <c>aspire new</c> default).
     /// Only applies to templates that show the Redis prompt (Starter, JsReact, PythonReact).
     /// </param>
-    /// <param name="createTestProject">
-    /// Whether to create a test project. Defaults to <c>false</c> (the <c>aspire new</c> default).
-    /// Only applies to the Starter template.
-    /// </param>
     /// <returns>The builder for chaining.</returns>
     internal static Hex1bTerminalInputSequenceBuilder AspireNew(
         this Hex1bTerminalInputSequenceBuilder builder,
         string projectName,
         SequenceCounter counter,
         AspireTemplate template = AspireTemplate.Starter,
-        bool useRedisCache = true,
-        bool createTestProject = false)
+        bool useRedisCache = true)
     {
         var templateTimeout = TimeSpan.FromSeconds(60);
 
@@ -420,15 +415,8 @@ internal static class Hex1bTestHelpers
         {
             var waitingForTestPrompt = new CellPatternSearcher()
                 .Find("Do you want to create a test project?");
-            builder.WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10));
-
-            if (createTestProject)
-            {
-                // Options are [No, Yes]. Default is "No", navigate down to "Yes"
-                builder.Key(Hex1bKey.DownArrow);
-            }
-
-            builder.Enter();
+            builder.WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // Accept default "No"
         }
 
         // Step 8: Decline the agent init prompt

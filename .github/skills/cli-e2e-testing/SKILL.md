@@ -170,7 +170,7 @@ sequenceBuilder.WaitUntil(
 
 | Method | Description |
 |--------|-------------|
-| `AspireNew(projectName, counter, template?, useRedisCache?, createTestProject?)` | Runs `aspire new` interactively, handling template selection, project name, output path, URLs, Redis, and test project prompts |
+| `AspireNew(projectName, counter, template?, useRedisCache?)` | Runs `aspire new` interactively, handling template selection, project name, output path, URLs, Redis, and test project prompts |
 
 See [AspireNew Helper](#aspirenew-helper) below for detailed usage.
 
@@ -239,7 +239,6 @@ The `AspireNew` extension method centralizes the multi-step `aspire new` interac
 | `counter` | (required) | `SequenceCounter` for prompt tracking |
 | `template` | `AspireTemplate.Starter` | Which template to select |
 | `useRedisCache` | `true` | Accept Redis (Enter) or decline (Down+Enter). Only applies to Starter, JsReact, PythonReact. |
-| `createTestProject` | `false` | Accept test project (Down+Enter) or decline (Enter). Only applies to Starter. |
 
 ### Usage Examples
 
@@ -249,9 +248,6 @@ sequenceBuilder.AspireNew("MyProject", counter);
 
 // Starter template, no Redis
 sequenceBuilder.AspireNew("MyProject", counter, useRedisCache: false);
-
-// Starter template with test project
-sequenceBuilder.AspireNew("MyProject", counter, createTestProject: true);
 
 // JsReact template, no Redis
 sequenceBuilder.AspireNew("MyProject", counter, template: AspireTemplate.JsReact, useRedisCache: false);
