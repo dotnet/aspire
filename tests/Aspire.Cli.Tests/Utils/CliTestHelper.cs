@@ -196,6 +196,7 @@ internal static class CliTestHelper
         services.AddTransient<TelemetryLogsCommand>();
         services.AddTransient<TelemetrySpansCommand>();
         services.AddTransient<TelemetryTracesCommand>();
+        services.AddTransient<ExportCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<WaitCommand>();
         services.AddTransient<SdkCommand>();

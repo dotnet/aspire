@@ -171,8 +171,7 @@ internal sealed class LogsCommand : BaseCommand
         // Validate resource name exists (match by Name or DisplayName since users may pass either)
         if (resourceName is not null)
         {
-            if (!snapshots.Any(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)
-                                 || string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName)))
+            if (!ResourceSnapshotMapper.WhereMatchesResourceName(snapshots, resourceName).Any())
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, LogsCommandStrings.ResourceNotFound, resourceName));
                 return ExitCodeConstants.InvalidCommand;
