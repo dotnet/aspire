@@ -17,6 +17,7 @@ namespace Aspire.Hosting.Kubernetes;
 /// <remarks>
 /// Initializes a new instance of the <see cref="KubernetesEnvironmentResource"/> class.
 /// </remarks>
+[AspireExport(ExposeProperties = true)]
 public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmentResource
 {
     /// <summary>
