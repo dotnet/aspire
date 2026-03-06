@@ -166,6 +166,14 @@ sequenceBuilder.WaitUntil(
 
 ## Extension Methods
 
+### Hex1bTestHelpers Extensions (Shared)
+
+| Method | Description |
+|--------|-------------|
+| `AspireNew(projectName, counter, template?, useRedisCache?, createTestProject?)` | Runs `aspire new` interactively, handling template selection, project name, output path, URLs, Redis, and test project prompts |
+
+See [AspireNew Helper](#aspirenew-helper) below for detailed usage.
+
 ### CliE2ETestHelpers Extensions on Hex1bTerminalInputSequenceBuilder
 
 | Method | Description |
@@ -209,24 +217,87 @@ sequenceBuilder
     .WaitForSuccessPrompt(counter);
 ```
 
-## DO: Handle Interactive Prompts
+## AspireNew Helper
 
-For CLI commands with interactive prompts, wait for each prompt before responding:
+The `AspireNew` extension method centralizes the multi-step `aspire new` interactive flow. Use it instead of manually building the prompt sequence.
+
+### AspireTemplate Enum
+
+| Value | Template | Arrow Keys |
+|-------|----------|------------|
+| `Starter` (default) | Starter App (Blazor) | None (first option) |
+| `JsReact` | Starter App (ASP.NET Core/React) | Down ×1 |
+| `PythonReact` | Starter App (FastAPI/React) | Down ×2 |
+| `ExpressReact` | Starter App (Express/React) | Down ×3 |
+| `EmptyAppHost` | Empty App Host | Down ×4 |
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `projectName` | (required) | Project name typed at the prompt |
+| `counter` | (required) | `SequenceCounter` for prompt tracking |
+| `template` | `AspireTemplate.Starter` | Which template to select |
+| `useRedisCache` | `true` | Accept Redis (Enter) or decline (Down+Enter). Only applies to Starter, JsReact, PythonReact. |
+| `createTestProject` | `false` | Accept test project (Down+Enter) or decline (Enter). Only applies to Starter. |
+
+### Usage Examples
 
 ```csharp
+// Starter template with defaults (Redis=Yes, TestProject=No)
+sequenceBuilder.AspireNew("MyProject", counter);
+
+// Starter template, no Redis
+sequenceBuilder.AspireNew("MyProject", counter, useRedisCache: false);
+
+// Starter template with test project
+sequenceBuilder.AspireNew("MyProject", counter, createTestProject: true);
+
+// JsReact template, no Redis
+sequenceBuilder.AspireNew("MyProject", counter, template: AspireTemplate.JsReact, useRedisCache: false);
+
+// PythonReact template
+sequenceBuilder.AspireNew("MyProject", counter,
+    template: AspireTemplate.PythonReact,
+    useRedisCache: false);
+
+// Empty app host
+sequenceBuilder.AspireNew("MyProject", counter, template: AspireTemplate.EmptyAppHost);
+```
+
+## DO: Handle Interactive Prompts
+
+For `aspire new`, use the `AspireNew` helper instead of manually building the prompt sequence:
+
+```csharp
+// DO: Use the helper
+sequenceBuilder.AspireNew("MyProject", counter);
+
+// DON'T: Manually build the sequence (this is what AspireNew does internally)
 var waitingForTemplatePrompt = new CellPatternSearcher()
     .FindPattern("> Starter App");
-
 var waitingForProjectNamePrompt = new CellPatternSearcher()
     .Find("Enter the project name");
-
 sequenceBuilder
     .Type("aspire new")
     .Enter()
     .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-    .Enter()  // Select first template
+    .Enter()
     .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
     .Type("MyProject")
+    .Enter();
+```
+
+For other interactive CLI commands, wait for each prompt before responding:
+
+```csharp
+var waitingForPrompt = new CellPatternSearcher()
+    .Find("Enter your choice");
+
+sequenceBuilder
+    .Type("aspire some-command")
+    .Enter()
+    .WaitUntil(s => waitingForPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
     .Enter();
 ```
 

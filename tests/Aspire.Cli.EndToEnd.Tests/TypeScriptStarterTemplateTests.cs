@@ -27,23 +27,6 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for template selection - find "Starter App (Express/React)"
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        // Use Find() for literal string with parentheses/slashes
-        var waitingForExpressReactTemplateSelected = new CellPatternSearcher()
-            .Find("> Starter App (Express/React)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find("Enter the project name (");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find("Enter the output path:");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find("Use *.dev.localhost URLs");
-
         var waitForDashboardCurlSuccess = new CellPatternSearcher()
             .Find("dashboard-http-200");
 
@@ -62,24 +45,7 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
         }
 
         // Step 1: Create project using aspire new, selecting the Express/React template
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Starter App (Express/React)" which is the 4th option
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForExpressReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select "Starter App (Express/React)"
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TsStarterApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .DeclineAgentInitPrompt()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
 
         // Step 2: Navigate into the project and start it in background with JSON output
         sequenceBuilder

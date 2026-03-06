@@ -64,25 +64,6 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire new interactive prompts
-            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-                .FindPattern("> Starter App");
-
-            var waitingForProjectNamePrompt = new CellPatternSearcher()
-                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-            var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
-
-            var waitingForUrlsPrompt = new CellPatternSearcher()
-                .Find("Use *.dev.localhost URLs");
-
-            var waitingForRedisPrompt = new CellPatternSearcher()
-                .Find("Use Redis Cache");
-
-            var waitingForTestPrompt = new CellPatternSearcher()
-                .Find("Do you want to create a test project?");
-
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -105,24 +86,7 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
 
             // Step 3: Create starter project using aspire new
             output.WriteLine("Step 3: Creating starter project...");
-            sequenceBuilder.Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select Starter App
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type(projectName)
-                .Enter()
-                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Accept default output path
-                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // No for localhost URLs
-                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Enter() // No for Redis
-                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // No for test project
-                .DeclineAgentInitPrompt()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+            sequenceBuilder.AspireNew(projectName, counter, useRedisCache: false);
 
             // Step 4: Navigate to project directory
             output.WriteLine("Step 4: Navigating to project directory...");

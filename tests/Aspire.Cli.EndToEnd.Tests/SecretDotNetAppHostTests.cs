@@ -37,41 +37,7 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
         }
 
         // Create an Empty AppHost project interactively
-        var waitingForTemplatePrompt = new CellPatternSearcher()
-            .Find("> Starter App");
-
-        var waitingForEmptySelected = new CellPatternSearcher()
-            .Find("> Empty AppHost");
-
-        var waitingForNamePrompt = new CellPatternSearcher()
-            .Find("Enter the project name");
-
-        var waitingForOutputPrompt = new CellPatternSearcher()
-            .Find("Enter the output path");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find("localhost");
-
-        sequenceBuilder
-            .Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForEmptySelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select Empty AppHost
-            .Enter() // select C#
-            .WaitUntil(s => waitingForNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TestSecrets")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .DeclineAgentInitPrompt()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestSecrets", counter, template: AspireTemplate.EmptyAppHost);
 
         // cd into the project
         sequenceBuilder
