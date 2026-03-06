@@ -378,11 +378,9 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         var doc = CreateProjectFile(integrations);
 
         // Add channel sources to the project
-        var allAdditionalSources = new List<string>(channelSources);
-
-        if (allAdditionalSources.Count > 0)
+        if (channelSources.Count > 0)
         {
-            var sourceList = string.Join(";", allAdditionalSources);
+            var sourceList = string.Join(";", channelSources);
             doc.Root!.Descendants("PropertyGroup").First()
                 .Add(new XElement("RestoreAdditionalProjectSources", sourceList));
         }
