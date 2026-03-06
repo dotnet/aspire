@@ -183,7 +183,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importPath">The directory containing the realm import files or a single import file.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -196,16 +196,16 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use WithRealmImport(string importPath) instead.")]
+    [Obsolete("Use WithRealmImport(string import) instead.")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importPath,
+        string import,
         bool isReadOnly)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(importPath);
+        ArgumentException.ThrowIfNullOrEmpty(import);
 
-        var importFullPath = Path.GetFullPath(importPath, builder.ApplicationBuilder.AppHostDirectory);
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
         return builder.WithBindMount(importFullPath, KeycloakImportDirectory, isReadOnly);
     }
@@ -214,7 +214,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="importPath">The directory containing the realm import files or a single import file.</param>
+    /// <param name="import">The directory containing the realm import files or a single import file.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The realm import files are copied to /opt/keycloak/data/import in the container.
@@ -226,15 +226,15 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("withRealmImport", Description = "Imports a Keycloak realm configuration")]
+    [AspireExportIgnore(Reason = "Parameter name 'import' is a reserved keyword in TypeScript. Use the internal ATS-compatible overload instead.")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string importPath)
+        string import)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(importPath);
+        ArgumentException.ThrowIfNullOrEmpty(import);
 
-        var importFullPath = Path.GetFullPath(importPath, builder.ApplicationBuilder.AppHostDirectory);
+        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
 
         return builder.WithContainerFiles(
             KeycloakImportDirectory,
@@ -329,5 +329,16 @@ public static class KeycloakResourceBuilderExtensions
         OtlpConfigurationExtensions.WithOtlpExporter(builder, protocol);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds a realm import to a Keycloak container resource.
+    /// </summary>
+    [AspireExport("withRealmImport", Description = "Imports a Keycloak realm configuration")]
+    internal static IResourceBuilder<KeycloakResource> WithRealmImportInternal(
+        this IResourceBuilder<KeycloakResource> builder,
+        string importPath)
+    {
+        return builder.WithRealmImport(importPath);
     }
 }
