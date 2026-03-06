@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { noAppHostInWorkspace } from '../loc/strings';
 import { getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
+import { AspireCommandType } from '../dcp/types';
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
     private _workspaceAppHostPath: string | null = null;
@@ -74,8 +75,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
             return true;
         }
 
-        const firstNonEmptyLine = lines.find(line => line.trim().length > 0)?.trim();
-        return firstNonEmptyLine === 'var builder = DistributedApplication.CreateBuilder(args);';
+        return lines.some(line => line === 'var builder = DistributedApplication.CreateBuilder(args);');
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -130,19 +130,42 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('run', noDebug);
+    }
+
+    public async tryExecuteDeployAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('deploy', noDebug);
+    }
+
+    public async tryExecutePublishAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('publish', noDebug);
+    }
+
+    public async tryExecuteDoAppHost(noDebug: boolean, doStep?: string): Promise<void> {
+        await this.launchAspireDebugSession('do', noDebug, doStep);
+    }
+
+    private async launchAspireDebugSession(aspireCommand: AspireCommandType, noDebug: boolean, doStep?: string): Promise<void> {
         const appHostToRun = await this.getAppHostPath();
         if (!appHostToRun) {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
 
-        await vscode.debug.startDebugging(undefined, {
+        const config: vscode.DebugConfiguration = {
             type: 'aspire',
-            name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
+            name: `Aspire ${aspireCommand}: ${vscode.workspace.asRelativePath(appHostToRun)}`,
             request: 'launch',
             program: appHostToRun,
+            command: aspireCommand,
             noDebug: noDebug
-        });
+        };
+
+        if (doStep) {
+            config.step = doStep;
+        }
+
+        await vscode.debug.startDebugging(undefined, config);
     }
 
     dispose() {

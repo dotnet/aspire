@@ -275,6 +275,9 @@
     <Project Path="playground/pipelines/Pipelines.AppHost/Pipelines.AppHost.csproj" />
     <Project Path="playground/pipelines/Pipelines.Library/Pipelines.Library.csproj" />
   </Folder>
+  <Folder Name="/playground/SimplePipelines/">
+    <Project Path="playground/SimplePipelines/SimplePipelines.AppHost/SimplePipelines.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/PostgresEndToEnd/">
     <Project Path="playground/PostgresEndToEnd/PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj" />
     <Project Path="playground/PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />

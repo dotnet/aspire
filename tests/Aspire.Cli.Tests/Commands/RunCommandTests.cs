@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
@@ -386,7 +386,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenDashboardFailsToStart_ReturnsNonZeroExitCodeWithClearErrorMessage()
     {
-        var errorMessages = new List<string>();
 
         var backchannelFactory = (IServiceProvider sp) =>
         {
@@ -437,12 +436,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             options.ProjectLocatorFactory = projectLocatorFactory;
             options.AppHostBackchannelFactory = backchannelFactory;
             options.DotNetCliRunnerFactory = runnerFactory;
-            options.InteractionServiceFactory = (sp) =>
-            {
-                var interactionService = new TestConsoleInteractionService();
-                interactionService.DisplayErrorCallback = errorMessages.Add;
-                return interactionService;
-            };
+            options.InteractionServiceFactory = (sp) => new TestInteractionService();
         });
 
         var provider = services.BuildServiceProvider();
@@ -458,7 +452,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AppHostHelper_BuildAppHostAsync_IncludesRelativePathInStatusMessage()
     {
-        var testInteractionService = new TestConsoleInteractionService();
+        var testInteractionService = new TestInteractionService();
         testInteractionService.ShowStatusCallback = (statusText) =>
         {
             Assert.Contains(
@@ -1477,6 +1471,21 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         // Should return InvalidCommand error because --no-build is not supported with watch mode enabled
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    [Fact]
+    public void RunCommand_ForwardsUnmatchedTokensToAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run -- --custom-arg value");
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("--custom-arg", result.UnmatchedTokens);
+        Assert.Contains("value", result.UnmatchedTokens);
     }
 
     private sealed class TestFeatures : IFeatures

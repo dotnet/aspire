@@ -31,7 +31,7 @@ export class RpcClient implements ICliRpcClient {
         this._messageConnection = messageConnection;
         this._connectionClosed = false;
         this.debugSessionId = debugSessionId;
-        this.interactionService = new InteractionService(getAspireDebugSession, this);
+        this.interactionService = new InteractionService(getAspireDebugSession, this, () => terminalProvider.getAspireTerminal());
 
         this._messageConnection.onClose(() => {
             this._connectionClosed = true;
@@ -63,7 +63,12 @@ export class RpcClient implements ICliRpcClient {
 
     async stopCli() {
         if (!this._connectionClosed) {
-            await this._messageConnection.sendRequest('stopCli');
+            try {
+                await this._messageConnection.sendRequest('stopCli');
+            } catch (error) {
+                // Connection may have been closed during shutdown, which is expected
+                extensionLogOutputChannel.info(`stopCli request failed (likely connection already closed): ${error}`);
+            }
         }
     }
 

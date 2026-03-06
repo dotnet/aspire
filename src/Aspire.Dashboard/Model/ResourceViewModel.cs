@@ -225,9 +225,9 @@ public sealed class CommandViewModel
 {
     // Known resource command constants.
     // Keep in sync with KnownResourceCommands in Aspire.Hosting.
-    public const string StartCommand = "resource-start";
-    public const string StopCommand = "resource-stop";
-    public const string RestartCommand = "resource-restart";
+    public const string StartCommand = "start";
+    public const string StopCommand = "stop";
+    public const string RestartCommand = "restart";
     private static readonly string[] s_knownResourceCommands = [StartCommand, StopCommand, RestartCommand];
 
     public string Name { get; }

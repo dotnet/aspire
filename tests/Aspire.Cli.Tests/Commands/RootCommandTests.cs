@@ -86,6 +86,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
             options.ErrorTextWriter = errorWriter;
             options.FirstTimeUseNoticeSentinelFactory = _ => sentinel;
             options.BannerServiceFactory = _ => bannerService;
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
         });
         var provider = services.BuildServiceProvider();
 
@@ -261,6 +262,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
             options.ErrorTextWriter = errorWriter;
             options.FirstTimeUseNoticeSentinelFactory = _ => sentinel;
             options.BannerServiceFactory = _ => bannerService;
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
         });
         var provider = services.BuildServiceProvider();
 
@@ -331,6 +333,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         {
             options.FirstTimeUseNoticeSentinelFactory = _ => sentinel;
             options.BannerServiceFactory = _ => bannerService;
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
         });
         var provider = services.BuildServiceProvider();
 

@@ -1197,6 +1197,12 @@ class IConfiguration(HandleWrapperBase):
         return self._client.invoke_capability("Aspire.Hosting/getConnectionString", args)
 
 
+class IContainerFilesDestinationResource(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    pass
+
 class IDistributedApplicationBuilder(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -1327,6 +1333,12 @@ class IResourceWithArgs(ResourceBuilderBase):
     pass
 
 class IResourceWithConnectionString(ResourceBuilderBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    pass
+
+class IResourceWithContainerFiles(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
@@ -1748,6 +1760,13 @@ class ProjectResource(ResourceBuilderBase):
         if callback_id is not None:
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withUrlForEndpointFactory", args)
+
+    def publish_with_container_files(self, source: IResourceWithContainerFiles, destination_path: str) -> IContainerFilesDestinationResource:
+        """Configures the resource to copy container files from the specified source during publishing"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        args["destinationPath"] = serialize_value(destination_path)
+        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFiles", args)
 
     def wait_for(self, dependency: IResource) -> IResourceWithWaitSupport:
         """Waits for another resource to be ready"""
@@ -3020,6 +3039,14 @@ class TestRedisResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback", args)
 
+    def with_data_volume(self, name: str | None = None, is_read_only: bool = False) -> TestRedisResource:
+        """Adds a data volume with persistence"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if name is not None:
+            args["name"] = serialize_value(name)
+        args["isReadOnly"] = serialize_value(is_read_only)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume", args)
+
 
 class TestResourceContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -3527,6 +3554,7 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCo
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", lambda handle, client: ExecuteCommandContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", lambda handle, client: ResourceUrlsCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", lambda handle, client: IResourceWithServiceDiscovery(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", lambda handle, client: IResourceWithContainerFiles(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", lambda handle, client: TestCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", lambda handle, client: TestResourceContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", lambda handle, client: TestEnvironmentContext(handle, client))
@@ -3535,6 +3563,7 @@ register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosti
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", lambda handle, client: TestDatabaseResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", lambda handle, client: ITestVaultResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", lambda handle, client: IContainerFilesDestinationResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,any>", lambda handle, client: AspireDict(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<any>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", lambda handle, client: AspireDict(handle, client))

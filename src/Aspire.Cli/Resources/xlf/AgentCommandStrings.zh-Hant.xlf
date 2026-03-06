@@ -27,9 +27,29 @@
         <target state="needs-review-translation">管理 AI Agent 整合。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_ConfigureMcpServer">
+        <source>Install Aspire MCP server</source>
+        <target state="new">Install Aspire MCP server</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents.</source>
         <target state="translated">為偵測到的代理程式初始化代理程式環境設定。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_InstallSkillFile">
+        <source>Install Aspire skill file (Recommended)</source>
+        <target state="new">Install Aspire skill file (Recommended)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_NothingSelected">
+        <source>No options selected. Nothing to configure.</source>
+        <target state="new">No options selected. Nothing to configure.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WhatToConfigure">
+        <source>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</source>
+        <target state="new">What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</target>
         <note />
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
@@ -40,6 +60,11 @@
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">啟動 MCP (模型內容通訊協定) 伺服器。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkipNoneDescription">
+        <source>None — skip</source>
+        <target state="new">None — skip</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">

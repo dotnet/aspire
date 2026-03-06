@@ -112,7 +112,6 @@ internal sealed class RootCommand : BaseRootCommand
         RunCommand runCommand,
         StopCommand stopCommand,
         StartCommand startCommand,
-        RestartCommand restartCommand,
         WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
@@ -130,6 +129,7 @@ internal sealed class RootCommand : BaseRootCommand
         McpCommand mcpCommand,
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
+        ExportCommand exportCommand,
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
@@ -200,7 +200,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
         Subcommands.Add(startCommand);
-        Subcommands.Add(restartCommand);
         Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
@@ -218,6 +217,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
+        Subcommands.Add(exportCommand);
         Subcommands.Add(docsCommand);
         Subcommands.Add(secretCommand);
 
