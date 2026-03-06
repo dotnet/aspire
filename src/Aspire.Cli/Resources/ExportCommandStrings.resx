@@ -76,4 +76,7 @@
   <data name="NoResourcesFound" xml:space="preserve">
     <value>No resources found.</value>
   </data>
+  <data name="DashboardNotAvailable" xml:space="preserve">
+    <value>Dashboard is not available. Telemetry data (structured logs, traces) will not be included in the export.</value>
+  </data>
 </root>

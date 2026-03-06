@@ -93,14 +93,15 @@ internal sealed class ExportCommand : BaseCommand
 
         // Get dashboard API info for telemetry data
         var dashboardInfo = await connection.GetDashboardInfoV2Async(cancellationToken);
-        if (dashboardInfo?.ApiBaseUrl is null || dashboardInfo.ApiToken is null)
+        var isDashboardAvailable = dashboardInfo?.ApiBaseUrl is not null && dashboardInfo.ApiToken is not null;
+
+        if (!isDashboardAvailable)
         {
-            _interactionService.DisplayError(TelemetryCommandStrings.DashboardApiNotAvailable);
-            return ExitCodeConstants.DashboardFailure;
+            _interactionService.DisplayMessage(KnownEmojis.Warning, ExportCommandStrings.DashboardNotAvailable);
         }
 
-        var baseUrl = dashboardInfo.ApiBaseUrl;
-        var apiToken = dashboardInfo.ApiToken;
+        var baseUrl = dashboardInfo?.ApiBaseUrl;
+        var apiToken = dashboardInfo?.ApiToken;
 
         // Default file name if not specified
         if (string.IsNullOrEmpty(outputPath))
@@ -118,12 +119,14 @@ internal sealed class ExportCommand : BaseCommand
 
         try
         {
-            using var client = TelemetryCommandHelpers.CreateApiClient(_httpClientFactory, apiToken);
+            using var client = isDashboardAvailable ? TelemetryCommandHelpers.CreateApiClient(_httpClientFactory, apiToken!) : null;
 
             // Get telemetry resources and resource snapshots
             var (telemetryResources, snapshots) = await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringResources, async () =>
             {
-                var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
+                var resources = isDashboardAvailable
+                    ? await TelemetryCommandHelpers.GetAllResourcesAsync(client!, baseUrl!, cancellationToken).ConfigureAwait(false)
+                    : [];
                 var snaps = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
                 return (resources, snaps);
             });
@@ -168,22 +171,19 @@ internal sealed class ExportCommand : BaseCommand
                 return true;
             });
 
-            // 3. Export structured logs from Dashboard API (skip if resource has no telemetry data)
-            if (hasTelemetryData)
+            if (isDashboardAvailable && hasTelemetryData)
             {
+                // 3. Export structured logs from Dashboard API (skip if resource has no telemetry data or dashboard is unavailable)
                 await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringStructuredLogs, async () =>
                 {
-                    await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
+                    await AddStructuredLogsAsync(exportArchive, client!, baseUrl!, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
                     return true;
                 });
-            }
 
-            // 4. Export traces from Dashboard API (skip if resource has no telemetry data)
-            if (hasTelemetryData)
-            {
+                // 4. Export traces from Dashboard API (skip if resource has no telemetry data or dashboard is unavailable)
                 await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringTraces, async () =>
                 {
-                    await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
+                    await AddTracesAsync(exportArchive, client!, baseUrl!, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
                     return true;
                 });
             }

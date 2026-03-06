@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Otlp.Serialization;
@@ -630,6 +631,54 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         Assert.False(File.Exists(outputPath), "No zip should be created when the resource doesn't exist");
     }
 
+    [Fact]
+    public async Task ExportCommand_DashboardUnavailable_ExportsResourcesAndConsoleLogs()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        var provider = CreateExportTestServices(workspace, outputWriter,
+            resources: [],
+            telemetryEndpoints: new Dictionary<string, string>(),
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+            ],
+            logLines:
+            [
+                new ResourceLogLine { ResourceName = "redis", LineNumber = 1, Content = "Redis is starting" },
+                new ResourceLogLine { ResourceName = "apiservice", LineNumber = 1, Content = "Now listening on: https://localhost:5001" },
+            ],
+            dashboardAvailable: false);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"export --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.True(File.Exists(outputPath), "Export zip file should be created even without dashboard");
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(n => n).ToList();
+
+        // Should have resources and console logs, but no structured logs or traces
+        Assert.Collection(entryNames,
+            entry => Assert.Equal("consolelogs/apiservice.txt", entry),
+            entry => Assert.Equal("consolelogs/redis.txt", entry),
+            entry => Assert.Equal("resources/apiservice.json", entry),
+            entry => Assert.Equal("resources/redis.json", entry));
+
+        // Verify console log content is still present
+        var redisConsoleLog = ReadEntryText(archive, "consolelogs/redis.txt");
+        Assert.Contains("Redis is starting", redisConsoleLog);
+
+        // Verify warning was displayed
+        Assert.Contains(outputWriter.Logs, line => line.Contains(ExportCommandStrings.DashboardNotAvailable));
+    }
+
     /// <summary>
     /// Creates a configured <see cref="ServiceProvider"/> for export command tests,
     /// with a mock backchannel and HTTP handler that serves resource and telemetry data.
@@ -640,7 +689,8 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         ResourceInfoJson[] resources,
         Dictionary<string, string> telemetryEndpoints,
         List<ResourceSnapshot> resourceSnapshots,
-        List<ResourceLogLine> logLines)
+        List<ResourceLogLine> logLines,
+        bool dashboardAvailable = true)
     {
         var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
@@ -653,13 +703,13 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
                 AppHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
                 ProcessId = 1234
             },
-            DashboardInfoResponse = new GetDashboardInfoResponse
+            DashboardInfoResponse = dashboardAvailable ? new GetDashboardInfoResponse
             {
                 ApiBaseUrl = "http://localhost:18888",
                 ApiToken = "test-token",
                 DashboardUrls = ["http://localhost:18888/login?t=test"],
                 IsHealthy = true
-            },
+            } : null,
             ResourceSnapshots = resourceSnapshots,
             LogLines = logLines
         };
