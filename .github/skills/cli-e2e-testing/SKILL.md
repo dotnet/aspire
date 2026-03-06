@@ -229,7 +229,7 @@ The `AspireNew` extension method centralizes the multi-step `aspire new` interac
 | `JsReact` | Starter App (ASP.NET Core/React) | Down ×1 |
 | `PythonReact` | Starter App (FastAPI/React) | Down ×2 |
 | `ExpressReact` | Starter App (Express/React) | Down ×3 |
-| `EmptyAppHost` | Empty App Host | Down ×4 |
+| `EmptyAppHost` | Empty AppHost | Down ×4 |
 
 ### Parameters
 

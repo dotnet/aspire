@@ -424,8 +424,8 @@ internal static class Hex1bTestHelpers
 
             if (createTestProject)
             {
-                // Default is "No", navigate to "Yes"
-                builder.Key(Hex1bKey.UpArrow);
+                // Options are [No, Yes]. Default is "No", navigate down to "Yes"
+                builder.Key(Hex1bKey.DownArrow);
             }
 
             builder.Enter();
