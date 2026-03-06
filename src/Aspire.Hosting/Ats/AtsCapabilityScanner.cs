@@ -2605,9 +2605,10 @@ internal static class AtsCapabilityScanner
                 {
                     return XDocument.Load(xmlPath);
                 }
-                catch (System.Xml.XmlException)
+                catch (System.Xml.XmlException ex)
                 {
                     // Ignore malformed XML doc files; descriptions will be omitted
+                    System.Diagnostics.Debug.WriteLine($"Failed to load XML documentation for {location}: {ex.Message}");
                 }
             }
 

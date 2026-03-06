@@ -25,19 +25,24 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
     }
 
-    [Fact]
-    public async Task SdkDumpWithBothJsonAndCiReturnsInvalidCommand()
+    [Theory]
+    [InlineData("json")]
+    [InlineData("Json")]
+    [InlineData("JSON")]
+    [InlineData("ci")]
+    [InlineData("Ci")]
+    [InlineData("pretty")]
+    [InlineData("Pretty")]
+    public void ParsesFormatOptionWithoutErrors(string format)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("sdk dump --json --ci");
+        var result = command.Parse($"sdk dump --format {format}");
 
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+        Assert.Empty(result.Errors);
     }
 
     [Fact]

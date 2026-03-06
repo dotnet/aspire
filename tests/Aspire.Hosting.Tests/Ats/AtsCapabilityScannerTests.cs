@@ -401,6 +401,7 @@ public class AtsCapabilityScannerTests
         var first = AtsCapabilityScanner.LoadXmlDocumentation(assembly);
         var second = AtsCapabilityScanner.LoadXmlDocumentation(assembly);
 
+        Assert.NotNull(first);
         Assert.Same(first, second);
     }
 
