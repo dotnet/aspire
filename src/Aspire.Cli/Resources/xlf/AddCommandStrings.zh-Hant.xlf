@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
+        <target state="translated">要新增整合的 Aspire AppHost 專案檔路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">

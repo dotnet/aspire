@@ -64,7 +64,7 @@ En savoir plus sur la télémétrie de l’interface CLI Aspire : https://aka.m
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Exécuter la commande en mode non interactif, en désactivant toutes les requêtes et les indicateurs animés.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
