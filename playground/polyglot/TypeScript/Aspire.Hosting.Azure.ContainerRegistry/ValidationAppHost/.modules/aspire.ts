@@ -26,8 +26,17 @@ import {
 // Handle Type Aliases (Internal - not exported to users)
 // ============================================================================
 
+/** Handle to AzureContainerAppEnvironmentResource */
+type AzureContainerAppEnvironmentResourceHandle = Handle<'Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.AzureContainerAppEnvironmentResource'>;
+
 /** Handle to AzureContainerRegistryResource */
 type AzureContainerRegistryResourceHandle = Handle<'Aspire.Hosting.Azure.ContainerRegistry/Aspire.Hosting.Azure.AzureContainerRegistryResource'>;
+
+/** Handle to AzureLogAnalyticsWorkspaceResource */
+type AzureLogAnalyticsWorkspaceResourceHandle = Handle<'Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource'>;
+
+/** Handle to AzureResourceInfrastructure */
+type AzureResourceInfrastructureHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureResourceInfrastructure'>;
 
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
@@ -49,6 +58,12 @@ type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicatio
 
 /** Handle to ExecuteCommandContext */
 type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
+
+/** Handle to IComputeResource */
+type IComputeResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource'>;
+
+/** Handle to IContainerFilesDestinationResource */
+type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
 
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
@@ -101,6 +116,9 @@ type IDistributedApplicationEventingHandle = Handle<'Aspire.Hosting/Aspire.Hosti
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
 
+/** Handle to IResourceWithContainerFiles */
+type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles'>;
+
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
 
@@ -109,6 +127,12 @@ type DictstringanyHandle = Handle<'Aspire.Hosting/Dict<string,any>'>;
 
 /** Handle to List<any> */
 type ListanyHandle = Handle<'Aspire.Hosting/List<any>'>;
+
+/** Handle to ContainerApp */
+type ContainerAppHandle = Handle<'Azure.Provisioning.AppContainers/Azure.Provisioning.AppContainers.ContainerApp'>;
+
+/** Handle to ContainerAppJob */
+type ContainerAppJobHandle = Handle<'Azure.Provisioning.AppContainers/Azure.Provisioning.AppContainers.ContainerAppJob'>;
 
 /** Handle to IConfiguration */
 type IConfigurationHandle = Handle<'Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration'>;
@@ -129,10 +153,28 @@ type IServiceProviderHandle = Handle<'System.ComponentModel/System.IServiceProvi
 // Enum Types
 // ============================================================================
 
+/** Enum type for AzureContainerRegistryRole */
+export enum AzureContainerRegistryRole {
+    AcrDelete = "AcrDelete",
+    AcrImageSigner = "AcrImageSigner",
+    AcrPull = "AcrPull",
+    AcrPush = "AcrPush",
+    AcrQuarantineReader = "AcrQuarantineReader",
+    AcrQuarantineWriter = "AcrQuarantineWriter",
+}
+
 /** Enum type for ContainerLifetime */
 export enum ContainerLifetime {
     Session = "Session",
     Persistent = "Persistent",
+}
+
+/** Enum type for DeploymentScope */
+export enum DeploymentScope {
+    ResourceGroup = "ResourceGroup",
+    Subscription = "Subscription",
+    ManagementGroup = "ManagementGroup",
+    Tenant = "Tenant",
 }
 
 /** Enum type for DistributedApplicationOperation */
@@ -269,6 +311,10 @@ export interface GetValueAsyncOptions {
     cancellationToken?: AbortSignal;
 }
 
+export interface PublishAsConfiguredScheduledAzureContainerAppJobOptions {
+    configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>;
+}
+
 export interface RunOptions {
     cancellationToken?: AbortSignal;
 }
@@ -283,6 +329,10 @@ export interface WithBindMountOptions {
 
 export interface WithCommandOptions {
     commandOptions?: CommandOptions;
+}
+
+export interface WithDashboardOptions {
+    enable?: boolean;
 }
 
 export interface WithDescriptionOptions {
@@ -322,6 +372,10 @@ export interface WithHttpsEndpointOptions {
     isProxied?: boolean;
 }
 
+export interface WithHttpsUpgradeOptions {
+    upgrade?: boolean;
+}
+
 export interface WithImageOptions {
     tag?: string;
 }
@@ -349,6 +403,47 @@ export interface WithUrlOptions {
 export interface WithVolumeOptions {
     name?: string;
     isReadOnly?: boolean;
+}
+
+// ============================================================================
+// AzureResourceInfrastructure
+// ============================================================================
+
+/**
+ * Type class for AzureResourceInfrastructure.
+ */
+export class AzureResourceInfrastructure {
+    constructor(private _handle: AzureResourceInfrastructureHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the BicepName property */
+    bicepName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.bicepName',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the TargetScope property */
+    targetScope = {
+        get: async (): Promise<DeploymentScope> => {
+            return await this._client.invokeCapability<DeploymentScope>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.targetScope',
+                { context: this._handle }
+            );
+        },
+        set: async (value: DeploymentScope): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.setTargetScope',
+                { context: this._handle, value }
+            );
+        }
+    };
+
 }
 
 // ============================================================================
@@ -1023,6 +1118,36 @@ export class DistributedApplicationBuilder {
         return new AzureContainerRegistryResourcePromise(this._addAzureContainerRegistryInternal(name));
     }
 
+    /** Adds an Azure Container App Environment resource */
+    /** @internal */
+    async _addAzureContainerAppEnvironmentInternal(name: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/addAzureContainerAppEnvironment',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    addAzureContainerAppEnvironment(name: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._addAzureContainerAppEnvironmentInternal(name));
+    }
+
+    /** Adds an Azure Log Analytics Workspace resource */
+    /** @internal */
+    async _addAzureLogAnalyticsWorkspaceInternal(name: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure.OperationalInsights/addAzureLogAnalyticsWorkspace',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    addAzureLogAnalyticsWorkspace(name: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._addAzureLogAnalyticsWorkspaceInternal(name));
+    }
+
 }
 
 /**
@@ -1073,6 +1198,16 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.addAzureContainerRegistry(name)));
     }
 
+    /** Adds an Azure Container App Environment resource */
+    addAzureContainerAppEnvironment(name: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.addAzureContainerAppEnvironment(name)));
+    }
+
+    /** Adds an Azure Log Analytics Workspace resource */
+    addAzureLogAnalyticsWorkspace(name: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.addAzureLogAnalyticsWorkspace(name)));
+    }
+
 }
 
 // ============================================================================
@@ -1121,6 +1256,417 @@ export class DistributedApplicationEventingPromise implements PromiseLike<Distri
     /** Invokes the Unsubscribe method */
     unsubscribe(subscription: DistributedApplicationEventSubscriptionHandle): DistributedApplicationEventingPromise {
         return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.unsubscribe(subscription)));
+    }
+
+}
+
+// ============================================================================
+// AzureContainerAppEnvironmentResource
+// ============================================================================
+
+export class AzureContainerAppEnvironmentResource extends ResourceBuilderBase<AzureContainerAppEnvironmentResourceHandle> {
+    constructor(handle: AzureContainerAppEnvironmentResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureContainerAppEnvironmentResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureContainerAppEnvironmentResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureContainerAppEnvironmentResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureContainerAppEnvironmentResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureContainerAppEnvironmentResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureContainerAppEnvironmentResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureContainerAppEnvironmentResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureContainerAppEnvironmentResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureContainerAppEnvironmentResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureContainerAppEnvironmentResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+    /** @internal */
+    private async _withAzdResourceNamingInternal(): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/withAzdResourceNaming',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures resources to use azd naming conventions */
+    withAzdResourceNaming(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withAzdResourceNamingInternal());
+    }
+
+    /** @internal */
+    private async _withCompactResourceNamingInternal(): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/withCompactResourceNaming',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures resources to use compact naming for length-constrained Azure resources */
+    withCompactResourceNaming(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withCompactResourceNamingInternal());
+    }
+
+    /** @internal */
+    private async _withDashboardInternal(enable?: boolean): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (enable !== undefined) rpcArgs.enable = enable;
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/withDashboard',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures whether the Aspire dashboard is included in the container app environment */
+    withDashboard(options?: WithDashboardOptions): AzureContainerAppEnvironmentResourcePromise {
+        const enable = options?.enable;
+        return new AzureContainerAppEnvironmentResourcePromise(this._withDashboardInternal(enable));
+    }
+
+    /** @internal */
+    private async _withHttpsUpgradeInternal(upgrade?: boolean): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (upgrade !== undefined) rpcArgs.upgrade = upgrade;
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/withHttpsUpgrade',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures whether HTTP endpoints are upgraded to HTTPS */
+    withHttpsUpgrade(options?: WithHttpsUpgradeOptions): AzureContainerAppEnvironmentResourcePromise {
+        const upgrade = options?.upgrade;
+        return new AzureContainerAppEnvironmentResourcePromise(this._withHttpsUpgradeInternal(upgrade));
+    }
+
+    /** @internal */
+    private async _withAzureLogAnalyticsWorkspaceInternal(workspaceBuilder: AzureLogAnalyticsWorkspaceResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, workspaceBuilder };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/withAzureLogAnalyticsWorkspace',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures the container app environment to use a specific Log Analytics Workspace */
+    withAzureLogAnalyticsWorkspace(workspaceBuilder: AzureLogAnalyticsWorkspaceResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withAzureLogAnalyticsWorkspaceInternal(workspaceBuilder));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureContainerAppEnvironmentResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureContainerAppEnvironmentResourcePromise implements PromiseLike<AzureContainerAppEnvironmentResource> {
+    constructor(private _promise: Promise<AzureContainerAppEnvironmentResource>) {}
+
+    then<TResult1 = AzureContainerAppEnvironmentResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureContainerAppEnvironmentResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+    /** Configures resources to use azd naming conventions */
+    withAzdResourceNaming(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withAzdResourceNaming()));
+    }
+
+    /** Configures resources to use compact naming for length-constrained Azure resources */
+    withCompactResourceNaming(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withCompactResourceNaming()));
+    }
+
+    /** Configures whether the Aspire dashboard is included in the container app environment */
+    withDashboard(options?: WithDashboardOptions): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withDashboard(options)));
+    }
+
+    /** Configures whether HTTP endpoints are upgraded to HTTPS */
+    withHttpsUpgrade(options?: WithHttpsUpgradeOptions): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withHttpsUpgrade(options)));
+    }
+
+    /** Configures the container app environment to use a specific Log Analytics Workspace */
+    withAzureLogAnalyticsWorkspace(workspaceBuilder: AzureLogAnalyticsWorkspaceResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withAzureLogAnalyticsWorkspace(workspaceBuilder)));
     }
 
 }
@@ -1304,6 +1850,36 @@ export class AzureContainerRegistryResource extends ResourceBuilderBase<AzureCon
     }
 
     /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
     private async _withPurgeTaskInternal(schedule: string, filter?: string, ago?: number, keep?: number, taskName?: string): Promise<AzureContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, schedule };
         if (filter !== undefined) rpcArgs.filter = filter;
@@ -1324,6 +1900,21 @@ export class AzureContainerRegistryResource extends ResourceBuilderBase<AzureCon
         const keep = options?.keep;
         const taskName = options?.taskName;
         return new AzureContainerRegistryResourcePromise(this._withPurgeTaskInternal(schedule, filter, ago, keep, taskName));
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -1393,9 +1984,331 @@ export class AzureContainerRegistryResourcePromise implements PromiseLike<AzureC
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
     /** Configures a purge task for the Azure Container Registry resource. */
     withPurgeTask(schedule: string, options?: WithPurgeTaskOptions): AzureContainerRegistryResourcePromise {
         return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withPurgeTask(schedule, options)));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureLogAnalyticsWorkspaceResource
+// ============================================================================
+
+export class AzureLogAnalyticsWorkspaceResource extends ResourceBuilderBase<AzureLogAnalyticsWorkspaceResourceHandle> {
+    constructor(handle: AzureLogAnalyticsWorkspaceResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureLogAnalyticsWorkspaceResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureLogAnalyticsWorkspaceResourcePromise implements PromiseLike<AzureLogAnalyticsWorkspaceResource> {
+    constructor(private _promise: Promise<AzureLogAnalyticsWorkspaceResource>) {}
+
+    then<TResult1 = AzureLogAnalyticsWorkspaceResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureLogAnalyticsWorkspaceResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -2088,6 +3001,149 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ContainerResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { container: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishContainerAsAzureContainerApp',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the container resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsAzureContainerAppInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppJobInternal(): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ContainerResourcePromise {
+        const configure = options?.configure;
+        return new ContainerResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
+    }
+
+    /** @internal */
+    private async _publishAsScheduledAzureContainerAppJobInternal(cronExpression: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
 }
 
 /**
@@ -2298,6 +3354,46 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+    /** Configures the container resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
     }
 
 }
@@ -2862,6 +3958,149 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { executable: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishExecutableAsAzureContainerApp',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the executable resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsAzureContainerAppInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppJobInternal(): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ExecutableResourcePromise {
+        const configure = options?.configure;
+        return new ExecutableResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
+    }
+
+    /** @internal */
+    private async _publishAsScheduledAzureContainerAppJobInternal(cronExpression: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
 }
 
 /**
@@ -3032,6 +4271,46 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+    /** Configures the executable resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
     }
 
 }
@@ -3231,6 +4510,51 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -3301,6 +4625,21 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -3722,6 +5061,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+    /** @internal */
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3848,6 +5202,149 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
             'Aspire.Hosting/getResourceName',
             rpcArgs
         );
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ProjectResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { project: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishProjectAsAzureContainerApp',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the project resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsAzureContainerAppInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppJobInternal(): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ProjectResourcePromise {
+        const configure = options?.configure;
+        return new ProjectResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
+    }
+
+    /** @internal */
+    private async _publishAsScheduledAzureContainerAppJobInternal(cronExpression: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
     }
 
 }
@@ -3977,6 +5474,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
@@ -4015,6 +5517,218 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+    /** Configures the project resource to be published as an Azure Container App */
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
+    }
+
+}
+
+// ============================================================================
+// ComputeResource
+// ============================================================================
+
+export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle> {
+    constructor(handle: IComputeResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+        const configureId = registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        });
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsAzureContainerAppJobInternal(): Promise<ComputeResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._publishAsAzureContainerAppJobInternal());
+    }
+
+    /** @internal */
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+        const configureId = configure ? registerCallback(async (argsData: unknown) => {
+            const args = argsData as { p0: unknown, p1: unknown };
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
+            const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
+            await configure(arg1, arg2);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsConfiguredScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ComputeResourcePromise {
+        const configure = options?.configure;
+        return new ComputeResourcePromise(this._publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression, configure));
+    }
+
+    /** @internal */
+    private async _publishAsScheduledAzureContainerAppJobInternal(cronExpression: string): Promise<ComputeResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, cronExpression };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure.AppContainers/publishAsScheduledAzureContainerAppJob',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ComputeResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
+    constructor(private _promise: Promise<ComputeResource>) {}
+
+    then<TResult1 = ComputeResource, TResult2 = never>(
+        onfulfilled?: ((value: ComputeResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the compute resource as an Azure Container App Job with custom configuration */
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
+    }
+
+    /** Configures the compute resource as a manually triggered Azure Container App Job */
+    publishAsAzureContainerAppJob(): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerAppJob()));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job with custom configuration */
+    publishAsConfiguredScheduledAzureContainerAppJob(cronExpression: string, options?: PublishAsConfiguredScheduledAzureContainerAppJobOptions): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsConfiguredScheduledAzureContainerAppJob(cronExpression, options)));
+    }
+
+    /** Configures the compute resource as a scheduled Azure Container App Job */
+    publishAsScheduledAzureContainerAppJob(cronExpression: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
+    }
+
+}
+
+// ============================================================================
+// ContainerFilesDestinationResource
+// ============================================================================
+
+export class ContainerFilesDestinationResource extends ResourceBuilderBase<IContainerFilesDestinationResourceHandle> {
+    constructor(handle: IContainerFilesDestinationResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ContainerFilesDestinationResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<IContainerFilesDestinationResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ContainerFilesDestinationResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ContainerFilesDestinationResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ContainerFilesDestinationResourcePromise implements PromiseLike<ContainerFilesDestinationResource> {
+    constructor(private _promise: Promise<ContainerFilesDestinationResource>) {}
+
+    then<TResult1 = ContainerFilesDestinationResource, TResult2 = never>(
+        onfulfilled?: ((value: ContainerFilesDestinationResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
     }
 
 }
@@ -4197,6 +5911,51 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ResourcePromise {
+        return new ResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -4262,6 +6021,21 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -4385,6 +6159,34 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
 
     then<TResult1 = ResourceWithConnectionString, TResult2 = never>(
         onfulfilled?: ((value: ResourceWithConnectionString) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+}
+
+// ============================================================================
+// ResourceWithContainerFiles
+// ============================================================================
+
+export class ResourceWithContainerFiles extends ResourceBuilderBase<IResourceWithContainerFilesHandle> {
+    constructor(handle: IResourceWithContainerFilesHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceWithContainerFiles that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourceWithContainerFilesPromise implements PromiseLike<ResourceWithContainerFiles> {
+    constructor(private _promise: Promise<ResourceWithContainerFiles>) {}
+
+    then<TResult1 = ResourceWithContainerFiles, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithContainerFiles) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
@@ -4987,6 +6789,7 @@ process.on('uncaughtException', (error: Error) => {
 // ============================================================================
 
 // Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureResourceInfrastructure', (handle, client) => new AzureResourceInfrastructure(handle as AzureResourceInfrastructureHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext', (handle, client) => new CommandLineArgsCallbackContext(handle as CommandLineArgsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplication', (handle, client) => new DistributedApplication(handle as DistributedApplicationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext', (handle, client) => new DistributedApplicationExecutionContext(handle as DistributedApplicationExecutionContextHandle, client));
@@ -4997,14 +6800,19 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCom
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.AzureContainerAppEnvironmentResource', (handle, client) => new AzureContainerAppEnvironmentResource(handle as AzureContainerAppEnvironmentResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Azure.ContainerRegistry/Aspire.Hosting.Azure.AzureContainerRegistryResource', (handle, client) => new AzureContainerRegistryResource(handle as AzureContainerRegistryResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource', (handle, client) => new AzureLogAnalyticsWorkspaceResource(handle as AzureLogAnalyticsWorkspaceResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource', (handle, client) => new ComputeResource(handle as IComputeResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles', (handle, client) => new ResourceWithContainerFiles(handle as IResourceWithContainerFilesHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
