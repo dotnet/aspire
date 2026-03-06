@@ -427,7 +427,7 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
         // macos should use custom runner
         var macEntry = expanded.Include.First(e => e.RunsOn == "macos-latest-xlarge");
-        Assert.NotNull(macEntry);
+
 
         // windows and linux should use defaults
         Assert.Contains(expanded.Include, e => e.RunsOn == "windows-latest");
