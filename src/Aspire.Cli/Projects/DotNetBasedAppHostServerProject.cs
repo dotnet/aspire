@@ -233,7 +233,8 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         {
             doc.Root!.Add(new XElement("ItemGroup",
                 otherPackages.Select(p => new XElement("PackageReference",
-                    new XAttribute("Include", p.Name)))));
+                    new XAttribute("Include", p.Name),
+                    new XAttribute("Version", p.Version)))));
         }
 
         // Add imports for in-repo AppHost building

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
@@ -2581,7 +2582,7 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Cache of loaded XML documentation indexed by assembly location.
     /// </summary>
-    private static readonly Dictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Loads the XML documentation file (.xml) for the given assembly, if available.
@@ -2594,28 +2595,24 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
-        if (s_xmlDocCache.TryGetValue(assemblyLocation, out var cached))
+        return s_xmlDocCache.GetOrAdd(assemblyLocation, static location =>
         {
-            return cached;
-        }
+            var xmlPath = Path.ChangeExtension(location, ".xml");
 
-        var xmlPath = Path.ChangeExtension(assemblyLocation, ".xml");
-        XDocument? doc = null;
-
-        if (File.Exists(xmlPath))
-        {
-            try
+            if (File.Exists(xmlPath))
             {
-                doc = XDocument.Load(xmlPath);
+                try
+                {
+                    return XDocument.Load(xmlPath);
+                }
+                catch (System.Xml.XmlException)
+                {
+                    // Ignore malformed XML doc files; descriptions will be omitted
+                }
             }
-            catch
-            {
-                // Silently ignore malformed XML doc files
-            }
-        }
 
-        s_xmlDocCache[assemblyLocation] = doc;
-        return doc;
+            return null;
+        });
     }
 
     /// <summary>

@@ -12,6 +12,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands.Sdk;
@@ -101,9 +102,15 @@ internal sealed class SdkDumpCommand : BaseCommand
                 var packageName = arg[..atIndex];
                 var packageVersion = arg[(atIndex + 1)..];
 
-                if (string.IsNullOrWhiteSpace(packageName) || string.IsNullOrWhiteSpace(packageVersion))
+                if (string.IsNullOrWhiteSpace(packageName) || string.IsNullOrWhiteSpace(packageVersion) || packageName.Contains('@'))
                 {
                     InteractionService.DisplayError($"Invalid package format '{arg}'. Expected PackageName@Version (e.g. Aspire.Hosting.Redis@9.2.0).");
+                    return ExitCodeConstants.InvalidCommand;
+                }
+
+                if (!SemVersion.TryParse(packageVersion, SemVersionStyles.Any, out _))
+                {
+                    InteractionService.DisplayError($"Invalid version '{packageVersion}' in '{arg}'. Expected a valid NuGet version (e.g. 9.2.0).");
                     return ExitCodeConstants.InvalidCommand;
                 }
 
@@ -455,14 +462,10 @@ internal sealed class SdkDumpCommand : BaseCommand
                     var typeId = p.Type?.TypeId ?? "unknown";
                     // Simplify type display
                     var simpleType = SimplifyTypeName(typeId);
+                    sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "      - {0}{1}: {2}", p.Name, optional, simpleType));
                     if (!string.IsNullOrEmpty(p.Description))
                     {
-                        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "      - {0}{1}: {2}", p.Name, optional, simpleType));
                         sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "         {0}", p.Description));
-                    }
-                    else
-                    {
-                        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "      - {0}{1}: {2}", p.Name, optional, simpleType));
                     }
                 }
             }
