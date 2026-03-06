@@ -26,9 +26,9 @@ internal sealed class DotNetSdkCheck(
     {
         try
         {
-            if (await IsNonDotNetAppHostAsync(cancellationToken))
+            if (!await IsDotNetAppHostAsync(cancellationToken))
             {
-                logger.LogDebug("Skipping .NET SDK check because a non-.NET AppHost was detected");
+                logger.LogDebug("Skipping .NET SDK check because no .NET AppHost was detected");
                 return [];
             }
 
@@ -81,10 +81,11 @@ internal sealed class DotNetSdkCheck(
     }
 
     /// <summary>
-    /// Determines whether the current directory contains a non-.NET AppHost, making the .NET SDK check unnecessary.
-    /// Uses a silent settings-only lookup to avoid interaction output and recursive filesystem scanning.
+    /// Determines whether a .NET AppHost is positively detected, meaning the .NET SDK check should run.
+    /// Only returns <c>true</c> when a settings file is found and the apphost is a .NET project.
+    /// When no settings file exists or the apphost is non-.NET, the check is skipped.
     /// </summary>
-    private async Task<bool> IsNonDotNetAppHostAsync(CancellationToken cancellationToken)
+    private async Task<bool> IsDotNetAppHostAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -94,7 +95,7 @@ internal sealed class DotNetSdkCheck(
 
             if (appHostFile is null)
             {
-                // No apphost configured in settings — can't determine language, run .NET check
+                // No apphost configured in settings — can't determine language, skip .NET check
                 return false;
             }
 
@@ -104,7 +105,7 @@ internal sealed class DotNetSdkCheck(
                 return false;
             }
 
-            return !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+            return language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -112,7 +113,7 @@ internal sealed class DotNetSdkCheck(
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Error detecting AppHost language, falling back to .NET SDK check");
+            logger.LogDebug(ex, "Error detecting AppHost language, skipping .NET SDK check");
             return false;
         }
     }

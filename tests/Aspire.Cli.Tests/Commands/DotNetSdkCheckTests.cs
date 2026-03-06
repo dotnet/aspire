@@ -13,31 +13,9 @@ namespace Aspire.Cli.Tests.Commands;
 public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task CheckAsync_ReturnsPass_WhenSdkInstalled_AndNoAppHostFound()
+    public async Task CheckAsync_SkipsCheck_WhenNoAppHostFound()
     {
-        // No apphost in settings — falls through to normal .NET SDK check
-        var sdkInstaller = new TestDotNetSdkInstaller();
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(null)
-        };
-        var languageDiscovery = new TestLanguageDiscovery();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
-
-        var results = await check.CheckAsync().DefaultTimeout();
-
-        Assert.Single(results);
-        Assert.Equal(EnvironmentCheckStatus.Pass, results[0].Status);
-    }
-
-    [Fact]
-    public async Task CheckAsync_ReturnsFail_WhenSdkNotInstalled_AndNoAppHostFound()
-    {
+        // No apphost in settings — skip .NET SDK check entirely
         var sdkInstaller = new TestDotNetSdkInstaller
         {
             CheckAsyncCallback = _ => (false, null, "10.0.100")
@@ -56,9 +34,7 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
 
         var results = await check.CheckAsync().DefaultTimeout();
 
-        Assert.Single(results);
-        Assert.Equal(EnvironmentCheckStatus.Fail, results[0].Status);
-        Assert.Contains(".NET SDK not found", results[0].Message);
+        Assert.Empty(results);
     }
 
     [Fact]
@@ -114,9 +90,38 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task CheckAsync_RunsCheck_WhenNoSettingsFileExists()
+    public async Task CheckAsync_ReturnsFail_WhenDotNetAppHostFound_AndSdkNotInstalled()
     {
-        // No settings.json — can't determine language, runs .NET check
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyAppHost.csproj"));
+
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (false, null, "10.0.100")
+        };
+        var projectLocator = new TestProjectLocator
+        {
+            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(appHostFile)
+        };
+        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
+
+        var check = new DotNetSdkCheck(
+            sdkInstaller,
+            projectLocator,
+            languageDiscovery,
+            NullLogger<DotNetSdkCheck>.Instance);
+
+        var results = await check.CheckAsync().DefaultTimeout();
+
+        Assert.Single(results);
+        Assert.Equal(EnvironmentCheckStatus.Fail, results[0].Status);
+        Assert.Contains(".NET SDK not found", results[0].Message);
+    }
+
+    [Fact]
+    public async Task CheckAsync_SkipsCheck_WhenNoSettingsFileExists()
+    {
+        // No settings.json — can't determine language, skip .NET check
         var sdkInstaller = new TestDotNetSdkInstaller();
         var projectLocator = new TestProjectLocator
         {
@@ -132,12 +137,11 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
 
         var results = await check.CheckAsync().DefaultTimeout();
 
-        Assert.Single(results);
-        Assert.Equal(EnvironmentCheckStatus.Pass, results[0].Status);
+        Assert.Empty(results);
     }
 
     [Fact]
-    public async Task CheckAsync_RunsCheck_WhenLanguageNotRecognized()
+    public async Task CheckAsync_SkipsCheck_WhenLanguageNotRecognized()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "unknown.xyz"));
@@ -157,9 +161,8 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
 
         var results = await check.CheckAsync().DefaultTimeout();
 
-        // Unrecognized file — falls through to normal .NET check
-        Assert.Single(results);
-        Assert.Equal(EnvironmentCheckStatus.Pass, results[0].Status);
+        // Unrecognized file — skip .NET check
+        Assert.Empty(results);
     }
 
     /// <summary>
