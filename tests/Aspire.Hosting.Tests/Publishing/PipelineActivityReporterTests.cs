@@ -1026,6 +1026,85 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
+    public async Task CreateTaskAsync_WithMarkdownString_SetsEnableMarkdownTrue()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _); // Clear step activity
+
+        // Act
+        var task = await step.CreateTaskAsync(new MarkdownString("**Bold** task"), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(task);
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal("**Bold** task", activity.Data.StatusText);
+        Assert.True(activity.Data.EnableMarkdown);
+    }
+
+    [Fact]
+    public async Task UpdateTaskAsync_WithMarkdownString_SetsEnableMarkdownTrue()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
+        ClearActivities(reporter);
+
+        // Act
+        await task.UpdateAsync(new MarkdownString("**Updated** status"), CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal("**Updated** status", activity.Data.StatusText);
+        Assert.True(activity.Data.EnableMarkdown);
+    }
+
+    [Fact]
+    public async Task CompleteTaskAsync_WithMarkdownString_SetsEnableMarkdownTrue()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+        ClearActivities(reporter);
+
+        // Act
+        await task.CompleteAsync(new MarkdownString("Deployed to **Azure**"), CompletionState.Completed, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.True(activity.Data.EnableMarkdown);
+        Assert.Equal("Deployed to **Azure**", activity.Data.CompletionMessage);
+    }
+
+    [Fact]
+    public async Task CompleteStepAsync_WithMarkdownString_SetsEnableMarkdownTrue()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        ClearActivities(reporter);
+
+        // Act
+        await step.CompleteAsync(new MarkdownString("Step **completed** successfully"), CompletionState.Completed, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.True(activity.Data.EnableMarkdown);
+        Assert.Equal("Step **completed** successfully", activity.Data.StatusText);
+    }
+
+    [Fact]
     public async Task CompleteTaskAsync_IdempotentWithWarning()
     {
         // Arrange
