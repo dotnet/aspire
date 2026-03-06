@@ -50,6 +50,9 @@ type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicatio
 /** Handle to ExecuteCommandContext */
 type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
 
+/** Handle to IContainerFilesDestinationResource */
+type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
+
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
 
@@ -100,6 +103,9 @@ type IDistributedApplicationEventingHandle = Handle<'Aspire.Hosting/Aspire.Hosti
 
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
+
+/** Handle to IResourceWithContainerFiles */
+type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles'>;
 
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
@@ -339,11 +345,6 @@ export interface WithHttpsEndpointOptions {
 
 export interface WithImageOptions {
     tag?: string;
-}
-
-export interface WithReferenceOptions {
-    connectionName?: string;
-    optional?: boolean;
 }
 
 export interface WithUrlExpressionOptions {
@@ -1274,25 +1275,6 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ContainerResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
-        if (optional !== undefined) rpcArgs.optional = optional;
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withReference',
-            rpcArgs
-        );
-        return new ContainerResource(result, this._client);
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
-        const connectionName = options?.connectionName;
-        const optional = options?.optional;
-        return new ContainerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1721,11 +1703,6 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
-    }
-
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -1995,25 +1972,6 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withArgsCallbackAsyncInternal(callback));
-    }
-
-    /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
-        if (optional !== undefined) rpcArgs.optional = optional;
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withReference',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
-        const connectionName = options?.connectionName;
-        const optional = options?.optional;
-        return new ExecutableResourcePromise(this._withReferenceInternal(source, connectionName, optional));
     }
 
     /** @internal */
@@ -2453,11 +2411,6 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -2986,25 +2939,6 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ProjectResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
-        if (optional !== undefined) rpcArgs.optional = optional;
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withReference',
-            rpcArgs
-        );
-        return new ProjectResource(result, this._client);
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
-        const connectionName = options?.connectionName;
-        const optional = options?.optional;
-        return new ProjectResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3253,6 +3187,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+    /** @internal */
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3438,11 +3387,6 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
-    }
-
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -3506,6 +3450,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Adds a URL for a specific endpoint via factory callback */
     withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
     }
 
     /** Waits for another resource to be ready */
@@ -3973,25 +3922,6 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._withArgsCallbackAsyncInternal(callback));
-    }
-
-    /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<QdrantServerResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
-        if (optional !== undefined) rpcArgs.optional = optional;
-        const result = await this._client.invokeCapability<QdrantServerResourceHandle>(
-            'Aspire.Hosting/withReference',
-            rpcArgs
-        );
-        return new QdrantServerResource(result, this._client);
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): QdrantServerResourcePromise {
-        const connectionName = options?.connectionName;
-        const optional = options?.optional;
-        return new QdrantServerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
     }
 
     /** @internal */
@@ -4523,11 +4453,6 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): QdrantServerResourcePromise {
-        return new QdrantServerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
-    }
-
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
@@ -4646,6 +4571,54 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
     /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
+    }
+
+}
+
+// ============================================================================
+// ContainerFilesDestinationResource
+// ============================================================================
+
+export class ContainerFilesDestinationResource extends ResourceBuilderBase<IContainerFilesDestinationResourceHandle> {
+    constructor(handle: IContainerFilesDestinationResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ContainerFilesDestinationResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<IContainerFilesDestinationResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ContainerFilesDestinationResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ContainerFilesDestinationResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ContainerFilesDestinationResourcePromise implements PromiseLike<ContainerFilesDestinationResource> {
+    constructor(private _promise: Promise<ContainerFilesDestinationResource>) {}
+
+    then<TResult1 = ContainerFilesDestinationResource, TResult2 = never>(
+        onfulfilled?: ((value: ContainerFilesDestinationResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
     }
 
 }
@@ -5024,6 +4997,34 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
 }
 
 // ============================================================================
+// ResourceWithContainerFiles
+// ============================================================================
+
+export class ResourceWithContainerFiles extends ResourceBuilderBase<IResourceWithContainerFilesHandle> {
+    constructor(handle: IResourceWithContainerFilesHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceWithContainerFiles that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourceWithContainerFilesPromise implements PromiseLike<ResourceWithContainerFiles> {
+    constructor(private _promise: Promise<ResourceWithContainerFiles>) {}
+
+    then<TResult1 = ResourceWithContainerFiles, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithContainerFiles) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+}
+
+// ============================================================================
 // ResourceWithEndpoints
 // ============================================================================
 
@@ -5332,25 +5333,6 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ResourceWithEnvironment> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
-        if (optional !== undefined) rpcArgs.optional = optional;
-        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withReference',
-            rpcArgs
-        );
-        return new ResourceWithEnvironment(result, this._client);
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
-        const connectionName = options?.connectionName;
-        const optional = options?.optional;
-        return new ResourceWithEnvironmentPromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
@@ -5400,11 +5382,6 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
     /** Sets environment variables via async callback */
     withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
-    }
-
-    /** Adds a reference to another resource */
-    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -5633,9 +5610,11 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.Executable
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Qdrant/Aspire.Hosting.ApplicationModel.QdrantServerResource', (handle, client) => new QdrantServerResource(handle as QdrantServerResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles', (handle, client) => new ResourceWithContainerFiles(handle as IResourceWithContainerFilesHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
