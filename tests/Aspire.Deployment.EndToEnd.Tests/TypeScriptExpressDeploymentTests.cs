@@ -98,10 +98,17 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             sequenceBuilder.PrepareEnvironment(workspace, counter);
 
             // Step 2: Set up CLI environment (in CI)
+            // TypeScript apphosts need the full bundle (not just the CLI binary) because
+            // the prebuilt AppHost server is required for aspire add to regenerate SDK code.
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
-                sequenceBuilder.SourceAspireCliEnvironment(counter);
+                var prNumber = DeploymentE2ETestHelpers.GetPrNumber();
+                if (prNumber > 0)
+                {
+                    output.WriteLine($"Step 2: Installing Aspire bundle from PR #{prNumber}...");
+                    sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
+                }
+                sequenceBuilder.SourceAspireBundleEnvironment(counter);
             }
 
             // Step 3: Create TypeScript Express/React project using aspire new
