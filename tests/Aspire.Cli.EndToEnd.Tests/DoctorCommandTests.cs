@@ -40,9 +40,9 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
-        // Generate dev certs inside the container (Docker images don't have them by default)
+        // Generate and trust dev certs inside the container (Docker images don't have them by default)
         sequenceBuilder
-            .Type("dotnet dev-certs https")
+            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -99,9 +99,9 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
-        // Generate dev certs inside the container (Docker images don't have them by default)
+        // Generate and trust dev certs inside the container (Docker images don't have them by default)
         sequenceBuilder
-            .Type("dotnet dev-certs https")
+            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
