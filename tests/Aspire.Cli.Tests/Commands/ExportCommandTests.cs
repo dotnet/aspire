@@ -421,6 +421,215 @@ public class ExportCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("Container", redisResourceData.ResourceType);
     }
 
+    [Fact]
+    public async Task ExportCommand_ResourceFilter_ExportsOnlyFilteredResource()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        var resources = new[]
+        {
+            new ResourceInfoJson { Name = "redis", InstanceId = null },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = null },
+        };
+
+        // Provide only redis telemetry data (simulates server-side filtering by the Dashboard API)
+        var filteredLogsJson = BuildLogsJson(
+            ("redis", null, 9, "Information", "Ready to accept connections", s_testTime));
+
+        var filteredTracesJson = BuildTracesJson(
+            ("redis", null, "span001", "SET mykey", s_testTime, s_testTime.AddMilliseconds(10), false));
+
+        var provider = CreateExportTestServices(workspace, outputWriter, resources,
+            telemetryEndpoints: new Dictionary<string, string>
+            {
+                ["/api/telemetry/logs"] = filteredLogsJson,
+                ["/api/telemetry/traces"] = filteredTracesJson,
+            },
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+            ],
+            logLines:
+            [
+                new ResourceLogLine { ResourceName = "redis", LineNumber = 1, Content = "Redis is starting" },
+                new ResourceLogLine { ResourceName = "apiservice", LineNumber = 1, Content = "Now listening on: https://localhost:5001" },
+            ]);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"export redis --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.True(File.Exists(outputPath), "Export zip file should be created");
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(n => n).ToList();
+
+        // Only redis data should be present; apiservice should be excluded
+        Assert.Collection(entryNames,
+            entry => Assert.Equal("consolelogs/redis.txt", entry),
+            entry => Assert.Equal("resources/redis.json", entry),
+            entry => Assert.Equal("structuredlogs/redis.json", entry),
+            entry => Assert.Equal("traces/redis.json", entry));
+
+        var redisConsoleLog = ReadEntryText(archive, "consolelogs/redis.txt");
+        Assert.Contains("Redis is starting", redisConsoleLog);
+    }
+
+    [Fact]
+    public async Task ExportCommand_ResourceFilter_NoTelemetryData_SkipsStructuredLogsAndTraces()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        // Telemetry resources do NOT include "webfrontend" - it hasn't sent any telemetry yet
+        var resources = new[]
+        {
+            new ResourceInfoJson { Name = "apiservice", InstanceId = null },
+        };
+
+        var logsJson = BuildLogsJson(
+            ("apiservice", null, 9, "Information", "Request received", s_testTime));
+
+        var tracesJson = BuildTracesJson(
+            ("apiservice", null, "span001", "GET /api/products", s_testTime, s_testTime.AddMilliseconds(50), false));
+
+        var provider = CreateExportTestServices(workspace, outputWriter, resources,
+            telemetryEndpoints: new Dictionary<string, string>
+            {
+                ["/api/telemetry/logs"] = logsJson,
+                ["/api/telemetry/traces"] = tracesJson,
+            },
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "apiservice", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+                new ResourceSnapshot { Name = "webfrontend", DisplayName = "webfrontend", ResourceType = "Project", State = "Running" },
+            ],
+            logLines:
+            [
+                new ResourceLogLine { ResourceName = "apiservice", LineNumber = 1, Content = "API log" },
+                new ResourceLogLine { ResourceName = "webfrontend", LineNumber = 1, Content = "Frontend log" },
+            ]);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        // Filter to webfrontend which exists in snapshots but has no telemetry data
+        var result = command.Parse($"export webfrontend --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.True(File.Exists(outputPath), "Export zip file should be created");
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(n => n).ToList();
+
+        // Only webfrontend resources and console logs; no structured logs or traces
+        // (webfrontend has no telemetry data)
+        Assert.Collection(entryNames,
+            entry => Assert.Equal("consolelogs/webfrontend.txt", entry),
+            entry => Assert.Equal("resources/webfrontend.json", entry));
+    }
+
+    [Fact]
+    public async Task ExportCommand_ResourceFilter_ReplicasByDisplayName_ExportsAllReplicas()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        var resources = new[]
+        {
+            new ResourceInfoJson { Name = "redis", InstanceId = null },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "abc" },
+            new ResourceInfoJson { Name = "apiservice", InstanceId = "def" },
+        };
+
+        // Provide only apiservice telemetry data (simulates server-side filtering by the Dashboard API)
+        var filteredLogsJson = BuildLogsJson(
+            ("apiservice", "abc", 9, "Information", "Replica 1 started", s_testTime.AddSeconds(1)),
+            ("apiservice", "def", 13, "Warning", "Replica 2 slow startup", s_testTime.AddSeconds(2)));
+
+        var filteredTracesJson = BuildTracesJson(
+            ("apiservice", "abc", "span002", "GET /api/products", s_testTime, s_testTime.AddMilliseconds(50), false),
+            ("apiservice", "def", "span003", "GET /api/orders", s_testTime.AddSeconds(1), s_testTime.AddSeconds(1).AddMilliseconds(80), false));
+
+        var provider = CreateExportTestServices(workspace, outputWriter, resources,
+            telemetryEndpoints: new Dictionary<string, string>
+            {
+                ["/api/telemetry/logs"] = filteredLogsJson,
+                ["/api/telemetry/traces"] = filteredTracesJson,
+            },
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice-abc", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+                new ResourceSnapshot { Name = "apiservice-def", DisplayName = "apiservice", ResourceType = "Project", State = "Running" },
+            ],
+            logLines:
+            [
+                new ResourceLogLine { ResourceName = "redis", LineNumber = 1, Content = "Redis ready" },
+                new ResourceLogLine { ResourceName = "apiservice-abc", LineNumber = 1, Content = "Replica 1 console log" },
+                new ResourceLogLine { ResourceName = "apiservice-def", LineNumber = 1, Content = "Replica 2 console log" },
+            ]);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        // Filter by display name "apiservice" should include both replicas
+        var result = command.Parse($"export apiservice --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.True(File.Exists(outputPath), "Export zip file should be created");
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(n => n).ToList();
+
+        // Only apiservice replicas should be present; redis should be excluded
+        Assert.Collection(entryNames,
+            entry => Assert.Equal("consolelogs/apiservice-abc.txt", entry),
+            entry => Assert.Equal("consolelogs/apiservice-def.txt", entry),
+            entry => Assert.Equal("resources/apiservice-abc.json", entry),
+            entry => Assert.Equal("resources/apiservice-def.json", entry),
+            entry => Assert.Equal("structuredlogs/apiservice-abc.json", entry),
+            entry => Assert.Equal("structuredlogs/apiservice-def.json", entry),
+            entry => Assert.Equal("traces/apiservice-abc.json", entry),
+            entry => Assert.Equal("traces/apiservice-def.json", entry));
+    }
+
+    [Fact]
+    public async Task ExportCommand_ResourceFilter_NonExistentResource_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var outputPath = Path.Combine(workspace.WorkspaceRoot.FullName, "export.zip");
+
+        var provider = CreateExportTestServices(workspace, outputWriter,
+            resources: [new ResourceInfoJson { Name = "redis", InstanceId = null }],
+            telemetryEndpoints: new Dictionary<string, string>
+            {
+                ["/api/telemetry/logs"] = BuildLogsJson(),
+                ["/api/telemetry/traces"] = BuildTracesJson(),
+            },
+            resourceSnapshots:
+            [
+                new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+            ],
+            logLines: []);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"export nonexistent --output {outputPath}");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+        Assert.False(File.Exists(outputPath), "No zip should be created when the resource doesn't exist");
+    }
+
     /// <summary>
     /// Creates a configured <see cref="ServiceProvider"/> for export command tests,
     /// with a mock backchannel and HTTP handler that serves resource and telemetry data.

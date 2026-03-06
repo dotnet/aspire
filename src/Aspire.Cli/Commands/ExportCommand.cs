@@ -131,8 +131,7 @@ internal sealed class ExportCommand : BaseCommand
             // Validate resource name exists (match by Name or DisplayName since users may pass either)
             if (resourceName is not null)
             {
-                if (!snapshots.Any(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)
-                                     || string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName)))
+                if (!ResourceSnapshotMapper.WhereMatchesResourceName(snapshots, resourceName).Any())
                 {
                     _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ExportCommandStrings.ResourceNotFound, resourceName));
                     return ExitCodeConstants.InvalidCommand;
@@ -149,17 +148,18 @@ internal sealed class ExportCommand : BaseCommand
 
             // Resolve which telemetry resources match the filter
             List<string>? resolvedTelemetryResources = null;
+            var hasTelemetryData = true;
             if (resourceName is not null)
             {
-                TelemetryCommandHelpers.TryResolveResourceNames(resourceName, telemetryResources, out resolvedTelemetryResources);
+                hasTelemetryData = TelemetryCommandHelpers.TryResolveResourceNames(resourceName, telemetryResources, out resolvedTelemetryResources);
             }
 
             var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(telemetryResources);
 
             var exportArchive = new ExportArchive();
 
-            // 1. Export resource details
-            AddResources(exportArchive, snapshots);
+            // 1. Export resource details (filtered when a resource name is specified)
+            AddResources(exportArchive, snapshots, resourceName);
 
             // 2. Export console logs from backchannel
             await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringConsoleLogs, async () =>
@@ -168,19 +168,25 @@ internal sealed class ExportCommand : BaseCommand
                 return true;
             });
 
-            // 3. Export structured logs from Dashboard API
-            await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringStructuredLogs, async () =>
+            // 3. Export structured logs from Dashboard API (skip if resource has no telemetry data)
+            if (hasTelemetryData)
             {
-                await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
-                return true;
-            });
+                await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringStructuredLogs, async () =>
+                {
+                    await AddStructuredLogsAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
+                    return true;
+                });
+            }
 
-            // 4. Export traces from Dashboard API
-            await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringTraces, async () =>
+            // 4. Export traces from Dashboard API (skip if resource has no telemetry data)
+            if (hasTelemetryData)
             {
-                await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
-                return true;
-            });
+                await _interactionService.ShowStatusAsync(ExportCommandStrings.GatheringTraces, async () =>
+                {
+                    await AddTracesAsync(exportArchive, client, baseUrl, resolvedTelemetryResources, allOtlpResources, cancellationToken).ConfigureAwait(false);
+                    return true;
+                });
+            }
 
             var fullPath = Path.GetFullPath(outputPath);
             exportArchive.WriteToFile(fullPath);
@@ -196,12 +202,20 @@ internal sealed class ExportCommand : BaseCommand
         }
     }
 
-    private static void AddResources(ExportArchive exportArchive, IReadOnlyList<ResourceSnapshot> snapshots)
+    private static void AddResources(ExportArchive exportArchive, IReadOnlyList<ResourceSnapshot> snapshots, string? resourceName)
     {
         var resourceJsonList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots);
+        var matchingNames = resourceName is not null
+            ? new HashSet<string>(ResourceSnapshotMapper.WhereMatchesResourceName(snapshots, resourceName).Select(s => s.Name), StringComparers.ResourceName)
+            : null;
 
         foreach (var (snapshot, resourceJson) in snapshots.Zip(resourceJsonList))
         {
+            if (matchingNames is not null && !matchingNames.Contains(snapshot.Name))
+            {
+                continue;
+            }
+
             var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, snapshots);
             exportArchive.Resources[displayName] = resourceJson;
         }
