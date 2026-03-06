@@ -57,10 +57,11 @@ public sealed class WaitCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
-        // Wait for the webfrontend resource to be up (running)
-        sequenceBuilder.Type("aspire wait webfrontend --status up --timeout 120")
+        // Wait for the webfrontend resource to be up (running).
+        // Use a longer timeout in Docker-in-Docker where container startup is slower.
+        sequenceBuilder.Type("aspire wait webfrontend --status up --timeout 300")
             .Enter()
-            .WaitUntil(s => waitForResourceUp.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+            .WaitUntil(s => waitForResourceUp.Search(s).Count > 0, TimeSpan.FromMinutes(6))
             .WaitForSuccessPrompt(counter);
 
         // Stop the AppHost using aspire stop
