@@ -17,12 +17,11 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task DoctorCommand_WithoutSslCertDir_ShowsPartiallyTrusted()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -37,14 +36,15 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Generate and trust dev certs inside the container (Docker images don't have them by default)
+        sequenceBuilder
+            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
 
         // Unset SSL_CERT_DIR to trigger partial trust detection on Linux
         sequenceBuilder
@@ -72,12 +72,11 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
     [Fact]
     public async Task DoctorCommand_WithSslCertDir_ShowsTrusted()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -96,14 +95,15 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Generate and trust dev certs inside the container (Docker images don't have them by default)
+        sequenceBuilder
+            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
 
         // Set SSL_CERT_DIR to include dev-certs trust path for full trust
         sequenceBuilder

@@ -16,12 +16,11 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
     [Fact]
     public async Task SecretCrudOnTypeScriptAppHost()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -38,13 +37,9 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
         var waitingForAppHostCreated = new CellPatternSearcher()
             .Find("Created apphost.ts");
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Enable polyglot support
         sequenceBuilder.EnablePolyglotSupport(counter);
@@ -58,8 +53,7 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .DeclineAgentInitPrompt()
-            .WaitForSuccessPrompt(counter);
+            .DeclineAgentInitPrompt(counter);
 
         // Set secrets using --apphost
         var waitingForSetSuccess = new CellPatternSearcher()
