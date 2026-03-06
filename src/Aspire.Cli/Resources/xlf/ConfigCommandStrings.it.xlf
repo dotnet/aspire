@@ -112,6 +112,16 @@
         <target state="translated">Proprietà del file di impostazioni</target>
         <note />
       </trans-unit>
+      <trans-unit id="ListCommand_AvailableFeaturesHint">
+        <source>Run 'aspire config list --available' to see all available feature flags.</source>
+        <target state="new">Run 'aspire config list --available' to see all available feature flags.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_AvailableOptionDescription">
+        <source>Show all available features that can be configured.</source>
+        <target state="new">Show all available features that can be configured.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">Elenca tutti i valori di configurazione.</target>

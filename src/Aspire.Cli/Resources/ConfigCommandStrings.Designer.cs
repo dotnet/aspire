@@ -195,6 +195,24 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show all available features that can be configured..
+        /// </summary>
+        public static string ListCommand_AvailableOptionDescription {
+            get {
+                return ResourceManager.GetString("ListCommand_AvailableOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run 'aspire config list --available' to see all available feature flags..
+        /// </summary>
+        public static string ListCommand_AvailableFeaturesHint {
+            get {
+                return ResourceManager.GetString("ListCommand_AvailableFeaturesHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No configuration values found..
         /// </summary>
         public static string NoConfigurationValuesFound {

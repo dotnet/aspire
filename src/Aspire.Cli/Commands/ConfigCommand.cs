@@ -198,17 +198,33 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
-        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+    private sealed class ListCommand : BaseConfigSubCommand
     {
+        private static readonly Option<bool> s_availableOption = new("--available")
+        {
+            Description = ConfigCommandStrings.ListCommand_AvailableOptionDescription
+        };
+
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Options.Add(s_availableOption);
+        }
+
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            return InteractiveExecuteAsync(cancellationToken);
+            var showAvailable = parseResult.GetValue(s_availableOption);
+            return ExecuteAsync(showAvailable, cancellationToken);
         }
 
-        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        public override Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteAsync(showAvailable: false, cancellationToken);
+        }
+
+        private async Task<int> ExecuteAsync(bool showAvailable, CancellationToken cancellationToken)
         {
             if (InteractionService is ExtensionInteractionService extensionInteractionService)
             {
@@ -256,16 +272,25 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (unconfiguredFeatures.Count > 0)
             {
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                foreach (var feature in unconfiguredFeatures)
+                if (showAvailable)
                 {
-                    var defaultText = feature.DefaultValue ? "true" : "false";
-                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
-                    InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    InteractionService.DisplayEmptyLine();
+                    InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
+                    foreach (var feature in unconfiguredFeatures)
+                    {
+                        var defaultText = feature.DefaultValue ? "true" : "false";
+                        InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
+                        InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    }
+                    InteractionService.DisplayEmptyLine();
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
                 }
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
+                else
+                {
+                    InteractionService.DisplayEmptyLine();
+                    InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.ListCommand_AvailableFeaturesHint.EscapeMarkup()}[/]");
+                }
             }
 
             return ExitCodeConstants.Success;
