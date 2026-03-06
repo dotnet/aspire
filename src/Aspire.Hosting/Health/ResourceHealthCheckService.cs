@@ -278,28 +278,76 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+            // Check if this health check result contains multiple individual health check entries
+            if (entry.Data.TryGetValue("__AspireMultipleHealthChecks", out var hasMultiple) &&
+                hasMultiple is true &&
+                entry.Data.TryGetValue("SubEntries", out var subEntriesObj) &&
+                subEntriesObj is Dictionary<string, HealthReportEntry> subEntries)
             {
-                LastRunAt = runAt
-            };
-
-            var found = false;
-            for (var i = 0; i < builder.Count; i++)
-            {
-                var existing = builder[i];
-                if (existing.Name == key)
+                // Expand sub-entries into individual health report snapshots
+                foreach (var (subKey, subEntry) in subEntries)
                 {
-                    // Replace the existing entry.
-                    builder[i] = snapshot;
-                    found = true;
-                    break;
+                    var subSnapshot = new HealthReportSnapshot(subKey, subEntry.Status, subEntry.Description, subEntry.Exception?.ToString())
+                    {
+                        LastRunAt = runAt
+                    };
+
+                    var found = false;
+                    for (var i = 0; i < builder.Count; i++)
+                    {
+                        var existing = builder[i];
+                        if (existing.Name == subKey)
+                        {
+                            // Replace the existing entry.
+                            builder[i] = subSnapshot;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        // Add a new entry.
+                        builder.Add(subSnapshot);
+                    }
+                }
+
+                // Remove the parent entry since we've expanded its sub-entries
+                for (var i = builder.Count - 1; i >= 0; i--)
+                {
+                    if (builder[i].Name == key)
+                    {
+                        builder.RemoveAt(i);
+                        break;
+                    }
                 }
             }
-
-            if (!found)
+            else
             {
-                // Add a new entry.
-                builder.Add(snapshot);
+                // Regular health check entry
+                var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+                {
+                    LastRunAt = runAt
+                };
+
+                var found = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
+                    {
+                        // Replace the existing entry.
+                        builder[i] = snapshot;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Add a new entry.
+                    builder.Add(snapshot);
+                }
             }
         }
 
