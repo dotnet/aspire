@@ -1,8 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 
@@ -11,6 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Annotation that stores the ACI subnet reference for deployment script configuration.
 /// </summary>
+[Experimental("ASPIREAZURE003")]
 internal sealed class AdminDeploymentScriptSubnetAnnotation(AzureSubnetResource subnet) : IResourceAnnotation
 {
     /// <summary>
