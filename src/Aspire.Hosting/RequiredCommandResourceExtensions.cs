@@ -61,7 +61,7 @@ public static class RequiredCommandResourceExtensions
     /// If the command is not found or fails validation, a warning message will be logged but the resource will be allowed to attempt to start.
     /// </remarks>
     [Experimental("ASPIRECOMMAND001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses RequiredCommandValidationContext delegate which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "RequiredCommandValidationContext exposes IServiceProvider — not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithRequiredCommand<T>(
         this IResourceBuilder<T> builder,
         string command,

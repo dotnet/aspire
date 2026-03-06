@@ -245,6 +245,556 @@ class TestDeeplyNestedDto:
 # Handle Wrappers
 # ============================================================================
 
+class CSharpAppResource(ResourceBuilderBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def with_container_registry(self, registry: IResource) -> IResource:
+        """Configures a resource to use a container registry"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["registry"] = serialize_value(registry)
+        return self._client.invoke_capability("Aspire.Hosting/withContainerRegistry", args)
+
+    def with_dockerfile_base_image(self, build_image: str | None = None, runtime_image: str | None = None) -> IResource:
+        """Sets the base image for a Dockerfile build"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if build_image is not None:
+            args["buildImage"] = serialize_value(build_image)
+        if runtime_image is not None:
+            args["runtimeImage"] = serialize_value(runtime_image)
+        return self._client.invoke_capability("Aspire.Hosting/withDockerfileBaseImage", args)
+
+    def with_mcp_server(self, path: str = "/mcp", endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Configures an MCP server endpoint on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["path"] = serialize_value(path)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withMcpServer", args)
+
+    def with_otlp_exporter(self) -> IResourceWithEnvironment:
+        """Configures OTLP telemetry export"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/withOtlpExporter", args)
+
+    def with_otlp_exporter_protocol(self, protocol: OtlpProtocol) -> IResourceWithEnvironment:
+        """Configures OTLP telemetry export with specific protocol"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["protocol"] = serialize_value(protocol)
+        return self._client.invoke_capability("Aspire.Hosting/withOtlpExporterProtocol", args)
+
+    def with_replicas(self, replicas: float) -> ProjectResource:
+        """Sets the number of replicas"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["replicas"] = serialize_value(replicas)
+        return self._client.invoke_capability("Aspire.Hosting/withReplicas", args)
+
+    def disable_forwarded_headers(self) -> ProjectResource:
+        """Disables forwarded headers for the project"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/disableForwardedHeaders", args)
+
+    def with_required_command(self, command: str, help_link: str | None = None) -> IResource:
+        """Adds a required command dependency"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["command"] = serialize_value(command)
+        if help_link is not None:
+            args["helpLink"] = serialize_value(help_link)
+        return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
+
+    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
+        """Sets an environment variable"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
+
+    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
+        """Adds an environment variable with a reference expression"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
+
+    def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
+        """Sets environment variables via callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
+
+    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
+        """Sets environment variables via async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
+
+    def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
+        """Sets an environment variable from an endpoint reference"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["endpointReference"] = serialize_value(endpoint_reference)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
+        """Sets an environment variable from a parameter resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["parameter"] = serialize_value(parameter)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentParameter", args)
+
+    def with_environment_connection_string(self, env_var_name: str, resource: IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable from a connection string resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["envVarName"] = serialize_value(env_var_name)
+        args["resource"] = serialize_value(resource)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentConnectionString", args)
+
+    def with_args(self, args: list[str]) -> IResourceWithArgs:
+        """Adds arguments"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["args"] = serialize_value(args)
+        return self._client.invoke_capability("Aspire.Hosting/withArgs", args)
+
+    def with_args_callback(self, callback: Callable[[CommandLineArgsCallbackContext], None]) -> IResourceWithArgs:
+        """Sets command-line arguments via callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withArgsCallback", args)
+
+    def with_args_callback_async(self, callback: Callable[[CommandLineArgsCallbackContext], None]) -> IResourceWithArgs:
+        """Sets command-line arguments via async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
+
+    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+        """Adds a reference to another resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        if connection_name is not None:
+            args["connectionName"] = serialize_value(connection_name)
+        args["optional"] = serialize_value(optional)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
+
+    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
+        """Adds a service discovery reference to another resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
+
+    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
+        """Adds a named service discovery reference"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
+
+    def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
+        """Adds a reference to a URI"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["uri"] = serialize_value(uri)
+        return self._client.invoke_capability("Aspire.Hosting/withReferenceUri", args)
+
+    def with_reference_external_service(self, external_service: ExternalServiceResource) -> IResourceWithEnvironment:
+        """Adds a reference to an external service"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["externalService"] = serialize_value(external_service)
+        return self._client.invoke_capability("Aspire.Hosting/withReferenceExternalService", args)
+
+    def with_reference_endpoint(self, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
+        """Adds a reference to an endpoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["endpointReference"] = serialize_value(endpoint_reference)
+        return self._client.invoke_capability("Aspire.Hosting/withReferenceEndpoint", args)
+
+    def with_endpoint(self, port: float | None = None, target_port: float | None = None, scheme: str | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True, is_external: bool | None = None, protocol: ProtocolType | None = None) -> IResourceWithEndpoints:
+        """Adds a network endpoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if port is not None:
+            args["port"] = serialize_value(port)
+        if target_port is not None:
+            args["targetPort"] = serialize_value(target_port)
+        if scheme is not None:
+            args["scheme"] = serialize_value(scheme)
+        if name is not None:
+            args["name"] = serialize_value(name)
+        if env is not None:
+            args["env"] = serialize_value(env)
+        args["isProxied"] = serialize_value(is_proxied)
+        if is_external is not None:
+            args["isExternal"] = serialize_value(is_external)
+        if protocol is not None:
+            args["protocol"] = serialize_value(protocol)
+        return self._client.invoke_capability("Aspire.Hosting/withEndpoint", args)
+
+    def with_http_endpoint(self, port: float | None = None, target_port: float | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> IResourceWithEndpoints:
+        """Adds an HTTP endpoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if port is not None:
+            args["port"] = serialize_value(port)
+        if target_port is not None:
+            args["targetPort"] = serialize_value(target_port)
+        if name is not None:
+            args["name"] = serialize_value(name)
+        if env is not None:
+            args["env"] = serialize_value(env)
+        args["isProxied"] = serialize_value(is_proxied)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpEndpoint", args)
+
+    def with_https_endpoint(self, port: float | None = None, target_port: float | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> IResourceWithEndpoints:
+        """Adds an HTTPS endpoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if port is not None:
+            args["port"] = serialize_value(port)
+        if target_port is not None:
+            args["targetPort"] = serialize_value(target_port)
+        if name is not None:
+            args["name"] = serialize_value(name)
+        if env is not None:
+            args["env"] = serialize_value(env)
+        args["isProxied"] = serialize_value(is_proxied)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpsEndpoint", args)
+
+    def with_external_http_endpoints(self) -> IResourceWithEndpoints:
+        """Makes HTTP endpoints externally accessible"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/withExternalHttpEndpoints", args)
+
+    def get_endpoint(self, name: str) -> EndpointReference:
+        """Gets an endpoint reference"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting/getEndpoint", args)
+
+    def as_http2_service(self) -> IResourceWithEndpoints:
+        """Configures resource for HTTP/2"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/asHttp2Service", args)
+
+    def with_urls_callback(self, callback: Callable[[ResourceUrlsCallbackContext], None]) -> IResource:
+        """Customizes displayed URLs via callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withUrlsCallback", args)
+
+    def with_urls_callback_async(self, callback: Callable[[ResourceUrlsCallbackContext], None]) -> IResource:
+        """Customizes displayed URLs via async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withUrlsCallbackAsync", args)
+
+    def with_url(self, url: str, display_text: str | None = None) -> IResource:
+        """Adds or modifies displayed URLs"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["url"] = serialize_value(url)
+        if display_text is not None:
+            args["displayText"] = serialize_value(display_text)
+        return self._client.invoke_capability("Aspire.Hosting/withUrl", args)
+
+    def with_url_expression(self, url: ReferenceExpression, display_text: str | None = None) -> IResource:
+        """Adds a URL using a reference expression"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["url"] = serialize_value(url)
+        if display_text is not None:
+            args["displayText"] = serialize_value(display_text)
+        return self._client.invoke_capability("Aspire.Hosting/withUrlExpression", args)
+
+    def with_url_for_endpoint(self, endpoint_name: str, callback: Callable[[ResourceUrlAnnotation], None]) -> IResource:
+        """Customizes the URL for a specific endpoint via callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["endpointName"] = serialize_value(endpoint_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withUrlForEndpoint", args)
+
+    def with_url_for_endpoint_factory(self, endpoint_name: str, callback: Callable[[EndpointReference], ResourceUrlAnnotation]) -> IResourceWithEndpoints:
+        """Adds a URL for a specific endpoint via factory callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["endpointName"] = serialize_value(endpoint_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withUrlForEndpointFactory", args)
+
+    def publish_with_container_files(self, source: IResourceWithContainerFiles, destination_path: str) -> IContainerFilesDestinationResource:
+        """Configures the resource to copy container files from the specified source during publishing"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        args["destinationPath"] = serialize_value(destination_path)
+        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFiles", args)
+
+    def exclude_from_manifest(self) -> IResource:
+        """Excludes the resource from the deployment manifest"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/excludeFromManifest", args)
+
+    def wait_for(self, dependency: IResource) -> IResourceWithWaitSupport:
+        """Waits for another resource to be ready"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+
+    def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
+        """Waits for another resource with specific behavior"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        args["waitBehavior"] = serialize_value(wait_behavior)
+        return self._client.invoke_capability("Aspire.Hosting/waitForWithBehavior", args)
+
+    def wait_for_start(self, dependency: IResource) -> IResourceWithWaitSupport:
+        """Waits for another resource to start"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+
+    def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
+        """Waits for another resource to start with specific behavior"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        args["waitBehavior"] = serialize_value(wait_behavior)
+        return self._client.invoke_capability("Aspire.Hosting/waitForStartWithBehavior", args)
+
+    def with_explicit_start(self) -> IResource:
+        """Prevents resource from starting automatically"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/withExplicitStart", args)
+
+    def wait_for_completion(self, dependency: IResource, exit_code: float = 0) -> IResourceWithWaitSupport:
+        """Waits for resource completion"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        args["exitCode"] = serialize_value(exit_code)
+        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+
+    def with_health_check(self, key: str) -> IResource:
+        """Adds a health check by key"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["key"] = serialize_value(key)
+        return self._client.invoke_capability("Aspire.Hosting/withHealthCheck", args)
+
+    def with_http_health_check(self, path: str | None = None, status_code: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health check"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if status_code is not None:
+            args["statusCode"] = serialize_value(status_code)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpHealthCheck", args)
+
+    def with_command(self, name: str, display_name: str, execute_command: Callable[[ExecuteCommandContext], ExecuteCommandResult], command_options: CommandOptions | None = None) -> IResource:
+        """Adds a resource command"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["displayName"] = serialize_value(display_name)
+        execute_command_id = register_callback(execute_command) if execute_command is not None else None
+        if execute_command_id is not None:
+            args["executeCommand"] = execute_command_id
+        if command_options is not None:
+            args["commandOptions"] = serialize_value(command_options)
+        return self._client.invoke_capability("Aspire.Hosting/withCommand", args)
+
+    def with_developer_certificate_trust(self, trust: bool) -> IResourceWithEnvironment:
+        """Configures developer certificate trust"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["trust"] = serialize_value(trust)
+        return self._client.invoke_capability("Aspire.Hosting/withDeveloperCertificateTrust", args)
+
+    def with_certificate_trust_scope(self, scope: CertificateTrustScope) -> IResourceWithEnvironment:
+        """Sets the certificate trust scope"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["scope"] = serialize_value(scope)
+        return self._client.invoke_capability("Aspire.Hosting/withCertificateTrustScope", args)
+
+    def with_https_developer_certificate(self, password: ParameterResource | None = None) -> IResourceWithEnvironment:
+        """Configures HTTPS with a developer certificate"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if password is not None:
+            args["password"] = serialize_value(password)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+
+    def without_https_certificate(self) -> IResourceWithEnvironment:
+        """Removes HTTPS certificate configuration"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/withoutHttpsCertificate", args)
+
+    def with_parent_relationship(self, parent: IResource) -> IResource:
+        """Sets the parent relationship"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["parent"] = serialize_value(parent)
+        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+
+    def with_child_relationship(self, child: IResource) -> IResource:
+        """Sets a child relationship"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["child"] = serialize_value(child)
+        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+
+    def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
+        """Sets the icon for the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["iconName"] = serialize_value(icon_name)
+        args["iconVariant"] = serialize_value(icon_variant)
+        return self._client.invoke_capability("Aspire.Hosting/withIconName", args)
+
+    def with_http_probe(self, probe_type: ProbeType, path: str | None = None, initial_delay_seconds: float | None = None, period_seconds: float | None = None, timeout_seconds: float | None = None, failure_threshold: float | None = None, success_threshold: float | None = None, endpoint_name: str | None = None) -> IResourceWithEndpoints:
+        """Adds an HTTP health probe to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["probeType"] = serialize_value(probe_type)
+        if path is not None:
+            args["path"] = serialize_value(path)
+        if initial_delay_seconds is not None:
+            args["initialDelaySeconds"] = serialize_value(initial_delay_seconds)
+        if period_seconds is not None:
+            args["periodSeconds"] = serialize_value(period_seconds)
+        if timeout_seconds is not None:
+            args["timeoutSeconds"] = serialize_value(timeout_seconds)
+        if failure_threshold is not None:
+            args["failureThreshold"] = serialize_value(failure_threshold)
+        if success_threshold is not None:
+            args["successThreshold"] = serialize_value(success_threshold)
+        if endpoint_name is not None:
+            args["endpointName"] = serialize_value(endpoint_name)
+        return self._client.invoke_capability("Aspire.Hosting/withHttpProbe", args)
+
+    def exclude_from_mcp(self) -> IResource:
+        """Excludes the resource from MCP server exposure"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
+
+    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+        """Sets the remote image name for publishing"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["remoteImageName"] = serialize_value(remote_image_name)
+        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
+
+    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+        """Sets the remote image tag for publishing"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["remoteImageTag"] = serialize_value(remote_image_tag)
+        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
+
+    def get_resource_name(self) -> str:
+        """Gets the resource name"""
+        args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/getResourceName", args)
+
+    def with_optional_string(self, value: str | None = None, enabled: bool = True) -> IResource:
+        """Adds an optional string parameter"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if value is not None:
+            args["value"] = serialize_value(value)
+        args["enabled"] = serialize_value(enabled)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalString", args)
+
+    def with_config(self, config: TestConfigDto) -> IResource:
+        """Configures the resource with a DTO"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["config"] = serialize_value(config)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withConfig", args)
+
+    def test_with_environment_callback(self, callback: Callable[[TestEnvironmentContext], None]) -> IResourceWithEnvironment:
+        """Configures environment with callback (test version)"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/testWithEnvironmentCallback", args)
+
+    def with_created_at(self, created_at: str) -> IResource:
+        """Sets the created timestamp"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["createdAt"] = serialize_value(created_at)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCreatedAt", args)
+
+    def with_modified_at(self, modified_at: str) -> IResource:
+        """Sets the modified timestamp"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["modifiedAt"] = serialize_value(modified_at)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withModifiedAt", args)
+
+    def with_correlation_id(self, correlation_id: str) -> IResource:
+        """Sets the correlation ID"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["correlationId"] = serialize_value(correlation_id)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCorrelationId", args)
+
+    def with_optional_callback(self, callback: Callable[[TestCallbackContext], None] | None = None) -> IResource:
+        """Configures with optional callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalCallback", args)
+
+    def with_status(self, status: TestResourceStatus) -> IResource:
+        """Sets the resource status"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["status"] = serialize_value(status)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withStatus", args)
+
+    def with_nested_config(self, config: TestNestedDto) -> IResource:
+        """Configures with nested DTO"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["config"] = serialize_value(config)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withNestedConfig", args)
+
+    def with_validator(self, validator: Callable[[TestResourceContext], bool]) -> IResource:
+        """Adds validation callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        validator_id = register_callback(validator) if validator is not None else None
+        if validator_id is not None:
+            args["validator"] = validator_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withValidator", args)
+
+    def test_wait_for(self, dependency: IResource) -> IResource:
+        """Waits for another resource (test version)"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/testWaitFor", args)
+
+    def with_dependency(self, dependency: IResourceWithConnectionString) -> IResource:
+        """Adds a dependency on another resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["dependency"] = serialize_value(dependency)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withDependency", args)
+
+    def with_endpoints(self, endpoints: list[str]) -> IResource:
+        """Sets the endpoints"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["endpoints"] = serialize_value(endpoints)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withEndpoints", args)
+
+    def with_environment_variables(self, variables: dict[str, str]) -> IResourceWithEnvironment:
+        """Sets environment variables"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["variables"] = serialize_value(variables)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withEnvironmentVariables", args)
+
+    def with_cancellable_operation(self, operation: Callable[[CancellationToken], None]) -> IResource:
+        """Performs a cancellable operation"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        operation_id = register_callback(operation) if operation is not None else None
+        if operation_id is not None:
+            args["operation"] = operation_id
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
+
+
 class CancellationToken(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -1441,6 +1991,14 @@ class DotnetToolResource(ResourceBuilderBase):
         """Publishes the executable as a Docker container"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/publishAsDockerFile", args)
+
+    def publish_as_docker_file_with_configure(self, configure: Callable[[ContainerResource], None]) -> ExecutableResource:
+        """Publishes an executable as a Docker file with optional container configuration"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/publishAsDockerFileWithConfigure", args)
 
     def with_executable_command(self, command: str) -> ExecutableResource:
         """Sets the executable command"""
@@ -2978,12 +3536,32 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args["launchProfileName"] = serialize_value(launch_profile_name)
         return self._client.invoke_capability("Aspire.Hosting/addProject", args)
 
+    def add_project_with_options(self, name: str, project_path: str, configure: Callable[[ProjectResourceOptions], None]) -> ProjectResource:
+        """Adds a project resource with configuration options"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["projectPath"] = serialize_value(project_path)
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/addProjectWithOptions", args)
+
     def add_c_sharp_app(self, name: str, path: str) -> ProjectResource:
         """Adds a C# application resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["path"] = serialize_value(path)
         return self._client.invoke_capability("Aspire.Hosting/addCSharpApp", args)
+
+    def add_c_sharp_app_with_options(self, name: str, path: str, configure: Callable[[ProjectResourceOptions], None]) -> CSharpAppResource:
+        """Adds a C# application resource with configuration options"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["path"] = serialize_value(path)
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/addCSharpAppWithOptions", args)
 
     def add_test_redis(self, name: str, port: float | None = None) -> TestRedisResource:
         """Adds a test Redis resource"""
@@ -3394,17 +3972,6 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["protocol"] = serialize_value(protocol)
         return self._client.invoke_capability("Aspire.Hosting/withOtlpExporterProtocol", args)
-
-    def with_replicas(self, replicas: float) -> ProjectResource:
-        """Sets the number of replicas"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["replicas"] = serialize_value(replicas)
-        return self._client.invoke_capability("Aspire.Hosting/withReplicas", args)
-
-    def disable_forwarded_headers(self) -> ProjectResource:
-        """Disables forwarded headers for the project"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        return self._client.invoke_capability("Aspire.Hosting/disableForwardedHeaders", args)
 
     def with_required_command(self, command: str, help_link: str | None = None) -> IResource:
         """Adds a required command dependency"""
@@ -3905,6 +4472,44 @@ class ProjectResource(ResourceBuilderBase):
         if operation_id is not None:
             args["operation"] = operation_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
+
+
+class ProjectResourceOptions(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def launch_profile_name(self) -> str:
+        """Gets the LaunchProfileName property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.launchProfileName", args)
+
+    def set_launch_profile_name(self, value: str) -> ProjectResourceOptions:
+        """Sets the LaunchProfileName property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.setLaunchProfileName", args)
+
+    def exclude_launch_profile(self) -> bool:
+        """Gets the ExcludeLaunchProfile property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.excludeLaunchProfile", args)
+
+    def set_exclude_launch_profile(self, value: bool) -> ProjectResourceOptions:
+        """Sets the ExcludeLaunchProfile property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.setExcludeLaunchProfile", args)
+
+    def exclude_kestrel_endpoints(self) -> bool:
+        """Gets the ExcludeKestrelEndpoints property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.excludeKestrelEndpoints", args)
+
+    def set_exclude_kestrel_endpoints(self, value: bool) -> ProjectResourceOptions:
+        """Sets the ExcludeKestrelEndpoints property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.setExcludeKestrelEndpoints", args)
 
 
 class ReferenceExpression(HandleWrapperBase):
@@ -6257,6 +6862,7 @@ register_handle_wrapper("System.Private.CoreLib/System.Threading.CancellationTok
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", lambda handle, client: DistributedApplicationEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", lambda handle, client: DistributedApplicationExecutionContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", lambda handle, client: DistributedApplicationExecutionContextOptions(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions", lambda handle, client: ProjectResourceOptions(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", lambda handle, client: DistributedApplicationResourceEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEvent", lambda handle, client: IDistributedApplicationEvent(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent", lambda handle, client: IDistributedApplicationResourceEvent(handle, client))
@@ -6271,6 +6877,7 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ConnectionStringResource"
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerRegistryResource", lambda handle, client: ContainerRegistryResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.DotnetToolResource", lambda handle, client: DotnetToolResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ExternalServiceResource", lambda handle, client: ExternalServiceResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource", lambda handle, client: CSharpAppResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", lambda handle, client: IResourceWithServiceDiscovery(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", lambda handle, client: IResourceWithContainerFiles(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", lambda handle, client: TestCallbackContext(handle, client))

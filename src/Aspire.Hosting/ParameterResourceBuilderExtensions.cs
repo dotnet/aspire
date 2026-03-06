@@ -74,7 +74,7 @@ public static class ParameterResourceBuilderExtensions
     /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    [AspireExportIgnore(Reason = "Uses Func<string> delegate which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw Func<string> delegate — not ATS-compatible.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValueAsDefault = false, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -140,7 +140,7 @@ public static class ParameterResourceBuilderExtensions
     /// <remarks>This method is not available in polyglot app hosts. Use the overload with a string value instead.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    [AspireExportIgnore(Reason = "Uses ParameterDefault which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "ParameterDefault is not an ATS-exported type.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, ParameterDefault value, bool secret = false, bool persist = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -204,7 +204,7 @@ public static class ParameterResourceBuilderExtensions
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
     [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses Func<ParameterResource, InteractionInput> which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Complex Func delegate with InteractionInput — not ATS-compatible.")]
     public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
     {
         ArgumentNullException.ThrowIfNull(builder);

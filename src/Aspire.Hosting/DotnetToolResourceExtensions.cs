@@ -37,7 +37,7 @@ public static class DotnetToolResourceExtensions
     /// <param name="resource">The .NET tool resource instance to add and configure.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use the overload with name and packageId instead.</remarks>
-    [AspireExportIgnore(Reason = "Generic resource parameter overload not intended for polyglot use.")]
+    [AspireExportIgnore(Reason = "Open generic IResource constraint — not ATS-compatible.")]
     public static IResourceBuilder<T> AddDotnetTool<T>(this IDistributedApplicationBuilder builder, T resource)
         where T : DotnetToolResource
     {

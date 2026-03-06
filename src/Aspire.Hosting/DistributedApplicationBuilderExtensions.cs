@@ -59,7 +59,7 @@ public static class DistributedApplicationBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Low-level builder API not intended for polyglot use.")]
+    [AspireExportIgnore(Reason = "Takes raw IResource generic constraint — low-level builder API for testing scenarios.")]
     public static IResourceBuilder<T> CreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));

@@ -143,7 +143,7 @@ public static class ConnectionStringBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [AspireExportIgnore(Reason = "Uses Action<ReferenceExpressionBuilder> which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "ReferenceExpressionBuilder is not an ATS-exported callback context.")]
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ReferenceExpressionBuilder> connectionStringBuilder)
     {
         var rb = new ReferenceExpressionBuilder();

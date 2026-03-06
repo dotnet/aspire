@@ -48,7 +48,7 @@ public static class ResourceBuilderExtensions
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use the ReferenceExpression overload instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses ExpressionInterpolatedStringHandler which is a C# compiler-specific type.")]
+    [AspireExportIgnore(Reason = "ExpressionInterpolatedStringHandler is a C# compiler-specific type — not ATS-compatible.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, in ReferenceExpression.ExpressionInterpolatedStringHandler value)
         where T : IResourceWithEnvironment
     {
@@ -113,7 +113,7 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">A callback that allows for deferred execution of a specific environment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses raw Func<string> delegate which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw Func<string> delegate — not ATS-compatible.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -188,7 +188,7 @@ public static class ResourceBuilderExtensions
     /// <param name="externalService">The external service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithServiceDiscovery})"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "ExternalServiceResource-based environment overload is specialized and covered by withReference.")]
+    [AspireExportIgnore(Reason = "Specialized overload — withReference covers this use case.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ExternalServiceResource> externalService)
         where T : IResourceWithEnvironment
     {
@@ -366,7 +366,7 @@ public static class ResourceBuilderExtensions
     /// <param name="args">The arguments to be passed to the resource when it is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use the string[] overload instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses object[] which is not ATS-compatible. Use the string[] overload instead.")]
+    [AspireExportIgnore(Reason = "object[] is not ATS-compatible. String[] overload is exported.")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params object[] args) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -421,7 +421,7 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "ManifestPublishingContext is an infrastructure type not available in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "ManifestPublishingContext exposes Utf8JsonWriter and DistributedApplicationExecutionContext — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -439,7 +439,7 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "ManifestPublishingContext is an infrastructure type not available in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "ManifestPublishingContext exposes Utf8JsonWriter and DistributedApplicationExecutionContext — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Func<ManifestPublishingContext, Task> callback) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -457,7 +457,7 @@ public static class ResourceBuilderExtensions
     /// <param name="resource">Resource to which connection string generation is redirected.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses raw IResourceWithConnectionString interface parameter which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw IResourceWithConnectionString interface parameter — not ATS-compatible. ReferenceExpression overload is exported.")]
     public static IResourceBuilder<T> WithConnectionStringRedirection<T>(this IResourceBuilder<T> builder, IResourceWithConnectionString resource) where T : IResourceWithConnectionString
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -538,7 +538,7 @@ public static class ResourceBuilderExtensions
     /// <param name="flags">The injection flags determining which reference information is emitted.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "ReferenceEnvironmentInjectionFlags is an advanced configuration flag not intended for polyglot use.")]
+    [AspireExportIgnore(Reason = "Advanced internal configuration — ReferenceEnvironmentInjectionFlags enum not intentionally part of public ATS surface.")]
     public static IResourceBuilder<TDestination> WithReferenceEnvironment<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
         where TDestination : IResourceWithEnvironment
     {
@@ -902,7 +902,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts. Use the parameter-based overload instead.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses Action<EndpointAnnotation> which is not an ATS-compatible callback context.")]
+    [AspireExportIgnore(Reason = "EndpointAnnotation has read-only properties AllocatedEndpointSnapshot and AllAllocatedEndpoints that are not ATS-compatible. Callback-free variant is exported.")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
@@ -1284,7 +1284,7 @@ public static class ResourceBuilderExtensions
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// <para>This method is not available in polyglot app hosts. Use the ReferenceExpression overload instead.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses ExpressionInterpolatedStringHandler which is a C# compiler-specific type.")]
+    [AspireExportIgnore(Reason = "ExpressionInterpolatedStringHandler is a C# compiler-specific type — not ATS-compatible.")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, in ReferenceExpression.ExpressionInterpolatedStringHandler url, string? displayText = null)
         where T : IResource
     {
@@ -1939,7 +1939,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts. Use the endpointName-based overload instead.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses Func<EndpointReference> which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Func<EndpointReference> delegate — not ATS-compatible.")]
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, Func<EndpointReference>? endpointSelector, string? path = null, int? statusCode = null) where T : IResourceWithEndpoints
     {
         endpointSelector ??= DefaultEndpointSelector(builder);
@@ -2214,7 +2214,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "HttpCommandOptions contains Func delegates which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Func<HttpRequestMessage> is not ATS-compatible.")]
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -2289,7 +2289,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses Func<EndpointReference> delegate which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Func<EndpointReference> delegate — not ATS-compatible.")]
     public static IResourceBuilder<TResource> WithHttpCommand<TResource>(
         this IResourceBuilder<TResource> builder,
         string path,
@@ -2403,7 +2403,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "CertificateAuthorityCollection is a specialized security type not yet available in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "CertificateAuthorityCollection — all companion With* methods require X509Certificate2, making the resource unusable in polyglot hosts.")]
     public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
@@ -2556,7 +2556,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses CertificateTrustConfigurationCallbackAnnotationContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "CertificateTrustConfigurationCallbackAnnotationContext exposes IResource — not usable from polyglot hosts. Callback-free variant is exported.")]
     public static IResourceBuilder<TResource> WithCertificateTrustConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithArgs, IResourceWithEnvironment
     {
@@ -2690,7 +2690,7 @@ public static class ResourceBuilderExtensions
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses HttpsCertificateConfigurationCallbackAnnotationContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "HttpsCertificateConfigurationCallbackAnnotationContext exposes IServiceProvider and IResource — not usable from polyglot hosts.")]
     public static IResourceBuilder<TResource> WithHttpsCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<HttpsCertificateConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
@@ -2731,7 +2731,7 @@ public static class ResourceBuilderExtensions
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses HttpsEndpointUpdateCallbackContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "HttpsEndpointUpdateCallbackContext exposes IServiceProvider and IResource — not usable from polyglot hosts.")]
     public static IResourceBuilder<TResource> SubscribeHttpsEndpointsUpdate<TResource>(this IResourceBuilder<TResource> builder, Action<HttpsEndpointUpdateCallbackContext> callback)
         where TResource : IResource
     {
@@ -2850,7 +2850,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses raw IResource interface which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw IResource interface — not ATS-compatible.")]
     public static IResourceBuilder<T> WithRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource resource,
@@ -2871,7 +2871,7 @@ public static class ResourceBuilderExtensions
     /// <param name="resource">The resource that the relationship is to.</param>
     /// <returns>A resource builder.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses raw IResource interface which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw IResource interface — not ATS-compatible.")]
     public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource resource) where T : IResource
@@ -2890,7 +2890,7 @@ public static class ResourceBuilderExtensions
     /// <param name="expression">The reference expression.</param>
     /// <returns>A resource builder.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Low-level relationship tracking not intended for polyglot use.")]
+    [AspireExportIgnore(Reason = "Low-level relationship tracking — raw IResource interface, not intended for polyglot use.")]
     public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         ReferenceExpression expression) where T : IResource
@@ -2951,7 +2951,7 @@ public static class ResourceBuilderExtensions
     /// <param name="resourceBuilder">The resource builder that the relationship is to.</param>
     /// <returns>A resource builder.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Low-level relationship tracking not intended for polyglot use.")]
+    [AspireExportIgnore(Reason = "Low-level relationship tracking — raw IResource interface, not intended for polyglot use.")]
     public static IResourceBuilder<T> WithReferenceRelationship<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource> resourceBuilder) where T : IResource
@@ -3017,7 +3017,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts. Use the IResourceBuilder overload instead.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses raw IResource interface which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw IResource interface — not ATS-compatible.")]
     public static IResourceBuilder<T> WithParentRelationship<T>(
         this IResourceBuilder<T> builder,
         IResource parent) where T : IResource
@@ -3083,7 +3083,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// <para>This method is not available in polyglot app hosts. Use the IResourceBuilder overload instead.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses raw IResource interface which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Raw IResource interface — not ATS-compatible.")]
     public static IResourceBuilder<T> WithChildRelationship<T>(
          this IResourceBuilder<T> builder,
          IResource child) where T : IResource
@@ -3139,7 +3139,7 @@ public static class ResourceBuilderExtensions
     /// This method allows associating a specific compute environment with the compute resource.
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "IComputeEnvironmentResource is a specialized interface not available in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "IComputeEnvironmentResource is a specialized interface — not ATS-compatible.")]
     public static IResourceBuilder<T> WithComputeEnvironment<T>(this IResourceBuilder<T> builder, IResourceBuilder<IComputeEnvironmentResource> computeEnvironmentResource)
         where T : IComputeResource
     {
@@ -3242,7 +3242,7 @@ public static class ResourceBuilderExtensions
     /// <para>This method is not available in polyglot app hosts. Use the endpointName-based overload instead.</para>
     /// </remarks>
     [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses Func<EndpointReference> which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Func<EndpointReference> delegate — not ATS-compatible.")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, Func<EndpointReference>? endpointSelector, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
@@ -3326,7 +3326,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
-    [AspireExportIgnore(Reason = "Uses ContainerImagePushOptionsCallbackContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "ContainerImagePushOptionsCallbackContext exposes IResource — not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithImagePushOptions<T>(
         this IResourceBuilder<T> builder,
         Action<ContainerImagePushOptionsCallbackContext> callback)
@@ -3367,7 +3367,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
-    [AspireExportIgnore(Reason = "Uses ContainerImagePushOptionsCallbackContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "ContainerImagePushOptionsCallbackContext exposes IResource — not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithImagePushOptions<T>(
         this IResourceBuilder<T> builder,
         Func<ContainerImagePushOptionsCallbackContext, Task> callback)

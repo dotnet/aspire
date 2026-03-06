@@ -81,6 +81,16 @@ public partial class AspireExportAnalyzer
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{DuplicateExportIdId}",
             customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
+        private const string MissingExportAttributeId = "ASPIRE014";
+        internal static readonly DiagnosticDescriptor s_missingExportAttribute = new(
+            id: MissingExportAttributeId,
+            title: "Extension method missing AspireExport or AspireExportIgnore attribute",
+            messageFormat: "Extension method '{0}' on builder type is missing [AspireExport] or [AspireExportIgnore]: {1}",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{MissingExportAttributeId}");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_exportMethodMustBeStatic,
             s_invalidExportIdFormat,
@@ -88,7 +98,8 @@ public partial class AspireExportAnalyzer
             s_parameterTypeMustBeAtsCompatible,
             s_unionRequiresAtLeastTwoTypes,
             s_unionTypeMustBeAtsCompatible,
-            s_duplicateExportId
+            s_duplicateExportId,
+            s_missingExportAttribute
         );
     }
 }

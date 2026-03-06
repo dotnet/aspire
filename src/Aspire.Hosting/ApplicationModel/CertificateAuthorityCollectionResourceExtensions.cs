@@ -18,7 +18,7 @@ public static class CertificateAuthorityCollectionResourceExtensions
     /// <param name="name">The name of the certificate authority collection resource.</param>
     /// <returns>An <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/> instance.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "CertificateAuthorityCollection is a specialized security resource not available in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "All companion With* methods require X509Certificate2 — the resource would be unusable in polyglot hosts (zero configurable methods).")]
     public static IResourceBuilder<CertificateAuthorityCollection> AddCertificateAuthorityCollection(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);

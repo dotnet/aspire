@@ -12,3 +12,4 @@ ASPIRE010 | Design | Error | AspireExportAnalyzer, [Documentation](https://aka.m
 ASPIRE011 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE011)
 ASPIRE012 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE012)
 ASPIRE013 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE013)
+ASPIRE014 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE014)

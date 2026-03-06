@@ -20,7 +20,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="factory">A factory function that creates the pipeline step.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, PipelineStep> factory) where T : IResource
@@ -39,7 +39,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="factory">An async factory function that creates the pipeline step.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, Task<PipelineStep>> factory) where T : IResource
@@ -58,7 +58,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="factory">A factory function that creates multiple pipeline steps.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory) where T : IResource
@@ -77,7 +77,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="factory">An async factory function that creates multiple pipeline steps.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, Task<IEnumerable<PipelineStep>>> factory) where T : IResource
@@ -97,7 +97,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="callback">The callback function to execute during the configuration phase.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineConfiguration<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineConfigurationContext, Task> callback) where T : IResource
@@ -117,7 +117,7 @@ public static class PipelineStepFactoryExtensions
     /// <param name="callback">The callback function to execute during the configuration phase.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses PipelineStep/PipelineConfigurationContext which are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "PipelineStep and PipelineConfigurationContext are infrastructure types — not exported for ATS.")]
     public static IResourceBuilder<T> WithPipelineConfiguration<T>(
         this IResourceBuilder<T> builder,
         Action<PipelineConfigurationContext> callback) where T : IResource

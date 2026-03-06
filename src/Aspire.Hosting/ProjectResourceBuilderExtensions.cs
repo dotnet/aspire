@@ -280,9 +280,8 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// <remarks>This method is not available in polyglot app hosts. Use the overload with projectPath and launchProfileName instead.</remarks>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Uses Action<ProjectResourceOptions> which is not ATS-compatible.")]
+    [AspireExport("addProjectWithOptions", Description = "Adds a project resource with configuration options")]
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -362,10 +361,9 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// <remarks>This method is not available in polyglot app hosts. Use the overload without configure callback instead.</remarks>
     /// </remarks>
     [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Uses Action<ProjectResourceOptions> which is not ATS-compatible.")]
+    [AspireExport("addCSharpAppWithOptions", Description = "Adds a C# application resource with configuration options")]
     public static IResourceBuilder<CSharpAppResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -821,8 +819,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses Action<IResourceBuilder<ContainerResource>> which is not ATS-compatible.")]
+    [AspireExport("publishAsDockerFileWithConfigure", Description = "Publishes a project as a Docker file with optional container configuration")]
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure = null)
         where T : ProjectResource
     {
@@ -889,7 +886,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExportIgnore(Reason = "Debugging configuration is a .NET-specific development concern.")]
+    [AspireExportIgnore(Reason = "Debugging .NET projects from a polyglot host is not meaningful.")]
     public static IResourceBuilder<TProjectResource> WithDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
         where TProjectResource : ProjectResource
     {

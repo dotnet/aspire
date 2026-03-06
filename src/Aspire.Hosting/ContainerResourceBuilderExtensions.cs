@@ -451,7 +451,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use the string[] overload instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses ContainerRuntimeArgsCallbackContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "ContainerRuntimeArgsCallbackContext exposes IList<object> — not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRuntimeArgsCallbackContext> callback) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -475,7 +475,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This method is not available in polyglot app hosts. Use the string[] overload instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses ContainerRuntimeArgsCallbackContext which is not an ATS-exported context.")]
+    [AspireExportIgnore(Reason = "ContainerRuntimeArgsCallbackContext exposes IList<object> — not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRuntimeArgsCallbackContext, Task> callback) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -675,7 +675,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="WithDockerfile{T}"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileFactoryContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileFactoryContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithDockerfileFactory<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -723,7 +723,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="WithDockerfile{T}"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileFactoryContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileFactoryContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithDockerfileFactory<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -846,7 +846,7 @@ public static class ContainerResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddDockerfile"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileFactoryContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileFactoryContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<ContainerResource> AddDockerfileFactory(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -877,7 +877,7 @@ public static class ContainerResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddDockerfile"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileFactoryContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileFactoryContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<ContainerResource> AddDockerfileFactory(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -925,7 +925,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddDockerfile"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileBuilderCallbackContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileBuilderCallbackContext is not an ATS-exported callback context.")]
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
     {
@@ -973,7 +973,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="AddDockerfile"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileBuilderCallbackContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileBuilderCallbackContext is not an ATS-exported callback context.")]
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
     {
@@ -1169,7 +1169,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="defaultCertificateDirectoryPaths">List of default certificate directory paths in the container that may be appended to the custom certificates directory in <see cref="CertificateTrustScope.Append"/> mode. If not specified, defaults to <c>/usr/local/share/ca-certificates/</c> for Linux containers.</param>
     /// <returns>The updated resource builder.</returns>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses List<string> parameter types not supported in ATS for certificate path configuration.")]
+    [AspireExportIgnore(Reason = "Uses List<string> which is not ATS-compatible (only T[] is supported, not List<T>).")]
     public static IResourceBuilder<TResource> WithContainerCertificatePaths<TResource>(this IResourceBuilder<TResource> builder, string? customCertificatesDestination = null, List<string>? defaultCertificateBundlePaths = null, List<string>? defaultCertificateDirectoryPaths = null)
         where TResource : ContainerResource
     {
@@ -1226,7 +1226,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses ContainerFileSystemItem which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "ContainerFileSystemItem is an abstract class hierarchy (ContainerFile, ContainerDirectory, ContainerOpenSSLCertificateFile) with recursive Entries — polymorphic types not supported by ATS.")]
     public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, IEnumerable<ContainerFileSystemItem> entries, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1299,7 +1299,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses complex delegate with ContainerFileSystemCallbackContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "ContainerFileSystemCallbackContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
     public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1431,7 +1431,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="WithDockerfile{T}"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileBuilderCallbackContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileBuilderCallbackContext is not an ATS-exported callback context.")]
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
     {
@@ -1536,7 +1536,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     /// <remarks>This method is not available in polyglot app hosts. Use <see cref="WithDockerfile{T}"/> instead.</remarks>
-    [AspireExportIgnore(Reason = "Uses DockerfileBuilderCallbackContext which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "DockerfileBuilderCallbackContext is not an ATS-exported callback context.")]
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
     {
