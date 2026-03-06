@@ -16,6 +16,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithDebugSupport``2(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{System.String,``1},System.String,System.Action{Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext})</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
     <Target>M:Aspire.Hosting.Pipelines.IDeploymentStateManager.DeleteSectionAsync(Aspire.Hosting.Pipelines.DeploymentStateSection,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
@@ -31,6 +38,34 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Pipelines.IReportingStep.CompleteAsync(Aspire.Hosting.Pipelines.MarkdownString,Aspire.Hosting.Pipelines.CompletionState,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Pipelines.IReportingStep.CreateTaskAsync(Aspire.Hosting.Pipelines.MarkdownString,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Pipelines.IReportingStep.Log(Microsoft.Extensions.Logging.LogLevel,Aspire.Hosting.Pipelines.MarkdownString)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Pipelines.IReportingStep.Log(Microsoft.Extensions.Logging.LogLevel,System.String)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
     <Target>M:Aspire.Hosting.Publishing.IContainerRuntime.BuildImageAsync(System.String,System.String,Aspire.Hosting.Publishing.ContainerImageBuildOptions,System.Collections.Generic.Dictionary{System.String,System.String},System.Collections.Generic.Dictionary{System.String,Aspire.Hosting.Publishing.BuildImageSecretValue},System.String,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
@@ -39,13 +74,6 @@
   <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
     <Target>P:Aspire.Hosting.IUserSecretsManager.IsAvailable</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithDebugSupport``2(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{System.String,``1},System.String,System.Action{Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext})</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
