@@ -67,11 +67,6 @@
         <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptRunAgentInit">
-        <source>Would you like to configure AI agent environments for this project?</source>
-        <target state="new">Would you like to configure AI agent environments for this project?</target>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

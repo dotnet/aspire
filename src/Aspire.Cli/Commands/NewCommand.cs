@@ -373,7 +373,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
-        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, NewCommandStrings.PromptRunAgentInit, templateResult.ExitCode, workspaceRoot, cancellationToken);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, templateResult.ExitCode, workspaceRoot, cancellationToken);
     }
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)

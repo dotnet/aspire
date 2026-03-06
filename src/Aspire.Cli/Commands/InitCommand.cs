@@ -147,7 +147,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
             InteractionService.DisplayEmptyLine();
             var polyglotResult = await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
-            return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, InitCommandStrings.PromptRunAgentInit, polyglotResult, _executionContext.WorkingDirectory, cancellationToken);
+            return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, polyglotResult, _executionContext.WorkingDirectory, cancellationToken);
         }
 
         // For C#, we need the .NET SDK
@@ -181,7 +181,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             workspaceRoot = _executionContext.WorkingDirectory;
         }
 
-        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, InitCommandStrings.PromptRunAgentInit, initResult, workspaceRoot, cancellationToken);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, initResult, workspaceRoot, cancellationToken);
     }
 
     private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)

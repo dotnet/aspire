@@ -122,11 +122,5 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SolutionAndProjectInSameDirectory", resourceCulture);
             }
         }
-
-        internal static string PromptRunAgentInit {
-            get {
-                return ResourceManager.GetString("PromptRunAgentInit", resourceCulture);
-            }
-        }
     }
 }

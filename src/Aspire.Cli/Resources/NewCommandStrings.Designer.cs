@@ -144,11 +144,5 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ResolvingTemplateVersion", resourceCulture);
             }
         }
-
-        public static string PromptRunAgentInit {
-            get {
-                return ResourceManager.GetString("PromptRunAgentInit", resourceCulture);
-            }
-        }
     }
 }

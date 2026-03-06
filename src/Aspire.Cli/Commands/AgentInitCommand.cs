@@ -69,14 +69,13 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
     internal async Task<int> PromptAndChainAsync(
         ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService,
-        string promptString,
-        int previousResult,
+        int previousResultExitCode,
         DirectoryInfo workspaceRoot,
         CancellationToken cancellationToken)
     {
-        if (previousResult != ExitCodeConstants.Success)
+        if (previousResultExitCode != ExitCodeConstants.Success)
         {
-            return previousResult;
+            return previousResultExitCode;
         }
 
         if (!hostEnvironment.SupportsInteractiveInput)
@@ -85,7 +84,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         }
 
         var runAgentInit = await interactionService.ConfirmAsync(
-            promptString,
+            SharedCommandStrings.PromptRunAgentInit,
             defaultValue: true,
             cancellationToken: cancellationToken);
 
