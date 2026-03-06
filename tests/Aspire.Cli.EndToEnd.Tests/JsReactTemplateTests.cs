@@ -26,27 +26,6 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for template selection - we need to find and select "Starter App (ASP.NET Core/React)"
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        // Wait for the ASP.NET Core/React template to be highlighted (after pressing Down once)
-        // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
-        var waitingForJsReactTemplateSelected = new CellPatternSearcher()
-            .Find("> Starter App (ASP.NET Core/React)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./AspireJsReactApp): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find($"Press CTRL+C to stop the apphost and exit.");
 
@@ -73,26 +52,9 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Starter App (ASP.NET Core/React)" which is the 2nd option
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForJsReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select "Starter App (ASP.NET Core/React)"
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("AspireJsReactApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Enter() // select "No" for Redis Cache
-            .DeclineAgentInitPrompt()
-            .WaitForSuccessPrompt(counter)
+        sequenceBuilder.AspireNew("AspireJsReactApp", counter, template: AspireTemplate.JsReact, useRedisCache: false);
+
+        sequenceBuilder
             .Type("aspire run")
             .Enter()
             .WaitUntil(s =>

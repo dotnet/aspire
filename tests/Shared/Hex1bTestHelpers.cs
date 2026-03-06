@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Hex1b;
 using Hex1b.Automation;
+using Hex1b.Input;
 
 namespace Aspire.Tests.Shared;
 
@@ -18,6 +19,43 @@ internal sealed class SequenceCounter
     {
         return ++Value;
     }
+}
+
+/// <summary>
+/// Represents the available Aspire project templates for <c>aspire new</c>.
+/// The enum values correspond to the order in the template selection list.
+/// </summary>
+internal enum AspireTemplate
+{
+    /// <summary>
+    /// Starter App (ASP.NET Core/Blazor) — the default first option.
+    /// Prompts: template, project name, output path, URLs, Redis, test project.
+    /// </summary>
+    Starter,
+
+    /// <summary>
+    /// Starter App (ASP.NET Core/React) — 2nd option.
+    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
+    /// </summary>
+    JsReact,
+
+    /// <summary>
+    /// Starter App (FastAPI/React) — 3rd option.
+    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
+    /// </summary>
+    PythonReact,
+
+    /// <summary>
+    /// Starter App (Express/React) — 4th option.
+    /// Prompts: template, project name, output path, URLs. No Redis or test project prompt.
+    /// </summary>
+    ExpressReact,
+
+    /// <summary>
+    /// Empty AppHost — 5th option.
+    /// Prompts: template, language (C#), project name, output path, URLs. No Redis or test project prompt.
+    /// </summary>
+    EmptyAppHost,
 }
 
 /// <summary>
@@ -252,5 +290,139 @@ internal static class Hex1bTestHelpers
             .Wait(500)
             .Type("n")
             .Enter();
+    }
+
+    /// <summary>
+    /// Runs <c>aspire new</c> interactively, selecting the specified template and responding to all prompts.
+    /// This centralizes the multi-step interactive flow so that changes to <c>aspire new</c> prompts
+    /// only need to be updated in one place instead of across every E2E test.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="projectName">The project name to enter at the prompt.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <param name="template">The template to select. Defaults to <see cref="AspireTemplate.Starter"/>.</param>
+    /// <param name="useRedisCache">
+    /// Whether to enable Redis Cache. Defaults to <c>true</c> (the <c>aspire new</c> default).
+    /// Only applies to templates that show the Redis prompt (Starter, JsReact, PythonReact).
+    /// </param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder AspireNew(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string projectName,
+        SequenceCounter counter,
+        AspireTemplate template = AspireTemplate.Starter,
+        bool useRedisCache = true)
+    {
+        var templateTimeout = TimeSpan.FromSeconds(60);
+
+        // Wait for the template selection list to appear.
+        // The first item "> Starter App" is always highlighted initially.
+        var waitingForTemplateList = new CellPatternSearcher()
+            .Find("> Starter App");
+
+        var waitingForProjectNamePrompt = new CellPatternSearcher()
+            .Find("Enter the project name");
+
+        var waitingForOutputPathPrompt = new CellPatternSearcher()
+            .Find("Enter the output path:");
+
+        var waitingForUrlsPrompt = new CellPatternSearcher()
+            .Find("Use *.dev.localhost URLs");
+
+        // Step 1: Type aspire new and wait for the template list
+        builder.Type("aspire new")
+            .Enter()
+            .WaitUntil(s => waitingForTemplateList.Search(s).Count > 0, templateTimeout);
+
+        // Step 2: Navigate to and select the desired template
+        switch (template)
+        {
+            case AspireTemplate.Starter:
+                builder.Enter(); // First option, no navigation needed
+                break;
+
+            case AspireTemplate.JsReact:
+                var jsReactSelected = new CellPatternSearcher()
+                    .Find("> Starter App (ASP.NET Core/React)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => jsReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.PythonReact:
+                var pythonReactSelected = new CellPatternSearcher()
+                    .Find("> Starter App (FastAPI/React)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => pythonReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.ExpressReact:
+                var expressReactSelected = new CellPatternSearcher()
+                    .Find("> Starter App (Express/React)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => expressReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.EmptyAppHost:
+                var emptyAppHostSelected = new CellPatternSearcher()
+                    .Find("> Empty AppHost");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => emptyAppHostSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter()
+                    .Enter(); // Select C# language
+                break;
+        }
+
+        // Step 3: Enter project name
+        builder.WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Type(projectName)
+            .Enter();
+
+        // Step 4: Accept default output path
+        builder.WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter();
+
+        // Step 5: URLs prompt (all templates have this)
+        builder.WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter(); // Accept default "No"
+
+        // Step 6: Redis prompt (only Starter, JsReact, PythonReact)
+        if (template is AspireTemplate.Starter or AspireTemplate.JsReact or AspireTemplate.PythonReact)
+        {
+            var waitingForRedisPrompt = new CellPatternSearcher()
+                .Find("Use Redis Cache");
+            builder.WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10));
+
+            if (!useRedisCache)
+            {
+                // Default is "Yes", navigate to "No"
+                builder.Key(Hex1bKey.DownArrow);
+            }
+
+            builder.Enter();
+        }
+
+        // Step 7: Test project prompt (only Starter)
+        if (template is AspireTemplate.Starter)
+        {
+            var waitingForTestPrompt = new CellPatternSearcher()
+                .Find("Do you want to create a test project?");
+            builder.WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // Accept default "No"
+        }
+
+        // Step 8: Decline the agent init prompt
+        builder.DeclineAgentInitPrompt();
+
+        // Wait for project creation to complete
+        return builder.WaitForSuccessPrompt(counter);
     }
 }
