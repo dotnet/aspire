@@ -112,12 +112,12 @@
         <target state="translated">Vlastnosti souboru nastavení</target>
         <note />
       </trans-unit>
-      <trans-unit id="ListCommand_AvailableFeaturesHint">
-        <source>Run 'aspire config list --available' to see all available feature flags.</source>
-        <target state="new">Run 'aspire config list --available' to see all available feature flags.</target>
+      <trans-unit id="ListCommand_AllFeaturesHint">
+        <source>Run 'aspire config list --all' to see all available feature flags.</source>
+        <target state="new">Run 'aspire config list --all' to see all available feature flags.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ListCommand_AvailableOptionDescription">
+      <trans-unit id="ListCommand_AllOptionDescription">
         <source>Show all available features that can be configured.</source>
         <target state="new">Show all available features that can be configured.</target>
         <note />

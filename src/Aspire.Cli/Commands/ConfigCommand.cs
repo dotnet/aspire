@@ -200,31 +200,31 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class ListCommand : BaseConfigSubCommand
     {
-        private static readonly Option<bool> s_availableOption = new("--available")
+        private static readonly Option<bool> s_allOption = new("--all")
         {
-            Description = ConfigCommandStrings.ListCommand_AvailableOptionDescription
+            Description = ConfigCommandStrings.ListCommand_AllOptionDescription
         };
 
         public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
             : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
         {
-            Options.Add(s_availableOption);
+            Options.Add(s_allOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var showAvailable = parseResult.GetValue(s_availableOption);
-            return ExecuteAsync(showAvailable, cancellationToken);
+            var showAll = parseResult.GetValue(s_allOption);
+            return ExecuteAsync(showAll, cancellationToken);
         }
 
         public override Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            return ExecuteAsync(showAvailable: false, cancellationToken);
+            return ExecuteAsync(showAll: false, cancellationToken);
         }
 
-        private async Task<int> ExecuteAsync(bool showAvailable, CancellationToken cancellationToken)
+        private async Task<int> ExecuteAsync(bool showAll, CancellationToken cancellationToken)
         {
             if (InteractionService is ExtensionInteractionService extensionInteractionService)
             {
@@ -272,10 +272,11 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (unconfiguredFeatures.Count > 0)
             {
-                if (showAvailable)
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
+
+                if (showAll)
                 {
-                    InteractionService.DisplayEmptyLine();
-                    InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
                     foreach (var feature in unconfiguredFeatures)
                     {
                         var defaultText = feature.DefaultValue ? "true" : "false";
@@ -287,9 +288,7 @@ internal sealed class ConfigCommand : BaseCommand
                 }
                 else
                 {
-                    InteractionService.DisplayEmptyLine();
-                    InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.ListCommand_AvailableFeaturesHint.EscapeMarkup()}[/]");
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.ListCommand_AllFeaturesHint.EscapeMarkup()}[/]");
                 }
             }
 
