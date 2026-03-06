@@ -264,24 +264,15 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
     private static void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
     {
-        if (AspireConfigFile.Exists(directory.FullName))
-        {
-            // Write to aspire.config.json
-            var aspireConfig = AspireConfigFile.Load(directory.FullName) ?? new AspireConfigFile();
-            aspireConfig.AppHost ??= new AspireConfigAppHost();
-            aspireConfig.AppHost.Path = config.AppHostPath;
-            aspireConfig.AppHost.Language = config.Language;
-            aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
-            aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
-            aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
-            aspireConfig.Features = config.Features ?? aspireConfig.Features;
-            aspireConfig.Save(directory.FullName);
-        }
-        else
-        {
-            // Legacy path
-            config.Save(directory.FullName);
-        }
+        var aspireConfig = AspireConfigFile.Load(directory.FullName) ?? new AspireConfigFile();
+        aspireConfig.AppHost ??= new AspireConfigAppHost();
+        aspireConfig.AppHost.Path = config.AppHostPath;
+        aspireConfig.AppHost.Language = config.Language;
+        aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
+        aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
+        aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
+        aspireConfig.Features = config.Features ?? aspireConfig.Features;
+        aspireConfig.Save(directory.FullName);
     }
 
     private string GetPrepareSdkVersion(AspireJsonConfiguration config)
