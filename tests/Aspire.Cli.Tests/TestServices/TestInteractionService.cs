@@ -124,6 +124,8 @@ internal sealed class TestInteractionService : IInteractionService
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
         }
 
+        _ = _responses.TryDequeue(out _);
+
         // In tests, return pre-selected items if provided, otherwise all items
         if (preSelected is not null)
         {

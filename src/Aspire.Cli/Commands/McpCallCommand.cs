@@ -90,6 +90,11 @@ internal sealed class McpCallCommand : BaseCommand
             try
             {
                 using var doc = JsonDocument.Parse(inputJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    _interactionService.DisplayError("Invalid JSON input: expected a JSON object.");
+                    return ExitCodeConstants.InvalidCommand;
+                }
                 var dict = new Dictionary<string, JsonElement>();
                 foreach (var prop in doc.RootElement.EnumerateObject())
                 {
