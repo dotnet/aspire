@@ -38,4 +38,11 @@ const _resolvedHelmChartName: string = await resolvedKubernetes.helmChartName.ge
 const _resolvedDefaultStorageClassName: string | undefined = await resolvedKubernetes.defaultStorageClassName.get();
 const _resolvedDefaultServiceType: string = await resolvedKubernetes.defaultServiceType.get();
 
+const serviceContainer = await builder.addContainer('kube-service', 'redis:alpine');
+await serviceContainer.publishAsKubernetesService(async (service) => {
+    const _serviceName: string = await service.name.get();
+    const serviceParent = await service.parent.get();
+    const _serviceParentChartName: string = await serviceParent.helmChartName.get();
+});
+
 await builder.build().run();

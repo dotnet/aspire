@@ -21,17 +21,8 @@ public static class KubernetesServiceExtensions
     /// <remarks>
     /// This method checks if the application is in publish mode. If it is, it adds a customization annotation
     /// that will be applied by the infrastructure when generating the Kubernetes service.
-    /// This method is not available in polyglot app hosts.
-    /// <example>
-    /// <code>
-    /// builder.AddContainer("redis", "redis:alpine").PublishAsKubernetesService((service) =>
-    /// {
-    ///     service.Name = "redis";
-    /// });
-    /// </code>
-    /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "The callback exposes Kubernetes model types that are not ATS-compatible.")]
+    [AspireExport("publishAsKubernetesService", Description = "Publishes the resource as a Kubernetes service")]
     public static IResourceBuilder<T> PublishAsKubernetesService<T>(this IResourceBuilder<T> builder, Action<KubernetesResource> configure)
         where T : IComputeResource
     {
