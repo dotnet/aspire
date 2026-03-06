@@ -48,6 +48,7 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addKeycloak", Description = "Adds a Keycloak container resource")]
     public static IResourceBuilder<KeycloakResource> AddKeycloak(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -145,6 +146,7 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withDataVolume", Description = "Adds a data volume for Keycloak")]
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -168,6 +170,7 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withDataBindMount", Description = "Adds a data bind mount for Keycloak")]
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -180,7 +183,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="import">The directory containing the realm import files or a single import file.</param>
+    /// <param name="importPath">The directory containing the realm import files or a single import file.</param>
     /// <param name="isReadOnly">A flag that indicates if the realm import directory is read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -193,16 +196,16 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use WithRealmImport(string import) instead.")]
+    [Obsolete("Use WithRealmImport(string importPath) instead.")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string import,
+        string importPath,
         bool isReadOnly)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(import);
+        ArgumentException.ThrowIfNullOrEmpty(importPath);
 
-        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+        var importFullPath = Path.GetFullPath(importPath, builder.ApplicationBuilder.AppHostDirectory);
 
         return builder.WithBindMount(importFullPath, KeycloakImportDirectory, isReadOnly);
     }
@@ -211,7 +214,7 @@ public static class KeycloakResourceBuilderExtensions
     /// Adds a realm import to a Keycloak container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="import">The directory containing the realm import files or a single import file.</param>
+    /// <param name="importPath">The directory containing the realm import files or a single import file.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The realm import files are copied to /opt/keycloak/data/import in the container.
@@ -223,14 +226,15 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withRealmImport", Description = "Imports a Keycloak realm configuration")]
     public static IResourceBuilder<KeycloakResource> WithRealmImport(
         this IResourceBuilder<KeycloakResource> builder,
-        string import)
+        string importPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(import);
+        ArgumentException.ThrowIfNullOrEmpty(importPath);
 
-        var importFullPath = Path.GetFullPath(import, builder.ApplicationBuilder.AppHostDirectory);
+        var importFullPath = Path.GetFullPath(importPath, builder.ApplicationBuilder.AppHostDirectory);
 
         return builder.WithContainerFiles(
             KeycloakImportDirectory,
@@ -244,6 +248,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="features">Names of features to enable for the keycloak resource</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEnabledFeatures", Description = "Enables Keycloak features")]
     public static IResourceBuilder<KeycloakResource> WithEnabledFeatures(
         this IResourceBuilder<KeycloakResource> builder,
         params string[] features)
@@ -264,6 +269,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="features">Names of features to disable for the keycloak resource</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDisabledFeatures", Description = "Disables Keycloak features")]
     public static IResourceBuilder<KeycloakResource> WithDisabledFeatures(
         this IResourceBuilder<KeycloakResource> builder,
         params string[] features)
@@ -289,6 +295,7 @@ public static class KeycloakResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The keycloak resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{KeycloakResource}"/>.</returns>
+    [AspireExport("withOtlpExporter", Description = "Configures the OTLP exporter for Keycloak")]
     public static IResourceBuilder<KeycloakResource> WithOtlpExporter(this IResourceBuilder<KeycloakResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -312,6 +319,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <param name="builder">The keycloak resource builder.</param>
     /// <param name="protocol">The protocol to use for the OTLP exporter. If not set, it will try gRPC then Http.</param>
     /// <returns>The <see cref="IResourceBuilder{KeycloakResource}"/>.</returns>
+    [AspireExport("withOtlpExporterWithProtocol", Description = "Configures the OTLP exporter for Keycloak with a specific protocol")]
     public static IResourceBuilder<KeycloakResource> WithOtlpExporter(this IResourceBuilder<KeycloakResource> builder, OtlpProtocol protocol)
     {
         ArgumentNullException.ThrowIfNull(builder);
