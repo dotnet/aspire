@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template.</source>
-        <target state="new">Create a new app from an Aspire starter template.</target>
+        <target state="translated">Utwórz nową aplikację na podstawie szablonu startowego platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the AppHost.</source>
-        <target state="new">The programming language for the AppHost.</target>
+        <target state="translated">Język programowania dla hosta aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
         <source>Resolving template version...</source>
-        <target state="new">Resolving template version...</target>
+        <target state="translated">Trwa rozpoznawanie wersji szablonu...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

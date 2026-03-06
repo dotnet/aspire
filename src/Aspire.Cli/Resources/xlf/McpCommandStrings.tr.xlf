@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
         <source>Install Playwright CLI for browser automation?</source>
-        <target state="needs-review-translation">Playwright MCP sunucusunda ön yapılandırma yapılsın mı?</target>
+        <target state="translated">Tarayıcı otomasyonu için Playwright CLI yüklensin mi?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
