@@ -347,6 +347,15 @@ export interface WithImageOptions {
     tag?: string;
 }
 
+export interface WithQdrantReferenceOptions {
+    connectionName?: string;
+}
+
+export interface WithReferenceOptions {
+    connectionName?: string;
+    optional?: boolean;
+}
+
 export interface WithUrlExpressionOptions {
     displayText?: string;
 }
@@ -1275,6 +1284,25 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ContainerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1651,6 +1679,23 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         );
     }
 
+    /** @internal */
+    private async _withQdrantReferenceInternal(qdrantResource: QdrantServerResource, connectionName?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, qdrantResource };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Qdrant/withQdrantReference',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ContainerResourcePromise {
+        const connectionName = options?.connectionName;
+        return new ContainerResourcePromise(this._withQdrantReferenceInternal(qdrantResource, connectionName));
+    }
+
 }
 
 /**
@@ -1701,6 +1746,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -1806,6 +1856,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withQdrantReference(qdrantResource, options)));
     }
 
 }
@@ -1972,6 +2027,25 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ExecutableResourcePromise(this._withReferenceInternal(source, connectionName, optional));
     }
 
     /** @internal */
@@ -2351,6 +2425,23 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         );
     }
 
+    /** @internal */
+    private async _withQdrantReferenceInternal(qdrantResource: QdrantServerResource, connectionName?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, qdrantResource };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Qdrant/withQdrantReference',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ExecutableResourcePromise {
+        const connectionName = options?.connectionName;
+        return new ExecutableResourcePromise(this._withQdrantReferenceInternal(qdrantResource, connectionName));
+    }
+
 }
 
 /**
@@ -2411,6 +2502,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -2516,6 +2612,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withQdrantReference(qdrantResource, options)));
     }
 
 }
@@ -2939,6 +3040,25 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ProjectResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3330,6 +3450,23 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         );
     }
 
+    /** @internal */
+    private async _withQdrantReferenceInternal(qdrantResource: QdrantServerResource, connectionName?: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, qdrantResource };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Qdrant/withQdrantReference',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ProjectResourcePromise {
+        const connectionName = options?.connectionName;
+        return new ProjectResourcePromise(this._withQdrantReferenceInternal(qdrantResource, connectionName));
+    }
+
 }
 
 /**
@@ -3385,6 +3522,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -3495,6 +3637,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withQdrantReference(qdrantResource, options)));
     }
 
 }
@@ -3922,6 +4069,25 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<QdrantServerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<QdrantServerResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new QdrantServerResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): QdrantServerResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new QdrantServerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
     }
 
     /** @internal */
@@ -4356,6 +4522,23 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
         return new QdrantServerResourcePromise(this._withDataBindMountInternal(source, isReadOnly));
     }
 
+    /** @internal */
+    private async _withQdrantReferenceInternal(qdrantResource: QdrantServerResource, connectionName?: string): Promise<QdrantServerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, qdrantResource };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        const result = await this._client.invokeCapability<QdrantServerResourceHandle>(
+            'Aspire.Hosting.Qdrant/withQdrantReference',
+            rpcArgs
+        );
+        return new QdrantServerResource(result, this._client);
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): QdrantServerResourcePromise {
+        const connectionName = options?.connectionName;
+        return new QdrantServerResourcePromise(this._withQdrantReferenceInternal(qdrantResource, connectionName));
+    }
+
 }
 
 /**
@@ -4451,6 +4634,11 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
     /** Sets command-line arguments via async callback */
     withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): QdrantServerResourcePromise {
+        return new QdrantServerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
     /** Adds a service discovery reference to another resource */
@@ -4571,6 +4759,11 @@ export class QdrantServerResourcePromise implements PromiseLike<QdrantServerReso
     /** Adds a bind mount for the data folder to a Qdrant container resource. */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): QdrantServerResourcePromise {
         return new QdrantServerResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): QdrantServerResourcePromise {
+        return new QdrantServerResourcePromise(this._promise.then(obj => obj.withQdrantReference(qdrantResource, options)));
     }
 
 }
@@ -5333,6 +5526,25 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     }
 
     /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ResourceWithEnvironment> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new ResourceWithEnvironmentPromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
     private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
@@ -5345,6 +5557,23 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._withServiceReferenceInternal(source));
+    }
+
+    /** @internal */
+    private async _withQdrantReferenceInternal(qdrantResource: QdrantServerResource, connectionName?: string): Promise<ResourceWithEnvironment> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, qdrantResource };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
+            'Aspire.Hosting.Qdrant/withQdrantReference',
+            rpcArgs
+        );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ResourceWithEnvironmentPromise {
+        const connectionName = options?.connectionName;
+        return new ResourceWithEnvironmentPromise(this._withQdrantReferenceInternal(qdrantResource, connectionName));
     }
 
 }
@@ -5384,9 +5613,19 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
     }
 
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withServiceReference(source)));
+    }
+
+    /** Adds a reference to a Qdrant resource */
+    withQdrantReference(qdrantResource: QdrantServerResource, options?: WithQdrantReferenceOptions): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withQdrantReference(qdrantResource, options)));
     }
 
 }
