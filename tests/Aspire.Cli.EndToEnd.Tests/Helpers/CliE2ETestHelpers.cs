@@ -472,15 +472,35 @@ internal static class CliE2ETestHelpers
             return DockerInstallMode.PullRequest;
         }
 
-        // Check if a local bundle archive exists (developer has run ./build.sh --bundle).
-        var bundleDir = Path.Combine(repoRoot, "artifacts", "bundle");
-        if (Directory.Exists(bundleDir) &&
-            Directory.GetFiles(bundleDir, "aspire-*-linux-x64.tar.gz").Length > 0)
+        // Check if a locally-built native AOT CLI binary exists (developer has run ./build.sh --bundle).
+        var cliPublishDir = FindLocalCliBinary(repoRoot);
+        if (cliPublishDir is not null)
         {
             return DockerInstallMode.SourceBuild;
         }
 
         return DockerInstallMode.GaRelease;
+    }
+
+    /// <summary>
+    /// Finds the locally-built native AOT CLI publish directory.
+    /// Searches for the aspire binary under artifacts/bin/Aspire.Cli/*/net*/linux-x64/publish/.
+    /// </summary>
+    /// <returns>The publish directory path, or null if not found.</returns>
+    internal static string? FindLocalCliBinary(string repoRoot)
+    {
+        var cliBaseDir = Path.Combine(repoRoot, "artifacts", "bin", "Aspire.Cli");
+        if (!Directory.Exists(cliBaseDir))
+        {
+            return null;
+        }
+
+        // Search for the native AOT binary under any config/TFM combination.
+        var matches = Directory.GetFiles(cliBaseDir, "aspire", SearchOption.AllDirectories)
+            .Where(f => f.Contains("linux-x64") && f.Contains("publish"))
+            .ToArray();
+
+        return matches.Length > 0 ? Path.GetDirectoryName(matches[0]) : null;
     }
 
     /// <summary>
@@ -537,9 +557,17 @@ internal static class CliE2ETestHelpers
                     c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace/{workspace.WorkspaceRoot.Name}");
                 }
 
-                if (installMode != DockerInstallMode.SourceBuild)
+                // Always skip the expensive source build inside Docker.
+                // For SourceBuild mode, the CLI is installed from a mounted local bundle.
+                // For PullRequest/GaRelease, it's installed via scripts after container start.
+                c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
+
+                if (installMode == DockerInstallMode.SourceBuild)
                 {
-                    c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
+                    // Mount the locally-built native AOT CLI binary into the container.
+                    var cliPublishDir = FindLocalCliBinary(repoRoot)
+                        ?? throw new InvalidOperationException("SourceBuild mode detected but CLI binary not found");
+                    c.Volumes.Add($"{cliPublishDir}:/opt/aspire-cli:ro");
                 }
 
                 if (installMode == DockerInstallMode.PullRequest)
@@ -619,10 +647,12 @@ internal static class CliE2ETestHelpers
         switch (installMode)
         {
             case DockerInstallMode.SourceBuild:
-                // CLI was built from source by the Dockerfile and is already on PATH.
-                // Just verify it's accessible.
+                // Copy the mounted native AOT CLI binary to ~/.aspire/bin and add to PATH.
                 return builder
-                    .Type("which aspire")
+                    .Type("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30))
+                    .Type("export PATH=~/.aspire/bin:$PATH")
                     .Enter()
                     .WaitForSuccessPrompt(counter);
 

@@ -53,8 +53,7 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .DeclineAgentInitPrompt()
-            .WaitForSuccessPrompt(counter);
+            .DeclineAgentInitPrompt(counter);
 
         // Set secrets using --apphost
         var waitingForSetSuccess = new CellPatternSearcher()
