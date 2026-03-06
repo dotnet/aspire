@@ -29,6 +29,17 @@ PROJECTS=$(grep -rl "^ *\[${ATTRIBUTE_NAME}(\"[^\"]*\")\]" "$REPO_ROOT/tests" 2>
     done \
     | sort -u || true)
 
+# Also find test projects with <OuterloopTestProject>true</OuterloopTestProject> in csproj
+if [[ "$ATTRIBUTE_NAME" == "OuterLoop" ]]; then
+    OUTERLOOP_PROJECTS=$(grep -rl "<OuterloopTestProject>true</OuterloopTestProject>" "$REPO_ROOT/tests" --include="*.csproj" 2>/dev/null \
+        | while read -r file; do
+            rel_path="${file#$REPO_ROOT/}"
+            echo "$rel_path" | cut -d'/' -f1-2
+        done \
+        | sort -u || true)
+    PROJECTS=$(echo -e "$PROJECTS\n$OUTERLOOP_PROJECTS" | sort -u | sed '/^$/d')
+fi
+
 # Generate the MSBuild props file
 cat > "$OUTPUT_FILE" << 'EOF'
 <Project>

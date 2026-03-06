@@ -121,7 +121,7 @@ dotnet build tests/ProjectName.Tests/ProjectName.Tests.csproj
 dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj -- \
   --filter-method "*.TestMethodName" \
   --filter-not-trait "quarantined=true" \
-  --filter-not-trait "outerloop=true"
+  --filter-not-trait "category=outerloop"
 ```
 
 Expected output should indicate the test is **Skipped** (not Passed or Failed).

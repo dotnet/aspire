@@ -5,7 +5,6 @@ using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
-using Aspire.TestUtilities;
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests;
@@ -14,7 +13,7 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// End-to-end test verifying that the Playwright CLI installation flow works correctly
 /// through <c>aspire agent init</c>, including npm provenance verification and skill file generation.
 /// </summary>
-[OuterloopTest("Requires npm and network access to install @playwright/cli from the npm registry")]
+[OuterLoop("Requires npm and network access to install @playwright/cli from the npm registry")]
 public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
 {
     /// <summary>

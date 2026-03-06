@@ -19,7 +19,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
-    [OuterloopTest("Resource-intensive Playwright browser test")]
+    [OuterLoop("Resource-intensive Playwright browser test")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange

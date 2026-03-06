@@ -150,13 +150,13 @@ kill <pid>
 
 (1) Build from the root with `./build.sh` (~3-5 minutes).
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To run tests for a specific project: `dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"`
+(3) To run tests for a specific project: `dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true" --filter-not-trait "category=outerloop"`
 
 Note that tests for a project can be executed without first building from the root.
 
 (4) To run specific tests, include the filter after `--`:
 ```bash
-dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "*.TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "*.TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true" --filter-not-trait "category=outerloop"
 ```
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
@@ -182,10 +182,10 @@ When running tests in automated environments (including Copilot agent), **always
 
 ```bash
 # Correct - excludes quarantined and outerloop tests (use this in automation)
-dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true" --filter-not-trait "category=outerloop"
 
 # For specific test filters, combine with quarantine and outerloop exclusion
-dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true" --filter-not-trait "category=outerloop"
 ```
 
 Never run all tests without the quarantine and outerloop filters in automated environments, as this will include flaky tests that are known to fail intermittently and long-running tests that slow down CI.
@@ -317,12 +317,12 @@ dotnet run --project tools/QuarantineTools -- -u -m activeissue Full.Namespace.T
 
 ## Outerloop tests
 
-- Tests that are long-running, resource-intensive, or require special infrastructure are marked with the `OuterloopTest` attribute.
+- Tests that are long-running, resource-intensive, or require special infrastructure are marked with the `OuterLoop` attribute.
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
     - Instead they are run in the `Outerloop` workflow (`tests-outerloop.yml`).
 - An optional reason can be provided with the attribute
 
-Example: `[OuterloopTest("Long running integration test")]`
+Example: `[OuterLoop("Long running integration test")]`
 
 ## Snapshot Testing with Verify
 

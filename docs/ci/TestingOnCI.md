@@ -149,7 +149,7 @@ In `.github/workflows/tests.yml`, the workflow:
 
 Each job invokes `.github/workflows/run-tests.yml` with matrix parameters including `extraTestArgs` for filtering (e.g., `--filter-trait "Partition=X"`).
 
-> **Note:** The workflow automatically prepends `--filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"` before any `extraTestArgs`, ensuring quarantined and outerloop tests are always excluded from the main test run.
+> **Note:** The workflow automatically prepends `--filter-not-trait "quarantined=true" --filter-not-trait "category=outerloop"` before any `extraTestArgs`, ensuring quarantined and outerloop tests are always excluded from the main test run.
 
 #### GitHub Actions 256-Job Limit
 

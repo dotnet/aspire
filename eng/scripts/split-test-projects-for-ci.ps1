@@ -131,7 +131,7 @@ if ($mode -eq 'class') {
   Write-Host "No partitions found. Running --list-tests to extract class names..."
 
   # Run the test assembly with --list-tests to get all test names
-  $testOutput = & $RunCommand --filter-not-trait category=failing --list-tests --filter-not-trait outerloop=true --filter-not-trait quarantined=true 2>&1
+  $testOutput = & $RunCommand --filter-not-trait category=failing --list-tests --filter-not-trait category=outerloop --filter-not-trait quarantined=true 2>&1
 
   if ($LASTEXITCODE -ne 0) {
     Write-Error "Test listing command failed with exit code $LASTEXITCODE"

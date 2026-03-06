@@ -7,18 +7,18 @@ Outerloop tests are tests that are excluded from regular CI runs but run in a se
 - Resource-intensive
 - Need specific conditions to run like Playwright
 
-They are marked with the `[OuterloopTest]` attribute and are excluded from regular CI runs but run in the outerloop CI workflow.
+They are marked with the `[OuterLoop]` attribute (from `Microsoft.DotNet.XUnitExtensions`) and are excluded from regular CI runs but run in the outerloop CI workflow.
 
 ## How Outerloop Tests Work
 
-The `OuterloopTestAttribute` applies the xUnit trait `outerloop=true` to tests. This trait can then be used with test filters to include or exclude these tests.
+The `OuterLoopAttribute` applies the xUnit trait `category=outerloop` to tests. This trait can then be used with test filters to include or exclude these tests.
 
 ## Running Tests Without Outerloop Tests
 
 To run tests excluding outerloop tests (this is what regular CI does):
 
 ```bash
-dotnet test --filter-not-trait "outerloop=true"
+dotnet test --filter-not-trait "category=outerloop"
 ```
 
 ## Running Only Outerloop Tests
@@ -26,14 +26,14 @@ dotnet test --filter-not-trait "outerloop=true"
 To run only outerloop tests (useful for debugging):
 
 ```bash
-dotnet test --filter-trait "outerloop=true"
+dotnet test --filter-trait "category=outerloop"
 ```
 
 ## Example
 
 ```csharp
 [Fact]
-[OuterloopTest("Long running integration test")]
+[OuterLoop("Long running integration test")]
 public async Task LongRunningIntegrationTest()
 {
     // Long running test implementation
@@ -42,7 +42,7 @@ public async Task LongRunningIntegrationTest()
 
 ## CI Integration
 
-- **Regular CI**: Uses `--filter-not-trait "outerloop=true"` to exclude outerloop tests
+- **Regular CI**: Uses `--filter-not-trait "category=outerloop"` to exclude outerloop tests
 - **Outerloop CI on Schedule/Push**: Runs all outerloop tests separately on a schedule (daily at 02:00 UTC)
 - **Outerloop CI on Pull Requests**: Runs only the first outerloop test project across all OSes (Windows, Linux, macOS) as a sanity check when PRs modify workflow/infrastructure files
 - **Results**: Outerloop test failures are tracked separately from regular CI
@@ -53,7 +53,7 @@ When running tests in automated environments like Copilot agent, exclude outerlo
 
 ```bash
 # Good - excludes outerloop tests
-dotnet test --filter-not-trait "outerloop=true"
+dotnet test --filter-not-trait "category=outerloop"
 
 # Bad - runs all tests including long-running outerloop ones
 dotnet test
