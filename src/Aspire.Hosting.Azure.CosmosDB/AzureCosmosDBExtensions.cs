@@ -10,7 +10,6 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CosmosDB;
-using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
@@ -213,7 +212,7 @@ public static class AzureCosmosExtensions
 
             if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
-                return new CosmosClient(uri.OriginalString, new DefaultAzureCredential(), clientOptions);
+                return new CosmosClient(uri.OriginalString, AzureCredentialHelper.CreateDefaultAzureCredential(), clientOptions);
             }
             else
             {

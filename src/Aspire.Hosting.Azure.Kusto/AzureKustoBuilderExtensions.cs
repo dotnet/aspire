@@ -6,7 +6,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
 using Kusto.Data;
@@ -305,7 +304,7 @@ public static class AzureKustoBuilderExtensions
         {
             // When running against Azure, we use the DefaultAzureCredential to authenticate
             // with the Kusto server.
-            builder = builder.WithAadAzureTokenCredentialsAuthentication(new DefaultAzureCredential());
+            builder = builder.WithAadAzureTokenCredentialsAuthentication(AzureCredentialHelper.CreateDefaultAzureCredential());
         }
 
         return builder;
