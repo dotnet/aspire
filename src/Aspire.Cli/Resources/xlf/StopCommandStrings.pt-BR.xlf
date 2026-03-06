@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running AppHosts.</source>
-        <target state="new">Stop all running AppHosts.</target>
+        <target state="translated">Pare todos os AppHosts em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Vários AppHosts estão em execução. Use {0} para especificar qual deles será interrompido ou use {1} para interromper todos eles.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">Vários AppHosts estão em execução. Use --apphost para especificar qual deve ser interrompido ou selecione um:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stop</source>
-        <target state="new">stop</target>
+        <target state="translated">pare</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="AllAndResourceMutuallyExclusive">
         <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="new">The {0} option cannot be used with a resource argument.</target>
+        <target state="translated">A opção {0} não pode ser usada com um argumento de recurso.</target>
         <note />
       </trans-unit>
     </body>
