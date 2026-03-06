@@ -175,6 +175,25 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var solutionFile = initContext.SelectedSolutionFile!;
 
+        // Verify that the solution directory does not contain project files.
+        // If the solution and a project file are in the same directory, the AppHost
+        // and ServiceDefaults directories would be created inside that project which
+        // is not supported.
+        var solutionDirectory = solutionFile.Directory!;
+        var projectFileInSolutionDir = solutionDirectory.EnumerateFiles()
+            .FirstOrDefault(f => DotNetAppHostProject.ProjectExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
+
+        if (projectFileInSolutionDir is not null)
+        {
+            InteractionService.DisplayError(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    InitCommandStrings.SolutionAndProjectInSameDirectory,
+                    solutionFile.Name,
+                    projectFileInSolutionDir.Name));
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
+
         initContext.GetSolutionProjectsOutputCollector = new OutputCollector();
         var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Reading solution...", async () =>
         {
