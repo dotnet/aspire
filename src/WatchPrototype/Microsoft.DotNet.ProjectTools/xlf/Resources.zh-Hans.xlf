@@ -21,6 +21,21 @@ Make the profile names distinct.</source>
 将配置文件名称设为可区分的名称。</target>
         <note />
       </trans-unit>
+      <trans-unit id="EmptyTempPath">
+        <source>Unable to determine a temporary directory path. Consider configuring the TEMP environment variable on Windows or local app data folder on Unix.</source>
+        <target state="translated">无法确定临时目录路径。请考虑在 Windows 上配置 TEMP 环境变量，或在 Unix 上配置本地应用数据文件夹。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExperimentalFeatureDisabled">
+        <source>This is an experimental feature, set MSBuild property '{0}' to 'true' to enable it.</source>
+        <target state="translated">这是一项实验性功能，将 MSBuild 属性 '{0}' 设置为 'true' 以启用它。</target>
+        <note>{Locked="MSBuild"}{Locked="true"}. {0} is MSBuild property name.</note>
+      </trans-unit>
+      <trans-unit id="IncludedFileNotFound">
+        <source>File included via #:include directive (or Compile item) not found: {0}</source>
+        <target state="translated">找不到通过 #:include 指令(或 Compile 项)包含的文件: {0}</target>
+        <note>{Locked="#:include"}{Locked="Compile"}. {0} is file path.</note>
+      </trans-unit>
       <trans-unit id="LaunchProfileDoesNotExist">
         <source>A launch profile with the name '{0}' doesn't exist.</source>
         <target state="translated">名为“{0}”的启动配置文件不存在。</target>

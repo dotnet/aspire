@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DotNet.ProjectTools;
 
-public sealed class ProjectLaunchProfile : LaunchProfile
+internal sealed class ProjectLaunchProfile : LaunchProfile
 {
     [JsonPropertyName("launchBrowser")]
     public bool LaunchBrowser { get; init; }

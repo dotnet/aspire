@@ -4,15 +4,11 @@
 #nullable enable
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.IO.Pipes;
 using System.Linq;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,13 +16,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.HotReload
 {
-    internal sealed class DefaultHotReloadClient(ILogger logger, ILogger agentLogger, string startupHookPath, bool enableStaticAssetUpdates)
+    internal sealed class DefaultHotReloadClient(ILogger logger, ILogger agentLogger, string startupHookPath, bool handlesStaticAssetUpdates, ClientTransport transport)
         : HotReloadClient(logger, agentLogger)
     {
-        private readonly string _namedPipeName = Guid.NewGuid().ToString("N");
-
         private Task<ImmutableArray<string>>? _capabilitiesTask;
-        private NamedPipeServerStream? _pipe;
         private bool _managedCodeUpdateFailedOrCancelled;
 
         // The status of the last update response.
@@ -34,34 +27,16 @@ namespace Microsoft.DotNet.HotReload
 
         public override void Dispose()
         {
-            DisposePipe();
+            transport.Dispose();
         }
 
-        private void DisposePipe()
-        {
-            if (_pipe != null)
-            {
-                Logger.LogDebug("Disposing agent communication pipe");
-
-                // Dispose the pipe but do not set it to null, so that any in-progress 
-                // operations throw the appropriate exception type.
-                _pipe.Dispose();
-            }
-        }
-
-        // for testing
-        internal string NamedPipeName
-            => _namedPipeName;
+        /// <summary>
+        /// The transport used for communication with the agent, for testing.
+        /// </summary>
+        internal ClientTransport Transport => transport;
 
         public override void InitiateConnection(CancellationToken cancellationToken)
         {
-#if NET
-            var options = PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly;
-#else
-            var options = PipeOptions.Asynchronous;
-#endif
-            _pipe = new NamedPipeServerStream(_namedPipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, options);
-
             // It is important to establish the connection (WaitForConnectionAsync) before we return,
             // otherwise the client wouldn't be able to connect.
             // However, we don't want to wait for the task to complete, so that we can start the client process.
@@ -71,13 +46,28 @@ namespace Microsoft.DotNet.HotReload
             {
                 try
                 {
-                    Logger.LogDebug("Waiting for application to connect to pipe {NamedPipeName}.", _namedPipeName);
+                    await transport.WaitForConnectionAsync(cancellationToken);
 
-                    await _pipe.WaitForConnectionAsync(cancellationToken);
+                    // Read the initialization response (capabilities) from the agent.
+                    var initResponse = await transport.ReadAsync(cancellationToken);
+                    if (initResponse == null)
+                    {
+                        return [];
+                    }
 
-                    // When the client connects, the first payload it sends is the initialization payload which includes the apply capabilities.
+                    using var r = initResponse.Value;
+                    if (r.Type != ResponseType.InitializationResponse)
+                    {
+                        Logger.LogError("Expected initialization response, got: {ResponseType}", r.Type);
+                        return [];
+                    }
 
-                    var capabilities = (await ClientInitializationResponse.ReadAsync(_pipe, cancellationToken)).Capabilities;
+                    var capabilities = (await ClientInitializationResponse.ReadAsync(r.Data, cancellationToken)).Capabilities;
+
+                    if (string.IsNullOrEmpty(capabilities))
+                    {
+                        return [];
+                    }
 
                     var result = AddImplicitCapabilities(capabilities.Split(' '));
 
@@ -90,57 +80,57 @@ namespace Microsoft.DotNet.HotReload
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
-                    ReportPipeReadException(e, "capabilities", cancellationToken);
+                    // Don't report a warning when cancelled. The process has terminated or the host is shutting down in that case.
+                    // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        Logger.LogError("Failed to read capabilities: {Message}", e.Message);
+                    }
+
                     return [];
                 }
             }
         }
 
-        private void ReportPipeReadException(Exception e, string responseType, CancellationToken cancellationToken)
-        {
-            // Don't report a warning when cancelled or the pipe has been disposed. The process has terminated or the host is shutting down in that case.
-            // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
-            // On Unix named pipes can also throw SocketException with ErrorCode 125 (Operation canceled) when disposed.
-            if (e is ObjectDisposedException or EndOfStreamException or SocketException { ErrorCode: 125 } || cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            Logger.LogError("Failed to read {ResponseType} from the pipe: {Exception}", responseType, e.ToString());
-        }
-
         private async Task ListenForResponsesAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(_pipe != null);
-
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var type = (ResponseType)await _pipe.ReadByteAsync(cancellationToken);
+                    var response = await transport.ReadAsync(cancellationToken);
+                    if (response == null)
+                    {
+                        return;
+                    }
 
-                    switch (type)
+                    using var r = response.Value;
+
+                    switch (r.Type)
                     {
                         case ResponseType.UpdateResponse:
                             // update request can't be issued again until the status is read and a new source is created:
-                            _updateStatusSource.SetResult(await ReadUpdateResponseAsync(cancellationToken));
+                            _updateStatusSource.SetResult(await ReadUpdateResponseAsync(r, cancellationToken));
                             break;
 
                         case ResponseType.HotReloadExceptionNotification:
-                            var notification = await HotReloadExceptionCreatedNotification.ReadAsync(_pipe, cancellationToken);
+                            var notification = await HotReloadExceptionCreatedNotification.ReadAsync(r.Data, cancellationToken);
                             RuntimeRudeEditDetected(notification.Code, notification.Message);
                             break;
 
                         default:
-                            // can't continue, the pipe is in undefined state:
-                            Logger.LogError("Unexpected response received from the agent: {ResponseType}", type);
+                            // can't continue, the stream is in undefined state:
+                            Logger.LogError("Unexpected response received from the agent: {ResponseType}", r.Type);
                             return;
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
-                ReportPipeReadException(e, "response", cancellationToken);
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Logger.LogError("Failed to read response: {Exception}", e.ToString());
+                }
             }
         }
 
@@ -148,14 +138,11 @@ namespace Microsoft.DotNet.HotReload
         private Task<ImmutableArray<string>> GetCapabilitiesTask()
             => _capabilitiesTask ?? throw new InvalidOperationException();
 
-        [MemberNotNull(nameof(_pipe))]
         [MemberNotNull(nameof(_capabilitiesTask))]
         private void RequireReadyForUpdates()
         {
             // should only be called after connection has been created:
             _ = GetCapabilitiesTask();
-
-            Debug.Assert(_pipe != null);
         }
 
         public override void ConfigureLaunchEnvironment(IDictionary<string, string> environmentBuilder)
@@ -165,7 +152,7 @@ namespace Microsoft.DotNet.HotReload
             // HotReload startup hook should be loaded before any other startup hooks:
             environmentBuilder.InsertListItem(AgentEnvironmentVariables.DotNetStartupHooks, startupHookPath, Path.PathSeparator);
 
-            environmentBuilder[AgentEnvironmentVariables.DotNetWatchHotReloadNamedPipeName] = _namedPipeName;
+            transport.ConfigureEnvironment(environmentBuilder);
         }
 
         public override Task WaitForConnectionEstablishedAsync(CancellationToken cancellationToken)
@@ -210,7 +197,7 @@ namespace Microsoft.DotNet.HotReload
 
                 Logger.LogWarning("Further changes won't be applied to this process.");
                 _managedCodeUpdateFailedOrCancelled = true;
-                DisposePipe();
+                transport.Dispose();
 
                 return false;
             }
@@ -225,7 +212,7 @@ namespace Microsoft.DotNet.HotReload
 
         public override async Task<Task<bool>> ApplyStaticAssetUpdatesAsync(ImmutableArray<HotReloadStaticAssetUpdate> updates, CancellationToken processExitedCancellationToken, CancellationToken cancellationToken)
         {
-            if (!enableStaticAssetUpdates)
+            if (!handlesStaticAssetUpdates)
             {
                 // The client has no concept of static assets.
                 return Task.FromResult(true);
@@ -261,15 +248,10 @@ namespace Microsoft.DotNet.HotReload
         private Task<bool> QueueUpdateBatchRequest<TRequest>(TRequest request, CancellationToken applyOperationCancellationToken)
             where TRequest : IUpdateRequest
         {
-            // Not initialized:
-            Debug.Assert(_pipe != null);
-
             return QueueUpdateBatch(
                 sendAndReceive: async batchId =>
                 {
-                    await _pipe.WriteAsync((byte)request.Type, applyOperationCancellationToken);
-                    await request.WriteAsync(_pipe, applyOperationCancellationToken);
-                    await _pipe.FlushAsync(applyOperationCancellationToken);
+                    await transport.WriteAsync((byte)request.Type, request.WriteAsync, applyOperationCancellationToken);
 
                     var success = await ReceiveUpdateResponseAsync(applyOperationCancellationToken);
                     Logger.Log(success ? LogEvents.UpdateBatchCompleted : LogEvents.UpdateBatchFailed, batchId);
@@ -285,12 +267,9 @@ namespace Microsoft.DotNet.HotReload
             return result;
         }
 
-        private async ValueTask<bool> ReadUpdateResponseAsync(CancellationToken cancellationToken)
+        private async ValueTask<bool> ReadUpdateResponseAsync(ClientTransportResponse r, CancellationToken cancellationToken)
         {
-            // Should be initialized:
-            Debug.Assert(_pipe != null);
-
-            var (success, log) = await UpdateResponse.ReadAsync(_pipe, cancellationToken);
+            var (success, log) = await UpdateResponse.ReadAsync(r.Data, cancellationToken);
 
             await foreach (var (message, severity) in log)
             {
@@ -311,12 +290,11 @@ namespace Microsoft.DotNet.HotReload
 
             try
             {
-                await _pipe.WriteAsync((byte)RequestType.InitialUpdatesCompleted, cancellationToken);
-                await _pipe.FlushAsync(cancellationToken);
+                await transport.WriteAsync((byte)RequestType.InitialUpdatesCompleted, writePayload: null, cancellationToken);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                // Pipe might throw another exception when forcibly closed on process termination.
+                // Transport might throw another exception when forcibly closed on process termination.
                 // Don't report an error when cancelled. The process has terminated or the host is shutting down in that case.
                 // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
                 if (!cancellationToken.IsCancellationRequested)

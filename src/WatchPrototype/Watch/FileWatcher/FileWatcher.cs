@@ -21,6 +21,7 @@ namespace Microsoft.DotNet.Watch
         public event Action<ChangedPath>? OnFileChange;
 
         public bool SuppressEvents { get; set; }
+        public DateTime StartTime { get; set; }
 
         public void Dispose()
         {
@@ -205,20 +206,22 @@ namespace Microsoft.DotNet.Watch
             return change;
         }
 
-        public static async ValueTask WaitForFileChangeAsync(string filePath, ILogger logger, EnvironmentOptions environmentOptions, Action? startedWatching, CancellationToken cancellationToken)
+        public static async ValueTask WaitForFileChangeAsync(IEnumerable<string> filePaths, ILogger logger, EnvironmentOptions environmentOptions, Action? startedWatching, CancellationToken cancellationToken)
         {
             using var watcher = new FileWatcher(logger, environmentOptions);
 
-            watcher.WatchContainingDirectories([filePath], includeSubdirectories: false);
+            watcher.WatchContainingDirectories(filePaths, includeSubdirectories: false);
+
+            var pathSet = filePaths.ToHashSet();
 
             var fileChange = await watcher.WaitForFileChangeAsync(
-                acceptChange: change => change.Path == filePath,
+                acceptChange: change => pathSet.Contains(change.Path),
                 startedWatching,
                 cancellationToken);
 
             if (fileChange != null)
             {
-                logger.LogInformation("File changed: {FilePath}", filePath);
+                logger.LogInformation("File changed: {FilePath}", fileChange.Value.Path);
             }
         }
     }

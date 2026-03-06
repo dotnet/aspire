@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DotNet.ProjectTools;
 
-public abstract class LaunchProfile
+internal abstract class LaunchProfile
 {
     [JsonIgnore]
     public string? LaunchProfileName { get; init; }

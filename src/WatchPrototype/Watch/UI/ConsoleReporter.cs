@@ -9,10 +9,8 @@ namespace Microsoft.DotNet.Watch
     /// This API supports infrastructure and is not intended to be used
     /// directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    internal sealed class ConsoleReporter(IConsole console, bool suppressEmojis) : IReporter, IProcessOutputReporter
+    internal sealed class ConsoleReporter(IConsole console, string logMessagePrefix, bool suppressEmojis) : IReporter, IProcessOutputReporter
     {
-        public bool SuppressEmojis { get; } = suppressEmojis;
-
         private readonly Lock _writeLock = new();
 
         bool IProcessOutputReporter.PrefixProcessOutput
@@ -31,7 +29,7 @@ namespace Microsoft.DotNet.Watch
             lock (_writeLock)
             {
                 console.ForegroundColor = ConsoleColor.DarkGray;
-                writer.Write((SuppressEmojis ? Emoji.Default : emoji).GetLogMessagePrefix());
+                writer.Write((suppressEmojis ? Emoji.Default : emoji).GetLogMessagePrefix(logMessagePrefix));
                 console.ResetColor();
 
                 if (color.HasValue)

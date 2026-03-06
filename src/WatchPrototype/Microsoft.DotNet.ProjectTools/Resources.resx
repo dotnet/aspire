@@ -155,4 +155,15 @@ Make the profile names distinct.</value>
   <data name="DefaultLaunchProfileDisplayName" xml:space="preserve">
     <value>(Default)</value>
   </data>
+  <data name="EmptyTempPath" xml:space="preserve">
+    <value>Unable to determine a temporary directory path. Consider configuring the TEMP environment variable on Windows or local app data folder on Unix.</value>
+  </data>
+  <data name="IncludedFileNotFound" xml:space="preserve">
+    <value>File included via #:include directive (or Compile item) not found: {0}</value>
+    <comment>{Locked="#:include"}{Locked="Compile"}. {0} is file path.</comment>
+  </data>
+  <data name="ExperimentalFeatureDisabled" xml:space="preserve">
+    <value>This is an experimental feature, set MSBuild property '{0}' to 'true' to enable it.</value>
+    <comment>{Locked="MSBuild"}{Locked="true"}. {0} is MSBuild property name.</comment>
+  </data>
 </root>

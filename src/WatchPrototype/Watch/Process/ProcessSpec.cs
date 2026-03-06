@@ -5,11 +5,10 @@ namespace Microsoft.DotNet.Watch
 {
     internal sealed class ProcessSpec
     {
-        public string? Executable { get; set; }
+        public required string Executable { get; init; }
         public string? WorkingDirectory { get; set; }
         public Dictionary<string, string> EnvironmentVariables { get; } = [];
-        public IReadOnlyList<string>? Arguments { get; set; }
-        public string? EscapedArguments { get; set; }
+        public IReadOnlyList<string> Arguments { get; set; } = [];
         public Action<OutputLine>? OnOutput { get; set; }
         public ProcessExitAction? OnExit { get; set; }
         public CancellationToken CancelOutputCapture { get; set; }
@@ -24,6 +23,6 @@ namespace Microsoft.DotNet.Watch
             => Path.GetFileNameWithoutExtension(Executable);
 
         public string GetArgumentsDisplay()
-            => EscapedArguments ?? CommandLineUtilities.JoinArguments(Arguments ?? []);
+            => CommandLineUtilities.JoinArguments(Arguments ?? []);
     }
 }

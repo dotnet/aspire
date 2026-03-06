@@ -90,6 +90,11 @@ internal sealed class StaticWebAssetsManifest(ImmutableDictionary<string, string
         {
             stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         }
+        catch (FileNotFoundException)
+        {
+            logger.LogDebug("File '{FilePath}' does not exist.", path);
+            return null;
+        }
         catch (Exception e)
         {
             logger.LogError("Failed to read '{FilePath}': {Message}", path, e.Message);

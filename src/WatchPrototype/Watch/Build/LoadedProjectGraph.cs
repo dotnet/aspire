@@ -1,20 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Graph;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch
 {
-    internal readonly struct ProjectNodeMap(ProjectGraph graph, ILogger logger)
+    internal sealed class LoadedProjectGraph(ProjectGraph graph, ProjectCollection collection, ILogger logger)
     {
-        public readonly ProjectGraph Graph = graph;
-
         // full path of proj file to list of nodes representing all target frameworks of the project:
         public readonly IReadOnlyDictionary<string, IReadOnlyList<ProjectGraphNode>> Map = 
             graph.ProjectNodes.GroupBy(n => n.ProjectInstance.FullPath).ToDictionary(
                 keySelector: static g => g.Key,
                 elementSelector: static g => (IReadOnlyList<ProjectGraphNode>)[.. g]);
+
+        public ProjectGraph Graph => graph;
+        public ILogger Logger => logger;
+        public ProjectCollection ProjectCollection => collection;
 
         public IReadOnlyList<ProjectGraphNode> GetProjectNodes(string projectPath)
         {

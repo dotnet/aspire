@@ -94,7 +94,7 @@ internal readonly struct FilePathExclusions(
         {
             if (glob.IsMatch(fullPath))
             {
-                logger.Log(MessageDescriptor.IgnoringChangeInExcludedFile, fullPath, changeKind, "DefaultItemExcludes", globValue, projectDir);
+                logger.Log(MessageDescriptor.IgnoringChangeInExcludedFile, (fullPath, changeKind, "DefaultItemExcludes", globValue, projectDir));
                 return true;
             }
         }
