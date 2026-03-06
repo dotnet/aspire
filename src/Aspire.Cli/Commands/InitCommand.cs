@@ -266,8 +266,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 initContext.ExecutableProjects,
                 project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
                 optional: true,
-                cancellationToken);
-
+                cancellationToken: cancellationToken);
             initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
 
             // If projects were selected, prompt for which should have ServiceDefaults added
@@ -320,7 +319,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                             initContext.ExecutableProjectsToAddToAppHost,
                             project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
                             optional: true,
-                            cancellationToken);
+                            cancellationToken: cancellationToken);
                         break;
                     case "none":
                         initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<ExecutableProjectInfo>();

@@ -186,6 +186,8 @@ internal static class CliTestHelper
         services.AddTransient<McpCommand>();
         services.AddTransient<McpStartCommand>();
         services.AddTransient<McpInitCommand>();
+        services.AddTransient<McpToolsCommand>();
+        services.AddTransient<McpCallCommand>();
         services.AddTransient<AgentCommand>();
         services.AddTransient<AgentMcpCommand>();
         services.AddTransient<AgentInitCommand>();

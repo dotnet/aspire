@@ -150,43 +150,107 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
             return ExitCodeConstants.Success;
         }
 
-        // Group applicators by prompt group and sort by priority
-        var groupedApplicators = applicators
-            .GroupBy(a => a.PromptGroup)
-            .OrderBy(g => g.Key.Priority)
-            .ToList();
+        // Apply deprecated config migrations silently (these are fixes, not choices)
+        var configUpdates = applicators.Where(a => a.PromptGroup == McpInitPromptGroup.ConfigUpdates).ToList();
+        var userChoices = applicators.Where(a => a.PromptGroup != McpInitPromptGroup.ConfigUpdates).ToList();
 
-        var selectedApplicators = new List<AgentEnvironmentApplicator>();
-
-        // Present each group of prompts in priority order
-        foreach (var group in groupedApplicators)
+        foreach (var update in configUpdates)
         {
-            // Get the prompt text for this group
-            var promptText = group.Key.Name switch
+            try
             {
-                "ConfigUpdates" => AgentCommandStrings.ConfigUpdatesSelectPrompt,
-                "AgentEnvironments" => McpCommandStrings.InitCommand_AgentConfigurationSelectPrompt,
-                "AdditionalOptions" => McpCommandStrings.InitCommand_AdditionalOptionsSelectPrompt,
-                _ => $"Select {group.Key.Name}:"
-            };
-
-            // Sort applicators within the group by priority
-            var sortedApplicators = group.OrderBy(a => a.Priority).ToArray();
-
-            // Prompt user for selection from this group
-            var selected = await _interactionService.PromptForSelectionsAsync(
-                promptText,
-                sortedApplicators,
-                applicator => applicator.Description,
-                optional: true,
-                cancellationToken);
-
-            selectedApplicators.AddRange(selected);
+                await update.ApplyAsync(cancellationToken);
+                _interactionService.DisplayMessage(KnownEmojis.Wrench, update.Description);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _interactionService.DisplayError(ex.Message);
+            }
         }
 
-        // Apply all selected applicators
+        if (userChoices.Count == 0)
+        {
+            _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
+            return ExitCodeConstants.Success;
+        }
+
+        // Categorize by prompt group (not string matching)
+        var skillApplicators = userChoices
+            .Where(a => a.PromptGroup == McpInitPromptGroup.SkillFiles)
+            .ToList();
+        var mcpApplicators = userChoices
+            .Where(a => a.PromptGroup == McpInitPromptGroup.AgentEnvironments)
+            .ToList();
+        var toolApplicators = userChoices
+            .Where(a => a.PromptGroup == McpInitPromptGroup.Tools)
+            .ToList();
+        var otherApplicators = userChoices
+            .Except(skillApplicators)
+            .Except(mcpApplicators)
+            .Except(toolApplicators)
+            .ToList();
+
+        // Build a flat list: collapsed skill (pre-selected), then others (Playwright CLI, etc.)
+        var promptChoices = new List<AgentEnvironmentApplicator>();
+
+        // Collapse all skill applicators into a single line (pre-selected)
+        AgentEnvironmentApplicator? combinedSkillApplicator = null;
+        if (skillApplicators.Count > 0)
+        {
+            combinedSkillApplicator = new AgentEnvironmentApplicator(
+                AgentCommandStrings.InitCommand_InstallSkillFile,
+                async ct =>
+                {
+                    foreach (var skill in skillApplicators)
+                    {
+                        await skill.ApplyAsync(ct);
+                        _interactionService.DisplayMessage(KnownEmojis.CheckMark, skill.Description);
+                    }
+                },
+                promptGroup: McpInitPromptGroup.AdditionalOptions);
+            promptChoices.Add(combinedSkillApplicator);
+        }
+
+        promptChoices.AddRange(toolApplicators);
+        promptChoices.AddRange(otherApplicators);
+
+        // Add collapsed MCP as last option for compatibility
+        if (mcpApplicators.Count > 0)
+        {
+            var combinedMcpApplicator = new AgentEnvironmentApplicator(
+                AgentCommandStrings.InitCommand_ConfigureMcpServer,
+                async ct =>
+                {
+                    foreach (var mcp in mcpApplicators)
+                    {
+                        await mcp.ApplyAsync(ct);
+                        _interactionService.DisplayMessage(KnownEmojis.CheckMark, mcp.Description);
+                    }
+                },
+                promptGroup: McpInitPromptGroup.AdditionalOptions);
+            promptChoices.Add(combinedMcpApplicator);
+        }
+
+        // Pre-select the skill applicator
+        var preSelected = combinedSkillApplicator is not null ? [combinedSkillApplicator] : Array.Empty<AgentEnvironmentApplicator>();
+
+        // Present a single flat prompt with skill pre-selected
+        var selected = await _interactionService.PromptForSelectionsAsync(
+            AgentCommandStrings.InitCommand_WhatToConfigure,
+            promptChoices,
+            applicator => applicator.Description,
+            preSelected: preSelected,
+            optional: true,
+            cancellationToken);
+
+        if (selected.Count == 0)
+        {
+            _interactionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_NothingSelected);
+            return ExitCodeConstants.Success;
+        }
+
+        // Apply selected applicators
         var hasErrors = false;
-        foreach (var applicator in selectedApplicators)
+        foreach (var applicator in selected)
         {
             try
             {

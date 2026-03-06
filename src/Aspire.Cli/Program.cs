@@ -389,6 +389,8 @@ public class Program
         builder.Services.AddTransient<McpCommand>();
         builder.Services.AddTransient<McpStartCommand>();
         builder.Services.AddTransient<McpInitCommand>();
+        builder.Services.AddTransient<McpToolsCommand>();
+        builder.Services.AddTransient<McpCallCommand>();
         builder.Services.AddTransient<AgentCommand>();
         builder.Services.AddTransient<AgentMcpCommand>();
         builder.Services.AddTransient<AgentInitCommand>();
