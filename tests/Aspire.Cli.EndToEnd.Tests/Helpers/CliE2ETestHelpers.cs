@@ -662,6 +662,13 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // Set permissive umask so files created by the container (as root) are
+        // writable by the host-side test process via the volume mount.
+        builder
+            .Type("umask 000")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         if (workspace is not null)
         {
             builder

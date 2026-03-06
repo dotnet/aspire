@@ -27,7 +27,7 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         // Pattern to detect partial trust warning in aspire doctor output
         var partiallyTrustedPattern = new CellPatternSearcher()
-            .Find("partially trusted");
+            .Find("is not trusted");
 
         // Pattern to detect doctor command completion (shows environment check results)
         var doctorCompletePattern = new CellPatternSearcher()
