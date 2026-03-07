@@ -54,8 +54,8 @@ type Handle struct {
 }
 
 // ToJSON returns the handle as a JSON-serializable map.
-func (h *Handle) ToJSON() map[string]any {
-	return map[string]any{
+func (h *Handle) ToJSON() map[string]string {
+	return map[string]string{
 		"$handle": h.HandleID,
 		"$type":   h.TypeID,
 	}
