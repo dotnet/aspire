@@ -277,6 +277,11 @@
         <target state="translated">Araçlar</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIUnexpectedOrTruncatedContent">
+        <source>Unexpected or truncated content.</source>
+        <target state="new">Unexpected or truncated content.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">Site genelinde gezinti</target>

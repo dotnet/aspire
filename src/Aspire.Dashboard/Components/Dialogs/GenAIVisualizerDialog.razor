@@ -459,7 +459,14 @@
                         {
                             foreach (var itemPart in itemParts)
                             {
-                                <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                                if (itemPart.ErrorMessage is not null)
+                                {
+                                    <div style="color: var(--error);">@itemPart.ErrorMessage</div>
+                                }
+                                else
+                                {
+                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                                }
                             }
                         }
                         else
