@@ -225,6 +225,11 @@ internal static class AtsConstants
     /// </summary>
     public const string ReferenceExpressionTypeId = "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression";
 
+    /// <summary>
+    /// Type ID for ConditionalReferenceExpression.
+    /// </summary>
+    public const string ConditionalReferenceExpressionTypeId = "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConditionalReferenceExpression";
+
     #endregion
 
     #region Well-known Capability IDs

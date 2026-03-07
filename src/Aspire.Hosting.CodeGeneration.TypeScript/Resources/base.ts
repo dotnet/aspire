@@ -178,6 +178,97 @@ export function refExpr(strings: TemplateStringsArray, ...values: unknown[]): Re
 }
 
 // ============================================================================
+// Conditional Reference Expression
+// ============================================================================
+
+/**
+ * Represents a conditional reference expression that selects between two
+ * {@link ReferenceExpression} branches based on a boolean condition.
+ *
+ * The condition and branches are evaluated on the AppHost server; the client
+ * receives the resolved result.
+ *
+ * @example
+ * ```typescript
+ * const endpoint = await redis.getEndpoint("tcp");
+ * const tlsExpr = await endpoint.getTlsValue(
+ *     "redis-tcp-tls-value",
+ *     refExpr`,ssl=true`,
+ *     refExpr``
+ * );
+ * ```
+ */
+export class ConditionalReferenceExpression {
+    // Expression mode fields (from create())
+    private readonly _condition?: unknown;
+    private readonly _whenTrue?: ReferenceExpression;
+    private readonly _whenFalse?: ReferenceExpression;
+
+    // Handle mode fields (when wrapping a server-returned handle)
+    private readonly _handle?: Handle;
+    private readonly _client?: AspireClient;
+
+    constructor(condition: unknown, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression);
+    constructor(handle: Handle, client: AspireClient);
+    constructor(
+        handleOrCondition: Handle | unknown,
+        clientOrWhenTrue: AspireClient | ReferenceExpression,
+        whenFalse?: ReferenceExpression
+    ) {
+        if (handleOrCondition instanceof Handle) {
+            this._handle = handleOrCondition;
+            this._client = clientOrWhenTrue as AspireClient;
+        } else {
+            this._condition = handleOrCondition;
+            this._whenTrue = clientOrWhenTrue as ReferenceExpression;
+            this._whenFalse = whenFalse;
+        }
+    }
+
+    /**
+     * Creates a conditional reference expression from its constituent parts.
+     *
+     * @param condition - A value provider whose result is compared to "True"
+     * @param whenTrue - The expression to use when the condition is true
+     * @param whenFalse - The expression to use when the condition is false
+     * @returns A ConditionalReferenceExpression instance
+     */
+    static create(
+        condition: unknown,
+        whenTrue: ReferenceExpression,
+        whenFalse: ReferenceExpression
+    ): ConditionalReferenceExpression {
+        return new ConditionalReferenceExpression(condition, whenTrue, whenFalse);
+    }
+
+    /**
+     * Serializes the conditional reference expression for JSON-RPC transport.
+     * In expression mode, uses the $condExpr format.
+     * In handle mode, delegates to the handle's serialization.
+     */
+    toJSON(): { $condExpr: { condition: unknown; whenTrue: unknown; whenFalse: unknown } } | MarshalledHandle {
+        if (this._handle) {
+            return this._handle.toJSON();
+        }
+
+        return {
+            $condExpr: {
+                condition: wrapIfHandle(this._condition),
+                whenTrue: this._whenTrue!.toJSON(),
+                whenFalse: this._whenFalse!.toJSON()
+            }
+        };
+    }
+
+    toString(): string {
+        if (this._handle) {
+            return `ConditionalReferenceExpression(handle)`;
+        }
+        return `ConditionalReferenceExpression(expr)`;
+    }
+}
+
+// ============================================================================
 // ResourceBuilderBase
 // ============================================================================
 

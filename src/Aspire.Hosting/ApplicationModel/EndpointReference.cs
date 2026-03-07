@@ -109,6 +109,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
             EndpointProperty.Scheme => Binding("scheme"),
             EndpointProperty.TargetPort => Binding("targetPort"),
             EndpointProperty.HostAndPort => $"{Binding("host")}:{Binding("port")}",
+            EndpointProperty.TlsEnabled => Binding("tlsEnabled"),
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
@@ -126,23 +127,26 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     }
 
     /// <summary>
-    /// Creates a <see cref="DeferredValueProvider"/> that resolves to <paramref name="enabledValue"/> when
+    /// Creates a <see cref="ConditionalReferenceExpression"/> that resolves to <paramref name="enabledValue"/> when
     /// <see cref="EndpointAnnotation.TlsEnabled"/> is <see langword="true"/> on this endpoint, or to
     /// <paramref name="disabledValue"/> otherwise.
     /// </summary>
     /// <remarks>
-    /// The returned provider evaluates the TLS state lazily each time its value is resolved, making it
+    /// The returned expression evaluates the TLS state lazily each time its value is resolved, making it
     /// safe to embed in a <see cref="ReferenceExpression"/> that is built before TLS is configured
-    /// (e.g., before <c>BeforeStartEvent</c> fires).
+    /// (e.g., before <c>BeforeStartEvent</c> fires). Because the condition and branches are declarative,
+    /// polyglot code generators can translate this into native conditional constructs in any target language.
     /// </remarks>
-    /// <param name="enabledValue">The value to return when TLS is enabled (e.g., <c>",ssl=true"</c>).</param>
-    /// <param name="disabledValue">The value to return when TLS is not enabled. Defaults to an empty string.</param>
-    /// <returns>A <see cref="DeferredValueProvider"/> whose value tracks the TLS state of this endpoint.</returns>
-    public DeferredValueProvider GetTlsValue(string enabledValue, string? disabledValue)
+    /// <param name="enabledValue">The expression to evaluate when TLS is enabled (e.g., <c>",ssl=true"</c>).</param>
+    /// <param name="disabledValue">The expression to evaluate when TLS is not enabled.</param>
+    /// <returns>A <see cref="ConditionalReferenceExpression"/> whose value tracks the TLS state of this endpoint.</returns>
+    [AspireExport(Description = "Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.")]
+    public ConditionalReferenceExpression GetTlsValue(ReferenceExpression enabledValue, ReferenceExpression disabledValue)
     {
-        return new DeferredValueProvider(
-            () => new ValueTask<string?>(TlsEnabled ? enabledValue : disabledValue),
-            () => TlsEnabled ? enabledValue ?? "" : disabledValue ?? "");
+        return ConditionalReferenceExpression.Create(
+            Property(EndpointProperty.TlsEnabled),
+            enabledValue,
+            disabledValue);
     }
 
     /// <summary>
@@ -331,6 +335,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         return Property switch
         {
             EndpointProperty.Scheme => new(Endpoint.Scheme),
+            EndpointProperty.TlsEnabled => Endpoint.TlsEnabled ? bool.TrueString : bool.FalseString,
             EndpointProperty.IPV4Host when networkContext == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
             EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
             _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
@@ -399,5 +404,10 @@ public enum EndpointProperty
     /// <summary>
     /// The host and port of the endpoint in the format `{Host}:{Port}`.
     /// </summary>
-    HostAndPort
+    HostAndPort,
+
+    /// <summary>
+    /// Whether TLS is enabled on the endpoint. Returns <see cref="bool.TrueString"/> or <see cref="bool.FalseString"/>.
+    /// </summary>
+    TlsEnabled
 }

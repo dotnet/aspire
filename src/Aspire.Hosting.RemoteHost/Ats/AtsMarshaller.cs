@@ -308,6 +308,14 @@ internal sealed class AtsMarshaller
             return exprRef.ToReferenceExpression(_handles, capabilityId, paramName);
         }
 
+        // Check for conditional reference expression
+        // Format: { "$condExpr": { "name": "...", "condition": <handle>, "whenTrue": <$expr>, "whenFalse": <$expr> } }
+        var condExprRef = ConditionalReferenceExpressionRef.FromJsonNode(node);
+        if (condExprRef != null)
+        {
+            return condExprRef.ToConditionalReferenceExpression(_handles, capabilityId, paramName);
+        }
+
         // Handle callbacks - any delegate type is treated as a callback
         if (typeof(Delegate).IsAssignableFrom(targetType))
         {

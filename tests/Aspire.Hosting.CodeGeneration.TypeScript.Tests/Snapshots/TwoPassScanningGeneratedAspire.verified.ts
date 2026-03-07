@@ -17,6 +17,7 @@ import {
 import {
     ResourceBuilderBase,
     ReferenceExpression,
+    ConditionalReferenceExpression,
     refExpr,
     AspireDict,
     AspireList
@@ -52,6 +53,9 @@ type TestVaultResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.
 
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
+
+/** Handle to ConditionalReferenceExpression */
+type ConditionalReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConditionalReferenceExpression'>;
 
 /** Handle to ContainerResource */
 type ContainerResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource'>;
@@ -177,6 +181,7 @@ export enum EndpointProperty {
     Scheme = "Scheme",
     TargetPort = "TargetPort",
     HostAndPort = "HostAndPort",
+    TlsEnabled = "TlsEnabled",
 }
 
 /** Enum type for IconVariant */
@@ -755,6 +760,15 @@ export class EndpointReference {
         );
     }
 
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    async getTlsValue(parameterName: string, enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, parameterName, enabledValue, disabledValue };
+        return await this._client.invokeCapability<ConditionalReferenceExpression>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
+            rpcArgs
+        );
+    }
+
 }
 
 /**
@@ -773,6 +787,11 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     /** Gets the URL of the endpoint asynchronously */
     getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         return this._promise.then(obj => obj.getValueAsync(options));
+    }
+
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    getTlsValue(parameterName: string, enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+        return this._promise.then(obj => obj.getTlsValue(parameterName, enabledValue, disabledValue));
     }
 
 }
@@ -10513,7 +10532,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 
 // Re-export commonly used types
 export { Handle, CapabilityError, registerCallback } from './transport.js';
-export { refExpr, ReferenceExpression } from './base.js';
+export { refExpr, ReferenceExpression, ConditionalReferenceExpression } from './base.js';
 
 // ============================================================================
 // Global Error Handling

@@ -29,6 +29,45 @@ class ReferenceExpression:
         return f"ReferenceExpression({self._format_string})"
 
 
+class ConditionalReferenceExpression:
+    """Represents a conditional expression that selects between two ReferenceExpression branches.
+    The condition and branches are evaluated on the AppHost server."""
+
+    def __init__(self, handle: "Handle", client: "AspireClient") -> None:
+        self._handle = handle
+        self._client = client
+        self._condition: Any = None
+        self._when_true: ReferenceExpression | None = None
+        self._when_false: ReferenceExpression | None = None
+
+    @staticmethod
+    def create(condition: Any, when_true: ReferenceExpression, when_false: ReferenceExpression) -> "ConditionalReferenceExpression":
+        """Creates a conditional reference expression from its parts."""
+        expr = ConditionalReferenceExpression.__new__(ConditionalReferenceExpression)
+        expr._handle = None
+        expr._client = None
+        expr._condition = condition
+        expr._when_true = when_true
+        expr._when_false = when_false
+        return expr
+
+    def to_json(self) -> Dict[str, Any]:
+        if self._handle is not None:
+            return self._handle.to_json()
+        return {
+            "$condExpr": {
+                "condition": serialize_value(self._condition),
+                "whenTrue": self._when_true.to_json(),
+                "whenFalse": self._when_false.to_json(),
+            }
+        }
+
+    def __str__(self) -> str:
+        if self._handle is not None:
+            return "ConditionalReferenceExpression(handle)"
+        return "ConditionalReferenceExpression(expr)"
+
+
 def ref_expr(format_string: str, *values: Any) -> ReferenceExpression:
     """Create a reference expression using a format string."""
     return ReferenceExpression.create(format_string, *values)

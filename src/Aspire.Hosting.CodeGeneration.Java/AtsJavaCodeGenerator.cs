@@ -179,6 +179,11 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
                 continue;
             }
 
+            if (dto.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            {
+                continue;
+            }
+
             var dtoName = _dtoNames[dto.TypeId];
             WriteLine($"/** {dto.Name} DTO. */");
             WriteLine($"class {dtoName} {{");
@@ -501,8 +506,9 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         var handleTypeIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var handleType in context.HandleTypes)
         {
-            // Skip ReferenceExpression and CancellationToken - they're defined in Base.java/Transport.java
+            // Skip ReferenceExpression, ConditionalReferenceExpression and CancellationToken - they're defined in Base.java/Transport.java
             if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId
+                || handleType.AtsTypeId == AtsConstants.ConditionalReferenceExpressionTypeId
                 || IsCancellationTokenTypeId(handleType.AtsTypeId))
             {
                 continue;
@@ -623,6 +629,11 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             return "ReferenceExpression";
         }
 
+        if (typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+        {
+            return "ConditionalReferenceExpression";
+        }
+
         var baseType = typeRef.Category switch
         {
             AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId, isOptional),
@@ -683,8 +694,9 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             return;
         }
 
-        // Skip ReferenceExpression and CancellationToken - they're defined in Base.java/Transport.java
+        // Skip ReferenceExpression, ConditionalReferenceExpression and CancellationToken - they're defined in Base.java/Transport.java
         if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId
+            || typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId
             || IsCancellationTokenTypeId(typeRef.TypeId))
         {
             return;

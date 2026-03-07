@@ -91,7 +91,9 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             builder.Append($",password={PasswordParameter}");
         }
 
-        builder.Append($"{PrimaryEndpoint.GetTlsValue(enabledValue: ",ssl=true", disabledValue: null)}");
+        builder.Append($"{PrimaryEndpoint.GetTlsValue(
+            enabledValue: ReferenceExpression.Create($",ssl=true"),
+            disabledValue: ReferenceExpression.Empty)}");
 
         return builder.Build();
     }

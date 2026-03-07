@@ -62,6 +62,58 @@ func (r *ReferenceExpression) ToJSON() map[string]any {
 	}
 }
 
+// ConditionalReferenceExpression represents a conditional expression that selects
+// between two ReferenceExpression branches based on a boolean condition.
+// The condition and branches are evaluated on the AppHost server.
+type ConditionalReferenceExpression struct {
+	// Expression mode fields (from CreateConditionalReferenceExpression)
+	Condition any
+	WhenTrue  *ReferenceExpression
+	WhenFalse *ReferenceExpression
+
+	// Handle mode fields (when wrapping a server-returned handle)
+	handle *Handle
+	client *AspireClient
+}
+
+// NewConditionalReferenceExpression creates a new ConditionalReferenceExpression from a handle.
+func NewConditionalReferenceExpression(handle *Handle, client *AspireClient) *ConditionalReferenceExpression {
+	return &ConditionalReferenceExpression{handle: handle, client: client}
+}
+
+// CreateConditionalReferenceExpression creates a conditional reference expression from its parts.
+func CreateConditionalReferenceExpression(condition any, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression) *ConditionalReferenceExpression {
+	return &ConditionalReferenceExpression{
+		Condition: condition,
+		WhenTrue:  whenTrue,
+		WhenFalse: whenFalse,
+	}
+}
+
+// ToJSON returns the conditional reference expression as a JSON-serializable map.
+func (c *ConditionalReferenceExpression) ToJSON() map[string]any {
+	if c.handle != nil {
+		return c.handle.ToJSON()
+	}
+	return map[string]any{
+		"$condExpr": map[string]any{
+			"condition": SerializeValue(c.Condition),
+			"whenTrue":  c.WhenTrue.ToJSON(),
+			"whenFalse": c.WhenFalse.ToJSON(),
+		},
+	}
+}
+
+// Handle returns the underlying handle, if in handle mode.
+func (c *ConditionalReferenceExpression) Handle() *Handle {
+	return c.handle
+}
+
+// Client returns the AspireClient, if in handle mode.
+func (c *ConditionalReferenceExpression) Client() *AspireClient {
+	return c.client
+}
+
 // AspireList is a handle-backed list with lazy handle resolution.
 type AspireList[T any] struct {
 	HandleWrapperBase

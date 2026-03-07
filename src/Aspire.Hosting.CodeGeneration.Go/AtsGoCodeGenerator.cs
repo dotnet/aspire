@@ -160,6 +160,12 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
                 continue;
             }
 
+            // Skip ConditionalReferenceExpression - it's defined in base.go
+            if (dto.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            {
+                continue;
+            }
+
             var dtoName = _dtoNames[dto.TypeId];
             WriteLine($"// {dtoName} represents {dto.Name}.");
             WriteLine($"type {dtoName} struct {{");
@@ -536,6 +542,7 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
         {
             // Skip ReferenceExpression and CancellationToken - they're defined in base.go/transport.go
             if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId
+                || handleType.AtsTypeId == AtsConstants.ConditionalReferenceExpressionTypeId
                 || IsCancellationTokenTypeId(handleType.AtsTypeId))
             {
                 continue;
@@ -658,6 +665,11 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             return "*ReferenceExpression";
         }
 
+        if (typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+        {
+            return "*ConditionalReferenceExpression";
+        }
+
         var baseType = typeRef.Category switch
         {
             AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId),
@@ -719,8 +731,9 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             return;
         }
 
-        // Skip ReferenceExpression and CancellationToken - they're defined in base.go/transport.go
+        // Skip ReferenceExpression, ConditionalReferenceExpression and CancellationToken - they're defined in base.go/transport.go
         if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId
+            || typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId
             || IsCancellationTokenTypeId(typeRef.TypeId))
         {
             return;
