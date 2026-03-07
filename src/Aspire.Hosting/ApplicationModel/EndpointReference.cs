@@ -145,6 +145,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     {
         return ReferenceExpression.CreateConditional(
             Property(EndpointProperty.TlsEnabled),
+            bool.TrueString,
             enabledValue,
             disabledValue);
     }

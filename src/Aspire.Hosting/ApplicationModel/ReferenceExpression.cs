@@ -42,6 +42,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     private readonly IValueProvider? _condition;
     private readonly ReferenceExpression? _whenTrue;
     private readonly ReferenceExpression? _whenFalse;
+    private readonly string? _matchValue;
     private readonly string? _name;
 
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
@@ -56,16 +57,18 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         _stringFormats = stringFormats;
     }
 
-    private ReferenceExpression(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    private ReferenceExpression(IValueProvider condition, string matchValue, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
     {
         ArgumentNullException.ThrowIfNull(condition);
         ArgumentNullException.ThrowIfNull(whenTrue);
         ArgumentNullException.ThrowIfNull(whenFalse);
+        ArgumentException.ThrowIfNullOrEmpty(matchValue);
 
         _condition = condition;
         _whenTrue = whenTrue;
         _whenFalse = whenFalse;
-        _name = GenerateConditionalName(condition, whenTrue, whenFalse);
+        _matchValue = matchValue;
+        _name = GenerateConditionalName(condition, matchValue, whenTrue, whenFalse);
 
         // Set value-mode fields to safe defaults so callers never see null.
         Format = string.Empty;
@@ -101,22 +104,28 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     public bool IsConditional => _condition is not null;
 
     /// <summary>
-    /// Gets the condition value provider whose result is compared to <see cref="bool.TrueString"/>,
+    /// Gets the condition value provider whose result is compared to <see cref="MatchValue"/>,
     /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
     /// </summary>
     public IValueProvider? Condition => _condition;
 
     /// <summary>
-    /// Gets the expression to evaluate when <see cref="Condition"/> evaluates to <see cref="bool.TrueString"/>,
+    /// Gets the expression to evaluate when <see cref="Condition"/> evaluates to <see cref="MatchValue"/>,
     /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
     /// </summary>
     public ReferenceExpression? WhenTrue => _whenTrue;
 
     /// <summary>
-    /// Gets the expression to evaluate when <see cref="Condition"/> does not evaluate to <see cref="bool.TrueString"/>,
+    /// Gets the expression to evaluate when <see cref="Condition"/> does not evaluate to <see cref="MatchValue"/>,
     /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
     /// </summary>
     public ReferenceExpression? WhenFalse => _whenFalse;
+
+    /// <summary>
+    /// Gets the value that <see cref="Condition"/> is compared against to select the <see cref="WhenTrue"/> branch,
+    /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
+    /// </summary>
+    public string? MatchValue => _matchValue;
 
     /// <summary>
     /// Gets the name of this conditional expression, used as the manifest resource name for the <c>value.v0</c> entry,
@@ -176,7 +185,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         if (IsConditional)
         {
             var conditionValue = await _condition!.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
-            var branch = string.Equals(conditionValue, bool.TrueString, StringComparison.OrdinalIgnoreCase) ? _whenTrue! : _whenFalse!;
+            var branch = string.Equals(conditionValue, _matchValue, StringComparison.OrdinalIgnoreCase) ? _whenTrue! : _whenFalse!;
             return await branch.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
@@ -230,17 +239,19 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// Creates a conditional <see cref="ReferenceExpression"/> that selects between two branch expressions
     /// based on the string value of a condition.
     /// </summary>
-    /// <param name="condition">A value provider whose result is compared to <see cref="bool.TrueString"/>
+    /// <param name="condition">A value provider whose result is compared to <paramref name="matchValue"/>
     /// to determine which branch to evaluate.</param>
-    /// <param name="whenTrue">The expression to evaluate when the condition is <see langword="true"/>.</param>
-    /// <param name="whenFalse">The expression to evaluate when the condition is <see langword="false"/>.</param>
+    /// <param name="matchValue">The string value that <paramref name="condition"/> is compared against.
+    /// When the condition's value equals this (case-insensitive), the <paramref name="whenTrue"/> branch is selected.</param>
+    /// <param name="whenTrue">The expression to evaluate when the condition matches <paramref name="matchValue"/>.</param>
+    /// <param name="whenFalse">The expression to evaluate when the condition does not match <paramref name="matchValue"/>.</param>
     /// <returns>A new conditional <see cref="ReferenceExpression"/>.</returns>
-    public static ReferenceExpression CreateConditional(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    public static ReferenceExpression CreateConditional(IValueProvider condition, string matchValue, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
     {
-        return new ReferenceExpression(condition, whenTrue, whenFalse);
+        return new ReferenceExpression(condition, matchValue, whenTrue, whenFalse);
     }
 
-    private static string GenerateConditionalName(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    private static string GenerateConditionalName(IValueProvider condition, string matchValue, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
     {
         string baseName;
 
@@ -255,11 +266,11 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             baseName = "cond-expr";
         }
 
-        var hash = ComputeConditionalHash(condition, whenTrue, whenFalse);
+        var hash = ComputeConditionalHash(condition, whenTrue, whenFalse, matchValue);
         return $"{baseName}-{hash}";
     }
 
-    private static string ComputeConditionalHash(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    private static string ComputeConditionalHash(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse, string matchValue)
     {
         var xxHash = new XxHash32();
 
@@ -267,6 +278,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         xxHash.Append(Encoding.UTF8.GetBytes(conditionExpr));
         xxHash.Append(Encoding.UTF8.GetBytes(whenTrue.ValueExpression));
         xxHash.Append(Encoding.UTF8.GetBytes(whenFalse.ValueExpression));
+        xxHash.Append(Encoding.UTF8.GetBytes(matchValue));
 
         var hashBytes = xxHash.GetCurrentHash();
         return Convert.ToHexString(hashBytes).ToLowerInvariant();

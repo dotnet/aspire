@@ -19,6 +19,7 @@ class ReferenceExpression:
         self._condition: Any = None
         self._when_true: ReferenceExpression | None = None
         self._when_false: ReferenceExpression | None = None
+        self._match_value: str | None = None
         self._is_conditional = False
 
     @staticmethod
@@ -27,7 +28,7 @@ class ReferenceExpression:
         return ReferenceExpression(format_string, value_providers)
 
     @staticmethod
-    def create_conditional(condition: Any, when_true: "ReferenceExpression", when_false: "ReferenceExpression") -> "ReferenceExpression":
+    def create_conditional(condition: Any, when_true: "ReferenceExpression", when_false: "ReferenceExpression", match_value: str = "True") -> "ReferenceExpression":
         """Creates a conditional reference expression from its parts."""
         expr = ReferenceExpression.__new__(ReferenceExpression)
         expr._format_string = ""
@@ -37,6 +38,7 @@ class ReferenceExpression:
         expr._condition = condition
         expr._when_true = when_true
         expr._when_false = when_false
+        expr._match_value = match_value
         expr._is_conditional = True
         return expr
 
@@ -51,6 +53,7 @@ class ReferenceExpression:
         expr._condition = None
         expr._when_true = None
         expr._when_false = None
+        expr._match_value = None
         expr._is_conditional = False
         return expr
 
@@ -63,6 +66,7 @@ class ReferenceExpression:
                     "condition": serialize_value(self._condition),
                     "whenTrue": self._when_true.to_json(),
                     "whenFalse": self._when_false.to_json(),
+                    "matchValue": self._match_value,
                 }
             }
         payload: Dict[str, Any] = {"format": self._format_string}

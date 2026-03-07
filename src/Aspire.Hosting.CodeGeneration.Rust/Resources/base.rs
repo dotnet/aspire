@@ -61,6 +61,7 @@ pub struct ReferenceExpression {
     condition: Option<Value>,
     when_true: Option<Box<ReferenceExpression>>,
     when_false: Option<Box<ReferenceExpression>>,
+    match_value: Option<String>,
     is_conditional: bool,
 
     // Handle mode fields
@@ -77,6 +78,7 @@ impl ReferenceExpression {
             condition: None,
             when_true: None,
             when_false: None,
+            match_value: None,
             is_conditional: false,
             handle: None,
             client: None,
@@ -91,6 +93,7 @@ impl ReferenceExpression {
             condition: None,
             when_true: None,
             when_false: None,
+            match_value: None,
             is_conditional: false,
             handle: Some(handle),
             client: Some(client),
@@ -98,13 +101,14 @@ impl ReferenceExpression {
     }
 
     /// Creates a conditional reference expression from its parts.
-    pub fn create_conditional(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
+    pub fn create_conditional(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression, match_value: Option<String>) -> Self {
         Self {
             format: None,
             args: None,
             condition: Some(condition),
             when_true: Some(Box::new(when_true)),
             when_false: Some(Box::new(when_false)),
+            match_value: Some(match_value.unwrap_or_else(|| "True".to_string())),
             is_conditional: true,
             handle: None,
             client: None,
@@ -128,7 +132,8 @@ impl ReferenceExpression {
                 "$refExpr": {
                     "condition": serialize_value(self.condition.clone().unwrap()),
                     "whenTrue": self.when_true.as_ref().unwrap().to_json(),
-                    "whenFalse": self.when_false.as_ref().unwrap().to_json()
+                    "whenFalse": self.when_false.as_ref().unwrap().to_json(),
+                    "matchValue": self.match_value.as_ref().unwrap()
                 }
             });
         }

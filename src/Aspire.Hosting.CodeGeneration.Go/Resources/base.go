@@ -45,9 +45,10 @@ type ReferenceExpression struct {
 	Args   []any
 
 	// Conditional mode fields
-	Condition any
-	WhenTrue  *ReferenceExpression
-	WhenFalse *ReferenceExpression
+	Condition  any
+	WhenTrue   *ReferenceExpression
+	WhenFalse  *ReferenceExpression
+	MatchValue string
 
 	// Handle mode fields (when wrapping a server-returned handle)
 	handle        *Handle
@@ -66,11 +67,15 @@ func NewReferenceExpressionFromHandle(handle *Handle, client *AspireClient) *Ref
 }
 
 // CreateConditionalReferenceExpression creates a conditional reference expression from its parts.
-func CreateConditionalReferenceExpression(condition any, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression) *ReferenceExpression {
+func CreateConditionalReferenceExpression(condition any, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression, matchValue string) *ReferenceExpression {
+	if matchValue == "" {
+		matchValue = "True"
+	}
 	return &ReferenceExpression{
 		Condition:     condition,
 		WhenTrue:      whenTrue,
 		WhenFalse:     whenFalse,
+		MatchValue:    matchValue,
 		isConditional: true,
 	}
 }
@@ -88,9 +93,10 @@ func (r *ReferenceExpression) ToJSON() map[string]any {
 	if r.isConditional {
 		return map[string]any{
 			"$refExpr": map[string]any{
-				"condition": SerializeValue(r.Condition),
-				"whenTrue":  r.WhenTrue.ToJSON(),
-				"whenFalse": r.WhenFalse.ToJSON(),
+				"condition":  SerializeValue(r.Condition),
+				"whenTrue":   r.WhenTrue.ToJSON(),
+				"whenFalse":  r.WhenFalse.ToJSON(),
+				"matchValue": r.MatchValue,
 			},
 		}
 	}

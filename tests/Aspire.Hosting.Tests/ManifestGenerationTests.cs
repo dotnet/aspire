@@ -231,7 +231,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         var connectionString = container.GetProperty("connectionString").GetString();
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}{cond-rediscontainer-bindings-tcp-tlsenabled-91f82fca.connectionString}", connectionString);
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}{cond-rediscontainer-bindings-tcp-tlsenabled-c16dc063.connectionString}", connectionString);
     }
 
     [Fact]
@@ -407,7 +407,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                 },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}{cond-redis-bindings-tcp-tlsenabled-7a0eaf42.connectionString}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}{cond-redis-bindings-tcp-tlsenabled-d148d83a.connectionString}",
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "entrypoint": "/bin/sh",
                   "args": [
@@ -491,7 +491,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                   "value": "{postgres-password.value}",
                   "filter": "uri"
                 },
-                "cond-redis-bindings-tcp-tlsenabled-7a0eaf42": {
+                "cond-redis-bindings-tcp-tlsenabled-d148d83a": {
                   "type": "value.v0",
                   "connectionString": ""
                 }

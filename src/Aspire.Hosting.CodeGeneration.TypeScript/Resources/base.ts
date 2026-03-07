@@ -47,6 +47,7 @@ export class ReferenceExpression {
     private readonly _condition?: unknown;
     private readonly _whenTrue?: ReferenceExpression;
     private readonly _whenFalse?: ReferenceExpression;
+    private readonly _matchValue?: string;
 
     // Handle mode fields (when wrapping a server-returned handle)
     private readonly _handle?: Handle;
@@ -54,11 +55,12 @@ export class ReferenceExpression {
 
     constructor(format: string, valueProviders: unknown[]);
     constructor(handle: Handle, client: AspireClient);
-    constructor(condition: unknown, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression);
+    constructor(condition: unknown, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression, matchValue?: string);
     constructor(
         handleOrFormatOrCondition: Handle | string | unknown,
         clientOrValueProvidersOrWhenTrue: AspireClient | unknown[] | ReferenceExpression,
-        whenFalse?: ReferenceExpression
+        whenFalse?: ReferenceExpression,
+        matchValue?: string
     ) {
         if (typeof handleOrFormatOrCondition === 'string') {
             this._format = handleOrFormatOrCondition;
@@ -70,6 +72,7 @@ export class ReferenceExpression {
             this._condition = handleOrFormatOrCondition;
             this._whenTrue = clientOrValueProvidersOrWhenTrue as ReferenceExpression;
             this._whenFalse = whenFalse;
+            this._matchValue = matchValue ?? 'True';
         }
     }
 
@@ -106,17 +109,19 @@ export class ReferenceExpression {
     /**
      * Creates a conditional reference expression from its constituent parts.
      *
-     * @param condition - A value provider whose result is compared to "True"
-     * @param whenTrue - The expression to use when the condition is true
-     * @param whenFalse - The expression to use when the condition is false
+     * @param condition - A value provider whose result is compared to matchValue
+     * @param whenTrue - The expression to use when the condition matches
+     * @param whenFalse - The expression to use when the condition does not match
+     * @param matchValue - The value to compare the condition against (defaults to "True")
      * @returns A ReferenceExpression instance in conditional mode
      */
     static createConditional(
         condition: unknown,
         whenTrue: ReferenceExpression,
-        whenFalse: ReferenceExpression
+        whenFalse: ReferenceExpression,
+        matchValue?: string
     ): ReferenceExpression {
-        return new ReferenceExpression(condition, whenTrue, whenFalse);
+        return new ReferenceExpression(condition, whenTrue, whenFalse, matchValue);
     }
 
     /**
@@ -125,7 +130,7 @@ export class ReferenceExpression {
      * In conditional mode, uses the $expr format with condition + whenTrue + whenFalse.
      * In handle mode, delegates to the handle's serialization.
      */
-    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } | { condition: unknown; whenTrue: unknown; whenFalse: unknown } } | MarshalledHandle {
+    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } | { condition: unknown; whenTrue: unknown; whenFalse: unknown; matchValue: string } } | MarshalledHandle {
         if (this._handle) {
             return this._handle.toJSON();
         }
@@ -135,7 +140,8 @@ export class ReferenceExpression {
                 $expr: {
                     condition: wrapIfHandle(this._condition),
                     whenTrue: this._whenTrue!.toJSON(),
-                    whenFalse: this._whenFalse!.toJSON()
+                    whenFalse: this._whenFalse!.toJSON(),
+                    matchValue: this._matchValue!
                 }
             };
         }

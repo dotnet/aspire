@@ -49,6 +49,7 @@ class ReferenceExpression {
     private final Object condition;
     private final ReferenceExpression whenTrue;
     private final ReferenceExpression whenFalse;
+    private final String matchValue;
     private final boolean isConditional;
 
     // Handle mode fields
@@ -62,6 +63,7 @@ class ReferenceExpression {
         this.condition = null;
         this.whenTrue = null;
         this.whenFalse = null;
+        this.matchValue = null;
         this.isConditional = false;
         this.handle = null;
         this.client = null;
@@ -76,14 +78,16 @@ class ReferenceExpression {
         this.condition = null;
         this.whenTrue = null;
         this.whenFalse = null;
+        this.matchValue = null;
         this.isConditional = false;
     }
 
     // Conditional mode constructor
-    private ReferenceExpression(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse) {
+    private ReferenceExpression(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse, String matchValue) {
         this.condition = condition;
         this.whenTrue = whenTrue;
         this.whenFalse = whenFalse;
+        this.matchValue = matchValue != null ? matchValue : "True";
         this.isConditional = true;
         this.format = null;
         this.args = null;
@@ -112,6 +116,7 @@ class ReferenceExpression {
             condPayload.put("condition", AspireClient.serializeValue(condition));
             condPayload.put("whenTrue", whenTrue.toJson());
             condPayload.put("whenFalse", whenFalse.toJson());
+            condPayload.put("matchValue", matchValue);
 
             var result = new java.util.HashMap<String, Object>();
             result.put("$refExpr", condPayload);
@@ -137,8 +142,8 @@ class ReferenceExpression {
     /**
      * Creates a conditional reference expression from its parts.
      */
-    static ReferenceExpression createConditional(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse) {
-        return new ReferenceExpression(condition, whenTrue, whenFalse);
+    static ReferenceExpression createConditional(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse, String matchValue) {
+        return new ReferenceExpression(condition, whenTrue, whenFalse, matchValue);
     }
 }
 

@@ -51,6 +51,7 @@ internal sealed class ReferenceExpressionRef
     public JsonNode? Condition { get; init; }
     public JsonNode? WhenTrue { get; init; }
     public JsonNode? WhenFalse { get; init; }
+    public string? MatchValue { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this reference represents a conditional expression.
@@ -81,11 +82,20 @@ internal sealed class ReferenceExpressionRef
             exprObj.TryGetPropertyValue("whenTrue", out var whenTrueNode);
             exprObj.TryGetPropertyValue("whenFalse", out var whenFalseNode);
 
+            string? matchValue = null;
+            if (exprObj.TryGetPropertyValue("matchValue", out var matchValueNode) &&
+                matchValueNode is JsonValue matchValueJsonValue &&
+                matchValueJsonValue.TryGetValue<string>(out var mv))
+            {
+                matchValue = mv;
+            }
+
             return new ReferenceExpressionRef
             {
                 Condition = conditionNode,
                 WhenTrue = whenTrueNode,
-                WhenFalse = whenFalseNode
+                WhenFalse = whenFalseNode,
+                MatchValue = matchValue
             };
         }
 
@@ -181,7 +191,7 @@ internal sealed class ReferenceExpressionRef
                 "whenFalse must be a reference expression ({ $expr: { ... } })");
         var whenFalse = whenFalseExprRef.ToReferenceExpression(handles, capabilityId, $"{paramName}.whenFalse");
 
-        return ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
+        return ReferenceExpression.CreateConditional(condition, MatchValue ?? bool.TrueString, whenTrue, whenFalse);
     }
 
     private ReferenceExpression ToValueReferenceExpression(
