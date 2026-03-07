@@ -9,6 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Interface to build a configuration file for YARP
 /// </summary>
+[AspireExport(ExposeMethods = true)]
 public interface IYarpConfigurationBuilder
 {
     /// <summary>
