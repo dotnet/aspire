@@ -318,7 +318,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
 
         var resourceTask = await context.ReportingStep
-            .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
+            .CreateTaskAsync(new MarkdownString($"Deploying **{resource.Name}**"), context.CancellationToken)
             .ConfigureAwait(false);
 
         await using (resourceTask.ConfigureAwait(false))
@@ -330,7 +330,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 {
                     resource.ProvisioningTaskCompletionSource?.TrySetResult();
                     await resourceTask.CompleteAsync(
-                        $"Using existing deployment for **{resource.Name}**",
+                        new MarkdownString($"Using existing deployment for **{resource.Name}**"),
                         CompletionState.Completed,
                         context.CancellationToken).ConfigureAwait(false);
                 }
@@ -341,7 +341,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                         .ConfigureAwait(false);
                     resource.ProvisioningTaskCompletionSource?.TrySetResult();
                     await resourceTask.CompleteAsync(
-                        $"Successfully provisioned **{resource.Name}**",
+                        new MarkdownString($"Successfully provisioned **{resource.Name}**"),
                         CompletionState.Completed,
                         context.CancellationToken).ConfigureAwait(false);
                 }
@@ -356,7 +356,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 };
                 resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
                 await resourceTask.CompleteAsync(
-                    $"Failed to provision **{resource.Name}**: {errorMessage}",
+                    new MarkdownString($"Failed to provision **{resource.Name}**: {errorMessage}"),
                     CompletionState.CompletedWithError,
                     context.CancellationToken).ConfigureAwait(false);
                 throw new ProvisioningFailedException(errorMessage, ex);
