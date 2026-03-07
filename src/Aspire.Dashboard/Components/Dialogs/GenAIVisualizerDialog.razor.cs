@@ -262,36 +262,36 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
 
     private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
     {
-        switch (itemPart.MessagePart?.Type)
+        switch (itemPart.MessagePart)
         {
-            case "blob":
+            case BlobPart blobPart:
                 {
-                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
+                    if (MatchMimeType(blobPart.MimeType, matchingMimeTypes))
                     {
-                        if (itemPart.TryGetPropertyValue("content", out var content))
+                        if (!string.IsNullOrEmpty(blobPart.Content))
                         {
                             dataInfo = new DataInfo(
-                                Url: $"data:{mimeType};base64,{content}",
-                                MimeType: mimeType,
-                                FileName: CalculateFileName(currentFileName: null, mimeType));
+                                Url: $"data:{blobPart.MimeType};base64,{blobPart.Content}",
+                                MimeType: blobPart.MimeType!,
+                                FileName: CalculateFileName(currentFileName: null, blobPart.MimeType!));
                             return true;
                         }
                     }
                     break;
                 }
-            case "uri":
+            case UriPart uriPart:
                 {
-                    if (MatchMimeType(itemPart, matchingMimeTypes, out var mimeType))
+                    if (MatchMimeType(uriPart.MimeType, matchingMimeTypes))
                     {
-                        if (itemPart.TryGetPropertyValue("uri", out var uri))
+                        if (!string.IsNullOrEmpty(uriPart.Uri))
                         {
                             // Only attempt to display image if it is an http/https address.
-                            if (Uri.TryCreate(uri, UriKind.Absolute, out var result) && result.Scheme.ToLowerInvariant() is "http" or "https")
+                            if (Uri.TryCreate(uriPart.Uri, UriKind.Absolute, out var result) && result.Scheme.ToLowerInvariant() is "http" or "https")
                             {
                                 dataInfo = new DataInfo(
-                                    Url: uri,
-                                    MimeType: mimeType,
-                                    FileName: CalculateFileName(Path.GetFileName(result.LocalPath), mimeType));
+                                    Url: uriPart.Uri,
+                                    MimeType: uriPart.MimeType!,
+                                    FileName: CalculateFileName(Path.GetFileName(result.LocalPath), uriPart.MimeType!));
                                 return true;
                             }
                         }
@@ -303,11 +303,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         dataInfo = null;
         return false;
 
-        static bool MatchMimeType(GenAIItemPartViewModel viewModel, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out string? mimeType)
+        static bool MatchMimeType(string? mimeType, HashSet<string>? matchingMimeTypes)
         {
-            if (viewModel.TryGetPropertyValue("mime_type", out mimeType))
+            if (!string.IsNullOrEmpty(mimeType))
             {
-                return matchingMimeTypes == null || matchingMimeTypes.Contains(mimeType);
+                return matchingMimeTypes is null || matchingMimeTypes.Contains(mimeType);
             }
 
             return false;

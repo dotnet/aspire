@@ -101,6 +101,12 @@ internal static class GenAIMessageParsingHelper
             MessagePart.TextType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.TextPart),
             MessagePart.ToolCallType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.ToolCallRequestPart),
             MessagePart.ToolCallResponseType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.ToolCallResponsePart),
+            MessagePart.BlobType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.BlobPart),
+            MessagePart.FileType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.FilePart),
+            MessagePart.UriType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.UriPart),
+            MessagePart.ReasoningType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.ReasoningPart),
+            MessagePart.ServerToolCallType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.ServerToolCallPart),
+            MessagePart.ServerToolCallResponseType => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.ServerToolCallResponsePart),
             _ => JsonSerializer.Deserialize(root.GetRawText(), GenAIMessagesContext.Default.GenericPart),
         };
 

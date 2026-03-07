@@ -90,6 +90,42 @@ public sealed class GenAIItemPartViewModel
 
             return new TextVisualizerViewModel(toolResponseContent, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
         }
+        if (p is BlobPart blobPart)
+        {
+            return new TextVisualizerViewModel(blobPart.Content ?? string.Empty, indentText: true);
+        }
+        if (p is UriPart uriPart)
+        {
+            return new TextVisualizerViewModel(uriPart.Uri ?? string.Empty, indentText: true);
+        }
+        if (p is FilePart filePart)
+        {
+            return new TextVisualizerViewModel(filePart.FileId ?? string.Empty, indentText: true);
+        }
+        if (p is ReasoningPart reasoningPart)
+        {
+            return new TextVisualizerViewModel(reasoningPart.Content ?? string.Empty, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
+        }
+        if (p is ServerToolCallPart serverToolCallPart)
+        {
+            var serverToolCallText = serverToolCallPart.ServerToolCall switch
+            {
+                null => string.Empty,
+                JsonObject obj when obj.Count == 0 => string.Empty,
+                JsonArray arr when arr.Count == 0 => string.Empty,
+                _ => serverToolCallPart.ServerToolCall.ToJsonString()
+            };
+
+            return new TextVisualizerViewModel($"{serverToolCallPart.Name}({serverToolCallText})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
+        }
+        if (p is ServerToolCallResponsePart serverToolCallResponsePart)
+        {
+            var responseContent = (serverToolCallResponsePart.ServerToolCallResponse?.GetValueKind() == JsonValueKind.String)
+                ? serverToolCallResponsePart.ServerToolCallResponse.GetValue<string>()
+                : serverToolCallResponsePart.ServerToolCallResponse?.ToJsonString() ?? string.Empty;
+
+            return new TextVisualizerViewModel(responseContent, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
+        }
 
         var additionalProperties = p is GenericPart genericPart ? genericPart.AdditionalProperties ?? [] : [];
         var content = additionalProperties.Count > 0 ? ToJsonObject(additionalProperties).ToJsonString(s_jsonSerializerOptions) : string.Empty;

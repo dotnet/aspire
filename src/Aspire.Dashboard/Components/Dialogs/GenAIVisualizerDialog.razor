@@ -89,7 +89,11 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedImageTypes, out var imageData))
+                                    if (itemPart.ErrorMessage is not null)
+                                    {
+                                        <span class="error-message-text">@itemPart.ErrorMessage</span>
+                                    }
+                                    else if (TryGetDataPart(itemPart, MimeTypeHelpers.SupportedImageTypes, out var imageData))
                                     {
                                         <img src="@imageData.Url" />
                                     }
@@ -139,6 +143,18 @@
                                         if (itemPart.MessagePart is ToolCallRequestPart toolCallPart && !string.IsNullOrEmpty(toolCallPart.Name))
                                         {
                                             if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallPart.Name) is { } toolVM)
+                                            {
+                                                <div class="tool-button-container">
+                                                    <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                        <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
+                                                        Tool definition
+                                                    </FluentButton>
+                                                </div>
+                                            }
+                                        }
+                                        else if (itemPart.MessagePart is ServerToolCallPart serverToolCallPart && !string.IsNullOrEmpty(serverToolCallPart.Name))
+                                        {
+                                            if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == serverToolCallPart.Name) is { } toolVM)
                                             {
                                                 <div class="tool-button-container">
                                                     <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
@@ -464,7 +480,7 @@
                             {
                                 if (itemPart.ErrorMessage is not null)
                                 {
-                                    <div style="color: var(--error);">@itemPart.ErrorMessage</div>
+                                    <div class="error-message-text">@itemPart.ErrorMessage</div>
                                 }
                                 else
                                 {

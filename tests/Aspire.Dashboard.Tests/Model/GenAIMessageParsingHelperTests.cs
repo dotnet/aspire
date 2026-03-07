@@ -253,4 +253,160 @@ public sealed class GenAIMessageParsingHelperTests
         // Since the array contains a non-text item, it falls back to raw JSON.
         Assert.Equal(JsonValueKind.Array, toolResponse.Response.GetValueKind());
     }
+
+    [Fact]
+    public void ReadMessageParts_BlobPart_ParsesAllProperties()
+    {
+        var json = """[{"type":"blob","mime_type":"image/png","modality":"image","content":"iVBORw0KGgo="}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var blobPart = Assert.IsType<BlobPart>(Assert.Single(parts));
+        Assert.Equal("blob", blobPart.Type);
+        Assert.Equal("image/png", blobPart.MimeType);
+        Assert.Equal("image", blobPart.Modality);
+        Assert.Equal("iVBORw0KGgo=", blobPart.Content);
+    }
+
+    [Fact]
+    public void ReadMessageParts_FilePart_ParsesAllProperties()
+    {
+        var json = """[{"type":"file","mime_type":"application/pdf","modality":"image","file_id":"file-abc123"}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var filePart = Assert.IsType<FilePart>(Assert.Single(parts));
+        Assert.Equal("file", filePart.Type);
+        Assert.Equal("application/pdf", filePart.MimeType);
+        Assert.Equal("image", filePart.Modality);
+        Assert.Equal("file-abc123", filePart.FileId);
+    }
+
+    [Fact]
+    public void ReadMessageParts_UriPart_ParsesAllProperties()
+    {
+        var json = """[{"type":"uri","mime_type":"image/jpeg","modality":"image","uri":"https://example.com/photo.jpg"}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var uriPart = Assert.IsType<UriPart>(Assert.Single(parts));
+        Assert.Equal("uri", uriPart.Type);
+        Assert.Equal("image/jpeg", uriPart.MimeType);
+        Assert.Equal("image", uriPart.Modality);
+        Assert.Equal("https://example.com/photo.jpg", uriPart.Uri);
+    }
+
+    [Fact]
+    public void ReadMessageParts_ReasoningPart_ParsesContent()
+    {
+        var json = """[{"type":"reasoning","content":"Let me think about this step by step..."}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var reasoningPart = Assert.IsType<ReasoningPart>(Assert.Single(parts));
+        Assert.Equal("reasoning", reasoningPart.Type);
+        Assert.Equal("Let me think about this step by step...", reasoningPart.Content);
+    }
+
+    [Fact]
+    public void ReadMessageParts_ServerToolCallPart_ParsesAllProperties()
+    {
+        var json = """[{"type":"server_tool_call","id":"stc_1","name":"web_search","server_tool_call":{"type":"web_search","query":"latest news"}}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var serverToolCallPart = Assert.IsType<ServerToolCallPart>(Assert.Single(parts));
+        Assert.Equal("server_tool_call", serverToolCallPart.Type);
+        Assert.Equal("stc_1", serverToolCallPart.Id);
+        Assert.Equal("web_search", serverToolCallPart.Name);
+        Assert.NotNull(serverToolCallPart.ServerToolCall);
+        Assert.Equal("latest news", serverToolCallPart.ServerToolCall["query"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void ReadMessageParts_ServerToolCallResponsePart_ParsesAllProperties()
+    {
+        var json = """[{"type":"server_tool_call_response","id":"stc_1","server_tool_call_response":{"type":"web_search","results":["result1","result2"]}}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var serverToolCallResponsePart = Assert.IsType<ServerToolCallResponsePart>(Assert.Single(parts));
+        Assert.Equal("server_tool_call_response", serverToolCallResponsePart.Type);
+        Assert.Equal("stc_1", serverToolCallResponsePart.Id);
+        Assert.NotNull(serverToolCallResponsePart.ServerToolCallResponse);
+        Assert.Equal("web_search", serverToolCallResponsePart.ServerToolCallResponse["type"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void ReadMessageParts_ContentArray_BlobPart_ParsesCorrectly()
+    {
+        var json = """
+            [{"type":"text","content":[{"type":"blob","mime_type":"audio/mp3","modality":"audio","content":"AAAA"}]}]
+            """;
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Single(items);
+
+        var parts = items[0];
+        var blobPart = Assert.IsType<BlobPart>(Assert.Single(parts));
+        Assert.Equal("audio/mp3", blobPart.MimeType);
+        Assert.Equal("audio", blobPart.Modality);
+        Assert.Equal("AAAA", blobPart.Content);
+    }
+
+    [Fact]
+    public void ReadMessageParts_MixedNewPartTypes_ParsesCorrectly()
+    {
+        var json = """
+            [
+                {"type":"text","content":"Hello"},
+                {"type":"reasoning","content":"Thinking..."},
+                {"type":"blob","mime_type":"image/png","modality":"image","content":"base64data"},
+                {"type":"uri","mime_type":"image/jpeg","modality":"image","uri":"https://example.com/img.jpg"},
+                {"type":"file","mime_type":"application/pdf","modality":"image","file_id":"f1"},
+                {"type":"server_tool_call","id":"s1","name":"code_interpreter","server_tool_call":{"type":"code_interpreter"}},
+                {"type":"server_tool_call_response","id":"s1","server_tool_call_response":{"type":"code_interpreter","output":"42"}}
+            ]
+            """;
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessageParts);
+
+        Assert.False(truncated);
+        Assert.Equal(7, items.Count);
+
+        Assert.Collection(items,
+            parts => Assert.IsType<TextPart>(Assert.Single(parts)),
+            parts => Assert.IsType<ReasoningPart>(Assert.Single(parts)),
+            parts => Assert.IsType<BlobPart>(Assert.Single(parts)),
+            parts => Assert.IsType<UriPart>(Assert.Single(parts)),
+            parts => Assert.IsType<FilePart>(Assert.Single(parts)),
+            parts => Assert.IsType<ServerToolCallPart>(Assert.Single(parts)),
+            parts => Assert.IsType<ServerToolCallResponsePart>(Assert.Single(parts)));
+    }
 }
