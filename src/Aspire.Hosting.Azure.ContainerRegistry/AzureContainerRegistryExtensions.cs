@@ -101,6 +101,7 @@ public static class AzureContainerRegistryExtensions
     /// <param name="registryBuilder">The resource builder for the <see cref="AzureContainerRegistryResource"/> to use.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="registryBuilder"/> is null.</exception>
+    [AspireExport("withAzureContainerRegistry", Description = "Configures a compute environment resource to use an Azure Container Registry.")]
     public static IResourceBuilder<T> WithAzureContainerRegistry<T>(this IResourceBuilder<T> builder, IResourceBuilder<AzureContainerRegistryResource> registryBuilder)
         where T : IResource, IComputeEnvironmentResource
     {
@@ -122,6 +123,7 @@ public static class AzureContainerRegistryExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the resource does not have an associated Azure Container Registry,
     /// or when the associated container registry is not an <see cref="AzureContainerRegistryResource"/>.</exception>
+    [AspireExport("getAzureContainerRegistry", Description = "Gets the Azure Container Registry associated with a compute environment resource.")]
     public static IResourceBuilder<AzureContainerRegistryResource> GetAzureContainerRegistry<T>(this IResourceBuilder<T> builder)
         where T : IResource, IAzureComputeEnvironmentResource
     {
@@ -259,6 +261,12 @@ public static class AzureContainerRegistryExtensions
     /// <param name="target">The target Azure Container Registry resource.</param>
     /// <param name="roles">The roles to assign to the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This overload is not available in polyglot app hosts. Use
+    /// <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureContainerRegistryResource}, AzureContainerRegistryRole[])"/>
+    /// instead.
+    /// </remarks>
+    [AspireExportIgnore(Reason = "ContainerRegistryBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureContainerRegistryRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureContainerRegistryResource> target,
@@ -266,6 +274,45 @@ public static class AzureContainerRegistryExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, ContainerRegistryBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Adds role assignments to the specified Azure Container Registry resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource being configured.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will have role assignments.</param>
+    /// <param name="target">The target Azure Container Registry resource.</param>
+    /// <param name="roles">The Azure Container Registry roles to assign to the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureContainerRegistryRole"/> value.</exception>
+    [AspireExport("withContainerRegistryRoleAssignments", Description = "Assigns Azure Container Registry roles to a resource.")]
+    internal static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureContainerRegistryResource> target,
+        params AzureContainerRegistryRole[] roles)
+        where T : IResource
+    {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<ContainerRegistryBuiltInRole>());
+        }
+
+        var builtInRoles = new ContainerRegistryBuiltInRole[roles.Length];
+        for (var i = 0; i < roles.Length; i++)
+        {
+            builtInRoles[i] = roles[i] switch
+            {
+                AzureContainerRegistryRole.AcrDelete => ContainerRegistryBuiltInRole.AcrDelete,
+                AzureContainerRegistryRole.AcrImageSigner => ContainerRegistryBuiltInRole.AcrImageSigner,
+                AzureContainerRegistryRole.AcrPull => ContainerRegistryBuiltInRole.AcrPull,
+                AzureContainerRegistryRole.AcrPush => ContainerRegistryBuiltInRole.AcrPush,
+                AzureContainerRegistryRole.AcrQuarantineReader => ContainerRegistryBuiltInRole.AcrQuarantineReader,
+                AzureContainerRegistryRole.AcrQuarantineWriter => ContainerRegistryBuiltInRole.AcrQuarantineWriter,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureContainerRegistryRole)} value.", nameof(roles))
+            };
+        }
+
+        return builder.WithRoleAssignments(target, builtInRoles);
     }
 
     private static string CreatePurgeTaskContent(string? filter, string ago, int keep)

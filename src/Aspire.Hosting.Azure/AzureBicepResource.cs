@@ -627,6 +627,7 @@ public sealed class BicepSecretOutputReference(string name, AzureBicepResource r
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
+[AspireExport(ExposeProperties = true)]
 public sealed class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences, IEquatable<BicepOutputReference>
 {
     /// <summary>

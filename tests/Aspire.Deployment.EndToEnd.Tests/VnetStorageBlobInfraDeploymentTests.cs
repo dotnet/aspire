@@ -91,6 +91,7 @@ public sealed class VnetStorageBlobInfraDeploymentTests(ITestOutputHelper output
                 .Wait(TimeSpan.FromSeconds(5))
                 .Enter()
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4a: Add Aspire.Hosting.Azure.AppContainers

@@ -18,6 +18,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+[AspireExport(ExposeProperties = true)]
 public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IAzurePrivateEndpointTarget
 {
@@ -45,11 +46,15 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the "id" output reference for the resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public BicepOutputReference Id => new("id", this);
 
     /// <summary>
@@ -72,6 +77,8 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     internal RedisResource? InnerResource { get; private set; }
 
     /// <inheritdoc />
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>

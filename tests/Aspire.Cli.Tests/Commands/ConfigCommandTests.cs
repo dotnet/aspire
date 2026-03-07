@@ -308,6 +308,58 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ConfigListCommand_WithoutAllFlag_ShowsHintInsteadOfFeatures()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.OutputTextWriter = outputWriter;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set a value so config list has something to display
+        var setResult = command.Parse("config set testkey testvalue");
+        await setResult.InvokeAsync().DefaultTimeout();
+
+        // List without --all
+        var listResult = command.Parse("config list");
+        var listExitCode = await listResult.InvokeAsync().DefaultTimeout();
+        Assert.Equal(0, listExitCode);
+
+        var output = string.Join("\n", outputWriter.Logs);
+        Assert.Contains("--all", output);
+    }
+
+    [Fact]
+    public async Task ConfigListCommand_WithAllFlag_ShowsFeatureDetails()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.OutputTextWriter = outputWriter;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set a value so config list has something to display
+        var setResult = command.Parse("config set testkey testvalue");
+        await setResult.InvokeAsync().DefaultTimeout();
+
+        // List with --all
+        var listResult = command.Parse("config list --all");
+        var listExitCode = await listResult.InvokeAsync().DefaultTimeout();
+        Assert.Equal(0, listExitCode);
+
+        var output = string.Join("\n", outputWriter.Logs);
+        Assert.Contains("default:", output);
+    }
+
+    [Fact]
     public async Task FeatureFlags_WhenSetToTrue_ReturnsTrue()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

@@ -5,8 +5,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
-using Aspire.Cli.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Otlp.Serialization;
 using Aspire.Dashboard.Utils;
 using Aspire.Shared.ConsoleLogs;
 using Microsoft.Extensions.Logging;
@@ -77,7 +77,7 @@ internal sealed class ListStructuredLogsTool(IAuxiliaryBackchannelMonitor auxili
             var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
-            var apiResponse = await response.Content.ReadFromJsonAsync(OtlpCliJsonSerializerContext.Default.TelemetryApiResponse, cancellationToken).ConfigureAwait(false);
+            var apiResponse = await response.Content.ReadFromJsonAsync(OtlpJsonSerializerContext.Default.TelemetryApiResponse, cancellationToken).ConfigureAwait(false);
             var resourceLogs = apiResponse?.Data?.ResourceLogs;
 
             var (logsData, limitMessage) = SharedAIHelpers.GetStructuredLogsJson(

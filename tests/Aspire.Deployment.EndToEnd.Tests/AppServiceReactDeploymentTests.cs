@@ -68,30 +68,6 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire new interactive prompts
-            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-                .FindPattern("> Starter App");
-
-            // Wait for the ASP.NET Core/React template to be highlighted (after pressing Down once)
-            // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
-            var waitingForReactTemplateSelected = new CellPatternSearcher()
-                .Find("> Starter App (ASP.NET Core/React)");
-
-            var waitingForProjectNamePrompt = new CellPatternSearcher()
-                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-            var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find($"Enter the output path: (./{projectName}): ");
-
-            var waitingForUrlsPrompt = new CellPatternSearcher()
-                .Find("Use *.dev.localhost URLs");
-
-            var waitingForRedisPrompt = new CellPatternSearcher()
-                .Find("Use Redis Cache");
-
-            // Note: React template (aspire-ts-cs-starter) does NOT have the "test project" prompt
-            // unlike the Blazor starter template. It only has localhost URLs and Redis prompts.
-
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -118,28 +94,8 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
             }
 
             // Step 3: Create React + ASP.NET Core project using aspire new with interactive prompts
-            // Navigate down to select Starter App (ASP.NET Core/React) - it's the 2nd option
             output.WriteLine("Step 3: Creating React + ASP.NET Core project...");
-            sequenceBuilder.Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                // Navigate to Starter App (ASP.NET Core/React) - it's the 2nd option (after Blazor)
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .WaitUntil(s => waitingForReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // Select Starter App (ASP.NET Core/React)
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type(projectName)
-                .Enter()
-                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Accept default output path
-                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for localhost URLs (default)
-                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Enter() // Select "No" for Redis Cache
-                // Note: React template does NOT have a test project prompt (unlike Blazor starter)
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+            sequenceBuilder.AspireNew(projectName, counter, template: AspireTemplate.JsReact, useRedisCache: false);
 
             // Step 4: Navigate to project directory
             output.WriteLine("Step 4: Navigating to project directory...");
