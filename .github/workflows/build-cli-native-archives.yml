@@ -40,7 +40,7 @@ jobs:
       # downloading them from the build_packages job. This allows the CLI archive
       # build to run in parallel with build_packages.
       - name: Build RID-specific packages (Windows)
-        if: ${{ matrix.targets.os == 'windows-latest' }}
+        if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: >
           .\build.cmd
@@ -55,7 +55,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build RID-specific packages (Unix)
-        if: ${{ matrix.targets.os != 'windows-latest' }}
+        if: ${{ runner.os != 'Windows' }}
         shell: bash
         run: >
           ./build.sh
@@ -70,7 +70,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build bundle payload archive (Windows)
-        if: ${{ matrix.targets.os == 'windows-latest' }}
+        if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: >
           .\dotnet.cmd
@@ -86,7 +86,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build bundle payload archive (Unix)
-        if: ${{ matrix.targets.os != 'windows-latest' }}
+        if: ${{ runner.os != 'Windows' }}
         shell: bash
         run: >
           ./dotnet.sh
@@ -102,7 +102,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Windows)
-        if: ${{ matrix.targets.os == 'windows-latest' }}
+        if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: >
           .\build.cmd
@@ -118,7 +118,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Unix)
-        if: ${{ matrix.targets.os != 'windows-latest' }}
+        if: ${{ runner.os != 'Windows' }}
         shell: bash
         run: >
           ./build.sh
