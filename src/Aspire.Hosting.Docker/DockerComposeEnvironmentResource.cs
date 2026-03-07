@@ -23,6 +23,7 @@ namespace Aspire.Hosting.Docker;
 /// <remarks>
 /// Initializes a new instance of the <see cref="DockerComposeEnvironmentResource"/> class.
 /// </remarks>
+[global::Aspire.Hosting.AspireExport(ExposeProperties = true)]
 public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentResource
 {
     private const string DockerComposeUpTag = "docker-compose-up";
