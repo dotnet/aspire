@@ -152,6 +152,12 @@ impl HasHandle for ReferenceExpression {
     }
 }
 
+impl Serialize for ReferenceExpression {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.to_json().serialize(serializer)
+    }
+}
+
 /// Convenience function to create a reference expression.
 pub fn ref_expr(format: impl Into<String>, args: Vec<Value>) -> ReferenceExpression {
     ReferenceExpression::new(format, args)
