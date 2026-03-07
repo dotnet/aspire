@@ -191,6 +191,9 @@ namespace Microsoft.DotNet.Watch
         public static readonly MessageDescriptor<IEnumerable<ProjectRepresentation>> RestartingProjectsNotification = CreateNotification<IEnumerable<ProjectRepresentation>>();
         public static readonly MessageDescriptor<None> ProjectRestarting = Create("Restarting ...", Emoji.Watch, LogLevel.Debug);
         public static readonly MessageDescriptor<None> ProjectRestarted = Create("Restarted", Emoji.Watch, LogLevel.Debug);
+        public static readonly MessageDescriptor<None> ProjectRelaunching = Create("Relaunching ...", Emoji.Watch, LogLevel.Information);
+        public static readonly MessageDescriptor<None> ProjectRelaunched = Create("Relaunched", Emoji.Watch, LogLevel.Debug);
+        public static readonly MessageDescriptor<None> ProcessCrashedAndWillBeRelaunched = Create("Process crashed and will be relaunched on file change", Emoji.Watch, LogLevel.Debug);
         public static readonly MessageDescriptor<int> ProjectDependenciesDeployed = Create<int>("Project dependencies deployed ({0})", Emoji.HotReload, LogLevel.Debug);
         public static readonly MessageDescriptor<None> FixBuildError = Create("Fix the error to continue or press Ctrl+C to exit.", Emoji.Watch, LogLevel.Warning);
         public static readonly MessageDescriptor<None> WaitingForChanges = Create("Waiting for changes", Emoji.Watch, LogLevel.Information);

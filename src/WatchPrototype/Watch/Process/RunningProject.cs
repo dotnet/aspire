@@ -94,5 +94,13 @@ namespace Microsoft.DotNet.Watch
             await restartOperation(cancellationToken);
             ClientLogger.Log(MessageDescriptor.ProjectRestarted);
         }
+
+        public RestartOperation GetRelaunchOperation()
+            => new(async cancellationToken =>
+            {
+                ClientLogger.Log(MessageDescriptor.ProjectRelaunching);
+                await restartOperation(cancellationToken);
+                ClientLogger.Log(MessageDescriptor.ProjectRelaunched);
+            });
     }
 }
