@@ -20,6 +20,7 @@ namespace Aspire.Hosting.Docker;
 /// <summary>
 /// Represents a compute resource for Docker Compose with strongly-typed properties.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class DockerComposeServiceResource : Resource, IResourceWithParent<DockerComposeEnvironmentResource>
 {
     private readonly IResource _targetResource;
