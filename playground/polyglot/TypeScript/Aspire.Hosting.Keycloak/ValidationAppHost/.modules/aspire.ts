@@ -3338,21 +3338,6 @@ export class KeycloakResource extends ResourceBuilderBase<KeycloakResourceHandle
     }
 
     /** @internal */
-    private async _withRealmImportInternal(importPath: string): Promise<KeycloakResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, importPath };
-        const result = await this._client.invokeCapability<KeycloakResourceHandle>(
-            'Aspire.Hosting.Keycloak/withRealmImport',
-            rpcArgs
-        );
-        return new KeycloakResource(result, this._client);
-    }
-
-    /** Imports a Keycloak realm configuration */
-    withRealmImport(importPath: string): KeycloakResourcePromise {
-        return new KeycloakResourcePromise(this._withRealmImportInternal(importPath));
-    }
-
-    /** @internal */
     private async _withEnabledFeaturesInternal(features: string[]): Promise<KeycloakResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, features };
         const result = await this._client.invokeCapability<KeycloakResourceHandle>(
@@ -3410,6 +3395,21 @@ export class KeycloakResource extends ResourceBuilderBase<KeycloakResourceHandle
     /** Configures the OTLP exporter for Keycloak with a specific protocol */
     withOtlpExporterWithProtocol(protocol: OtlpProtocol): KeycloakResourcePromise {
         return new KeycloakResourcePromise(this._withOtlpExporterWithProtocolInternal(protocol));
+    }
+
+    /** @internal */
+    private async _withRealmImportInternal(importPath: string): Promise<KeycloakResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, importPath };
+        const result = await this._client.invokeCapability<KeycloakResourceHandle>(
+            'Aspire.Hosting.Keycloak/withRealmImport',
+            rpcArgs
+        );
+        return new KeycloakResource(result, this._client);
+    }
+
+    /** Imports a Keycloak realm configuration */
+    withRealmImport(importPath: string): KeycloakResourcePromise {
+        return new KeycloakResourcePromise(this._withRealmImportInternal(importPath));
     }
 
 }
@@ -3634,11 +3634,6 @@ export class KeycloakResourcePromise implements PromiseLike<KeycloakResource> {
         return new KeycloakResourcePromise(this._promise.then(obj => obj.withDataBindMount(source)));
     }
 
-    /** Imports a Keycloak realm configuration */
-    withRealmImport(importPath: string): KeycloakResourcePromise {
-        return new KeycloakResourcePromise(this._promise.then(obj => obj.withRealmImport(importPath)));
-    }
-
     /** Enables Keycloak features */
     withEnabledFeatures(features: string[]): KeycloakResourcePromise {
         return new KeycloakResourcePromise(this._promise.then(obj => obj.withEnabledFeatures(features)));
@@ -3657,6 +3652,11 @@ export class KeycloakResourcePromise implements PromiseLike<KeycloakResource> {
     /** Configures the OTLP exporter for Keycloak with a specific protocol */
     withOtlpExporterWithProtocol(protocol: OtlpProtocol): KeycloakResourcePromise {
         return new KeycloakResourcePromise(this._promise.then(obj => obj.withOtlpExporterWithProtocol(protocol)));
+    }
+
+    /** Imports a Keycloak realm configuration */
+    withRealmImport(importPath: string): KeycloakResourcePromise {
+        return new KeycloakResourcePromise(this._promise.then(obj => obj.withRealmImport(importPath)));
     }
 
 }

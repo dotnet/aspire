@@ -819,42 +819,80 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Detects method name collisions after capability expansion and removes overloaded methods.
+    /// Detects method name collisions after capability expansion and renames colliding methods
+    /// with numeric suffixes (1, 2, ...) to disambiguate them deterministically.
     /// Since ATS doesn't support method overloading, each (TargetTypeId, MethodName) pair must be unique.
-    /// Colliding capabilities are filtered out and diagnostics are added.
+    /// The first capability (sorted by CapabilityId) keeps the original name; subsequent ones are renamed.
     /// </summary>
     private static void FilterMethodNameCollisions(List<AtsCapabilityInfo> capabilities, List<AtsDiagnostic> diagnostics)
     {
-        // Group by (TargetTypeId, MethodName) to find collisions
-        var collisions = capabilities
+        // Find all MethodName values that have collisions on any target type.
+        // Group by MethodName first, then check for collisions within each group.
+        var capabilitiesWithTargets = capabilities
             .Where(c => c.ExpandedTargetTypes.Count > 0)
             .SelectMany(c => c.ExpandedTargetTypes.Select(t => (Target: t.TypeId, Capability: c)))
+            .ToList();
+
+        // Find (TargetTypeId, MethodName) pairs with collisions
+        var collisionGroups = capabilitiesWithTargets
             .GroupBy(x => (x.Target, x.Capability.MethodName))
             .Where(g => g.Count() > 1)
             .ToList();
 
-        if (collisions.Count > 0)
+        if (collisionGroups.Count == 0)
         {
-            // Collect all colliding capability IDs to filter them out
-            var collidingCapabilityIds = new HashSet<string>();
+            return;
+        }
 
-            foreach (var g in collisions)
+        // Collect all MethodName values that have collisions and their colliding CapabilityIds.
+        // We assign suffixes per MethodName (not per target type) so that a capability gets
+        // a consistent name across all the target types it expands to.
+        var collidingMethodNames = new Dictionary<string, List<string>>(); // MethodName -> sorted unique CapabilityIds
+
+        foreach (var g in collisionGroups)
+        {
+            var methodName = g.Key.MethodName;
+            var capIds = g.Select(x => x.Capability.CapabilityId).Distinct().ToList();
+
+            if (!collidingMethodNames.TryGetValue(methodName, out var existingIds))
             {
-                var conflictingIds = g.Select(x => x.Capability.CapabilityId).ToList();
-                var conflictingIdsStr = string.Join(", ", conflictingIds);
-
-                diagnostics.Add(AtsDiagnostic.Warning(
-                    $"Method '{g.Key.MethodName}' has multiple definitions for target '{g.Key.Target}' ({conflictingIdsStr}) and will be skipped. Use [AspireExport(MethodName = \"uniqueName\")] to disambiguate.",
-                    g.Key.Target));
-
-                foreach (var id in conflictingIds)
-                {
-                    collidingCapabilityIds.Add(id);
-                }
+                existingIds = [];
+                collidingMethodNames[methodName] = existingIds;
             }
 
-            // Remove all colliding capabilities
-            capabilities.RemoveAll(c => collidingCapabilityIds.Contains(c.CapabilityId));
+            foreach (var id in capIds)
+            {
+                if (!existingIds.Contains(id))
+                {
+                    existingIds.Add(id);
+                }
+            }
+        }
+
+        // Sort capability IDs deterministically and assign suffixes
+        foreach (var (methodName, capIds) in collidingMethodNames)
+        {
+            capIds.Sort(StringComparer.Ordinal);
+
+            var conflictingIdsStr = string.Join(", ", capIds);
+
+            // First capability keeps original name, others get numeric suffixes
+            for (var i = 1; i < capIds.Count; i++)
+            {
+                var capId = capIds[i];
+                var capability = capabilities.First(c => c.CapabilityId == capId);
+                var newMethodName = $"{methodName}{i}";
+                capability.MethodName = newMethodName;
+
+                diagnostics.Add(AtsDiagnostic.Warning(
+                    $"Method '{methodName}' has collisions ({conflictingIdsStr}). '{capId}' was renamed to '{newMethodName}'. Use [AspireExport(MethodName = \"uniqueName\")] to set an explicit name.",
+                    capability.SourceLocation ?? capId));
+            }
+
+            // Emit a summary warning for the collision
+            diagnostics.Add(AtsDiagnostic.Warning(
+                $"Method '{methodName}' has {capIds.Count} colliding definitions ({conflictingIdsStr}). The first definition keeps the original name; others receive numeric suffixes.",
+                capIds[0]));
         }
     }
 

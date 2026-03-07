@@ -26,6 +26,9 @@ import {
 // Handle Type Aliases (Internal - not exported to users)
 // ============================================================================
 
+/** Handle to DevTunnelResource */
+type DevTunnelResourceHandle = Handle<'Aspire.Hosting.DevTunnels/Aspire.Hosting.DevTunnels.DevTunnelResource'>;
+
 /** Handle to IMauiPlatformResource */
 type IMauiPlatformResourceHandle = Handle<'Aspire.Hosting.Maui/Aspire.Hosting.Maui.IMauiPlatformResource'>;
 
@@ -294,6 +297,10 @@ export interface AddAndroidEmulatorOptions {
 
 export interface AddConnectionStringOptions {
     environmentVariableName?: string;
+}
+
+export interface AddDevTunnelOptions {
+    tunnelId?: string;
 }
 
 export interface AddiOSDeviceOptions {
@@ -1059,6 +1066,23 @@ export class DistributedApplicationBuilder {
         return new MauiProjectResourcePromise(this._addMauiProjectInternal(name, projectPath));
     }
 
+    /** Adds a Dev Tunnel resource to the distributed application model. */
+    /** @internal */
+    async _addDevTunnelInternal(name: string, tunnelId?: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        if (tunnelId !== undefined) rpcArgs.tunnelId = tunnelId;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/addDevTunnel',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    addDevTunnel(name: string, options?: AddDevTunnelOptions): DevTunnelResourcePromise {
+        const tunnelId = options?.tunnelId;
+        return new DevTunnelResourcePromise(this._addDevTunnelInternal(name, tunnelId));
+    }
+
 }
 
 /**
@@ -1107,6 +1131,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a .NET MAUI project to the application model. */
     addMauiProject(name: string, projectPath: string): MauiProjectResourcePromise {
         return new MauiProjectResourcePromise(this._promise.then(obj => obj.addMauiProject(name, projectPath)));
+    }
+
+    /** Adds a Dev Tunnel resource to the distributed application model. */
+    addDevTunnel(name: string, options?: AddDevTunnelOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.addDevTunnel(name, options)));
     }
 
 }
@@ -2064,42 +2093,840 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
 }
 
 // ============================================================================
+// DevTunnelResource
+// ============================================================================
+
+export class DevTunnelResource extends ResourceBuilderBase<DevTunnelResourceHandle> {
+    constructor(handle: DevTunnelResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withExecutableCommandInternal(command: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withExecutableCommand',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets the executable command */
+    withExecutableCommand(command: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withExecutableCommandInternal(command));
+    }
+
+    /** @internal */
+    private async _withWorkingDirectoryInternal(workingDirectory: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, workingDirectory };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withWorkingDirectory',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withWorkingDirectoryInternal(workingDirectory));
+    }
+
+    /** @internal */
+    private async _withEnvironmentInternal(name: string, value: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withEnvironment',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets an environment variable */
+    withEnvironment(name: string, value: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withEnvironmentInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withEnvironmentExpressionInternal(name: string, value: ReferenceExpression): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withEnvironmentExpression',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds an environment variable with a reference expression */
+    withEnvironmentExpression(name: string, value: ReferenceExpression): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withEnvironmentExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
+            const obj = new EnvironmentCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withEnvironmentCallback',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets environment variables via callback */
+    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withEnvironmentCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
+            const arg = new EnvironmentCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withEnvironmentCallbackAsync',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets environment variables via async callback */
+    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withArgsInternal(args: string[]): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withArgs',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds arguments */
+    withArgs(args: string[]): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withArgsInternal(args));
+    }
+
+    /** @internal */
+    private async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
+        if (optional !== undefined) rpcArgs.optional = optional;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withReference',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): DevTunnelResourcePromise {
+        const connectionName = options?.connectionName;
+        const optional = options?.optional;
+        return new DevTunnelResourcePromise(this._withReferenceInternal(source, connectionName, optional));
+    }
+
+    /** @internal */
+    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withServiceReference',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a service discovery reference to another resource */
+    withServiceReference(source: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withServiceReferenceInternal(source));
+    }
+
+    /** @internal */
+    private async _withEndpointInternal(port?: number, targetPort?: number, scheme?: string, name?: string, env?: string, isProxied?: boolean, isExternal?: boolean, protocol?: ProtocolType): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (port !== undefined) rpcArgs.port = port;
+        if (targetPort !== undefined) rpcArgs.targetPort = targetPort;
+        if (scheme !== undefined) rpcArgs.scheme = scheme;
+        if (name !== undefined) rpcArgs.name = name;
+        if (env !== undefined) rpcArgs.env = env;
+        if (isProxied !== undefined) rpcArgs.isProxied = isProxied;
+        if (isExternal !== undefined) rpcArgs.isExternal = isExternal;
+        if (protocol !== undefined) rpcArgs.protocol = protocol;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a network endpoint */
+    withEndpoint(options?: WithEndpointOptions): DevTunnelResourcePromise {
+        const port = options?.port;
+        const targetPort = options?.targetPort;
+        const scheme = options?.scheme;
+        const name = options?.name;
+        const env = options?.env;
+        const isProxied = options?.isProxied;
+        const isExternal = options?.isExternal;
+        const protocol = options?.protocol;
+        return new DevTunnelResourcePromise(this._withEndpointInternal(port, targetPort, scheme, name, env, isProxied, isExternal, protocol));
+    }
+
+    /** @internal */
+    private async _withHttpEndpointInternal(port?: number, targetPort?: number, name?: string, env?: string, isProxied?: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (port !== undefined) rpcArgs.port = port;
+        if (targetPort !== undefined) rpcArgs.targetPort = targetPort;
+        if (name !== undefined) rpcArgs.name = name;
+        if (env !== undefined) rpcArgs.env = env;
+        if (isProxied !== undefined) rpcArgs.isProxied = isProxied;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withHttpEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds an HTTP endpoint */
+    withHttpEndpoint(options?: WithHttpEndpointOptions): DevTunnelResourcePromise {
+        const port = options?.port;
+        const targetPort = options?.targetPort;
+        const name = options?.name;
+        const env = options?.env;
+        const isProxied = options?.isProxied;
+        return new DevTunnelResourcePromise(this._withHttpEndpointInternal(port, targetPort, name, env, isProxied));
+    }
+
+    /** @internal */
+    private async _withHttpsEndpointInternal(port?: number, targetPort?: number, name?: string, env?: string, isProxied?: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (port !== undefined) rpcArgs.port = port;
+        if (targetPort !== undefined) rpcArgs.targetPort = targetPort;
+        if (name !== undefined) rpcArgs.name = name;
+        if (env !== undefined) rpcArgs.env = env;
+        if (isProxied !== undefined) rpcArgs.isProxied = isProxied;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withHttpsEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds an HTTPS endpoint */
+    withHttpsEndpoint(options?: WithHttpsEndpointOptions): DevTunnelResourcePromise {
+        const port = options?.port;
+        const targetPort = options?.targetPort;
+        const name = options?.name;
+        const env = options?.env;
+        const isProxied = options?.isProxied;
+        return new DevTunnelResourcePromise(this._withHttpsEndpointInternal(port, targetPort, name, env, isProxied));
+    }
+
+    /** @internal */
+    private async _withExternalHttpEndpointsInternal(): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withExternalHttpEndpoints',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Makes HTTP endpoints externally accessible */
+    withExternalHttpEndpoints(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withExternalHttpEndpointsInternal());
+    }
+
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting/getEndpoint',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _asHttp2ServiceInternal(): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): DevTunnelResourcePromise {
+        const displayText = options?.displayText;
+        return new DevTunnelResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): DevTunnelResourcePromise {
+        const displayText = options?.displayText;
+        return new DevTunnelResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<DevTunnelResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _waitForInternal(dependency: ResourceBuilderBase): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/waitFor',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Waits for another resource to be ready */
+    waitFor(dependency: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._waitForInternal(dependency));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _waitForCompletionInternal(dependency: ResourceBuilderBase, exitCode?: number): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
+        if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/waitForCompletion',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Waits for resource completion */
+    waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): DevTunnelResourcePromise {
+        const exitCode = options?.exitCode;
+        return new DevTunnelResourcePromise(this._waitForCompletionInternal(dependency, exitCode));
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (path !== undefined) rpcArgs.path = path;
+        if (statusCode !== undefined) rpcArgs.statusCode = statusCode;
+        if (endpointName !== undefined) rpcArgs.endpointName = endpointName;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withHttpHealthCheck',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds an HTTP health check */
+    withHttpHealthCheck(options?: WithHttpHealthCheckOptions): DevTunnelResourcePromise {
+        const path = options?.path;
+        const statusCode = options?.statusCode;
+        const endpointName = options?.endpointName;
+        return new DevTunnelResourcePromise(this._withHttpHealthCheckInternal(path, statusCode, endpointName));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<DevTunnelResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): DevTunnelResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new DevTunnelResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withTunnelReferenceAllInternal(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, resourceBuilder, allowAnonymous };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceResourceAnonymous',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose all endpoints on the referenced resource. */
+    withTunnelReferenceAll(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceAllInternal(resourceBuilder, allowAnonymous));
+    }
+
+    /** @internal */
+    private async _withTunnelReferenceInternal(targetEndpoint: EndpointReference): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpoint };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceEndpoint',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint. */
+    withTunnelReference(targetEndpoint: EndpointReference): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceInternal(targetEndpoint));
+    }
+
+    /** @internal */
+    private async _withTunnelReferenceAnonymousInternal(targetEndpoint: EndpointReference, allowAnonymous: boolean): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpoint, allowAnonymous };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withReferenceEndpointAnonymous',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint with access control. */
+    withTunnelReferenceAnonymous(targetEndpoint: EndpointReference, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withTunnelReferenceAnonymousInternal(targetEndpoint, allowAnonymous));
+    }
+
+    /** @internal */
+    private async _withAnonymousAccessInternal(): Promise<DevTunnelResource> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle };
+        const result = await this._client.invokeCapability<DevTunnelResourceHandle>(
+            'Aspire.Hosting.DevTunnels/withAnonymousAccess',
+            rpcArgs
+        );
+        return new DevTunnelResource(result, this._client);
+    }
+
+    /** Configures the dev tunnel to allow anonymous access. */
+    withAnonymousAccess(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._withAnonymousAccessInternal());
+    }
+
+    /** Gets the public endpoint exposed by the dev tunnel. */
+    async getTunnelEndpoint(targetEndpointReference: EndpointReference): Promise<EndpointReference> {
+        const rpcArgs: Record<string, unknown> = { tunnelBuilder: this._handle, targetEndpointReference };
+        return await this._client.invokeCapability<EndpointReference>(
+            'Aspire.Hosting.DevTunnels/getEndpointByEndpointReference',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for DevTunnelResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class DevTunnelResourcePromise implements PromiseLike<DevTunnelResource> {
+    constructor(private _promise: Promise<DevTunnelResource>) {}
+
+    then<TResult1 = DevTunnelResource, TResult2 = never>(
+        onfulfilled?: ((value: DevTunnelResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Sets the executable command */
+    withExecutableCommand(command: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withExecutableCommand(command)));
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withWorkingDirectory(workingDirectory)));
+    }
+
+    /** Sets an environment variable */
+    withEnvironment(name: string, value: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+    }
+
+    /** Adds an environment variable with a reference expression */
+    withEnvironmentExpression(name: string, value: ReferenceExpression): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+    }
+
+    /** Sets environment variables via callback */
+    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    }
+
+    /** Sets environment variables via async callback */
+    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    }
+
+    /** Adds arguments */
+    withArgs(args: string[]): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
+    /** Adds a reference to another resource */
+    withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+    }
+
+    /** Adds a service discovery reference to another resource */
+    withServiceReference(source: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+    }
+
+    /** Adds a network endpoint */
+    withEndpoint(options?: WithEndpointOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withEndpoint(options)));
+    }
+
+    /** Adds an HTTP endpoint */
+    withHttpEndpoint(options?: WithHttpEndpointOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+    }
+
+    /** Adds an HTTPS endpoint */
+    withHttpsEndpoint(options?: WithHttpsEndpointOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withHttpsEndpoint(options)));
+    }
+
+    /** Makes HTTP endpoints externally accessible */
+    withExternalHttpEndpoints(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+    }
+
+    /** Gets an endpoint reference */
+    getEndpoint(name: string): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getEndpoint(name));
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
+    }
+
+    /** Waits for another resource to be ready */
+    waitFor(dependency: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Waits for resource completion */
+    waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds an HTTP health check */
+    withHttpHealthCheck(options?: WithHttpHealthCheckOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures the dev tunnel to expose all endpoints on the referenced resource. */
+    withTunnelReferenceAll(resourceBuilder: ResourceBuilderBase, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReferenceAll(resourceBuilder, allowAnonymous)));
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint. */
+    withTunnelReference(targetEndpoint: EndpointReference): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReference(targetEndpoint)));
+    }
+
+    /** Configures the dev tunnel to expose a target endpoint with access control. */
+    withTunnelReferenceAnonymous(targetEndpoint: EndpointReference, allowAnonymous: boolean): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withTunnelReferenceAnonymous(targetEndpoint, allowAnonymous)));
+    }
+
+    /** Configures the dev tunnel to allow anonymous access. */
+    withAnonymousAccess(): DevTunnelResourcePromise {
+        return new DevTunnelResourcePromise(this._promise.then(obj => obj.withAnonymousAccess()));
+    }
+
+    /** Gets the public endpoint exposed by the dev tunnel. */
+    getTunnelEndpoint(targetEndpointReference: EndpointReference): Promise<EndpointReference> {
+        return this._promise.then(obj => obj.getTunnelEndpoint(targetEndpointReference));
+    }
+
+}
+
+// ============================================================================
 // ExecutableResource
 // ============================================================================
 
 export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHandle> {
     constructor(handle: ExecutableResourceHandle, client: AspireClientRpc) {
         super(handle, client);
-    }
-
-    /** @internal */
-    private async _withExecutableCommandInternal(command: string): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withExecutableCommand',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Sets the executable command */
-    withExecutableCommand(command: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withExecutableCommandInternal(command));
-    }
-
-    /** @internal */
-    private async _withWorkingDirectoryInternal(workingDirectory: string): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, workingDirectory };
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withWorkingDirectory',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Sets the executable working directory */
-    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withWorkingDirectoryInternal(workingDirectory));
     }
 
     /** @internal */
@@ -2638,16 +3465,6 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Sets the executable command */
-    withExecutableCommand(command: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withExecutableCommand(command)));
-    }
-
-    /** Sets the executable working directory */
-    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withWorkingDirectory(workingDirectory)));
     }
 
     /** Sets an environment variable */
@@ -9782,6 +10599,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUr
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.DevTunnels/Aspire.Hosting.DevTunnels.DevTunnelResource', (handle, client) => new DevTunnelResource(handle as DevTunnelResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Maui/Aspire.Hosting.Maui.MauiAndroidDeviceResource', (handle, client) => new MauiAndroidDeviceResource(handle as MauiAndroidDeviceResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Maui/Aspire.Hosting.Maui.MauiAndroidEmulatorResource', (handle, client) => new MauiAndroidEmulatorResource(handle as MauiAndroidEmulatorResourceHandle, client));

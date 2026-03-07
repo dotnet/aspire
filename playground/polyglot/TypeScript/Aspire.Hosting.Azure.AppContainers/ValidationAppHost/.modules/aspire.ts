@@ -29,11 +29,35 @@ import {
 /** Handle to AzureContainerAppEnvironmentResource */
 type AzureContainerAppEnvironmentResourceHandle = Handle<'Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.AzureContainerAppEnvironmentResource'>;
 
+/** Handle to AzureContainerRegistryResource */
+type AzureContainerRegistryResourceHandle = Handle<'Aspire.Hosting.Azure.ContainerRegistry/Aspire.Hosting.Azure.AzureContainerRegistryResource'>;
+
 /** Handle to AzureLogAnalyticsWorkspaceResource */
 type AzureLogAnalyticsWorkspaceResourceHandle = Handle<'Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource'>;
 
+/** Handle to IAzureResource */
+type IAzureResourceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.ApplicationModel.IAzureResource'>;
+
+/** Handle to AzureBicepResource */
+type AzureBicepResourceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureBicepResource'>;
+
+/** Handle to AzureEnvironmentResource */
+type AzureEnvironmentResourceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureEnvironmentResource'>;
+
+/** Handle to AzureProvisioningResource */
+type AzureProvisioningResourceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureProvisioningResource'>;
+
 /** Handle to AzureResourceInfrastructure */
 type AzureResourceInfrastructureHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureResourceInfrastructure'>;
+
+/** Handle to AzureUserAssignedIdentityResource */
+type AzureUserAssignedIdentityResourceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureUserAssignedIdentityResource'>;
+
+/** Handle to BicepOutputReference */
+type BicepOutputReferenceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.BicepOutputReference'>;
+
+/** Handle to IAzureKeyVaultSecretReference */
+type IAzureKeyVaultSecretReferenceHandle = Handle<'Aspire.Hosting.Azure/Aspire.Hosting.Azure.IAzureKeyVaultSecretReference'>;
 
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
@@ -58,6 +82,9 @@ type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applica
 
 /** Handle to IComputeResource */
 type IComputeResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource'>;
+
+/** Handle to IContainerFilesDestinationResource */
+type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
 
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
@@ -110,6 +137,9 @@ type IDistributedApplicationEventingHandle = Handle<'Aspire.Hosting/Aspire.Hosti
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
 
+/** Handle to IResourceWithContainerFiles */
+type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles'>;
+
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
 
@@ -144,10 +174,28 @@ type IServiceProviderHandle = Handle<'System.ComponentModel/System.IServiceProvi
 // Enum Types
 // ============================================================================
 
+/** Enum type for AzureContainerRegistryRole */
+export enum AzureContainerRegistryRole {
+    AcrDelete = "AcrDelete",
+    AcrImageSigner = "AcrImageSigner",
+    AcrPull = "AcrPull",
+    AcrPush = "AcrPush",
+    AcrQuarantineReader = "AcrQuarantineReader",
+    AcrQuarantineWriter = "AcrQuarantineWriter",
+}
+
 /** Enum type for ContainerLifetime */
 export enum ContainerLifetime {
     Session = "Session",
     Persistent = "Persistent",
+}
+
+/** Enum type for DeploymentScope */
+export enum DeploymentScope {
+    ResourceGroup = "ResourceGroup",
+    Subscription = "Subscription",
+    ManagementGroup = "ManagementGroup",
+    Tenant = "Tenant",
 }
 
 /** Enum type for DistributedApplicationOperation */
@@ -285,7 +333,7 @@ export interface GetValueAsyncOptions {
 }
 
 export interface PublishAsConfiguredScheduledAzureContainerAppJobOptions {
-    configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>;
+    configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>;
 }
 
 export interface RunOptions {
@@ -353,6 +401,13 @@ export interface WithImageOptions {
     tag?: string;
 }
 
+export interface WithPurgeTaskOptions {
+    filter?: string;
+    ago?: number;
+    keep?: number;
+    taskName?: string;
+}
+
 export interface WithReferenceOptions {
     connectionName?: string;
     optional?: boolean;
@@ -369,6 +424,92 @@ export interface WithUrlOptions {
 export interface WithVolumeOptions {
     name?: string;
     isReadOnly?: boolean;
+}
+
+// ============================================================================
+// AzureResourceInfrastructure
+// ============================================================================
+
+/**
+ * Type class for AzureResourceInfrastructure.
+ */
+export class AzureResourceInfrastructure {
+    constructor(private _handle: AzureResourceInfrastructureHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the BicepName property */
+    bicepName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.bicepName',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the TargetScope property */
+    targetScope = {
+        get: async (): Promise<DeploymentScope> => {
+            return await this._client.invokeCapability<DeploymentScope>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.targetScope',
+                { context: this._handle }
+            );
+        },
+        set: async (value: DeploymentScope): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Azure/AzureResourceInfrastructure.setTargetScope',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+}
+
+// ============================================================================
+// BicepOutputReference
+// ============================================================================
+
+/**
+ * Type class for BicepOutputReference.
+ */
+export class BicepOutputReference {
+    constructor(private _handle: BicepOutputReferenceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Azure/BicepOutputReference.name',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Value property */
+    value = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Azure/BicepOutputReference.value',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the ValueExpression property */
+    valueExpression = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Azure/BicepOutputReference.valueExpression',
+                { context: this._handle }
+            );
+        },
+    };
+
 }
 
 // ============================================================================
@@ -1058,6 +1199,116 @@ export class DistributedApplicationBuilder {
         return new AzureLogAnalyticsWorkspaceResourcePromise(this._addAzureLogAnalyticsWorkspaceInternal(name));
     }
 
+    /** Adds an Azure Bicep template resource from a file */
+    /** @internal */
+    async _addBicepTemplateInternal(name: string, bicepFile: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepFile };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/addBicepTemplate',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    addBicepTemplate(name: string, bicepFile: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._addBicepTemplateInternal(name, bicepFile));
+    }
+
+    /** Adds an Azure Bicep template resource from inline Bicep content */
+    /** @internal */
+    async _addBicepTemplateStringInternal(name: string, bicepContent: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepContent };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/addBicepTemplateString',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    addBicepTemplateString(name: string, bicepContent: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._addBicepTemplateStringInternal(name, bicepContent));
+    }
+
+    /** Adds an Azure provisioning resource to the application model */
+    /** @internal */
+    async _addAzureInfrastructureInternal(name: string, configureInfrastructure: (obj: AzureResourceInfrastructure) => Promise<void>): Promise<AzureProvisioningResource> {
+        const configureInfrastructureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureResourceInfrastructureHandle;
+            const obj = new AzureResourceInfrastructure(objHandle, this._client);
+            await configureInfrastructure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, configureInfrastructure: configureInfrastructureId };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/addAzureInfrastructure',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    addAzureInfrastructure(name: string, configureInfrastructure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._addAzureInfrastructureInternal(name, configureInfrastructure));
+    }
+
+    /** Adds Azure provisioning services to the distributed application builder */
+    /** @internal */
+    async _addAzureProvisioningInternal(): Promise<DistributedApplicationBuilder> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IDistributedApplicationBuilderHandle>(
+            'Aspire.Hosting.Azure/addAzureProvisioning',
+            rpcArgs
+        );
+        return new DistributedApplicationBuilder(result, this._client);
+    }
+
+    addAzureProvisioning(): DistributedApplicationBuilderPromise {
+        return new DistributedApplicationBuilderPromise(this._addAzureProvisioningInternal());
+    }
+
+    /** Adds the shared Azure environment resource to the application model */
+    /** @internal */
+    async _addAzureEnvironmentInternal(): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/addAzureEnvironment',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    addAzureEnvironment(): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._addAzureEnvironmentInternal());
+    }
+
+    /** Adds an Azure user-assigned identity resource */
+    /** @internal */
+    async _addAzureUserAssignedIdentityInternal(name: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/addAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    addAzureUserAssignedIdentity(name: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._addAzureUserAssignedIdentityInternal(name));
+    }
+
+    /** Adds an Azure Container Registry resource to the distributed application model. */
+    /** @internal */
+    async _addAzureContainerRegistryInternal(name: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/addAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    addAzureContainerRegistry(name: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._addAzureContainerRegistryInternal(name));
+    }
+
 }
 
 /**
@@ -1113,6 +1364,41 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.addAzureLogAnalyticsWorkspace(name)));
     }
 
+    /** Adds an Azure Bicep template resource from a file */
+    addBicepTemplate(name: string, bicepFile: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.addBicepTemplate(name, bicepFile)));
+    }
+
+    /** Adds an Azure Bicep template resource from inline Bicep content */
+    addBicepTemplateString(name: string, bicepContent: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.addBicepTemplateString(name, bicepContent)));
+    }
+
+    /** Adds an Azure provisioning resource to the application model */
+    addAzureInfrastructure(name: string, configureInfrastructure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.addAzureInfrastructure(name, configureInfrastructure)));
+    }
+
+    /** Adds Azure provisioning services to the distributed application builder */
+    addAzureProvisioning(): DistributedApplicationBuilderPromise {
+        return new DistributedApplicationBuilderPromise(this._promise.then(obj => obj.addAzureProvisioning()));
+    }
+
+    /** Adds the shared Azure environment resource to the application model */
+    addAzureEnvironment(): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.addAzureEnvironment()));
+    }
+
+    /** Adds an Azure user-assigned identity resource */
+    addAzureUserAssignedIdentity(name: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.addAzureUserAssignedIdentity(name)));
+    }
+
+    /** Adds an Azure Container Registry resource to the distributed application model. */
+    addAzureContainerRegistry(name: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.addAzureContainerRegistry(name)));
+    }
+
 }
 
 // ============================================================================
@@ -1161,6 +1447,481 @@ export class DistributedApplicationEventingPromise implements PromiseLike<Distri
     /** Invokes the Unsubscribe method */
     unsubscribe(subscription: DistributedApplicationEventSubscriptionHandle): DistributedApplicationEventingPromise {
         return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.unsubscribe(subscription)));
+    }
+
+}
+
+// ============================================================================
+// AzureBicepResource
+// ============================================================================
+
+export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHandle> {
+    constructor(handle: AzureBicepResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureBicepResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureBicepResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureBicepResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureBicepResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureBicepResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureBicepResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureBicepResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureBicepResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureBicepResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureBicepResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureBicepResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource> {
+    constructor(private _promise: Promise<AzureBicepResource>) {}
+
+    then<TResult1 = AzureBicepResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureBicepResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -1422,6 +2183,323 @@ export class AzureContainerAppEnvironmentResource extends ResourceBuilderBase<Az
         return new AzureContainerAppEnvironmentResourcePromise(this._withAzureLogAnalyticsWorkspaceInternal(workspaceBuilder));
     }
 
+    /** Gets an output reference from an Azure Bicep template resource */
+    async getOutput(name: string): Promise<BicepOutputReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<BicepOutputReference>(
+            'Aspire.Hosting.Azure/getOutput',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withParameterInternal(name: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameter',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterInternal(name));
+    }
+
+    /** @internal */
+    private async _withParameterStringValueInternal(name: string, value: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValue',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterStringValueInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterStringValuesInternal(name: string, value: string[]): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValues',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterStringValuesInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromParameterInternal(name: string, value: ParameterResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromParameter',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterFromParameterInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromConnectionStringInternal(name: string, value: ResourceBuilderBase): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromConnectionString',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterFromConnectionStringInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromOutputInternal(name: string, value: BicepOutputReference): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromOutput',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterFromOutputInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromReferenceExpressionInternal(name: string, value: ReferenceExpression): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromReferenceExpression',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterFromReferenceExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromEndpointInternal(name: string, value: EndpointReference): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromEndpoint',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withParameterFromEndpointInternal(name, value));
+    }
+
+    /** @internal */
+    private async _configureInfrastructureInternal(configure: (obj: AzureResourceInfrastructure) => Promise<void>): Promise<AzureContainerAppEnvironmentResource> {
+        const configureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureResourceInfrastructureHandle;
+            const obj = new AzureResourceInfrastructure(objHandle, this._client);
+            await configure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/configureInfrastructure',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._configureInfrastructureInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerAppEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerAppEnvironmentResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -1512,6 +2590,1165 @@ export class AzureContainerAppEnvironmentResourcePromise implements PromiseLike<
     /** Configures the container app environment to use a specific Log Analytics Workspace */
     withAzureLogAnalyticsWorkspace(workspaceBuilder: AzureLogAnalyticsWorkspaceResource): AzureContainerAppEnvironmentResourcePromise {
         return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withAzureLogAnalyticsWorkspace(workspaceBuilder)));
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    getOutput(name: string): Promise<BicepOutputReference> {
+        return this._promise.then(obj => obj.getOutput(name));
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameter(name)));
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterStringValue(name, value)));
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterStringValues(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterFromParameter(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterFromConnectionString(name, value)));
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterFromOutput(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterFromReferenceExpression(name, value)));
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withParameterFromEndpoint(name, value)));
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.configureInfrastructure(configure)));
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureContainerRegistryResource
+// ============================================================================
+
+export class AzureContainerRegistryResource extends ResourceBuilderBase<AzureContainerRegistryResourceHandle> {
+    constructor(handle: AzureContainerRegistryResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureContainerRegistryResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureContainerRegistryResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureContainerRegistryResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureContainerRegistryResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureContainerRegistryResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureContainerRegistryResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureContainerRegistryResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureContainerRegistryResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureContainerRegistryResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    async getOutput(name: string): Promise<BicepOutputReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<BicepOutputReference>(
+            'Aspire.Hosting.Azure/getOutput',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withParameterInternal(name: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameter',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterInternal(name));
+    }
+
+    /** @internal */
+    private async _withParameterStringValueInternal(name: string, value: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValue',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterStringValueInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterStringValuesInternal(name: string, value: string[]): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValues',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterStringValuesInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromParameterInternal(name: string, value: ParameterResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromParameter',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterFromParameterInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromConnectionStringInternal(name: string, value: ResourceBuilderBase): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromConnectionString',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterFromConnectionStringInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromOutputInternal(name: string, value: BicepOutputReference): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromOutput',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterFromOutputInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromReferenceExpressionInternal(name: string, value: ReferenceExpression): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromReferenceExpression',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterFromReferenceExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromEndpointInternal(name: string, value: EndpointReference): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromEndpoint',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withParameterFromEndpointInternal(name, value));
+    }
+
+    /** @internal */
+    private async _configureInfrastructureInternal(configure: (obj: AzureResourceInfrastructure) => Promise<void>): Promise<AzureContainerRegistryResource> {
+        const configureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureResourceInfrastructureHandle;
+            const obj = new AzureResourceInfrastructure(objHandle, this._client);
+            await configure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/configureInfrastructure',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._configureInfrastructureInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withPurgeTaskInternal(schedule: string, filter?: string, ago?: number, keep?: number, taskName?: string): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, schedule };
+        if (filter !== undefined) rpcArgs.filter = filter;
+        if (ago !== undefined) rpcArgs.ago = ago;
+        if (keep !== undefined) rpcArgs.keep = keep;
+        if (taskName !== undefined) rpcArgs.taskName = taskName;
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withPurgeTask',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures a purge task for the Azure Container Registry resource. */
+    withPurgeTask(schedule: string, options?: WithPurgeTaskOptions): AzureContainerRegistryResourcePromise {
+        const filter = options?.filter;
+        const ago = options?.ago;
+        const keep = options?.keep;
+        const taskName = options?.taskName;
+        return new AzureContainerRegistryResourcePromise(this._withPurgeTaskInternal(schedule, filter, ago, keep, taskName));
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureContainerRegistryResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureContainerRegistryResourcePromise implements PromiseLike<AzureContainerRegistryResource> {
+    constructor(private _promise: Promise<AzureContainerRegistryResource>) {}
+
+    then<TResult1 = AzureContainerRegistryResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureContainerRegistryResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    getOutput(name: string): Promise<BicepOutputReference> {
+        return this._promise.then(obj => obj.getOutput(name));
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameter(name)));
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterStringValue(name, value)));
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterStringValues(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterFromParameter(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterFromConnectionString(name, value)));
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterFromOutput(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterFromReferenceExpression(name, value)));
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withParameterFromEndpoint(name, value)));
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.configureInfrastructure(configure)));
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Configures a purge task for the Azure Container Registry resource. */
+    withPurgeTask(schedule: string, options?: WithPurgeTaskOptions): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withPurgeTask(schedule, options)));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureEnvironmentResource
+// ============================================================================
+
+export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironmentResourceHandle> {
+    constructor(handle: AzureEnvironmentResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureEnvironmentResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureEnvironmentResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureEnvironmentResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureEnvironmentResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureEnvironmentResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureEnvironmentResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureEnvironmentResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureEnvironmentResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureEnvironmentResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureEnvironmentResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withLocationInternal(location: ParameterResource): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, location };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withLocation',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Sets the Azure location for the shared Azure environment resource */
+    withLocation(location: ParameterResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withLocationInternal(location));
+    }
+
+    /** @internal */
+    private async _withResourceGroupInternal(resourceGroup: ParameterResource): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, resourceGroup };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure/withResourceGroup',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Sets the Azure resource group for the shared Azure environment resource */
+    withResourceGroup(resourceGroup: ParameterResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withResourceGroupInternal(resourceGroup));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureEnvironmentResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnvironmentResource> {
+    constructor(private _promise: Promise<AzureEnvironmentResource>) {}
+
+    then<TResult1 = AzureEnvironmentResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureEnvironmentResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Sets the Azure location for the shared Azure environment resource */
+    withLocation(location: ParameterResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withLocation(location)));
+    }
+
+    /** Sets the Azure resource group for the shared Azure environment resource */
+    withResourceGroup(resourceGroup: ParameterResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withResourceGroup(resourceGroup)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -1694,6 +3931,323 @@ export class AzureLogAnalyticsWorkspaceResource extends ResourceBuilderBase<Azur
         );
     }
 
+    /** Gets an output reference from an Azure Bicep template resource */
+    async getOutput(name: string): Promise<BicepOutputReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<BicepOutputReference>(
+            'Aspire.Hosting.Azure/getOutput',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withParameterInternal(name: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameter',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterInternal(name));
+    }
+
+    /** @internal */
+    private async _withParameterStringValueInternal(name: string, value: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValue',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterStringValueInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterStringValuesInternal(name: string, value: string[]): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValues',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterStringValuesInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromParameterInternal(name: string, value: ParameterResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromParameter',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterFromParameterInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromConnectionStringInternal(name: string, value: ResourceBuilderBase): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromConnectionString',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterFromConnectionStringInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromOutputInternal(name: string, value: BicepOutputReference): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromOutput',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterFromOutputInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromReferenceExpressionInternal(name: string, value: ReferenceExpression): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromReferenceExpression',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterFromReferenceExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromEndpointInternal(name: string, value: EndpointReference): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromEndpoint',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withParameterFromEndpointInternal(name, value));
+    }
+
+    /** @internal */
+    private async _configureInfrastructureInternal(configure: (obj: AzureResourceInfrastructure) => Promise<void>): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const configureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureResourceInfrastructureHandle;
+            const obj = new AzureResourceInfrastructure(objHandle, this._client);
+            await configure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/configureInfrastructure',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._configureInfrastructureInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureLogAnalyticsWorkspaceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureLogAnalyticsWorkspaceResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -1759,6 +4313,1439 @@ export class AzureLogAnalyticsWorkspaceResourcePromise implements PromiseLike<Az
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    getOutput(name: string): Promise<BicepOutputReference> {
+        return this._promise.then(obj => obj.getOutput(name));
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameter(name)));
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterStringValue(name, value)));
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterStringValues(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterFromParameter(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterFromConnectionString(name, value)));
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterFromOutput(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterFromReferenceExpression(name, value)));
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withParameterFromEndpoint(name, value)));
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.configureInfrastructure(configure)));
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureProvisioningResource
+// ============================================================================
+
+export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisioningResourceHandle> {
+    constructor(handle: AzureProvisioningResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureProvisioningResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureProvisioningResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureProvisioningResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureProvisioningResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureProvisioningResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureProvisioningResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureProvisioningResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureProvisioningResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureProvisioningResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureProvisioningResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    async getOutput(name: string): Promise<BicepOutputReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<BicepOutputReference>(
+            'Aspire.Hosting.Azure/getOutput',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withParameterInternal(name: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameter',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterInternal(name));
+    }
+
+    /** @internal */
+    private async _withParameterStringValueInternal(name: string, value: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValue',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterStringValueInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterStringValuesInternal(name: string, value: string[]): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValues',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterStringValuesInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromParameterInternal(name: string, value: ParameterResource): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromParameter',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterFromParameterInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromConnectionStringInternal(name: string, value: ResourceBuilderBase): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromConnectionString',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterFromConnectionStringInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromOutputInternal(name: string, value: BicepOutputReference): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromOutput',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterFromOutputInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromReferenceExpressionInternal(name: string, value: ReferenceExpression): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromReferenceExpression',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterFromReferenceExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromEndpointInternal(name: string, value: EndpointReference): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromEndpoint',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withParameterFromEndpointInternal(name, value));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureProvisioningResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvisioningResource> {
+    constructor(private _promise: Promise<AzureProvisioningResource>) {}
+
+    then<TResult1 = AzureProvisioningResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureProvisioningResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    getOutput(name: string): Promise<BicepOutputReference> {
+        return this._promise.then(obj => obj.getOutput(name));
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameter(name)));
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterStringValue(name, value)));
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterStringValues(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterFromParameter(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterFromConnectionString(name, value)));
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterFromOutput(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterFromReferenceExpression(name, value)));
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withParameterFromEndpoint(name, value)));
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureUserAssignedIdentityResource
+// ============================================================================
+
+export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<AzureUserAssignedIdentityResourceHandle> {
+    constructor(handle: AzureUserAssignedIdentityResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureUserAssignedIdentityResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<AzureUserAssignedIdentityResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withUrlInternal(url: string, displayText?: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureUserAssignedIdentityResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureUserAssignedIdentityResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureUserAssignedIdentityResourcePromise {
+        const displayText = options?.displayText;
+        return new AzureUserAssignedIdentityResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    private async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<AzureUserAssignedIdentityResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    private async _withExplicitStartInternal(): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(key: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<AzureUserAssignedIdentityResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureUserAssignedIdentityResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new AzureUserAssignedIdentityResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
+    private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    async getOutput(name: string): Promise<BicepOutputReference> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        return await this._client.invokeCapability<BicepOutputReference>(
+            'Aspire.Hosting.Azure/getOutput',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withParameterInternal(name: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameter',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterInternal(name));
+    }
+
+    /** @internal */
+    private async _withParameterStringValueInternal(name: string, value: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValue',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterStringValueInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterStringValuesInternal(name: string, value: string[]): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterStringValues',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterStringValuesInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromParameterInternal(name: string, value: ParameterResource): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromParameter',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterFromParameterInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromConnectionStringInternal(name: string, value: ResourceBuilderBase): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromConnectionString',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterFromConnectionStringInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromOutputInternal(name: string, value: BicepOutputReference): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromOutput',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterFromOutputInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromReferenceExpressionInternal(name: string, value: ReferenceExpression): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromReferenceExpression',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterFromReferenceExpressionInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withParameterFromEndpointInternal(name: string, value: EndpointReference): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/withParameterFromEndpoint',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withParameterFromEndpointInternal(name, value));
+    }
+
+    /** @internal */
+    private async _configureInfrastructureInternal(configure: (obj: AzureResourceInfrastructure) => Promise<void>): Promise<AzureUserAssignedIdentityResource> {
+        const configureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureResourceInfrastructureHandle;
+            const obj = new AzureResourceInfrastructure(objHandle, this._client);
+            await configure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/configureInfrastructure',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._configureInfrastructureInternal(configure));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureUserAssignedIdentityResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<AzureUserAssignedIdentityResource> {
+    constructor(private _promise: Promise<AzureUserAssignedIdentityResource>) {}
+
+    then<TResult1 = AzureUserAssignedIdentityResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureUserAssignedIdentityResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Gets an output reference from an Azure Bicep template resource */
+    getOutput(name: string): Promise<BicepOutputReference> {
+        return this._promise.then(obj => obj.getOutput(name));
+    }
+
+    /** Adds a Bicep parameter without a value */
+    withParameter(name: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameter(name)));
+    }
+
+    /** Adds a Bicep parameter with a string value */
+    withParameterStringValue(name: string, value: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterStringValue(name, value)));
+    }
+
+    /** Adds a Bicep parameter with a string list value */
+    withParameterStringValues(name: string, value: string[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterStringValues(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a parameter resource builder */
+    withParameterFromParameter(name: string, value: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterFromParameter(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a connection string resource builder */
+    withParameterFromConnectionString(name: string, value: ResourceBuilderBase): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterFromConnectionString(name, value)));
+    }
+
+    /** Adds a Bicep parameter from another Bicep output reference */
+    withParameterFromOutput(name: string, value: BicepOutputReference): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterFromOutput(name, value)));
+    }
+
+    /** Adds a Bicep parameter from a reference expression */
+    withParameterFromReferenceExpression(name: string, value: ReferenceExpression): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterFromReferenceExpression(name, value)));
+    }
+
+    /** Adds a Bicep parameter from an endpoint reference */
+    withParameterFromEndpoint(name: string, value: EndpointReference): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withParameterFromEndpoint(name, value)));
+    }
+
+    /** Configures the Azure provisioning infrastructure callback */
+    configureInfrastructure(configure: (obj: AzureResourceInfrastructure) => Promise<void>): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.configureInfrastructure(configure)));
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -2452,10 +6439,11 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): Promise<ContainerResource> {
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ContainerResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
             await configure(arg1, arg2);
         });
@@ -2468,15 +6456,16 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Configures the container resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._publishAsAzureContainerAppInternal(configure));
     }
 
     /** @internal */
-    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         });
@@ -2489,7 +6478,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
     }
 
@@ -2509,10 +6498,11 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ContainerResource> {
         const configureId = configure ? registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         }) : undefined;
@@ -2544,6 +6534,96 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ContainerResourcePromise {
         return new ContainerResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
+    }
+
+    /** @internal */
+    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure/withAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2759,12 +6839,12 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Configures the container resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
     }
 
@@ -2781,6 +6861,36 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentFromKeyVaultSecret(name, secretReference)));
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -3346,10 +7456,11 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): Promise<ExecutableResource> {
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ExecutableResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
             await configure(arg1, arg2);
         });
@@ -3362,15 +7473,16 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Configures the executable resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._publishAsAzureContainerAppInternal(configure));
     }
 
     /** @internal */
-    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         });
@@ -3383,7 +7495,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
     }
 
@@ -3403,10 +7515,11 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ExecutableResource> {
         const configureId = configure ? registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         }) : undefined;
@@ -3438,6 +7551,96 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
+    }
+
+    /** @internal */
+    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure/withAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -3613,12 +7816,12 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Configures the executable resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
     }
 
@@ -3635,6 +7838,36 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentFromKeyVaultSecret(name, secretReference)));
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -3834,6 +8067,51 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -3904,6 +8182,21 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -4325,6 +8618,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+    /** @internal */
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4454,10 +8762,11 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): Promise<ProjectResource> {
+    private async _publishAsAzureContainerAppInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): Promise<ProjectResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppHandle;
             await configure(arg1, arg2);
         });
@@ -4470,15 +8779,16 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Configures the project resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._publishAsAzureContainerAppInternal(configure));
     }
 
     /** @internal */
-    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         });
@@ -4491,7 +8801,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
     }
 
@@ -4511,10 +8821,11 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ProjectResource> {
         const configureId = configure ? registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         }) : undefined;
@@ -4546,6 +8857,96 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ProjectResourcePromise {
         return new ProjectResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
+    }
+
+    /** @internal */
+    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure/withAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -4675,6 +9076,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
@@ -4716,12 +9122,12 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Configures the project resource to be published as an Azure Container App */
-    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
+    publishAsAzureContainerApp(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppHandle) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsAzureContainerApp(configure)));
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
     }
 
@@ -4740,6 +9146,232 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
     }
 
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentFromKeyVaultSecret(name, secretReference)));
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    }
+
+}
+
+// ============================================================================
+// AzureResource
+// ============================================================================
+
+export class AzureResource extends ResourceBuilderBase<IAzureResourceHandle> {
+    constructor(handle: IAzureResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsConnectionString',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureResourcePromise {
+        return new AzureResourcePromise(this._publishAsConnectionStringInternal());
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    async getBicepIdentifier(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.Azure/getBicepIdentifier',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _clearDefaultRoleAssignmentsInternal(): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/clearDefaultRoleAssignments',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureResourcePromise {
+        return new AzureResourcePromise(this._clearDefaultRoleAssignmentsInternal());
+    }
+
+    /** Determines whether a resource is marked as existing */
+    async isExisting(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting.Azure/isExisting',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _runAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._runAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _runAsExistingInternal(name: string, resourceGroup: string): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/runAsExisting',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureResourcePromise {
+        return new AzureResourcePromise(this._runAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _publishAsExistingFromParametersInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExistingFromParameters',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._publishAsExistingFromParametersInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _publishAsExistingInternal(name: string, resourceGroup: string): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, resourceGroup };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/publishAsExisting',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureResourcePromise {
+        return new AzureResourcePromise(this._publishAsExistingInternal(name, resourceGroup));
+    }
+
+    /** @internal */
+    private async _asExistingInternal(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): Promise<AzureResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, nameParameter, resourceGroupParameter };
+        const result = await this._client.invokeCapability<IAzureResourceHandle>(
+            'Aspire.Hosting.Azure/asExisting',
+            rpcArgs
+        );
+        return new AzureResource(result, this._client);
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+}
+
+/**
+ * Thenable wrapper for AzureResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class AzureResourcePromise implements PromiseLike<AzureResource> {
+    constructor(private _promise: Promise<AzureResource>) {}
+
+    then<TResult1 = AzureResource, TResult2 = never>(
+        onfulfilled?: ((value: AzureResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Publishes an Azure resource to the manifest as a connection string */
+    publishAsConnectionString(): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
+    }
+
+    /** Gets the normalized Bicep identifier for an Azure resource */
+    getBicepIdentifier(): Promise<string> {
+        return this._promise.then(obj => obj.getBicepIdentifier());
+    }
+
+    /** Clears the default Azure role assignments from a resource */
+    clearDefaultRoleAssignments(): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.clearDefaultRoleAssignments()));
+    }
+
+    /** Determines whether a resource is marked as existing */
+    isExisting(): Promise<boolean> {
+        return this._promise.then(obj => obj.isExisting());
+    }
+
+    /** Marks an Azure resource as existing in run mode by using parameter resources */
+    runAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.runAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in run mode */
+    runAsExisting(name: string, resourceGroup: string): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.runAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode by using parameter resources */
+    publishAsExistingFromParameters(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.publishAsExistingFromParameters(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Marks an Azure resource as existing in publish mode */
+    publishAsExisting(name: string, resourceGroup: string): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.publishAsExisting(name, resourceGroup)));
+    }
+
+    /** Marks an Azure resource as existing in both run and publish modes */
+    asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureResourcePromise {
+        return new AzureResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
 }
 
 // ============================================================================
@@ -4752,10 +9384,11 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
     }
 
     /** @internal */
-    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+    private async _publishAsConfiguredAzureContainerAppJobInternal(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
         const configureId = registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         });
@@ -4768,7 +9401,7 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
         return new ComputeResourcePromise(this._publishAsConfiguredAzureContainerAppJobInternal(configure));
     }
 
@@ -4788,10 +9421,11 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
     }
 
     /** @internal */
-    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
+    private async _publishAsConfiguredScheduledAzureContainerAppJobInternal(cronExpression: string, configure?: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): Promise<ComputeResource> {
         const configureId = configure ? registerCallback(async (argsData: unknown) => {
             const args = argsData as { p0: unknown, p1: unknown };
-            const arg1 = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1Handle = wrapIfHandle(args.p0) as AzureResourceInfrastructureHandle;
+            const arg1 = new AzureResourceInfrastructure(arg1Handle, this._client);
             const arg2 = wrapIfHandle(args.p1) as ContainerAppJobHandle;
             await configure(arg1, arg2);
         }) : undefined;
@@ -4825,6 +9459,21 @@ export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle>
         return new ComputeResourcePromise(this._publishAsScheduledAzureContainerAppJobInternal(cronExpression));
     }
 
+    /** @internal */
+    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<ComputeResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting.Azure/withAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
 }
 
 /**
@@ -4843,7 +9492,7 @@ export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
     }
 
     /** Configures the compute resource as an Azure Container App Job with custom configuration */
-    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructureHandle, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
+    publishAsConfiguredAzureContainerAppJob(configure: (arg1: AzureResourceInfrastructure, arg2: ContainerAppJobHandle) => Promise<void>): ComputeResourcePromise {
         return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsConfiguredAzureContainerAppJob(configure)));
     }
 
@@ -4860,6 +9509,59 @@ export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
     /** Configures the compute resource as a scheduled Azure Container App Job */
     publishAsScheduledAzureContainerAppJob(cronExpression: string): ComputeResourcePromise {
         return new ComputeResourcePromise(this._promise.then(obj => obj.publishAsScheduledAzureContainerAppJob(cronExpression)));
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+}
+
+// ============================================================================
+// ContainerFilesDestinationResource
+// ============================================================================
+
+export class ContainerFilesDestinationResource extends ResourceBuilderBase<IContainerFilesDestinationResourceHandle> {
+    constructor(handle: IContainerFilesDestinationResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ContainerFilesDestinationResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<IContainerFilesDestinationResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ContainerFilesDestinationResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ContainerFilesDestinationResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ContainerFilesDestinationResourcePromise implements PromiseLike<ContainerFilesDestinationResource> {
+    constructor(private _promise: Promise<ContainerFilesDestinationResource>) {}
+
+    then<TResult1 = ContainerFilesDestinationResource, TResult2 = never>(
+        onfulfilled?: ((value: ContainerFilesDestinationResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
     }
 
 }
@@ -5042,6 +9744,51 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         );
     }
 
+    /** @internal */
+    private async _withAzureContainerRegistryInternal(registryBuilder: AzureContainerRegistryResource): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registryBuilder };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withAzureContainerRegistry',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ResourcePromise {
+        return new ResourcePromise(this._withAzureContainerRegistryInternal(registryBuilder));
+    }
+
+    /** @internal */
+    private async _getAzureContainerRegistryInternal(): Promise<AzureContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/getAzureContainerRegistry',
+            rpcArgs
+        );
+        return new AzureContainerRegistryResource(result, this._client);
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._getAzureContainerRegistryInternal());
+    }
+
+    /** @internal */
+    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -5107,6 +9854,21 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Configures a compute environment resource to use an Azure Container Registry. */
+    withAzureContainerRegistry(registryBuilder: AzureContainerRegistryResource): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withAzureContainerRegistry(registryBuilder)));
+    }
+
+    /** Gets the Azure Container Registry associated with a compute environment resource. */
+    getAzureContainerRegistry(): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.getAzureContainerRegistry()));
+    }
+
+    /** Assigns Azure Container Registry roles to a resource. */
+    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
     }
 
 }
@@ -5230,6 +9992,34 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
 
     then<TResult1 = ResourceWithConnectionString, TResult2 = never>(
         onfulfilled?: ((value: ResourceWithConnectionString) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+}
+
+// ============================================================================
+// ResourceWithContainerFiles
+// ============================================================================
+
+export class ResourceWithContainerFiles extends ResourceBuilderBase<IResourceWithContainerFilesHandle> {
+    constructor(handle: IResourceWithContainerFilesHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceWithContainerFiles that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourceWithContainerFilesPromise implements PromiseLike<ResourceWithContainerFiles> {
+    constructor(private _promise: Promise<ResourceWithContainerFiles>) {}
+
+    then<TResult1 = ResourceWithContainerFiles, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithContainerFiles) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
@@ -5579,6 +10369,36 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
         return new ResourceWithEnvironmentPromise(this._withServiceReferenceInternal(source));
     }
 
+    /** @internal */
+    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ResourceWithEnvironment> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
+            rpcArgs
+        );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<ResourceWithEnvironment> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
+            rpcArgs
+        );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
+    }
+
 }
 
 /**
@@ -5624,6 +10444,16 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withServiceReference(source)));
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentFromKeyVaultSecret(name, secretReference)));
     }
 
 }
@@ -5832,6 +10662,8 @@ process.on('uncaughtException', (error: Error) => {
 // ============================================================================
 
 // Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureResourceInfrastructure', (handle, client) => new AzureResourceInfrastructure(handle as AzureResourceInfrastructureHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.BicepOutputReference', (handle, client) => new BicepOutputReference(handle as BicepOutputReferenceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext', (handle, client) => new CommandLineArgsCallbackContext(handle as CommandLineArgsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplication', (handle, client) => new DistributedApplication(handle as DistributedApplicationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext', (handle, client) => new DistributedApplicationExecutionContext(handle as DistributedApplicationExecutionContextHandle, client));
@@ -5842,16 +10674,24 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCom
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureBicepResource', (handle, client) => new AzureBicepResource(handle as AzureBicepResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.AzureContainerAppEnvironmentResource', (handle, client) => new AzureContainerAppEnvironmentResource(handle as AzureContainerAppEnvironmentResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure.ContainerRegistry/Aspire.Hosting.Azure.AzureContainerRegistryResource', (handle, client) => new AzureContainerRegistryResource(handle as AzureContainerRegistryResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureEnvironmentResource', (handle, client) => new AzureEnvironmentResource(handle as AzureEnvironmentResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.AzureLogAnalyticsWorkspaceResource', (handle, client) => new AzureLogAnalyticsWorkspaceResource(handle as AzureLogAnalyticsWorkspaceResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureProvisioningResource', (handle, client) => new AzureProvisioningResource(handle as AzureProvisioningResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.Azure.AzureUserAssignedIdentityResource', (handle, client) => new AzureUserAssignedIdentityResource(handle as AzureUserAssignedIdentityResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Azure/Aspire.Hosting.ApplicationModel.IAzureResource', (handle, client) => new AzureResource(handle as IAzureResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource', (handle, client) => new ComputeResource(handle as IComputeResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles', (handle, client) => new ResourceWithContainerFiles(handle as IResourceWithContainerFilesHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
