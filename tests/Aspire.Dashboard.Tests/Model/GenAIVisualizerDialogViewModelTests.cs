@@ -2195,7 +2195,8 @@ public sealed class GenAIVisualizerDialogViewModelTests
             {
                 Assert.Equal(GenAIItemType.UserMessage, m.Type);
                 Assert.Collection(m.ItemParts,
-                    p => Assert.Equal("Hello World!", Assert.IsType<TextPart>(p.MessagePart).Content));
+                    p => Assert.Equal("Hello ", Assert.IsType<TextPart>(p.MessagePart).Content),
+                    p => Assert.Equal("World!", Assert.IsType<TextPart>(p.MessagePart).Content));
             });
     }
 

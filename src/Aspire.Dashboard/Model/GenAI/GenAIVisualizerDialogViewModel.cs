@@ -249,8 +249,8 @@ public sealed class GenAIVisualizerDialogViewModel
         {
             if (!string.IsNullOrEmpty(systemInstructions))
             {
-                var (instructionParts, truncated) = DeserializeArrayIncrementally(systemInstructions, (ref Utf8JsonReader r) => JsonSerializer.Deserialize(ref r, GenAIMessagesContext.Default.MessagePart));
-                var parts = instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
+                var (instructionParts, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally<List<MessagePart>>(systemInstructions, GenAIMessageParsingHelper.ReadMessageParts);
+                var parts = instructionParts.SelectMany(p => p).Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
                 if (truncated)
                 {
                     parts.Add(GenAIItemPartViewModel.CreateErrorMessage(Resources.Dialogs.GenAIUnexpectedOrTruncatedContent));
@@ -315,18 +315,22 @@ public sealed class GenAIVisualizerDialogViewModel
 
     private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, bool isOutput, ref int currentIndex)
     {
-        var (chatMessages, truncated) = DeserializeArrayIncrementally(messages, (ref Utf8JsonReader r) => JsonSerializer.Deserialize(ref r, GenAIMessagesContext.Default.ChatMessage));
-        foreach (var msg in chatMessages)
+        var (chatMessages, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(messages, GenAIMessageParsingHelper.ReadChatMessage);
+        foreach (var (role, parts, partsTruncated) in chatMessages)
         {
-            var parts = msg.Parts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
-            var type = msg.Role switch
+            var viewParts = parts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
+            if (partsTruncated)
+            {
+                viewParts.Add(GenAIItemPartViewModel.CreateErrorMessage(Resources.Dialogs.GenAIUnexpectedOrTruncatedContent));
+            }
+            var type = role switch
             {
                 "system" => GenAIItemType.SystemMessage,
-                "user" => msg.Parts.All(p => p is ToolCallResponsePart) ? GenAIItemType.ToolMessage : GenAIItemType.UserMessage,
+                "user" => parts.All(p => p is ToolCallResponsePart) ? GenAIItemType.ToolMessage : GenAIItemType.UserMessage,
                 "assistant" => isOutput ? GenAIItemType.OutputMessage : GenAIItemType.AssistantMessage,
                 _ => GenAIItemType.UserMessage
             };
-            viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type, parts, internalId: null));
+            viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type, viewParts, internalId: null));
             currentIndex++;
         }
 
@@ -514,69 +518,6 @@ public sealed class GenAIVisualizerDialogViewModel
                 }
             }
         }
-    }
-
-    private delegate T? ReadElement<T>(ref Utf8JsonReader reader);
-
-    private static (List<T> items, bool truncated) DeserializeArrayIncrementally<T>(string json, ReadElement<T> readElement)
-    {
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var readerOptions = new JsonReaderOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
-        var reader = new Utf8JsonReader(bytes, readerOptions);
-        return DeserializeArrayIncrementally(ref reader, readElement);
-    }
-
-    private static (List<T> items, bool truncated) DeserializeArrayIncrementally<T>(ref Utf8JsonReader reader, ReadElement<T> readElement)
-    {
-        var items = new List<T>();
-
-        // Read start of array. Let exceptions propagate for truly invalid JSON.
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
-        {
-            throw new JsonException("Expected a JSON array.");
-        }
-
-        while (true)
-        {
-            bool readSuccess;
-            try
-            {
-                readSuccess = reader.Read();
-            }
-            catch (JsonException)
-            {
-                return (items, true);
-            }
-
-            if (!readSuccess)
-            {
-                return (items, true);
-            }
-
-            if (reader.TokenType == JsonTokenType.EndArray)
-            {
-                break;
-            }
-
-            try
-            {
-                var item = readElement(ref reader);
-                if (item is not null)
-                {
-                    items.Add(item);
-                }
-            }
-            catch (JsonException)
-            {
-                return (items, true);
-            }
-        }
-
-        return (items, false);
     }
 
     private static TValue DeserializeWithErrorHandling<TValue>(string description, string json, JsonTypeInfo<TValue> jsonTypeInfo)
