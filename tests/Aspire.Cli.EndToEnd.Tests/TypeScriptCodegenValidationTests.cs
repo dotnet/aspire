@@ -57,7 +57,6 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
             .Type("aspire init --language typescript --non-interactive")
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Add two integrations
