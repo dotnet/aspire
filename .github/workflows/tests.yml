@@ -38,11 +38,19 @@ jobs:
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  build_cli_archives:
-    name: Build native CLI archives
+  build_cli_archive_linux:
+    name: Build native CLI archive (Linux)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"}]'
+
+  build_cli_archives_other:
+    name: Build native CLI archives (Windows, macOS)
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}, {"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
 
   tests_no_nugets:
     name: ${{ matrix.shortname }}
@@ -85,7 +93,7 @@ jobs:
   tests_requires_nugets:
     name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages]
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
     strategy:
       fail-fast: false
@@ -104,7 +112,7 @@ jobs:
   tests_requires_cli_archive:
     name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages, build_cli_archives]
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_cli_archive).include[0] != null }}
     strategy:
       fail-fast: false
@@ -124,7 +132,7 @@ jobs:
   polyglot_validation:
     name: Polyglot SDK Validation
     uses: ./.github/workflows/polyglot-validation.yml
-    needs: [build_packages, build_cli_archives]
+    needs: [build_packages, build_cli_archive_linux]
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
@@ -158,6 +166,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
+      setup_for_tests,
+      build_packages,
+      build_cli_archive_linux,
+      build_cli_archives_other,
       extension_tests_win,
       tests_no_nugets,
       tests_no_nugets_overflow,
