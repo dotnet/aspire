@@ -227,6 +227,45 @@ public sealed class GenAIVisualizerDialogViewModel
                 {
                     return false;
                 }
+                else if (partViewModel.MessagePart is BlobPart blobPart)
+                {
+                    if (!string.IsNullOrEmpty(blobPart.Content))
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is UriPart uriPart)
+                {
+                    if (!string.IsNullOrEmpty(uriPart.Uri))
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is FilePart filePart)
+                {
+                    if (!string.IsNullOrEmpty(filePart.FileId))
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is ReasoningPart reasoningPart)
+                {
+                    if (!string.IsNullOrEmpty(reasoningPart.Content))
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is ServerToolCallPart)
+                {
+                    return false;
+                }
+                else if (partViewModel.MessagePart is ServerToolCallResponsePart serverToolCallResponsePart)
+                {
+                    if (serverToolCallResponsePart.ServerToolCallResponse is not null)
+                    {
+                        return false;
+                    }
+                }
             }
         }
 
