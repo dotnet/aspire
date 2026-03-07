@@ -44,6 +44,17 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Try to get AspireExportIgnoreAttribute for ASPIRE014
+        INamedTypeSymbol? aspireExportIgnoreAttribute = null;
+        try
+        {
+            aspireExportIgnoreAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_AspireExportIgnoreAttribute);
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found, missing attribute check won't run
+        }
+
         // Try to get AspireUnionAttribute for ASPIRE011/012 validation
         INamedTypeSymbol? aspireUnionAttribute = null;
         try
@@ -60,7 +71,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         var exportsByKey = new ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>>();
 
         context.RegisterSymbolAction(
-            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute, aspireUnionAttribute, exportsByKey),
+            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute, aspireExportIgnoreAttribute, aspireUnionAttribute, exportsByKey),
             SymbolKind.Method);
 
         // At the end of compilation, report duplicate export IDs
@@ -71,6 +82,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         SymbolAnalysisContext context,
         WellKnownTypes wellKnownTypes,
         INamedTypeSymbol aspireExportAttribute,
+        INamedTypeSymbol? aspireExportIgnoreAttribute,
         INamedTypeSymbol? aspireUnionAttribute,
         ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>> exportsByKey)
     {
@@ -78,13 +90,29 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         // Find AspireExportAttribute on the method
         AttributeData? exportAttribute = null;
+        var hasExportIgnore = false;
+        var isObsolete = false;
         foreach (var attr in method.GetAttributes())
         {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
             {
                 exportAttribute = attr;
-                break;
             }
+            else if (aspireExportIgnoreAttribute is not null &&
+                     SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportIgnoreAttribute))
+            {
+                hasExportIgnore = true;
+            }
+            else if (attr.AttributeClass?.Name == "ObsoleteAttribute")
+            {
+                isObsolete = true;
+            }
+        }
+
+        // ASPIRE014: Check for missing export attributes on builder extension methods
+        if (exportAttribute is null && !hasExportIgnore && !isObsolete)
+        {
+            AnalyzeMissingExportAttribute(context, method, wellKnownTypes, aspireExportAttribute);
         }
 
         if (exportAttribute is null)
@@ -152,6 +180,207 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             var key = (exportId, targetTypeName);
             var bag = exportsByKey.GetOrAdd(key, _ => new ConcurrentBag<(IMethodSymbol, Location)>());
             bag.Add((method, location));
+        }
+    }
+
+    private static void AnalyzeMissingExportAttribute(
+        SymbolAnalysisContext context,
+        IMethodSymbol method,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
+    {
+        // Only check public static extension methods
+        if (!method.IsStatic || !method.IsExtensionMethod || method.DeclaredAccessibility != Accessibility.Public)
+        {
+            return;
+        }
+
+        if (method.Parameters.Length == 0)
+        {
+            return;
+        }
+
+        // Only check methods extending IDistributedApplicationBuilder or IResourceBuilder<T>
+        var firstParamType = method.Parameters[0].Type;
+        if (!IsBuilderType(firstParamType, wellKnownTypes))
+        {
+            return;
+        }
+
+        // Determine the incompatibility reason (if any) to include in the warning
+        var reason = GetIncompatibilityReason(method, wellKnownTypes, aspireExportAttribute);
+        var location = method.Locations.FirstOrDefault() ?? Location.None;
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Diagnostics.s_missingExportAttribute,
+            location,
+            method.Name,
+            reason ?? "Add [AspireExport] if ATS-compatible, or [AspireExportIgnore] with a reason."));
+    }
+
+    private static bool IsBuilderType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    {
+        // Check IDistributedApplicationBuilder
+        try
+        {
+            var distributedAppBuilder = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_IDistributedApplicationBuilder);
+            if (SymbolEqualityComparer.Default.Equals(type, distributedAppBuilder) ||
+                WellKnownTypes.Implements(type, distributedAppBuilder))
+            {
+                return true;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found
+        }
+
+        // Check IResourceBuilder<T>
+        if (IsResourceBuilderType(type, wellKnownTypes))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string? GetIncompatibilityReason(
+        IMethodSymbol method,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
+    {
+        var reasons = new List<string>();
+
+        // Check for out parameters
+        foreach (var param in method.Parameters)
+        {
+            if (param.RefKind == RefKind.Out)
+            {
+                reasons.Add($"'out' parameter '{param.Name}' is not ATS-compatible");
+            }
+        }
+
+        // Check for open generic type parameters on the method itself (not constrained to IResource)
+        if (method.TypeParameters.Length > 0)
+        {
+            foreach (var tp in method.TypeParameters)
+            {
+                var hasResourceConstraint = false;
+                foreach (var constraint in tp.ConstraintTypes)
+                {
+                    if (IsResourceType(constraint, wellKnownTypes) || IsResourceBuilderType(constraint, wellKnownTypes))
+                    {
+                        hasResourceConstraint = true;
+                        break;
+                    }
+                }
+                if (!hasResourceConstraint)
+                {
+                    reasons.Add($"open generic type parameter '{tp.Name}' is not ATS-compatible");
+                }
+            }
+        }
+
+        // Check parameters (skip 'this' first parameter)
+        for (var i = 1; i < method.Parameters.Length; i++)
+        {
+            var param = method.Parameters[i];
+            var paramType = param.Type;
+
+            // Skip params arrays if element type is compatible
+            if (param.IsParams && paramType is IArrayTypeSymbol paramsArray)
+            {
+                if (!IsAtsCompatibleValueType(paramsArray.ElementType, wellKnownTypes, aspireExportAttribute))
+                {
+                    reasons.Add($"parameter '{param.Name}' uses '{paramsArray.ElementType.ToDisplayString()}[]' which is not ATS-compatible");
+                }
+                continue;
+            }
+
+            // Check delegate types more carefully
+            if (IsDelegateType(paramType))
+            {
+                var reason = GetDelegateIncompatibilityReason(param, paramType, wellKnownTypes, aspireExportAttribute);
+                if (reason is not null)
+                {
+                    reasons.Add(reason);
+                }
+                continue;
+            }
+
+            if (!IsAtsCompatibleValueType(paramType, wellKnownTypes, aspireExportAttribute))
+            {
+                reasons.Add($"parameter '{param.Name}' of type '{paramType.ToDisplayString()}' is not ATS-compatible");
+            }
+        }
+
+        // Check return type
+        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute))
+        {
+            reasons.Add($"return type '{method.ReturnType.ToDisplayString()}' is not ATS-compatible");
+        }
+
+        if (reasons.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join("; ", reasons) + ".";
+    }
+
+    private static string? GetDelegateIncompatibilityReason(
+        IParameterSymbol param,
+        ITypeSymbol delegateType,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol _)
+    {
+        if (delegateType is not INamedTypeSymbol namedDelegate)
+        {
+            return $"parameter '{param.Name}' uses delegate type which is not ATS-compatible";
+        }
+
+        // Find the Invoke method to get delegate signature
+        var invokeMethod = namedDelegate.DelegateInvokeMethod;
+        if (invokeMethod is null)
+        {
+            return null;
+        }
+
+        // Check delegate parameter types for known incompatible patterns
+        foreach (var delegateParam in invokeMethod.Parameters)
+        {
+            var dpType = delegateParam.Type;
+            var dpTypeName = dpType.ToDisplayString();
+
+            // Check for known incompatible context types
+            if (dpTypeName.Contains("IServiceProvider") ||
+                dpTypeName.Contains("Utf8JsonWriter") ||
+                dpTypeName.Contains("CancellationToken") ||
+                dpTypeName.Contains("HttpRequestMessage"))
+            {
+                return $"parameter '{param.Name}' uses delegate with '{dpType.Name}' which is not ATS-compatible";
+            }
+
+            // Check for IResource as a raw parameter (not wrapped in IResourceBuilder<T>)
+            if (IsRawResourceInterface(dpType, wellKnownTypes))
+            {
+                return $"parameter '{param.Name}' uses delegate with raw '{dpType.Name}' interface which is not ATS-compatible";
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRawResourceInterface(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    {
+        try
+        {
+            var iResourceType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IResource);
+            return SymbolEqualityComparer.Default.Equals(type, iResourceType);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
         }
     }
 

@@ -37,6 +37,7 @@ public static class ConnectionStringBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addConnectionStringExpression", MethodName = "addConnectionString", Description = "Adds a connection string with a reference expression")]
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression connectionStringExpression)
     {
         var cs = new ConnectionStringResource(name, connectionStringExpression);
@@ -119,8 +120,10 @@ public static class ConnectionStringBuilderExtensions
     /// Adds a connection string resource to the distributed application with the specified expression.
     /// </summary>
     /// <remarks>
-    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
-    /// <param name="builder">Distributed application builder</param>
+    /// <para>This method is not available in polyglot app hosts. Use the ReferenceExpression overload instead.</para>
+    /// <para>This method also enables appending custom data to the connection string based on other resources that expose connection strings.</para>
+    /// </remarks>
+    /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="connectionStringBuilder">The callback to configure the connection string expression.</param>
     /// <returns>An <see cref="IResourceBuilder{ConnectionStringResource}"/> instance.</returns>
@@ -140,7 +143,7 @@ public static class ConnectionStringBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// </remarks>
+    [AspireExportIgnore(Reason = "ReferenceExpressionBuilder is not an ATS-exported callback context.")]
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ReferenceExpressionBuilder> connectionStringBuilder)
     {
         var rb = new ReferenceExpressionBuilder();
