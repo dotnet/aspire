@@ -39,7 +39,7 @@ public class TextPart : MessagePart
 /// <summary>
 /// Handles deserializing <c>content</c> that can be either a plain string
 /// or an array of content parts (e.g. <c>[{"type":"text","text":"..."}]</c>).
-/// This format is used by Anthropic's Claude API.
+/// This format is used by multiple GenAI chat APIs, such as Anthropic Claude and OpenAI multimodal models.
 /// </summary>
 internal sealed class TextContentConverter : JsonConverter<string?>
 {
