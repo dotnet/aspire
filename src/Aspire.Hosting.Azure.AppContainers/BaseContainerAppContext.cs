@@ -287,17 +287,33 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
         if (value is ReferenceExpression expr)
         {
-            // Handle conditional expressions by generating a Bicep ternary
+            // Handle conditional expressions
             if (expr.IsConditional)
             {
                 var (conditionVal, _) = ProcessValue(expr.Condition!, secretType, parent: expr);
+
+                // If the condition resolves to a static string, evaluate at publish time
+                string? staticCondition = conditionVal is string str ? str : null;
+                if (staticCondition is null && conditionVal is BicepValue<string> bv
+                    && bv.Compile() is StringLiteralExpression sle)
+                {
+                    staticCondition = sle.Value;
+                }
+
+                if (staticCondition is not null)
+                {
+                    var branch = string.Equals(staticCondition, expr.MatchValue, StringComparison.OrdinalIgnoreCase)
+                        ? expr.WhenTrue!
+                        : expr.WhenFalse!;
+                    return ProcessValue(branch, secretType, parent: parent);
+                }
+
+                // Condition is a Bicep parameter/output — emit a ternary expression
                 var (whenTrueVal, trueSecret) = ProcessValue(expr.WhenTrue!, secretType, parent: expr);
                 var (whenFalseVal, falseSecret) = ProcessValue(expr.WhenFalse!, secretType, parent: expr);
 
-                var conditionExpr = ResolveValue(conditionVal).Compile();
-                var matchExpr = new StringLiteralExpression(expr.MatchValue!);
                 var conditional = new ConditionalExpression(
-                    new BinaryExpression(conditionExpr, BinaryBicepOperator.Equal, matchExpr),
+                    new BinaryExpression(ResolveValue(conditionVal).Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression(expr.MatchValue!)),
                     ResolveValue(whenTrueVal).Compile(),
                     ResolveValue(whenFalseVal).Compile());
 

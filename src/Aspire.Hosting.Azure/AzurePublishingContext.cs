@@ -200,14 +200,25 @@ public sealed class AzurePublishingContext(
             return FormattableStringFactory.Create(expr.Format, args);
         }
 
-        BicepValue<string> EvalConditionalExpr(ReferenceExpression expr)
+        object EvalConditionalExpr(ReferenceExpression expr)
         {
-            var conditionVal = ResolveValue(Eval(expr.Condition!));
+            var conditionVal = Eval(expr.Condition!);
+
+            // If the condition resolves to a static string, evaluate at publish time
+            if (conditionVal is string staticCondition)
+            {
+                var branch = string.Equals(staticCondition, expr.MatchValue, StringComparison.OrdinalIgnoreCase)
+                    ? expr.WhenTrue!
+                    : expr.WhenFalse!;
+                return Eval(branch);
+            }
+
+            // Condition is a Bicep parameter/output — emit a ternary expression
             var whenTrueVal = ResolveValue(Eval(expr.WhenTrue!));
             var whenFalseVal = ResolveValue(Eval(expr.WhenFalse!));
 
             var conditional = new ConditionalExpression(
-                new BinaryExpression(conditionVal.Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression(expr.MatchValue!)),
+                new BinaryExpression(ResolveValue(conditionVal).Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression(expr.MatchValue!)),
                 whenTrueVal.Compile(),
                 whenFalseVal.Compile());
 

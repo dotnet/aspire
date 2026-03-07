@@ -22,7 +22,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
       secrets: [
         {
           name: 'connectionstrings--cache'
-          value: 'cache:6379,password=${cache_password_value}${('False' == 'True') ? ',ssl=true' : ''}'
+          value: 'cache:6379,password=${cache_password_value}'
         }
         {
           name: 'cache-password'
