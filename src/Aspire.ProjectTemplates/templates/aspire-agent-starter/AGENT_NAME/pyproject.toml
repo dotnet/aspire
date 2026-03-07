@@ -1,0 +1,36 @@
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "AGENT_NAME"
+version = "0.1.0"
+description = "Hosted agent starter created from cookiecutter template."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agent-framework>=1.0.0b260130",
+    "azure-ai-agentserver-core>=1.0.0b7",
+    "azure-ai-projects>=2.0.0b3",
+    "azure-identity>=1.25.1",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b47",
+    "opentelemetry-distro>=0.59b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
+    "opentelemetry-instrumentation-openai-agents-v2>=0.1.0",
+    "opentelemetry-semantic-conventions>=0.60b0",
+    "rich>=14.2.0",
+]
+
+[dependency-groups]
+dev = [
+  "python-dotenv>=1.2.1",
+  "pytest>=9.0.2",
+  "ruff>=0.15.0",
+  "pyright>=1.1.408",
+]
+
+[tool.uv]
+package = true
+
+[tool.uv.build-backend]
+module-name = "agent"

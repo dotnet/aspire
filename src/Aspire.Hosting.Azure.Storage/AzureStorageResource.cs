@@ -68,6 +68,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the "id" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference IdOutputReference => new("id", this);
+
+    /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();

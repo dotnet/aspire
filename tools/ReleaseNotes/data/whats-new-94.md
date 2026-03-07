@@ -1027,7 +1027,7 @@ Aspire 9.4 introduces comprehensive [Azure AI Foundry](https://ai.azure.com/) su
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure AI Foundry project
-var foundry = builder.AddAzureAIFoundry("foundry");
+var foundry = builder.AddFoundry("foundry");
 
 // Add specific model deployments
 var chat = foundry.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
@@ -1049,7 +1049,7 @@ builder.Build().Run();
 var builder = DistributedApplication.CreateBuilder(args);
 
 // For local development, run with Foundry Local
-var localFoundry = builder.AddAzureAIFoundry("foundry")
+var localFoundry = builder.AddFoundry("foundry")
     .RunAsFoundryLocal()
     .AddDeployment("chat", "phi-3.5-mini", "1", "Microsoft");
 

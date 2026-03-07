@@ -796,19 +796,19 @@ app.Run();
 
 ### Azure AI Foundry enhancements
 
-9.5 adds a generated, strongly-typed model catalog (`AIFoundryModel`) for IntelliSense + ref safety when creating deployments (PR #10986) and a daily automation that refreshes the catalog as new models appear in Azure AI Foundry (PR #11040). Sample apps and end-to-end tests now use these constants (PR #11039) instead of raw strings. The original Foundry hosting integration and local runtime support were introduced earlier (issue #9568); this release focuses on developer ergonomics and keeping model metadata current.
+9.5 adds a generated, strongly-typed model catalog (`FoundryModel`) for IntelliSense + ref safety when creating deployments (PR #10986) and a daily automation that refreshes the catalog as new models appear in Azure AI Foundry (PR #11040). Sample apps and end-to-end tests now use these constants (PR #11039) instead of raw strings. The original Foundry hosting integration and local runtime support were introduced earlier (issue #9568); this release focuses on developer ergonomics and keeping model metadata current.
 
 Strongly-typed model catalog with IntelliSense support:
 
 ```csharp
-var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+var aiFoundry = builder.AddFoundry("ai-foundry");
 
 // Strongly-typed model references
-var gpt4 = aiFoundry.AddDeployment("gpt-4", AIFoundryModel.OpenAI.Gpt4);
-var mistral = aiFoundry.AddDeployment("mistral", AIFoundryModel.MistralAi.MistralLarge2411);
+var gpt4 = aiFoundry.AddDeployment("gpt-4", FoundryModel.OpenAI.Gpt4);
+var mistral = aiFoundry.AddDeployment("mistral", FoundryModel.MistralAi.MistralLarge2411);
 
 // Local on-device mode
-var localFoundry = builder.AddAzureAIFoundry("local-ai")
+var localFoundry = builder.AddFoundry("local-ai")
   .RunAsFoundryLocal();
 ```
 
@@ -831,7 +831,7 @@ Updated Azurite to version 3.35.0, resolving health check issues that previously
 
 Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
 
-- `AzureAIFoundryResource`
+- `FoundryResource`
 - `AzureAppConfigurationResource`
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`

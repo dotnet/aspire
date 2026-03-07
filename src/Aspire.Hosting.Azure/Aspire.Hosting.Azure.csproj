@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -41,6 +41,8 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.ContainerRegistry" />
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppService" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.CognitiveServices" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Foundry" />
   </ItemGroup>
 
 </Project>
