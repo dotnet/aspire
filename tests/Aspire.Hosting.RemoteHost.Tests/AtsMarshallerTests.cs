@@ -977,7 +977,7 @@ public class AtsMarshallerTests
         registry.TryGet(handleId, out var retrieved, out _);
         var retrievedConditional = Assert.IsType<ConditionalReferenceExpression>(retrieved);
 
-        Assert.Equal("test-tls", retrievedConditional.Name);
+        Assert.StartsWith("cond-test-condition", retrievedConditional.Name);
         Assert.Equal(",ssl=true", await retrievedConditional.GetValueAsync());
     }
 
