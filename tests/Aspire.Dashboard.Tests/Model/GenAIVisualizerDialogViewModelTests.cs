@@ -2129,4 +2129,95 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Null(invalidParam.Type); // Type should be null since it couldn't be parsed
         Assert.Equal("A parameter with invalid type structure", invalidParam.Description);
     }
+
+    [Fact]
+    public void Create_GenAISpanAttributes_ArrayContentInTextPart_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Input messages where content is an array of content parts instead of a plain string.
+        // This format is used by OpenAI-compatible APIs for multi-part content.
+        var inputMessages = """
+            [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "type": "text",
+                            "content": [
+                                { "type": "text", "text": "Hello, " },
+                                { "type": "text", "text": "world!" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        var outputMessages = """
+            [
+                {
+                    "role": "assistant",
+                    "parts": [
+                        {
+                            "type": "text",
+                            "content": "Plain string response"
+                        }
+                    ]
+                }
+            ]
+            """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            KeyValuePair.Create(GenAIHelpers.GenAIInputMessages, inputMessages),
+            KeyValuePair.Create(GenAIHelpers.GenAIOutputInstructions, outputMessages)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert - array content parts should be concatenated into a single string
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Hello, world!", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Plain string response", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.DisplayErrorMessage);
+    }
 }

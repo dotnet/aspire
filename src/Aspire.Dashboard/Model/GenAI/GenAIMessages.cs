@@ -32,7 +32,63 @@ public class TextPart : MessagePart
         Type = TextType;
     }
 
+    [JsonConverter(typeof(TextContentConverter))]
     public string? Content { get; set; } = default!;
+}
+
+/// <summary>
+/// Handles deserializing <c>content</c> that can be either a plain string
+/// or an array of content parts (e.g. <c>[{"type":"text","text":"..."}]</c>).
+/// This format is used by Anthropic's Claude API.
+/// </summary>
+internal sealed class TextContentConverter : JsonConverter<string?>
+{
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType is JsonTokenType.Null)
+        {
+            return null;
+        }
+
+        if (reader.TokenType is JsonTokenType.String)
+        {
+            return reader.GetString();
+        }
+
+        if (reader.TokenType is JsonTokenType.StartArray)
+        {
+            var sb = new System.Text.StringBuilder();
+            using var doc = JsonDocument.ParseValue(ref reader);
+            foreach (var element in doc.RootElement.EnumerateArray())
+            {
+                if (element.ValueKind is JsonValueKind.String)
+                {
+                    sb.Append(element.GetString());
+                }
+                else if (element.ValueKind is JsonValueKind.Object &&
+                         element.TryGetProperty("text", out var textProp) &&
+                         textProp.ValueKind is JsonValueKind.String)
+                {
+                    sb.Append(textProp.GetString());
+                }
+            }
+            return sb.ToString();
+        }
+
+        throw new JsonException($"Unexpected token type '{reader.TokenType}' when reading text content.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+        {
+            writer.WriteNullValue();
+        }
+        else
+        {
+            writer.WriteStringValue(value);
+        }
+    }
 }
 
 /// <summary>
