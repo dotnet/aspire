@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -13,7 +12,10 @@ namespace Aspire.Dashboard.Model.GenAI;
 /// <summary>
 /// Represents text, tool calls, and generic parts.
 /// </summary>
-[JsonConverter(typeof(MessagePartConverter))]
+[JsonDerivedType(typeof(TextPart))]
+[JsonDerivedType(typeof(ToolCallRequestPart))]
+[JsonDerivedType(typeof(ToolCallResponsePart))]
+[JsonDerivedType(typeof(GenericPart))]
 public abstract class MessagePart
 {
     public const string TextType = "text";
@@ -96,55 +98,6 @@ public class ToolDefinition
     public string? Name { get; set; }
     public string? Description { get; set; }
     public OpenApiSchema? Parameters { get; set; }
-}
-
-/// <summary>
-/// Custom converter to handle polymorphic message parts.
-/// </summary>
-public class MessagePartConverter : JsonConverter<MessagePart>
-{
-    public override MessagePart? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        using var doc = JsonDocument.ParseValue(ref reader);
-        if (!doc.RootElement.TryGetProperty("type", out var typeProp))
-        {
-            throw new JsonException("Missing 'type' property.");
-        }
-
-        var type = typeProp.GetString();
-        return type switch
-        {
-            MessagePart.TextType => DeserializeTextPart(doc.RootElement, options),
-            MessagePart.ToolCallType => JsonSerializer.Deserialize<ToolCallRequestPart>(doc.RootElement.GetRawText(), options),
-            MessagePart.ToolCallResponseType => JsonSerializer.Deserialize<ToolCallResponsePart>(doc.RootElement.GetRawText(), options),
-            _ => JsonSerializer.Deserialize<GenericPart>(doc.RootElement.GetRawText(), options),
-        };
-    }
-
-    private static TextPart DeserializeTextPart(JsonElement element, JsonSerializerOptions options)
-    {
-        // Handle content being either a string or an array of content parts.
-        // Some SDKs emit content as an array, e.g. [{"type":"text","text":"..."}]
-        if (element.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == JsonValueKind.Array)
-        {
-            var sb = new StringBuilder();
-            foreach (var item in contentProp.EnumerateArray())
-            {
-                if (item.TryGetProperty("text", out var textProp) && textProp.ValueKind == JsonValueKind.String)
-                {
-                    sb.Append(textProp.GetString());
-                }
-            }
-            return new TextPart { Content = sb.ToString() };
-        }
-
-        return JsonSerializer.Deserialize<TextPart>(element.GetRawText(), options)!;
-    }
-
-    public override void Write(Utf8JsonWriter writer, MessagePart value, JsonSerializerOptions options)
-    {
-        JsonSerializer.Serialize(writer, (object)value, value.GetType(), options);
-    }
 }
 
 [JsonSourceGenerationOptions(
