@@ -28,7 +28,7 @@ class ReferenceExpression:
         return ReferenceExpression(format_string, value_providers)
 
     @staticmethod
-    def create_conditional(condition: Any, when_true: "ReferenceExpression", when_false: "ReferenceExpression", match_value: str = "True") -> "ReferenceExpression":
+    def create_conditional(condition: Any, match_value: str, when_true: "ReferenceExpression", when_false: "ReferenceExpression") -> "ReferenceExpression":
         """Creates a conditional reference expression from its parts."""
         expr = ReferenceExpression.__new__(ReferenceExpression)
         expr._format_string = ""

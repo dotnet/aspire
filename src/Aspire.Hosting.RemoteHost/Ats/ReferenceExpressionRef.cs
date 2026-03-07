@@ -31,6 +31,7 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// {
 ///   "$expr": {
 ///     "condition": { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReferenceExpression:1" },
+///     "matchValue": "true",
 ///     "whenTrue": { "$expr": { "format": ",ssl=true" } },
 ///     "whenFalse": { "$expr": { "format": "" } }
 ///   }

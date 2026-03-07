@@ -67,7 +67,7 @@ func NewReferenceExpressionFromHandle(handle *Handle, client *AspireClient) *Ref
 }
 
 // CreateConditionalReferenceExpression creates a conditional reference expression from its parts.
-func CreateConditionalReferenceExpression(condition any, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression, matchValue string) *ReferenceExpression {
+func CreateConditionalReferenceExpression(condition any, matchValue string, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression) *ReferenceExpression {
 	if matchValue == "" {
 		matchValue = "True"
 	}

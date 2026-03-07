@@ -101,7 +101,7 @@ impl ReferenceExpression {
     }
 
     /// Creates a conditional reference expression from its parts.
-    pub fn create_conditional(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression, match_value: Option<String>) -> Self {
+    pub fn create_conditional(condition: Value, match_value: Option<String>, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
         Self {
             format: None,
             args: None,

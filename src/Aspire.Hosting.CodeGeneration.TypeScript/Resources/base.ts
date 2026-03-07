@@ -55,24 +55,24 @@ export class ReferenceExpression {
 
     constructor(format: string, valueProviders: unknown[]);
     constructor(handle: Handle, client: AspireClient);
-    constructor(condition: unknown, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression, matchValue?: string);
+    constructor(condition: unknown, matchValue: string, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression);
     constructor(
         handleOrFormatOrCondition: Handle | string | unknown,
-        clientOrValueProvidersOrWhenTrue: AspireClient | unknown[] | ReferenceExpression,
-        whenFalse?: ReferenceExpression,
-        matchValue?: string
+        clientOrValueProvidersOrMatchValue: AspireClient | unknown[] | string,
+        whenTrueOrWhenFalse?: ReferenceExpression,
+        whenFalse?: ReferenceExpression
     ) {
         if (typeof handleOrFormatOrCondition === 'string') {
             this._format = handleOrFormatOrCondition;
-            this._valueProviders = clientOrValueProvidersOrWhenTrue as unknown[];
+            this._valueProviders = clientOrValueProvidersOrMatchValue as unknown[];
         } else if (handleOrFormatOrCondition instanceof Handle) {
             this._handle = handleOrFormatOrCondition;
-            this._client = clientOrValueProvidersOrWhenTrue as AspireClient;
+            this._client = clientOrValueProvidersOrMatchValue as AspireClient;
         } else {
             this._condition = handleOrFormatOrCondition;
-            this._whenTrue = clientOrValueProvidersOrWhenTrue as ReferenceExpression;
+            this._matchValue = (clientOrValueProvidersOrMatchValue as string) ?? 'True';
+            this._whenTrue = whenTrueOrWhenFalse;
             this._whenFalse = whenFalse;
-            this._matchValue = matchValue ?? 'True';
         }
     }
 
@@ -117,11 +117,11 @@ export class ReferenceExpression {
      */
     static createConditional(
         condition: unknown,
+        matchValue: string,
         whenTrue: ReferenceExpression,
-        whenFalse: ReferenceExpression,
-        matchValue?: string
+        whenFalse: ReferenceExpression
     ): ReferenceExpression {
-        return new ReferenceExpression(condition, whenTrue, whenFalse, matchValue);
+        return new ReferenceExpression(condition, matchValue, whenTrue, whenFalse);
     }
 
     /**

@@ -83,7 +83,7 @@ class ReferenceExpression {
     }
 
     // Conditional mode constructor
-    private ReferenceExpression(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse, String matchValue) {
+    private ReferenceExpression(Object condition, String matchValue, ReferenceExpression whenTrue, ReferenceExpression whenFalse) {
         this.condition = condition;
         this.whenTrue = whenTrue;
         this.whenFalse = whenFalse;
@@ -142,8 +142,8 @@ class ReferenceExpression {
     /**
      * Creates a conditional reference expression from its parts.
      */
-    static ReferenceExpression createConditional(Object condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse, String matchValue) {
-        return new ReferenceExpression(condition, whenTrue, whenFalse, matchValue);
+    static ReferenceExpression createConditional(Object condition, String matchValue, ReferenceExpression whenTrue, ReferenceExpression whenFalse) {
+        return new ReferenceExpression(condition, matchValue, whenTrue, whenFalse);
     }
 }
 
