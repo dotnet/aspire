@@ -8,7 +8,7 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <ContentTargetFolders>content</ContentTargetFolders>
     <PackageType>Template</PackageType>
-    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <NoWarn>$(NoWarn);NU5128;NU1603</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
     <Description>Aspire Template Pack for Microsoft Template Engine</Description>
     <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
