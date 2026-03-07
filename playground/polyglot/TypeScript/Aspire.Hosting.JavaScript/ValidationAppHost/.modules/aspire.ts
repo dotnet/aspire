@@ -3554,6 +3554,66 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
         super(handle, client);
     }
 
+    /** Gets the Command property */
+    command = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.command',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the WorkingDirectory property */
+    workingDirectory = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.workingDirectory',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Command property */
+    command1 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/NodeAppResource.command',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the WorkingDirectory property */
+    workingDirectory1 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/NodeAppResource.workingDirectory',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Name property */
+    name1 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/NodeAppResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** @internal */
     private async _withExecutableCommandInternal(command: string): Promise<NodeAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
@@ -5514,6 +5574,66 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     constructor(handle: ViteAppResourceHandle, client: AspireClientRpc) {
         super(handle, client);
     }
+
+    /** Gets the Command property */
+    command = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.command',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the WorkingDirectory property */
+    workingDirectory = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.workingDirectory',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/JavaScriptAppResource.name',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Command property */
+    command2 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/ViteAppResource.command',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the WorkingDirectory property */
+    workingDirectory2 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/ViteAppResource.workingDirectory',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Name property */
+    name2 = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.JavaScript/ViteAppResource.name',
+                { context: this._handle }
+            );
+        },
+    };
 
     /** @internal */
     private async _withExecutableCommandInternal(command: string): Promise<ViteAppResource> {

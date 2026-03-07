@@ -3724,44 +3724,40 @@ export class QdrantServerResource extends ResourceBuilderBase<QdrantServerResour
     /** Gets the ConnectionStringExpression property */
     connectionStringExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/QdrantServerResource.connectionStringExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
     /** Gets the UriExpression property */
     uriExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/QdrantServerResource.uriExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
     /** Gets the HttpConnectionStringExpression property */
     httpConnectionStringExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpConnectionStringExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
     /** Gets the HttpUriExpression property */
     httpUriExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/QdrantServerResource.httpUriExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 

@@ -166,7 +166,7 @@ public sealed class AtsCapabilityInfo
     /// Gets or sets the simple method name for generated SDKs (e.g., "addRedis", "isRunMode").
     /// For context type capabilities, this is just the property/method name without the type prefix.
     /// </summary>
-    public required string MethodName { get; init; }
+    public required string MethodName { get; set; }
 
     /// <summary>
     /// Gets or sets the owning type name for property/method capabilities.

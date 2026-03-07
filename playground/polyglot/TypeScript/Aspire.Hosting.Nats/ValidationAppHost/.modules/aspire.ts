@@ -50,6 +50,9 @@ type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicatio
 /** Handle to ExecuteCommandContext */
 type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
 
+/** Handle to IContainerFilesDestinationResource */
+type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
+
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
 
@@ -100,6 +103,9 @@ type IDistributedApplicationEventingHandle = Handle<'Aspire.Hosting/Aspire.Hosti
 
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
+
+/** Handle to IResourceWithContainerFiles */
+type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles'>;
 
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
@@ -2612,33 +2618,30 @@ export class NatsServerResource extends ResourceBuilderBase<NatsServerResourceHa
     /** Gets the UserNameReference property */
     userNameReference = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/NatsServerResource.userNameReference',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
     /** Gets the ConnectionStringExpression property */
     connectionStringExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/NatsServerResource.connectionStringExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
     /** Gets the UriExpression property */
     uriExpression = {
         get: async (): Promise<ReferenceExpression> => {
-            const handle = await this._client.invokeCapability<ReferenceExpressionHandle>(
+            return await this._client.invokeCapability<ReferenceExpression>(
                 'Aspire.Hosting.ApplicationModel/NatsServerResource.uriExpression',
                 { context: this._handle }
             );
-            return new ReferenceExpression(handle, this._client);
         },
     };
 
@@ -4329,6 +4332,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+    /** @internal */
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4584,6 +4602,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
@@ -4622,6 +4645,54 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+}
+
+// ============================================================================
+// ContainerFilesDestinationResource
+// ============================================================================
+
+export class ContainerFilesDestinationResource extends ResourceBuilderBase<IContainerFilesDestinationResourceHandle> {
+    constructor(handle: IContainerFilesDestinationResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ContainerFilesDestinationResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
+        const result = await this._client.invokeCapability<IContainerFilesDestinationResourceHandle>(
+            'Aspire.Hosting/publishWithContainerFiles',
+            rpcArgs
+        );
+        return new ContainerFilesDestinationResource(result, this._client);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._publishWithContainerFilesInternal(source, destinationPath));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ContainerFilesDestinationResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ContainerFilesDestinationResourcePromise implements PromiseLike<ContainerFilesDestinationResource> {
+    constructor(private _promise: Promise<ContainerFilesDestinationResource>) {}
+
+    then<TResult1 = ContainerFilesDestinationResource, TResult2 = never>(
+        onfulfilled?: ((value: ContainerFilesDestinationResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the resource to copy container files from the specified source during publishing */
+    publishWithContainerFiles(source: ResourceBuilderBase, destinationPath: string): ContainerFilesDestinationResourcePromise {
+        return new ContainerFilesDestinationResourcePromise(this._promise.then(obj => obj.publishWithContainerFiles(source, destinationPath)));
     }
 
 }
@@ -4992,6 +5063,34 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
 
     then<TResult1 = ResourceWithConnectionString, TResult2 = never>(
         onfulfilled?: ((value: ResourceWithConnectionString) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+}
+
+// ============================================================================
+// ResourceWithContainerFiles
+// ============================================================================
+
+export class ResourceWithContainerFiles extends ResourceBuilderBase<IResourceWithContainerFilesHandle> {
+    constructor(handle: IResourceWithContainerFilesHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceWithContainerFiles that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourceWithContainerFilesPromise implements PromiseLike<ResourceWithContainerFiles> {
+    constructor(private _promise: Promise<ResourceWithContainerFiles>) {}
+
+    then<TResult1 = ResourceWithContainerFiles, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithContainerFiles) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
@@ -5609,9 +5708,11 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.Executable
 registerHandleWrapper('Aspire.Hosting.Nats/Aspire.Hosting.ApplicationModel.NatsServerResource', (handle, client) => new NatsServerResource(handle as NatsServerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles', (handle, client) => new ResourceWithContainerFiles(handle as IResourceWithContainerFilesHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
