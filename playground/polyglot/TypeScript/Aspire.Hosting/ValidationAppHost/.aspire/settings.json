@@ -2,6 +2,6 @@
   "appHostPath": "../apphost.ts",
   "language": "typescript/nodejs",
   "packages": {
-    "Aspire.Hosting.Yarp": ""
+    "Aspire.Hosting": ""
   }
 }

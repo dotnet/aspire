@@ -1,6 +1,5 @@
 import {
     createBuilder,
-    ContainerLifetime,
     CertificateTrustScope,
     IconVariant,
     ProbeType,
@@ -33,6 +32,7 @@ const tool = await builder.addDotnetTool("mytool", "dotnet-ef");
 
 // addParameterFromConfiguration (NEW)
 const configParam = await builder.addParameterFromConfiguration("myconfig", "MyConfig:Key");
+const secretParam = await builder.addParameterFromConfiguration("mysecret", "MyConfig:Secret", { secret: true });
 
 // ===================================================================
 // Container-specific methods on ContainerResource
@@ -45,23 +45,45 @@ await container.withDockerfileBaseImage({ buildImage: "mcr.microsoft.com/dotnet/
 await container.withContainerRegistry(container);
 
 // ===================================================================
+// ConnectionStringBuilderExtensions.cs — NEW exports
+// ===================================================================
+
+await dockerContainer.withHttpEndpoint({ name: "http", targetPort: 80 });
+const endpoint = await dockerContainer.getEndpoint("http");
+const expr = refExpr`Host=${endpoint}`;
+
+const builtConnectionString = await builder.addConnectionStringBuilder("customcs", async (connectionStringBuilder) => {
+    const _isEmpty: boolean = await connectionStringBuilder.isEmpty.get();
+
+    await connectionStringBuilder.appendLiteral("Host=");
+    await connectionStringBuilder.appendValueProvider(endpoint);
+    await connectionStringBuilder.appendLiteral(";Key=");
+    await connectionStringBuilder.appendValueProvider(secretParam);
+
+    const _builtExpression = await connectionStringBuilder.build();
+});
+
+await builtConnectionString.withConnectionProperty("Host", expr);
+await builtConnectionString.withConnectionPropertyValue("Mode", "Development");
+
+// ===================================================================
 // ResourceBuilderExtensions.cs — NEW exports on ContainerResource
 // ===================================================================
 
 // withEnvironmentEndpoint (NEW)
-const endpoint = await container.getEndpoint("http");
 await container.withEnvironmentEndpoint("MY_ENDPOINT", endpoint);
 
 // withEnvironmentParameter (NEW)
 await container.withEnvironmentParameter("MY_PARAM", configParam);
 
 // withEnvironmentConnectionString (NEW)
-await container.withEnvironmentConnectionString("MY_CONN", container);
+await container.withEnvironmentConnectionString("MY_CONN", builtConnectionString);
 
 // withConnectionProperty (NEW) — with ReferenceExpression
-const expr = refExpr`Host=${endpoint}`;
+await builtConnectionString.withConnectionProperty("Endpoint", expr);
 
-// withConnectionPropertyValue (NEW) — with string (on container, inherits from IResourceWithConnectionString)
+// withConnectionPropertyValue (NEW) — with string
+await builtConnectionString.withConnectionPropertyValue("Protocol", "https");
 
 // excludeFromManifest (NEW)
 await container.excludeFromManifest();
@@ -106,39 +128,6 @@ await container.withMcpServer({ path: "/mcp" });
 await container.withRequiredCommand("docker");
 
 // ===================================================================
-// YarpResource — container-specific methods generated here
-// ===================================================================
-
-const yarp = await builder.addYarp("myyarp");
-
-// withDockerfile (NEW) — on YarpResource
-await yarp.withDockerfile("./context");
-
-// withEndpointProxySupport (NEW) — on YarpResource
-await yarp.withEndpointProxySupport(true);
-
-// withImageSHA256 (NEW) — on YarpResource
-await yarp.withImageSHA256("abc123def456");
-
-// withVolume (NEW) — on YarpResource (from CoreExports, target-first parameter order)
-await yarp.withVolume("/data", { name: "data-vol" });
-
-// publishAsContainer (NEW) — on YarpResource
-await yarp.publishAsContainer();
-
-// withBuildArg (NEW) — on YarpResource
-await yarp.withBuildArg("BUILD_VERSION", configParam);
-
-// withBuildSecret (NEW) — on YarpResource
-await yarp.withBuildSecret("MY_SECRET", configParam);
-
-// withContainerNetworkAlias (NEW) — on YarpResource
-await yarp.withContainerNetworkAlias("myalias");
-
-// withContainerFilesSource (NEW)
-// (only available on ResourceWithContainerFiles)
-
-// ===================================================================
 // DotnetToolResourceExtensions.cs — NEW exports
 // ===================================================================
 
@@ -163,15 +152,35 @@ await tool.withToolVersion("8.0.0");
 // publishAsDockerFile (NEW)
 await tool.publishAsDockerFile();
 
-// ===================================================================
-// ProjectResourceBuilderExtensions.cs — NEW exports
+// PipelineStepFactoryExtensions.cs — NEW exports
 // ===================================================================
 
-// disableForwardedHeaders (NEW)
-await project.disableForwardedHeaders();
+await container.withPipelineStepFactory("custom-build-step", async (stepContext) => {
+    const executionContext = await stepContext.executionContext.get();
+    const _isPublishMode: boolean = await executionContext.isPublishMode.get();
+    const _cancellationToken = await stepContext.cancellationToken.get();
+}, {
+    dependsOn: ["build"],
+    requiredBy: ["deploy"],
+    tags: ["custom-build"],
+    description: "Custom pipeline step"
+});
 
-// publishAsConnectionString (NEW) — on YarpResource
-await yarp.publishAsConnectionString();
+await container.withPipelineConfiguration(async (configContext) => {
+    const allSteps = await configContext.steps.get();
+    const taggedSteps = await configContext.getStepsByTag("custom-build");
+
+    const _stepName: string = await allSteps[0].name.get();
+    const _description: string = await allSteps[0].description.get();
+
+    await taggedSteps[0].requiredBy("publish");
+    await allSteps[0].dependsOn("build");
+});
+
+await container.withPipelineConfigurationAsync(async (configContext) => {
+    const _resourceSteps = await configContext.steps.get();
+    const _taggedSteps = await configContext.getStepsByTag("custom-build");
+});
 
 // ===================================================================
 // Pre-existing exports verification (sanity check)

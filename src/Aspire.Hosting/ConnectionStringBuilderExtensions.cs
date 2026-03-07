@@ -120,8 +120,7 @@ public static class ConnectionStringBuilderExtensions
     /// Adds a connection string resource to the distributed application with the specified expression.
     /// </summary>
     /// <remarks>
-    /// <para>This method is not available in polyglot app hosts. Use the ReferenceExpression overload instead.</para>
-    /// <para>This method also enables appending custom data to the connection string based on other resources that expose connection strings.</para>
+    /// This method also enables appending custom data to the connection string based on other resources that expose connection strings.
     /// </remarks>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource.</param>
@@ -143,7 +142,7 @@ public static class ConnectionStringBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [AspireExportIgnore(Reason = "ReferenceExpressionBuilder is not an ATS-exported callback context.")]
+    [AspireExport("addConnectionStringBuilder", Description = "Adds a connection string with a builder callback")]
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ReferenceExpressionBuilder> connectionStringBuilder)
     {
         var rb = new ReferenceExpressionBuilder();
