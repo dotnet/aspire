@@ -1,26 +1,29 @@
-// Aspire TypeScript AppHost - Azure SQL Validation
-// Validates AspireExport coverage for Aspire.Hosting.Azure.Sql
-
 import { createBuilder } from './.modules/aspire.js';
 
 const builder = await createBuilder();
-
-// addAzureSqlServer — factory method on builder
+const storage = await builder.addAzureStorage("storage");
 const sqlServer = await builder.addAzureSqlServer("sql");
-
-// addDatabase — child resource factory, returns AzureSqlDatabaseResource builder
 const db = await sqlServer.addDatabase("mydb");
-
-// addDatabase with explicit databaseName
 const db2 = await sqlServer.addDatabase("inventory", { databaseName: "inventorydb" });
-
-// withDefaultAzureSku — simple property setter on database resource
 await db2.withDefaultAzureSku();
+await sqlServer.runAsContainer({ configureContainer: async _ => {} });
+await sqlServer.withAdminDeploymentScriptStorage(storage);
+const _db3 = await sqlServer.addDatabase("analytics").withDefaultAzureSku();
 
-// runAsContainer — run Azure SQL locally in a container
-await sqlServer.runAsContainer();
+const _hostName = await sqlServer.hostName.get();
+const _port = await sqlServer.port.get();
+const _uriExpression = await sqlServer.uriExpression.get();
+const _connectionStringExpression = await sqlServer.connectionStringExpression.get();
+const _jdbcConnectionString = await sqlServer.jdbcConnectionString.get();
+const _isContainer: boolean = await sqlServer.isContainer.get();
+const _databaseCount = await sqlServer.databases.count();
+const _hasMyDb: boolean = await sqlServer.databases.containsKey("mydb");
 
-// Fluent chaining — addDatabase + withDefaultAzureSku
-const db3 = await sqlServer.addDatabase("analytics").withDefaultAzureSku();
+const _parent = await db.parent.get();
+const _dbConnectionStringExpression = await db.connectionStringExpression.get();
+const _databaseName = await db.databaseName.get();
+const _dbIsContainer: boolean = await db.isContainer.get();
+const _dbUriExpression = await db.uriExpression.get();
+const _dbJdbcConnectionString = await db.jdbcConnectionString.get();
 
 await builder.build().run();
