@@ -69,6 +69,17 @@ jobs:
           /p:BuildBundleDepsOnly=true
           ${{ inputs.versionOverrideArg }}
 
+      # Upload DCP + Dashboard NuGets so test/polyglot jobs can download them
+      - name: Upload RID-specific NuGets
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: built-nugets-for-${{ matrix.targets.rids }}
+          path: |
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Hosting.Orchestration.${{ matrix.targets.rids }}.*.nupkg
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Dashboard.Sdk.${{ matrix.targets.rids }}.*.nupkg
+          if-no-files-found: error
+          retention-days: 15
+
       - name: Build bundle payload archive (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
