@@ -17,7 +17,6 @@ import {
 import {
     ResourceBuilderBase,
     ReferenceExpression,
-    ConditionalReferenceExpression,
     refExpr,
     AspireDict,
     AspireList
@@ -53,9 +52,6 @@ type TestVaultResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.
 
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
-
-/** Handle to ConditionalReferenceExpression */
-type ConditionalReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConditionalReferenceExpression'>;
 
 /** Handle to ContainerResource */
 type ContainerResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource'>;
@@ -761,9 +757,9 @@ export class EndpointReference {
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
         const rpcArgs: Record<string, unknown> = { context: this._handle, enabledValue, disabledValue };
-        return await this._client.invokeCapability<ConditionalReferenceExpression>(
+        return await this._client.invokeCapability<ReferenceExpression>(
             'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
             rpcArgs
         );
@@ -790,7 +786,7 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
         return this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue));
     }
 
@@ -10532,7 +10528,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 
 // Re-export commonly used types
 export { Handle, CapabilityError, registerCallback } from './transport.js';
-export { refExpr, ReferenceExpression, ConditionalReferenceExpression } from './base.js';
+export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
 // Global Error Handling

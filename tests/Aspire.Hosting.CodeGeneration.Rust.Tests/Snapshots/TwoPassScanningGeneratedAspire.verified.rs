@@ -12,7 +12,7 @@ use crate::transport::{
     register_callback, register_cancellation, serialize_value,
 };
 use crate::base::{
-    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression, ConditionalReferenceExpression,
+    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression,
     AspireList, AspireDict, serialize_handle, HasHandle,
 };
 
@@ -1460,7 +1460,7 @@ impl EndpointReference {
     }
 
     /// Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
-    pub fn get_tls_value(&self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ConditionalReferenceExpression, Box<dyn std::error::Error>> {
+    pub fn get_tls_value(&self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ReferenceExpression, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("context".to_string(), self.handle.to_json());
         args.insert("enabledValue".to_string(), serde_json::to_value(&enabled_value).unwrap_or(Value::Null));

@@ -17,7 +17,6 @@ import {
 import {
     ResourceBuilderBase,
     ReferenceExpression,
-    ConditionalReferenceExpression,
     refExpr,
     AspireDict,
     AspireList
@@ -2346,7 +2345,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 
 // Re-export commonly used types
 export { Handle, CapabilityError, registerCallback } from './transport.js';
-export { refExpr, ReferenceExpression, ConditionalReferenceExpression } from './base.js';
+export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
 // Global Error Handling

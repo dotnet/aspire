@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List
 
 from transport import AspireClient, Handle, CapabilityError, register_callback, register_handle_wrapper, register_cancellation
-from base import AspireDict, AspireList, ReferenceExpression, ConditionalReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
+from base import AspireDict, AspireList, ReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
 
 # ============================================================================
 # Enums
@@ -749,7 +749,7 @@ class EndpointReference(HandleWrapperBase):
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)
 
-    def get_tls_value(self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ConditionalReferenceExpression:
+    def get_tls_value(self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ReferenceExpression:
         """Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise."""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         args["enabledValue"] = serialize_value(enabled_value)

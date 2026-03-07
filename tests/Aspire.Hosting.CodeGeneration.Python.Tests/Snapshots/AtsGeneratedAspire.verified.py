@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List
 
 from transport import AspireClient, Handle, CapabilityError, register_callback, register_handle_wrapper, register_cancellation
-from base import AspireDict, AspireList, ReferenceExpression, ConditionalReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
+from base import AspireDict, AspireList, ReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
 
 # ============================================================================
 # Enums

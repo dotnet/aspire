@@ -12,7 +12,7 @@ use crate::transport::{
     register_callback, register_cancellation, serialize_value,
 };
 use crate::base::{
-    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression, ConditionalReferenceExpression,
+    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression,
     AspireList, AspireDict, serialize_handle, HasHandle,
 };
 
