@@ -143,7 +143,7 @@ internal static class DeploymentE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
@@ -158,7 +158,7 @@ internal static class DeploymentE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
@@ -172,6 +172,29 @@ internal static class DeploymentE2ETestHelpers
             .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Runs <c>aspire init</c> and handles the NuGet.config and agent init prompts.
+    /// The agent init prompt is declined so the command exits cleanly.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder RunAspireInit(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        var waitingForInitComplete = new CellPatternSearcher()
+            .Find("Aspire initialization complete");
+
+        return builder
+            .Type("aspire init")
+            .Enter()
+            // NuGet.config prompt may or may not appear depending on environment.
+            // Wait a moment then press Enter to dismiss if present.
+            .Wait(TimeSpan.FromSeconds(5))
+            .Enter()
+            .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .DeclineAgentInitPrompt()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
     }
 
 }

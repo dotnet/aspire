@@ -94,11 +94,12 @@ public sealed class AcaDeploymentErrorOutputTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost
             output.WriteLine("Step 3: Creating single-file AppHost...");
-            sequenceBuilder.Type("aspire init")
+            sequenceBuilder.Type("aspire init --language csharp")
                 .Enter()
                 .Wait(TimeSpan.FromSeconds(5))
                 .Enter()
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4: Add Azure Container Apps package

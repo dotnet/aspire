@@ -54,11 +54,16 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(choices.First());
     }
 
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
     {
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (preSelected is not null)
+        {
+            return Task.FromResult<IReadOnlyList<T>>(preSelected.ToList());
         }
 
         return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
@@ -97,7 +102,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayConsoleWriteLineMessage?.Invoke(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
         StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
         return Task.CompletedTask;

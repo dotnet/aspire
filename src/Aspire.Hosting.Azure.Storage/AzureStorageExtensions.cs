@@ -6,7 +6,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
@@ -644,7 +643,7 @@ public static class AzureStorageExtensions
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            return new BlobServiceClient(uri, new DefaultAzureCredential());
+            return new BlobServiceClient(uri, AzureCredentialHelper.CreateDefaultAzureCredential());
         }
         else
         {
@@ -656,7 +655,7 @@ public static class AzureStorageExtensions
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            return new QueueServiceClient(uri, new DefaultAzureCredential());
+            return new QueueServiceClient(uri, AzureCredentialHelper.CreateDefaultAzureCredential());
         }
         else
         {

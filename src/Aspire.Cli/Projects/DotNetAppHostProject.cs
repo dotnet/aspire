@@ -34,7 +34,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
-    private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
+    internal static IReadOnlyCollection<string> ProjectExtensions { get; } =
+        Array.AsReadOnly([".csproj", ".fsproj", ".vbproj"]);
 
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
@@ -85,7 +86,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         var extension = appHostFile.Extension.ToLowerInvariant();
 
         // Handle project files (.csproj, .fsproj, .vbproj)
-        if (s_projectExtensions.Contains(extension))
+        if (ProjectExtensions.Contains(extension))
         {
             // We can handle any project file - ValidateAsync will do deeper validation
             return true;
@@ -370,7 +371,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         var effectiveAppHostFile = context.AppHostFile;
-        var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+        var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj" && IsValidSingleFileAppHost(effectiveAppHostFile);
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
 
         // Check compatibility for project-based apphosts
@@ -436,7 +437,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             StandardOutputCallback = runOutputCollector.AppendOutput,
             StandardErrorCallback = runOutputCollector.AppendError,
             NoLaunchProfile = true,
-            NoExtensionLaunch = true
+            StartDebugSession = context.StartDebugSession,
+            // When not starting a debug session, prevent DotNetCliRunner from delegating the
+            // apphost launch to the extension — pipeline commands should run the apphost directly.
+            NoExtensionLaunch = !context.StartDebugSession,
         };
 
         if (isSingleFileAppHost)
@@ -497,7 +501,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         // Stop all running instances
-        var stopTasks = matchingSockets.Select(socketPath => 
+        var stopTasks = matchingSockets.Select(socketPath =>
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
@@ -517,7 +521,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Auto-initialize user secrets (only for csproj projects - file-based apphosts
         // always have a UserSecretsId provided by the SDK)
-        if (!s_projectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
+        if (!ProjectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
         {
             return userSecretsId;
         }

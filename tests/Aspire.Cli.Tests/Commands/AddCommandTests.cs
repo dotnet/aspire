@@ -264,6 +264,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -408,18 +409,14 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommand_EmptyPackageList_DisplaysErrorMessage()
     {
-        string? displayedErrorMessage = null;
+        TestInteractionService? testInteractionService = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new TestConsoleInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) =>
-                {
-                    displayedErrorMessage = message;
-                };
+                testInteractionService = new TestInteractionService();
                 return testInteractionService;
             };
 
@@ -443,7 +440,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToAddPackage, exitCode);
-        Assert.Contains(AddCommandStrings.NoIntegrationPackagesFound, displayedErrorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.Contains(testInteractionService.DisplayedErrors, e => e.Contains(AddCommandStrings.NoIntegrationPackagesFound));
     }
 
     [Fact]
@@ -455,9 +453,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new TestConsoleInteractionService();
+                var testInteractionService = new TestInteractionService();
                 testInteractionService.DisplaySubtleMessageCallback = (message) =>
                 {
                     displayedSubtleMessage = message;
@@ -551,7 +551,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -599,7 +599,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -647,7 +647,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.InteractionServiceFactory = (sp) =>
             {
-                var mockInteraction = new TestConsoleInteractionService();
+                var mockInteraction = new TestInteractionService();
                 mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
                     // Capture what the prompter passes to the interaction service
@@ -700,7 +700,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         {
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            options.InteractionServiceFactory = _ => new TestInteractionService()
             {
                 PromptForSelectionCallback = (message, choices, formatter, ct) =>
                 {
@@ -859,6 +859,8 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+
             options.AddCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();

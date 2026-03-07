@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
@@ -169,7 +170,12 @@ internal sealed class CapabilityDispatcher
                     throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
                 }
 
-                var value = prop.GetValue(contextObj);
+                // Bridge builder -> resource: if the handle contains an IResourceBuilder<T>
+                // but the property is declared on the resource type T, unwrap to the
+                // correct target object. See AtsCapabilityScanner.MapToAtsTypeId.
+                var target = ResolveContextTarget(contextObj!, prop.DeclaringType!);
+
+                var value = prop.GetValue(target);
                 return Task.FromResult(_marshaller.MarshalToJson(value, capability.ReturnType));
             };
 
@@ -212,7 +218,10 @@ internal sealed class CapabilityDispatcher
                     ParameterName = "value"
                 };
                 var value = _marshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
-                prop.SetValue(contextObj, value);
+
+                // Bridge builder -> resource for setter as well.
+                var setTarget = ResolveContextTarget(contextObj!, prop.DeclaringType!);
+                prop.SetValue(setTarget, value);
 
                 // Return the context handle for fluent chaining
                 return Task.FromResult<JsonNode?>(new JsonObject
@@ -292,11 +301,16 @@ internal sealed class CapabilityDispatcher
                 methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
             }
 
+            // Bridge builder -> resource: if the handle contains an IResourceBuilder<T>
+            // but the method is declared on the resource type T, unwrap to the
+            // correct target object. See AtsCapabilityScanner.MapToAtsTypeId.
+            var invokeTarget = ResolveContextTarget(contextObj!, methodToInvoke.DeclaringType!);
+
             object? result;
             try
             {
                 // Invoke instance method on the context object
-                result = methodToInvoke.Invoke(contextObj, methodArgs);
+                result = methodToInvoke.Invoke(invokeTarget, methodArgs);
             }
             catch (TargetInvocationException tie) when (tie.InnerException is not null)
             {
@@ -515,6 +529,31 @@ internal sealed class CapabilityDispatcher
         return message.Contains("cannot be converted") ||
                message.Contains("is not assignable") ||
                message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Resolves the correct target object for a member invocation.
+    /// Handles the case where the handle contains an <see cref="IResourceBuilder{T}"/> but the
+    /// member is declared on the resource type <c>T</c>, since
+    /// <c>AtsCapabilityScanner.MapToAtsTypeId</c> maps both to the same type ID.
+    /// </summary>
+    private static object ResolveContextTarget(object contextObj, Type declaringType)
+    {
+        if (declaringType.IsInstanceOfType(contextObj))
+        {
+            return contextObj;
+        }
+
+        // Handle is a builder, but the member is on the resource type - extract .Resource
+        if (contextObj is IResourceBuilder<IResource> builder &&
+            declaringType.IsInstanceOfType(builder.Resource))
+        {
+            return builder.Resource;
+        }
+
+        // No bridge matched — return as-is; the CLR will throw TargetException if the
+        // object truly doesn't match the declaring type.
+        return contextObj;
     }
 
     /// <summary>

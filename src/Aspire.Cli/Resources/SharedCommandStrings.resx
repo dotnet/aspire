@@ -144,4 +144,7 @@
   <data name="MultipleInScopeAppHosts" xml:space="preserve">
     <value>Multiple running AppHosts found in the current directory. Select from running AppHosts.</value>
   </data>
+  <data name="PromptRunAgentInit" xml:space="preserve">
+    <value>Would you like to configure AI agent environments for this project?</value>
+  </data>
 </root>

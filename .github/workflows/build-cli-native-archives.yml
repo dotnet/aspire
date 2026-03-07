@@ -20,7 +20,7 @@ jobs:
       matrix:
         targets:
           - os: ubuntu-latest
-            runner: ubuntu-latest
+            runner: 8-core-ubuntu-latest
             rids: linux-x64
           - os: windows-latest
             runner: windows-latest

@@ -383,6 +383,11 @@ public sealed class AtsDtoTypeInfo
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets or sets a description of this DTO type.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
     /// Gets or sets the CLR type reference for direct type access.
     /// </summary>
     public Type? ClrType { get; init; }
@@ -408,6 +413,11 @@ public sealed class AtsDtoPropertyInfo
     /// Gets or sets the property type reference.
     /// </summary>
     public required AtsTypeRef Type { get; init; }
+
+    /// <summary>
+    /// Gets or sets a description of this property.
+    /// </summary>
+    public string? Description { get; init; }
 
     /// <summary>
     /// Gets or sets whether this property is optional (nullable or has default).

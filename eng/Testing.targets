@@ -21,6 +21,11 @@
         - RunOnAzdoHelix:              indicates whether tests should run on Helix (either Windows or Linux); computed.
         - RunOnAzdoHelixWindows:       indicates whether tests should run on Windows in Helix; default is true; overridable.
         - RunOnAzdoHelixLinux:         indicates whether tests should run on Linux in Helix; default is true; overridable.
+
+      Custom GitHub Actions runners (optional):
+        - GithubActionsRunnerWindows:  custom GitHub Actions runner for Windows tests; default is unset (uses 'windows-latest'); overridable.
+        - GithubActionsRunnerLinux:    custom GitHub Actions runner for Linux tests; default is unset (uses 'ubuntu-latest'); overridable.
+        - GithubActionsRunnerMacOS:    custom GitHub Actions runner for macOS tests; default is unset (uses 'macos-latest'); overridable.
     -->
 
   <PropertyGroup>

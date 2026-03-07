@@ -130,6 +130,11 @@ export interface WaitForReadyAsyncOptions {
     cancellationToken?: AbortSignal;
 }
 
+export interface WithDataVolumeOptions {
+    name?: string;
+    isReadOnly?: boolean;
+}
+
 export interface WithOptionalCallbackOptions {
     callback?: (arg: TestCallbackContext) => Promise<void>;
 }
@@ -753,6 +758,23 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         return new TestDatabaseResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
+    /** @internal */
+    private async _withDataVolumeInternal(name?: string): Promise<TestDatabaseResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (name !== undefined) rpcArgs.name = name;
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDataVolume',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Adds a data volume */
+    withDataVolume(options?: WithDataVolumeOptions): TestDatabaseResourcePromise {
+        const name = options?.name;
+        return new TestDatabaseResourcePromise(this._withDataVolumeInternal(name));
+    }
+
 }
 
 /**
@@ -843,6 +865,11 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Performs a cancellable operation */
     withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
+    }
+
+    /** Adds a data volume */
+    withDataVolume(options?: WithDataVolumeOptions): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
 }
@@ -1259,6 +1286,25 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withMultiParamHandleCallbackInternal(callback));
     }
 
+    /** @internal */
+    private async _withDataVolumeInternal(name?: string, isReadOnly?: boolean): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (name !== undefined) rpcArgs.name = name;
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDataVolume',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        const name = options?.name;
+        const isReadOnly = options?.isReadOnly;
+        return new TestRedisResourcePromise(this._withDataVolumeInternal(name, isReadOnly));
+    }
+
 }
 
 /**
@@ -1404,6 +1450,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Tests multi-param callback destructuring */
     withMultiParamHandleCallback(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withMultiParamHandleCallback(callback)));
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
 }
