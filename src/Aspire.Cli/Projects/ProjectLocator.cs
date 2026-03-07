@@ -18,6 +18,14 @@ internal interface IProjectLocator
 {
     Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken = default);
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Resolves the AppHost project file from <c>.aspire/settings.json</c> only, without any
+    /// user interaction or recursive filesystem scanning. Returns <c>null</c> when no settings
+    /// file or <c>appHostPath</c> entry is found.
+    /// </summary>
+    Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<FileInfo?>(null);
 }
 
 internal sealed class ProjectLocator(
@@ -121,7 +129,18 @@ internal sealed class ProjectLocator(
         });
     }
 
+    /// <inheritdoc />
+    public async Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        return await GetAppHostProjectFileFromSettingsAsync(silent: true, cancellationToken);
+    }
+
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
+    {
+        return await GetAppHostProjectFileFromSettingsAsync(silent: false, cancellationToken);
+    }
+
+    private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(bool silent, CancellationToken cancellationToken)
     {
         var searchDirectory = executionContext.WorkingDirectory;
 
@@ -147,7 +166,10 @@ internal sealed class ProjectLocator(
                     else
                     {
                         // AppHost file was specified but doesn't exist, return null to trigger fallback logic
-                        interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
+                        if (!silent)
+                        {
+                            interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, settingsFile.FullName, qualifiedAppHostPath));
+                        }
                         return null;
                     }
                 }
