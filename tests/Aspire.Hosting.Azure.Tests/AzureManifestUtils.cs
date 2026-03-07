@@ -48,7 +48,7 @@ public sealed class AzureManifestUtils
 
     public static async Task VerifyAllAzureBicep(IDistributedApplicationBuilder builder)
     {
-        var app = builder.Build();
+        await using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 

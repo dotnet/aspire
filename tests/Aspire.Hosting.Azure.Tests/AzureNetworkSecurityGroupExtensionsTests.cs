@@ -302,7 +302,7 @@ public class AzureNetworkSecurityGroupExtensionsTests
 
         var pip = builder.AddPublicIPAddress("mypip");
 
-        var nsg = builder.AddNetworkSecurityGroup("web-nsg")
+        builder.AddNetworkSecurityGroup("web-nsg")
             .WithSecurityRule(new AzureSecurityRule
             {
                 Name = "allow-from-pip",
@@ -324,7 +324,7 @@ public class AzureNetworkSecurityGroupExtensionsTests
 
         var pip = builder.AddPublicIPAddress("mypip");
 
-        var nsg = builder.AddNetworkSecurityGroup("web-nsg")
+        builder.AddNetworkSecurityGroup("web-nsg")
             .WithSecurityRule(new AzureSecurityRule
             {
                 Name = "route-to-pip",
