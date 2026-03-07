@@ -150,11 +150,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
             if (resource.EnableDashboard)
             {
                 // Add aspire dashboard website
-                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+                var dashboard = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id, resource.EnableRegionalDnl);
 
                 infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                    Value = BicepFunction.Interpolate($"https://{dashboard.DefaultHostName}")
                 });
             }
 
@@ -315,6 +315,20 @@ public static partial class AzureAppServiceEnvironmentExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentSlot);
 
         builder.Resource.DeploymentSlot = deploymentSlot;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether to enable regional DNL (Domain Name Label) for the website.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">The regional DNL host name for all App Services in the App Service Environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithRegionalDnl(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.EnableRegionalDnl = enable;
         return builder;
     }
 
