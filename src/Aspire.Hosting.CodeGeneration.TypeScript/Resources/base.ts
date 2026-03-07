@@ -1,5 +1,5 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle, wrapIfHandle } from './transport.js';
+import { Handle, AspireClient, MarshalledHandle } from './transport.js';
 
 // Re-export transport types for convenience
 export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
@@ -138,7 +138,7 @@ export class ReferenceExpression {
         if (this.isConditional) {
             return {
                 $expr: {
-                    condition: wrapIfHandle(this._condition),
+                    condition: this._condition instanceof Handle ? this._condition.toJSON() : this._condition,
                     whenTrue: this._whenTrue!.toJSON(),
                     whenFalse: this._whenFalse!.toJSON(),
                     matchValue: this._matchValue!
