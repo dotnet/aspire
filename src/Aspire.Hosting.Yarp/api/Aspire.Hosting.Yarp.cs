@@ -8,6 +8,7 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
+    [AspireExport(ExposeMethods = true)]
     public partial interface IYarpConfigurationBuilder
     {
         Yarp.YarpCluster AddCluster(ApplicationModel.EndpointReference endpoint);
@@ -37,18 +38,25 @@ namespace Aspire.Hosting
 
     public static partial class YarpResourceExtensions
     {
+        [AspireExport("addYarp", Description = "Adds a YARP container to the application model.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> AddYarp(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [AspireExport("publishWithStaticFiles", Description = "In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> PublishWithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, ApplicationModel.IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles) { throw null; }
 
+        [AspireExport("withConfiguration", Description = "Configure the YARP resource.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
 
+        [AspireExport("withHostHttpsPort", Description = "Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostHttpsPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
 
+        [AspireExport("withHostPort", Description = "Configures the host port that the YARP resource is exposed on instead of using randomly assigned port.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
 
+        [AspireExport("withStaticFiles2", MethodName = "withStaticFiles", Description = "Enables static file serving. In run mode: bind mounts  to /wwwroot.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string sourcePath) { throw null; }
 
+        [AspireExport("withStaticFiles1", MethodName = "withStaticFiles", Description = "Enables static file serving in the YARP resource. Static files are served from the wwwroot folder.")]
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder) { throw null; }
     }
 }
@@ -62,6 +70,7 @@ namespace Aspire.Hosting.Yarp
         IYarpJsonConfigGeneratorBuilder WithConfigFile(string configFilePath);
     }
 
+    [AspireExport]
     public partial class YarpCluster
     {
         internal YarpCluster() { }
@@ -87,6 +96,7 @@ namespace Aspire.Hosting.Yarp
         public YarpResource(string name) : base(default!, default) { }
     }
 
+    [AspireExport]
     public partial class YarpRoute
     {
         internal YarpRoute() { }
@@ -122,69 +132,94 @@ namespace Aspire.Hosting.Yarp.Transforms
 {
     public static partial class ForwardedTransformExtensions
     {
+        [AspireExport("withTransformClientCertHeader", Description = "Adds the transform which will set the given header with the Base64 encoded client certificate.")]
         public static YarpRoute WithTransformClientCertHeader(this YarpRoute route, string headerName) { throw null; }
 
+        [AspireExport("withTransformForwarded", Description = "Adds the transform which will add the Forwarded header as defined by [RFC 7239](https://tools.ietf.org/html/rfc7239).")]
         public static YarpRoute WithTransformForwarded(this YarpRoute route, bool useHost = true, bool useProto = true, global::Yarp.ReverseProxy.Transforms.NodeFormat forFormat = global::Yarp.ReverseProxy.Transforms.NodeFormat.Random, global::Yarp.ReverseProxy.Transforms.NodeFormat byFormat = global::Yarp.ReverseProxy.Transforms.NodeFormat.Random, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions action = global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions.Set) { throw null; }
 
+        [AspireExport("withTransformXForwarded", Description = "Adds the transform which will add X-Forwarded-* headers.")]
         public static YarpRoute WithTransformXForwarded(this YarpRoute route, string headerPrefix = "X-Forwarded-", global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions xDefault = global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions.Set, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xFor = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xHost = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xProto = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xPrefix = null) { throw null; }
     }
 
     public static partial class HttpMethodTransformExtensions
     {
+        [AspireExport("withTransformHttpMethodChange", Description = "Adds the transform that will replace the HTTP method if it matches.")]
         public static YarpRoute WithTransformHttpMethodChange(this YarpRoute route, string fromHttpMethod, string toHttpMethod) { throw null; }
     }
 
     public static partial class PathTransformExtensions
     {
+        [AspireExport("withTransformPathPrefix", Description = "Adds the transform which will prefix the request path with the given value.")]
         public static YarpRoute WithTransformPathPrefix(this YarpRoute route, Microsoft.AspNetCore.Http.PathString prefix) { throw null; }
 
+        [AspireExport("withTransformPathRemovePrefix", Description = "Adds the transform which will remove the matching prefix from the request path.")]
         public static YarpRoute WithTransformPathRemovePrefix(this YarpRoute route, Microsoft.AspNetCore.Http.PathString prefix) { throw null; }
 
+        [AspireExport("withTransformPathRouteValues", Description = "Adds the transform which will set the request path with the given value.")]
         public static YarpRoute WithTransformPathRouteValues(this YarpRoute route, Microsoft.AspNetCore.Http.PathString pattern) { throw null; }
 
+        [AspireExport("withTransformPathSet", Description = "Adds the transform which sets the request path with the given value.")]
         public static YarpRoute WithTransformPathSet(this YarpRoute route, Microsoft.AspNetCore.Http.PathString path) { throw null; }
     }
 
     public static partial class QueryTransformExtensions
     {
+        [AspireExport("withTransformQueryRemoveKey", Description = "Adds the transform that will remove the given query key.")]
         public static YarpRoute WithTransformQueryRemoveKey(this YarpRoute route, string queryKey) { throw null; }
 
+        [AspireExport("withTransformQueryRouteValue", Description = "Adds the transform that will append or set the query parameter from a route value.")]
         public static YarpRoute WithTransformQueryRouteValue(this YarpRoute route, string queryKey, string routeValueKey, bool append = true) { throw null; }
 
+        [AspireExport("withTransformQueryValue", Description = "Adds the transform that will append or set the query parameter from the given value.")]
         public static YarpRoute WithTransformQueryValue(this YarpRoute route, string queryKey, string value, bool append = true) { throw null; }
     }
 
     public static partial class RequestHeadersTransformExtensions
     {
+        [AspireExport("withTransformCopyRequestHeaders", Description = "Adds the transform which will enable or suppress copying request headers to the proxy request.")]
         public static YarpRoute WithTransformCopyRequestHeaders(this YarpRoute route, bool copy = true) { throw null; }
 
+        [AspireExport("withTransformRequestHeader", Description = "Adds the transform which will append or set the request header.")]
         public static YarpRoute WithTransformRequestHeader(this YarpRoute route, string headerName, string value, bool append = true) { throw null; }
 
+        [AspireExport("withTransformRequestHeaderRemove", Description = "Adds the transform which will remove the request header.")]
         public static YarpRoute WithTransformRequestHeaderRemove(this YarpRoute route, string headerName) { throw null; }
 
+        [AspireExport("withTransformRequestHeaderRouteValue", Description = "Adds the transform which will append or set the request header from a route value.")]
         public static YarpRoute WithTransformRequestHeaderRouteValue(this YarpRoute route, string headerName, string routeValueKey, bool append = true) { throw null; }
 
+        [AspireExport("withTransformRequestHeadersAllowed", Description = "Adds the transform which will only copy the allowed request headers. Other transforms")]
         public static YarpRoute WithTransformRequestHeadersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
 
+        [AspireExport("withTransformUseOriginalHostHeader", Description = "Adds the transform which will copy the incoming request Host header to the proxy request.")]
         public static YarpRoute WithTransformUseOriginalHostHeader(this YarpRoute route, bool useOriginal = true) { throw null; }
     }
 
     public static partial class ResponseTransformExtensions
     {
+        [AspireExport("withTransformCopyResponseHeaders", Description = "Adds the transform which will enable or suppress copying response headers to the client response.")]
         public static YarpRoute WithTransformCopyResponseHeaders(this YarpRoute route, bool copy = true) { throw null; }
 
+        [AspireExport("withTransformCopyResponseTrailers", Description = "Adds the transform which will enable or suppress copying response trailers to the client response.")]
         public static YarpRoute WithTransformCopyResponseTrailers(this YarpRoute route, bool copy = true) { throw null; }
 
+        [AspireExport("withTransformResponseHeader", Description = "Adds the transform which will append or set the response header.")]
         public static YarpRoute WithTransformResponseHeader(this YarpRoute route, string headerName, string value, bool append = true, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
 
+        [AspireExport("withTransformResponseHeaderRemove", Description = "Adds the transform which will remove the response header.")]
         public static YarpRoute WithTransformResponseHeaderRemove(this YarpRoute route, string headerName, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
 
+        [AspireExport("withTransformResponseHeadersAllowed", Description = "Adds the transform which will only copy the allowed response headers. Other transforms")]
         public static YarpRoute WithTransformResponseHeadersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
 
+        [AspireExport("withTransformResponseTrailer", Description = "Adds the transform which will append or set the response trailer.")]
         public static YarpRoute WithTransformResponseTrailer(this YarpRoute route, string headerName, string value, bool append = true, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
 
+        [AspireExport("withTransformResponseTrailerRemove", Description = "Adds the transform which will remove the response trailer.")]
         public static YarpRoute WithTransformResponseTrailerRemove(this YarpRoute route, string headerName, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
 
+        [AspireExport("withTransformResponseTrailersAllowed", Description = "Adds the transform which will only copy the allowed response trailers. Other transforms")]
         public static YarpRoute WithTransformResponseTrailersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
     }
 }

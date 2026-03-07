@@ -17,6 +17,7 @@ namespace Aspire.Hosting
 
     public static partial class DockerComposeEnvironmentExtensions
     {
+        [AspireExport("addDockerComposeEnvironment", Description = "Adds a Docker Compose publishing environment")]
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> AddDockerComposeEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureComposeFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.Resources.ComposeFile> configure) { throw null; }
@@ -75,7 +76,8 @@ namespace Aspire.Hosting.Docker
 
         public string? DefaultNetworkName { get { throw null; } set { } }
 
-        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public ApplicationModel.ReferenceExpression GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
     }
 
     public sealed partial class DockerComposeServiceCustomizationAnnotation : ApplicationModel.IResourceAnnotation
@@ -309,6 +311,9 @@ namespace Aspire.Hosting.Docker.Resources.ComposeNodes
 
         [YamlDotNet.Serialization.YamlMember(Alias = "profiles", DefaultValuesHandling = YamlDotNet.Serialization.DefaultValuesHandling.OmitEmptyCollections)]
         public System.Collections.Generic.List<string> Profiles { get { throw null; } set { } }
+
+        [YamlDotNet.Serialization.YamlMember(Alias = "pull_policy")]
+        public string? PullPolicy { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "read_only")]
         public bool? ReadOnly { get { throw null; } set { } }

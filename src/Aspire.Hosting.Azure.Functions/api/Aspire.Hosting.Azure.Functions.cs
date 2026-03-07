@@ -10,13 +10,17 @@ namespace Aspire.Hosting
 {
     public static partial class AzureFunctionsProjectResourceExtensions
     {
+        [AspireExport("addAzureFunctionsProject", Description = "Adds an Azure Functions project to the distributed application")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> AddAzureFunctionsProject(this IDistributedApplicationBuilder builder, string name, string projectPath) { throw null; }
 
+        [AspireExportIgnore(Reason = "TProject : IProjectMetadata is a .NET-specific generic constraint not compatible with ATS. Use the project path overload instead.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, string name)
             where TProject : IProjectMetadata, new() { throw null; }
 
+        [AspireExport("withHostStorage", Description = "Configures the Azure Functions project to use specified Azure Storage as host storage")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> WithHostStorage(this ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> storage) { throw null; }
 
+        [AspireExportIgnore(Reason = "IResourceWithAzureFunctionsConfig is an internal interface constraint not compatible with ATS.")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> WithReference<TSource>(this ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> destination, ApplicationModel.IResourceBuilder<TSource> source, string? connectionName = null)
             where TSource : ApplicationModel.IResourceWithConnectionString, Azure.IResourceWithAzureFunctionsConfig { throw null; }
     }
