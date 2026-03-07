@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List
 
 from transport import AspireClient, Handle, CapabilityError, register_callback, register_handle_wrapper, register_cancellation
-from base import AspireDict, AspireList, ReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
+from base import AspireDict, AspireList, ReferenceExpression, ConditionalReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value
 
 # ============================================================================
 # Enums
@@ -114,12 +114,6 @@ class IResourceWithEnvironment(HandleWrapperBase):
     pass
 
 class ITestVaultResource(ResourceBuilderBase):
-    def __init__(self, handle: Handle, client: AspireClient):
-        super().__init__(handle, client)
-
-    pass
-
-class ReferenceExpression(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
@@ -709,7 +703,6 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourc
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", lambda handle, client: ITestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", lambda handle, client: IDistributedApplicationBuilder(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, client: ReferenceExpression(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", lambda handle, client: IResourceWithEnvironment(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<string>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,string>", lambda handle, client: AspireDict(handle, client))
