@@ -15,7 +15,9 @@ jobs:
     outputs:
       tests_matrix_no_nugets: ${{ steps.split_matrix.outputs.tests_matrix_no_nugets }}
       tests_matrix_no_nugets_overflow: ${{ steps.split_matrix.outputs.tests_matrix_no_nugets_overflow }}
-      tests_matrix_requires_nugets: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets }}
+      tests_matrix_requires_nugets_linux: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_linux }}
+      tests_matrix_requires_nugets_windows: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_windows }}
+      tests_matrix_requires_nugets_macos: ${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_macos }}
       tests_matrix_requires_cli_archive: ${{ steps.split_matrix.outputs.tests_matrix_requires_cli_archive }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -45,12 +47,23 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"}]'
 
-  build_cli_archives_other:
-    name: Build native CLI archives (Windows, macOS)
+  # Per-OS CLI archive builds produce RID-specific DCP and Dashboard NuGets.
+  # Split by OS so that test jobs can depend on just their platform's archive,
+  # allowing Linux tests to start as soon as the Linux archive completes
+  # without waiting for the slower Windows/macOS builds.
+  build_cli_archive_windows:
+    name: Build native CLI archive (Windows)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}, {"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
+      targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}]'
+
+  build_cli_archive_macos:
+    name: Build native CLI archive (macOS)
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
 
   tests_no_nugets:
     name: ${{ matrix.shortname }}
@@ -90,14 +103,54 @@ jobs:
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
-  tests_requires_nugets:
+  # Split requires-nugets tests by OS so each group depends only on
+  # the CLI archive build for its platform, avoiding cross-OS blocking.
+  tests_requires_nugets_linux:
     name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests, build_packages, build_cli_archive_linux]
-    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets).include[0] != null }}
+    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_linux).include[0] != null }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets) }}
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_linux) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: ${{ matrix.runs-on }}
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
+
+  tests_requires_nugets_windows:
+    name: ${{ matrix.shortname }}
+    uses: ./.github/workflows/run-tests.yml
+    needs: [setup_for_tests, build_packages, build_cli_archive_windows]
+    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_windows).include[0] != null }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_windows) }}
+    with:
+      testShortName: ${{ matrix.shortname }}
+      os: ${{ matrix.runs-on }}
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
+
+  tests_requires_nugets_macos:
+    name: ${{ matrix.shortname }}
+    uses: ./.github/workflows/run-tests.yml
+    needs: [setup_for_tests, build_packages, build_cli_archive_macos]
+    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos) }}
     with:
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.runs-on }}
@@ -169,11 +222,14 @@ jobs:
       setup_for_tests,
       build_packages,
       build_cli_archive_linux,
-      build_cli_archives_other,
+      build_cli_archive_windows,
+      build_cli_archive_macos,
       extension_tests_win,
       tests_no_nugets,
       tests_no_nugets_overflow,
-      tests_requires_nugets,
+      tests_requires_nugets_linux,
+      tests_requires_nugets_windows,
+      tests_requires_nugets_macos,
       tests_requires_cli_archive,
       polyglot_validation,
     ]
@@ -228,13 +284,17 @@ jobs:
                (github.event_name == 'pull_request' &&
                 (needs.extension_tests_win.result == 'skipped' ||
                  needs.tests_no_nugets.result == 'skipped' ||
-                 needs.tests_requires_nugets.result == 'skipped' ||
+                 needs.tests_requires_nugets_linux.result == 'skipped' ||
+                 needs.tests_requires_nugets_windows.result == 'skipped' ||
+                 needs.tests_requires_nugets_macos.result == 'skipped' ||
                  needs.tests_requires_cli_archive.result == 'skipped' ||
                  needs.polyglot_validation.result == 'skipped')) ||
                (github.event_name != 'pull_request' &&
                 (needs.extension_tests_win.result == 'skipped' ||
                  needs.tests_no_nugets.result == 'skipped' ||
-                 needs.tests_requires_nugets.result == 'skipped' ||
+                 needs.tests_requires_nugets_linux.result == 'skipped' ||
+                 needs.tests_requires_nugets_windows.result == 'skipped' ||
+                 needs.tests_requires_nugets_macos.result == 'skipped' ||
                  needs.polyglot_validation.result == 'skipped'))) }}
         run: |
           echo "One or more dependent jobs failed."
