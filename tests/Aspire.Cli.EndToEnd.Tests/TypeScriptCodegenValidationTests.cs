@@ -30,13 +30,6 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        // Patterns for interactive prompts
-        var waitingForLanguagePrompt = new CellPatternSearcher()
-            .Find("Which language would you like to use?");
-
-        var waitingForTypeScriptSelected = new CellPatternSearcher()
-            .Find("> TypeScript (Node.js)");
-
         var waitingForAppHostCreated = new CellPatternSearcher()
             .Find("Created apphost.ts");
 
@@ -61,13 +54,10 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
 
         // Step 1: Create a TypeScript AppHost
         sequenceBuilder
-            .Type("aspire init")
-            .Enter()
-            .WaitUntil(s => waitingForLanguagePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Type("aspire init --language typescript --non-interactive")
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Add two integrations
