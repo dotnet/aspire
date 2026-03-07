@@ -200,12 +200,27 @@ public sealed class AzurePublishingContext(
             return FormattableStringFactory.Create(expr.Format, args);
         }
 
+        BicepValue<string> EvalConditionalExpr(ReferenceExpression expr)
+        {
+            var conditionVal = ResolveValue(Eval(expr.Condition!));
+            var whenTrueVal = ResolveValue(Eval(expr.WhenTrue!));
+            var whenFalseVal = ResolveValue(Eval(expr.WhenFalse!));
+
+            var conditional = new ConditionalExpression(
+                new BinaryExpression(conditionVal.Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression(expr.MatchValue!)),
+                whenTrueVal.Compile(),
+                whenFalseVal.Compile());
+
+            return new BicepValue<string>(conditional);
+        }
+
         object Eval(object? value) => value switch
         {
             BicepOutputReference b => GetOutputs(moduleMap[b.Resource], b.Name),
             ParameterResource p => ParameterLookup[p],
             ConnectionStringReference r => Eval(r.Resource.ConnectionStringExpression),
             IResourceWithConnectionString cs => Eval(cs.ConnectionStringExpression),
+            ReferenceExpression { IsConditional: true } re => EvalConditionalExpr(re),
             ReferenceExpression re => EvalExpr(re),
             string s => s,
             _ => ""

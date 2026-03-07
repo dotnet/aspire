@@ -233,7 +233,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 var scheme = preserveHttp ? endpoint.UriScheme : "https";
                 var port = scheme is "http" ? 80 : 443;
 
-                _endpointMapping[endpoint.Name] = new(scheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+                _endpointMapping[endpoint.Name] = new(scheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External, endpoint.TlsEnabled);
             }
 
             // Record HTTP endpoints being upgraded (logged once at environment level)
@@ -265,7 +265,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             foreach (var resolved in g.ResolvedEndpoints)
             {
                 var endpoint = resolved.Endpoint;
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, resolved.ExposedPort.Value ?? g.Port.Value, g.Port.Value, false, g.External);
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, resolved.ExposedPort.Value ?? g.Port.Value, g.Port.Value, false, g.External, endpoint.TlsEnabled);
             }
         }
     }

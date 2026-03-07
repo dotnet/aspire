@@ -25,7 +25,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
     /// </summary>
     public string NormalizedContainerAppName => resource.Name.ToLowerInvariant();
 
-    protected record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
+    protected record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External, bool TlsEnabled);
     protected readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
     // Resolved environment variables and command line args
@@ -186,7 +186,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
     private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
-        var (scheme, host, port, targetPort, isHttpIngress, external) = mapping;
+        var (scheme, host, port, targetPort, isHttpIngress, external, tlsEnabled) = mapping;
 
         BicepValue<string> GetHostValue(string? prefix = null, string? suffix = null)
         {
@@ -208,6 +208,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
             EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : $"{targetPort}",
             EndpointProperty.Scheme => scheme,
+            EndpointProperty.TlsEnabled => tlsEnabled ? bool.TrueString : bool.FalseString,
             _ => throw new NotSupportedException(),
         };
     }
@@ -286,6 +287,27 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
         if (value is ReferenceExpression expr)
         {
+            // Handle conditional expressions by generating a Bicep ternary
+            if (expr.IsConditional)
+            {
+                var (conditionVal, _) = ProcessValue(expr.Condition!, secretType, parent: expr);
+                var (whenTrueVal, trueSecret) = ProcessValue(expr.WhenTrue!, secretType, parent: expr);
+                var (whenFalseVal, falseSecret) = ProcessValue(expr.WhenFalse!, secretType, parent: expr);
+
+                var conditionExpr = ResolveValue(conditionVal).Compile();
+                var matchExpr = new StringLiteralExpression(expr.MatchValue!);
+                var conditional = new ConditionalExpression(
+                    new BinaryExpression(conditionExpr, BinaryBicepOperator.Equal, matchExpr),
+                    ResolveValue(whenTrueVal).Compile(),
+                    ResolveValue(whenFalseVal).Compile());
+
+                var finalSecret = trueSecret != SecretType.None || falseSecret != SecretType.None
+                    ? SecretType.Normal
+                    : SecretType.None;
+
+                return (new BicepValue<string>(conditional), finalSecret);
+            }
+
             // Special case simple expressions
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
