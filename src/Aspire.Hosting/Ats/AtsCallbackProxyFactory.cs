@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Nodes;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Creates delegate proxies for ATS callbacks that invoke the remote client.
@@ -403,3 +403,4 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         // No-op - CancellationTokenRegistry is managed by DI
     }
 }
+

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Exception thrown when a capability invocation fails.
@@ -140,3 +140,4 @@ internal sealed class CapabilityException : Exception
             : new CapabilityException(error);
     }
 }
+

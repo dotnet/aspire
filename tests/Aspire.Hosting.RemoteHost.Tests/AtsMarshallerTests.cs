@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -37,7 +36,12 @@ public class AtsMarshallerTests
         handles ??= new HandleRegistry();
         ctRegistry ??= new CancellationTokenRegistry();
         var context = CreateTestContext();
-        return new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+        return new AtsMarshaller(
+            handles,
+            context,
+            ctRegistry,
+            new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()),
+            new ReferenceExpressionFactory());
     }
 
     private static AtsMarshaller CreateMarshaller(HandleRegistry? registry = null)

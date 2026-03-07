@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using Aspire.Hosting.Ats;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.RemoteHost.CodeGeneration;
@@ -13,7 +11,7 @@ namespace Aspire.Hosting.RemoteHost.CodeGeneration;
 /// </summary>
 internal sealed class CodeGeneratorResolver
 {
-    private readonly Lazy<Dictionary<string, ICodeGenerator>> _generators;
+    private readonly Lazy<Dictionary<string, IsolatedCodeGenerator>> _generators;
     private readonly ILogger<CodeGeneratorResolver> _logger;
 
     public CodeGeneratorResolver(
@@ -22,8 +20,10 @@ internal sealed class CodeGeneratorResolver
         ILogger<CodeGeneratorResolver> logger)
     {
         _logger = logger;
-        _generators = new Lazy<Dictionary<string, ICodeGenerator>>(
-            () => DiscoverGenerators(serviceProvider, assemblyLoader.GetAssemblies()));
+        var generatorInterface = assemblyLoader.GetRequiredAssembly("Aspire.Hosting").GetType("Aspire.Hosting.Ats.ICodeGenerator", throwOnError: true)
+            ?? throw new InvalidOperationException("Aspire.Hosting.Ats.ICodeGenerator was not found.");
+        _generators = new Lazy<Dictionary<string, IsolatedCodeGenerator>>(
+            () => DiscoverGenerators(serviceProvider, assemblyLoader.GetAssemblies(), generatorInterface));
     }
 
     /// <summary>
@@ -31,54 +31,54 @@ internal sealed class CodeGeneratorResolver
     /// </summary>
     /// <param name="language">The target language (e.g., "TypeScript", "Python").</param>
     /// <returns>The code generator, or null if not found.</returns>
-    public ICodeGenerator? GetCodeGenerator(string language)
+    public IsolatedCodeGenerator? GetCodeGenerator(string language)
     {
         _generators.Value.TryGetValue(language, out var generator);
         return generator;
     }
 
-    private Dictionary<string, ICodeGenerator> DiscoverGenerators(
+    private Dictionary<string, IsolatedCodeGenerator> DiscoverGenerators(
         IServiceProvider serviceProvider,
-        IReadOnlyList<Assembly> assemblies)
+        IReadOnlyList<Assembly> assemblies,
+        Type generatorInterface)
     {
-        var generators = new Dictionary<string, ICodeGenerator>(StringComparer.OrdinalIgnoreCase);
-        var generatorInterface = typeof(ICodeGenerator);
+        return IsolatedImplementationDiscovery.DiscoverByLanguage(
+            serviceProvider,
+            assemblies,
+            generatorInterface,
+            _logger,
+            implementationDescription: "code generator",
+            createAdapter: static (instance, type) => new IsolatedCodeGenerator(instance, type),
+            getLanguage: static generator => generator.Language);
+    }
+}
 
-        foreach (var assembly in assemblies)
+internal sealed class IsolatedCodeGenerator
+{
+    private readonly object _instance;
+    private readonly MethodInfo _generateDistributedApplicationMethod;
+
+    public IsolatedCodeGenerator(object instance, Type implementationType)
+    {
+        _instance = instance;
+        Language = implementationType.GetProperty("Language")?.GetValue(instance) as string
+            ?? throw new InvalidOperationException($"Code generator '{implementationType.FullName}' did not expose a Language property.");
+        _generateDistributedApplicationMethod = implementationType.GetMethod("GenerateDistributedApplication", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"Code generator '{implementationType.FullName}' did not expose GenerateDistributedApplication.");
+    }
+
+    public string Language { get; }
+
+    public Dictionary<string, string> GenerateDistributedApplication(object isolatedContext)
+    {
+        try
         {
-            Type[] types;
-            try
-            {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                _logger.LogDebug(ex, "Some types in assembly '{AssemblyName}' could not be loaded", assembly.GetName().Name);
-                // Use the types that were successfully loaded
-                types = ex.Types.Where(t => t is not null).ToArray()!;
-            }
-
-            foreach (var type in types)
-            {
-                if (!type.IsAbstract && !type.IsInterface && generatorInterface.IsAssignableFrom(type))
-                {
-                    try
-                    {
-                        var generator = (ICodeGenerator?)ActivatorUtilities.CreateInstance(serviceProvider, type);
-                        if (generator is not null)
-                        {
-                            generators[generator.Language] = generator;
-                            _logger.LogDebug("Discovered code generator: {TypeName} for language '{Language}'", type.Name, generator.Language);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to instantiate code generator '{TypeName}'", type.Name);
-                    }
-                }
-            }
+            return (Dictionary<string, string>)(_generateDistributedApplicationMethod.Invoke(_instance, [isolatedContext])
+                ?? throw new InvalidOperationException($"Code generator '{_instance.GetType().FullName}' returned null."));
         }
-
-        return generators;
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            throw ex.InnerException;
+        }
     }
 }

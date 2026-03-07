@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Manages registration and lookup of ATS handles for capability dispatch.
@@ -214,3 +214,4 @@ internal sealed class HandleRef
         return node is JsonObject obj && obj.ContainsKey("$handle");
     }
 }
+

@@ -1,52 +1,89 @@
 # Aspire.Hosting.RemoteHost
 
-This package provides the remote host server for polyglot Aspire AppHosts. It enables non-.NET languages (like TypeScript) to define and run Aspire applications by communicating with a .NET process via JSON-RPC over Unix domain sockets.
+`Aspire.Hosting.RemoteHost` provides the `aspire-server` process used by polyglot Aspire AppHosts.
+
+It exposes Aspire hosting capabilities over JSON-RPC so non-.NET AppHosts (for example TypeScript) can create builders, invoke hosting APIs, receive callback invocations, and use language-specific scaffolding/code-generation services.
 
 ## Overview
 
-The RemoteHost acts as a bridge between polyglot AppHost projects and the Aspire hosting infrastructure. It:
+The current design keeps the JSON-RPC transport and process boundary in **RemoteHost**, while the ATS runtime that executes capabilities lives in **Aspire.Hosting**.
 
-- Exposes Aspire capabilities via JSON-RPC over a Unix domain socket
-- Scans assemblies for `[AspireExport]` attributes to discover available capabilities
-- Manages object lifecycle with a handle-based registry system
-- Supports bidirectional communication for callbacks (e.g., environment configuration lambdas)
+At a high level:
+
+- the **CLI/bundle carries `aspire-server`**
+- the **application restores `Aspire.Hosting` and its extension packages**
+- `aspire-server` loads those restored assemblies into an integration load context
+- RemoteHost crosses that boundary through reflection proxies
+- the actual ATS catalog/session runtime runs inside the loaded `Aspire.Hosting` assembly set
 
 ## Architecture
 
 ```text
-┌─────────────────────────────┐
-│   TypeScript/JS AppHost    │
-│   (or other language)       │
-└─────────────┬───────────────┘
-              │ JSON-RPC over Unix Socket
-              ▼
-┌─────────────────────────────┐
-│   RemoteHostServer          │
-│   ├── JsonRpcServer         │
-│   ├── CapabilityDispatcher  │
-│   ├── HandleRegistry        │
-│   └── AtsMarshaller         │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────┐
-│   Aspire Hosting            │
-│   (DistributedApplication)  │
-└─────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ Polyglot AppHost client                      │
+│ (TypeScript / Python / Go / Java / Rust)     │
+└──────────────────────┬───────────────────────┘
+                       │ JSON-RPC
+                       ▼
+┌──────────────────────────────────────────────┐
+│ RemoteHost (aspire-server, CLI-provided)     │
+│ Default load context                         │
+│                                              │
+│  Hosted services                             │
+│  - JsonRpcServer                             │
+│  - OrphanDetector                            │
+│                                              │
+│  Singleton services                          │
+│  - AssemblyLoader                            │
+│  - AtsCatalogProxy                           │
+│  - CodeGenerationService                     │
+│  - CodeGeneratorResolver                     │
+│  - LanguageService                           │
+│  - LanguageSupportResolver                   │
+│                                              │
+│  Scoped per-client services                  │
+│  - JsonRpcCallbackInvoker                    │
+│  - AtsSessionProxy                           │
+│  - RemoteAppHostService                      │
+└──────────────────────┬───────────────────────┘
+                       │ reflection boundary
+                       ▼
+┌──────────────────────────────────────────────┐
+│ IntegrationLoadContext                       │
+│ (app-restored Aspire assemblies)             │
+│                                              │
+│  - Aspire.Hosting                            │
+│  - Aspire.Hosting.* extensions               │
+│  - codegen/language implementations          │
+│                                              │
+│  Hosting-side ATS runtime                    │
+│  - AtsCatalog   (singleton scan/catalog)     │
+│  - AtsSession   (scoped per-client runtime)  │
+└──────────────────────────────────────────────┘
 ```
 
-## Components
+### Boundary split
 
-### RemoteHostServer
+The important split is:
 
-The main entry point. Call `RemoteHostServer.RunAsync(args)` to start the server:
+- **RemoteHost owns**
+  - JSON-RPC transport
+  - callback connection plumbing
+  - reflection proxies
+  - projected metadata used for RPC/code generation responses
+- **Aspire.Hosting owns**
+  - ATS scanning/catalog state
+  - capability dispatch
+  - handle/cancellation/callback runtime
+  - session lifetime for capability execution
 
-```csharp
-// The server reads AtsAssemblies from appsettings.json
-await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
-```
+This keeps the execution runtime aligned with the app-restored `Aspire.Hosting` version instead of duplicating it in `aspire-server`.
 
-The server reads the list of assemblies to scan from `appsettings.json`:
+## Assembly loading and load contexts
+
+`AssemblyLoader` reads the `AtsAssemblies` configuration and loads those assemblies on demand.
+
+### Configuration
 
 ```json
 {
@@ -58,162 +95,129 @@ The server reads the list of assemblies to scan from `appsettings.json`:
 }
 ```
 
-Alternatively, you can pass assemblies explicitly:
+### Integration load context
 
-```csharp
-using System.Reflection;
+When `ASPIRE_INTEGRATION_LIBS_PATH` is set, RemoteHost creates a collectible `IntegrationLoadContext` and loads the configured assemblies from that directory. This is the normal polyglot flow used by the CLI/bundle.
 
-// Explicitly pass assemblies to scan for [AspireExport] capabilities
-var assemblies = new[] { typeof(SomeAspireType).Assembly };
-await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, assemblies);
-```
+Some framework/shared assemblies stay shared from the default context, including:
 
-### CapabilityDispatcher
+- `System`
+- `System.Private.CoreLib`
+- `mscorlib`
+- `netstandard`
+- `StreamJsonRpc`
+- selected diagnostics/eventing assemblies
 
-Discovers and dispatches capability invocations:
+Everything else is loaded from the integration directory when available so the app's restored `Aspire.Hosting` packages are the ones executing capability logic.
 
-- Scans assemblies for `[AspireExport]` and `[AspireContextType]` attributes
-- Registers capability handlers for each discovered export
-- Routes `invokeCapability` calls to the appropriate handler
-- Handles parameter binding, optional parameters, and async methods
+## Core components
 
-### HandleRegistry
+### `RemoteHostServer`
 
-Manages the lifecycle of .NET objects exposed to clients:
+`RemoteHostServer.RunAsync(args)` starts the host, registers services, and begins serving JSON-RPC requests.
 
-- Assigns unique handle IDs to objects (format: `{typeId}:{sequenceNumber}`)
-- Resolves handle references back to objects
-- Supports type-safe retrieval with expected type validation
+There is no longer an API that accepts assemblies directly. Assembly selection is driven by configuration plus the integration load context.
 
-### AtsMarshaller
+### `AtsCatalogProxy`
 
-Handles serialization between .NET types and JSON:
+`AtsCatalogProxy` is the singleton reflection boundary over `Aspire.Hosting.Ats.AtsCatalog`.
 
-- Marshals primitive types directly
-- Wraps complex objects as handle references
-- Supports reference expressions for deferred evaluation
-- Creates callback proxies for delegate parameters
+It:
 
-## Environment Variables
+- loads `Aspire.Hosting` from the configured assembly set
+- creates the Hosting-side `AtsCatalog`
+- exposes a projected `AtsContext` back to RemoteHost
+- creates per-client `AtsSessionProxy` instances
 
-| Variable | Description |
-|----------|-------------|
-| `REMOTE_APP_HOST_SOCKET_PATH` | Path to the Unix domain socket. Defaults to `{temp}/aspire/remote-app-host.sock` |
-| `REMOTE_APP_HOST_PID` | Parent process ID for orphan detection. If set, the server shuts down when the parent exits |
+### `AtsSessionProxy`
 
-## Security
+`AtsSessionProxy` is the scoped reflection boundary over `Aspire.Hosting.Ats.AtsSession`.
 
-The server uses file system permissions for security:
-- On Unix/macOS: The socket file is created with mode 0600 (owner read/write only)
-- On Windows: Named pipe ACLs restrict access to the current user only
+It:
 
-This ensures only the user who started the AppHost can connect to the RPC server.
+- invokes capabilities in the Hosting-side session
+- forwards token cancellation
+- unwraps reflected exceptions
+- translates Hosting-side `CapabilityException` values back into RemoteHost error models
 
-## Usage
+### `RemoteAppHostService`
 
-This package is typically not used directly. Instead, the Aspire CLI scaffolds a project that references this package and generates the configuration. The generated project includes:
+This is the JSON-RPC-facing service for runtime capability execution.
 
-1. **Program.cs** - Entry point that starts the server:
-   ```csharp
-   await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
-   ```
+It is intentionally thin and delegates to:
 
-2. **appsettings.json** - Configuration with the list of integration assemblies:
-   ```json
-   {
-     "AtsAssemblies": [
-       "Aspire.Hosting",
-       "Aspire.Hosting.Redis"
-     ]
-   }
-   ```
+- `JsonRpcCallbackInvoker` for server-to-client callback calls
+- `AtsSessionProxy` for capability execution and cancellation
 
-The server loads each assembly listed in `AtsAssemblies` and scans them for `[AspireExport]` capabilities that can be invoked via JSON-RPC.
+### `CodeGenerationService` and `LanguageService`
 
-## JSON-RPC Methods
+These remain singleton services on the RemoteHost side.
+
+- `CodeGenerationService` uses projected ATS metadata for `getCapabilities` and the isolated Hosting context for `generateCode`
+- `LanguageService` provides scaffolding, language detection, and runtime spec queries
+- resolver discovery still happens in RemoteHost, but it acts over the assemblies loaded through `AssemblyLoader`
+
+## JSON-RPC surface
+
+### Methods exposed by the server
 
 | Method | Description |
 |--------|-------------|
-| `ping` | Health check, returns "pong" |
-| `invokeCapability` | Invoke a capability by ID with arguments |
-| `invokeCallback` | Invoke a TypeScript callback from .NET (server→client) |
+| `ping` | Health check |
+| `invokeCapability` | Invoke an ATS capability |
+| `cancelToken` | Cancel a previously issued token |
+| `getCapabilities` | Return projected ATS capability/type metadata |
+| `generateCode` | Generate SDK files for a codegen language |
+| `scaffoldAppHost` | Scaffold a new polyglot AppHost |
+| `detectAppHostType` | Detect the language/runtime of an AppHost directory |
+| `getRuntimeSpec` | Return runtime execution metadata for a language |
 
-### invokeCapability
+### Client callback method expected by the server
 
-The primary method for interacting with Aspire. Capabilities are identified by `{AssemblyName}/{methodName}`.
+| Method | Description |
+|--------|-------------|
+| `invokeCallback` | Invoked by RemoteHost on the connected client when callback parameters need to be executed |
 
-**Request:**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "invokeCapability",
-  "params": {
-    "capabilityId": "Aspire.Hosting/createBuilder",
-    "args": {
-      "name": "my-app"
-    }
-  },
-  "id": 1
-}
-```
+## Environment variables
 
-**Response (success):**
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "$handle": "1",
-    "$type": "Aspire.Hosting/IDistributedApplicationBuilder"
-  },
-  "id": 1
-}
-```
+| Variable | Description |
+|----------|-------------|
+| `ASPIRE_INTEGRATION_LIBS_PATH` | Directory containing the restored integration assemblies to load into the integration load context |
+| `REMOTE_APP_HOST_SOCKET_PATH` | Transport path used by the RPC server |
+| `REMOTE_APP_HOST_PID` | Parent process ID used by orphan detection |
 
-**Response (error):**
-```json
-{
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32000,
-    "message": "Capability error",
-    "data": {
-      "code": "CAPABILITY_NOT_FOUND",
-      "message": "Unknown capability: Aspire.Hosting/unknownMethod",
-      "capability": "Aspire.Hosting/unknownMethod"
-    }
-  },
-  "id": 1
-}
-```
+## Security
 
-## Capability Discovery
+The transport is local-machine only and relies on OS-level access controls:
 
-Capabilities are discovered by scanning assemblies for:
+- on Unix/macOS, the socket file is created with restrictive permissions
+- on Windows, named pipe ACLs restrict access to the current user
 
-1. **[AspireExport]** - Static methods that can be invoked:
-   ```csharp
-   [AspireExport("addRedis", Description = "Adds a Redis container")]
-   public static IResourceBuilder<RedisResource> AddRedis(
-       IDistributedApplicationBuilder builder,
-       string name,
-       int? port = null)
-   ```
+## Versioning and compatibility
 
-2. **[AspireContextType]** - Types whose properties are exposed as capabilities. The type ID is derived as `{AssemblyName}/{TypeName}`:
-   ```csharp
-   [AspireContextType]  // Type ID = Aspire.Hosting/ConfigurationContext
-   public class ConfigurationContext
-   {
-       public string? ConnectionString { get; set; }
-   }
-   ```
+The most important versioning fact is:
 
-## Error Codes
+- **the CLI ships `aspire-server` (`Aspire.Hosting.RemoteHost`)**
+- **the application restores `Aspire.Hosting` and extension packages**
 
-| Code | Description |
-|------|-------------|
-| `CAPABILITY_NOT_FOUND` | The requested capability does not exist |
-| `INVALID_ARGUMENT` | A required argument is missing or invalid |
-| `HANDLE_NOT_FOUND` | The referenced handle does not exist |
-| `TYPE_MISMATCH` | The argument type doesn't match the expected type |
-| `INTERNAL_ERROR` | An unexpected error occurred during execution |
+Because of that, RemoteHost and Hosting do **not** need to be identical binaries, but they do need to be **compatible across the reflection boundary**.
+
+Today that boundary is intentionally narrow but still brittle to breaking shape changes. RemoteHost reflects on internal Hosting-side members such as:
+
+- `Aspire.Hosting.Ats.AtsCatalog.Create(...)`
+- `AtsCatalog.GetIsolatedContext()`
+- `AtsCatalog.CreateSession(...)`
+- `AtsSession.InvokeCapabilityAsync(...)`
+- `AtsSession.CancelToken(...)`
+
+Implications:
+
+- **additive changes** on the Hosting side are usually low risk
+- **renames, removals, or signature changes** to those reflected members require coordinated updates
+- CLI/bundle and restored hosting packages should generally stay on the same channel/build line
+
+This split is still an improvement over the older design because the ATS execution runtime now lives with the app-restored Hosting packages rather than being duplicated inside RemoteHost.
+
+## Typical usage
+
+This package is normally launched by the Aspire CLI rather than referenced directly by user code. The CLI sets up the transport, provides the integration libraries path, and starts `aspire-server` with configuration that lists the assemblies the app wants to expose.

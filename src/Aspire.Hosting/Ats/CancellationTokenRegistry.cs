@@ -3,7 +3,7 @@
 
 using System.Collections.Concurrent;
 
-namespace Aspire.Hosting.RemoteHost;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Manages CancellationTokenSource instances for cross-process cancellation.
@@ -171,3 +171,4 @@ internal sealed class CancellationTokenRegistry : IDisposable
         _sources.Clear();
     }
 }
+

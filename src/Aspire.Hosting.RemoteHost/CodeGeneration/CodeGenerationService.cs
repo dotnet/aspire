@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Ats;
+using Aspire.Hosting.RemoteHost.Ats;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
@@ -12,16 +12,16 @@ namespace Aspire.Hosting.RemoteHost.CodeGeneration;
 /// </summary>
 internal sealed class CodeGenerationService
 {
-    private readonly AtsContextFactory _atsContextFactory;
+    private readonly AtsCatalogProxy _catalogProxy;
     private readonly CodeGeneratorResolver _resolver;
     private readonly ILogger<CodeGenerationService> _logger;
 
     public CodeGenerationService(
-        AtsContextFactory atsContextFactory,
+        AtsCatalogProxy catalogProxy,
         CodeGeneratorResolver resolver,
         ILogger<CodeGenerationService> logger)
     {
-        _atsContextFactory = atsContextFactory;
+        _catalogProxy = catalogProxy;
         _resolver = resolver;
         _logger = logger;
     }
@@ -38,7 +38,7 @@ internal sealed class CodeGenerationService
 
         try
         {
-            var context = _atsContextFactory.GetContext();
+            var context = _catalogProxy.GetContext();
 
             var response = new CapabilitiesResponse
             {
@@ -122,9 +122,9 @@ internal sealed class CodeGenerationService
         Properties = t.Properties.Select(p => new DtoPropertyResponse
         {
             Name = p.Name,
+            Description = p.Description,
             Type = MapTypeRef(p.Type),
-            IsOptional = p.IsOptional,
-            Description = p.Description
+            IsOptional = p.IsOptional
         }).ToList()
     };
 
@@ -161,7 +161,7 @@ internal sealed class CodeGenerationService
                 throw new ArgumentException($"No code generator found for language: {language}");
             }
 
-            var files = generator.GenerateDistributedApplication(_atsContextFactory.GetContext());
+            var files = generator.GenerateDistributedApplication(_catalogProxy.GetIsolatedContext());
 
             _logger.LogDebug("<< generateCode({Language}) completed in {ElapsedMs}ms, generated {FileCount} files", language, sw.ElapsedMilliseconds, files.Count);
             return files;
@@ -253,9 +253,9 @@ internal sealed class DtoTypeResponse
 internal sealed class DtoPropertyResponse
 {
     public string Name { get; set; } = "";
+    public string? Description { get; set; }
     public TypeRefResponse? Type { get; set; }
     public bool IsOptional { get; set; }
-    public string? Description { get; set; }
 }
 
 internal sealed class EnumTypeResponse
