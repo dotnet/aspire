@@ -318,6 +318,7 @@ dotnet run --project tools/QuarantineTools -- -u -m activeissue Full.Namespace.T
 ## Outerloop tests
 
 - Tests that are long-running, resource-intensive, or require special infrastructure are marked with the `OuterloopTest` attribute.
+- In this repository, always use `OuterloopTest` for outerloop coverage; do not replace it with Arcade's `OuterLoop` attribute because our CI scripts and some test projects rely on assembly-level use of the custom trait.
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
     - Instead they are run in the `Outerloop` workflow (`tests-outerloop.yml`).
 - An optional reason can be provided with the attribute
