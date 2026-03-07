@@ -3330,7 +3330,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithImagePushOptions<T>(
         this IResourceBuilder<T> builder,
         Action<ContainerImagePushOptionsCallbackContext> callback)
-        where T : IResource
+        where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
@@ -3371,7 +3371,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithImagePushOptions<T>(
         this IResourceBuilder<T> builder,
         Func<ContainerImagePushOptionsCallbackContext, Task> callback)
-        where T : IResource
+        where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
@@ -3404,7 +3404,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithRemoteImageName<T>(
         this IResourceBuilder<T> builder,
         string remoteImageName)
-        where T : IResource
+        where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(remoteImageName);
@@ -3440,7 +3440,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithRemoteImageTag<T>(
         this IResourceBuilder<T> builder,
         string remoteImageTag)
-        where T : IResource
+        where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(remoteImageTag);
