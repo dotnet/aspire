@@ -250,6 +250,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unexpected or truncated message content..
+        /// </summary>
+        public static string GenAIUnexpectedOrTruncatedContent {
+            get {
+                return ResourceManager.GetString("GenAIUnexpectedOrTruncatedContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Duration.
         /// </summary>
         public static string GenAIDurationLabel {
