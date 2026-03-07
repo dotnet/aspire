@@ -77,7 +77,7 @@ public sealed class PipelineSummary
     /// <summary>
     /// Adds a key-value pair to the pipeline summary with a plain-text value.
     /// </summary>
-    /// <param name="key">The key or label for the item (e.g., "Resource Group", "Namespace", "URL").</param>
+    /// <param name="key">The key or label for the item (e.g., "Namespace", "URL").</param>
     /// <param name="value">The plain-text value for the item.</param>
     public void Add(string key, string value)
     {
@@ -93,7 +93,7 @@ public sealed class PipelineSummary
     /// <summary>
     /// Adds a key-value pair to the pipeline summary with a Markdown-formatted value.
     /// </summary>
-    /// <param name="key">The key or label for the item (e.g., "Resource Group", "Namespace", "URL").</param>
+    /// <param name="key">The key or label for the item (e.g., "Namespace", "URL").</param>
     /// <param name="value">The Markdown-formatted value for the item.</param>
     public void Add(string key, MarkdownString value)
     {

@@ -16,14 +16,14 @@ namespace Aspire.Hosting.Pipelines;
 public sealed class PipelineSummaryItem(string key, string value, bool enableMarkdown)
 {
     /// <summary>
-    /// Gets the key or label for the summary item (e.g., "Resource Group", "Namespace", "URL").
+    /// Gets the key or label for the summary item (e.g., "Namespace", "URL").
     /// </summary>
-    public string Key { get; } = key;
+    public string Key { get; } = key ?? throw new ArgumentNullException(nameof(key));
 
     /// <summary>
     /// Gets the string value for the summary item.
     /// </summary>
-    public string Value { get; } = value;
+    public string Value { get; } = value ?? throw new ArgumentNullException(nameof(value));
 
     /// <summary>
     /// Gets a value indicating whether <see cref="Value"/> contains Markdown formatting that
