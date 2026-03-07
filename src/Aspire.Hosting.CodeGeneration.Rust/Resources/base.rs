@@ -50,83 +50,50 @@ impl ResourceBuilderBase {
 }
 
 /// A reference expression for dynamic values.
-/// Supports value mode (format + args), conditional mode (condition + whenTrue + whenFalse),
-/// and handle mode (wrapping a server-returned handle).
+/// Supports value mode (format + args) and conditional mode (condition + whenTrue + whenFalse).
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReferenceExpression {
-    // Value mode fields
-    pub format: Option<String>,
-    pub args: Option<Vec<Value>>,
-
-    // Conditional mode fields
+    pub format: String,
+    pub args: Vec<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     condition: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     when_true: Option<Box<ReferenceExpression>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     when_false: Option<Box<ReferenceExpression>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     match_value: Option<String>,
+    #[serde(default)]
     is_conditional: bool,
-
-    // Handle mode fields
-    handle: Option<Handle>,
-    client: Option<Arc<AspireClient>>,
 }
 
 impl ReferenceExpression {
-    /// Creates a new value-mode reference expression.
     pub fn new(format: impl Into<String>, args: Vec<Value>) -> Self {
         Self {
-            format: Some(format.into()),
-            args: Some(args),
+            format: format.into(),
+            args,
             condition: None,
             when_true: None,
             when_false: None,
             match_value: None,
             is_conditional: false,
-            handle: None,
-            client: None,
-        }
-    }
-
-    /// Creates a new handle-mode reference expression from a server-returned handle.
-    pub fn from_handle(handle: Handle, client: Arc<AspireClient>) -> Self {
-        Self {
-            format: None,
-            args: None,
-            condition: None,
-            when_true: None,
-            when_false: None,
-            match_value: None,
-            is_conditional: false,
-            handle: Some(handle),
-            client: Some(client),
         }
     }
 
     /// Creates a conditional reference expression from its parts.
-    pub fn create_conditional(condition: Value, match_value: Option<String>, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
+    pub fn create_conditional(condition: Value, match_value: impl Into<String>, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
         Self {
-            format: None,
-            args: None,
+            format: String::new(),
+            args: Vec::new(),
             condition: Some(condition),
             when_true: Some(Box::new(when_true)),
             when_false: Some(Box::new(when_false)),
-            match_value: Some(match_value.unwrap_or_else(|| "True".to_string())),
+            match_value: Some(match_value.into()),
             is_conditional: true,
-            handle: None,
-            client: None,
         }
-    }
-
-    pub fn handle(&self) -> Option<&Handle> {
-        self.handle.as_ref()
-    }
-
-    pub fn client(&self) -> Option<&Arc<AspireClient>> {
-        self.client.as_ref()
     }
 
     pub fn to_json(&self) -> Value {
-        if let Some(ref handle) = self.handle {
-            return handle.to_json();
-        }
         if self.is_conditional {
             return json!({
                 "$refExpr": {
@@ -139,67 +106,10 @@ impl ReferenceExpression {
         }
         json!({
             "$refExpr": {
-                "format": self.format.as_ref().unwrap(),
-                "args": self.args.as_ref().unwrap()
+                "format": self.format,
+                "args": self.args
             }
         })
-    }
-}
-
-impl HasHandle for ReferenceExpression {
-    fn handle(&self) -> &Handle {
-        self.handle.as_ref().expect("ReferenceExpression is not in handle mode")
-    }
-}
-
-impl Serialize for ReferenceExpression {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.to_json().serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ReferenceExpression {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = Value::deserialize(deserializer)?;
-        if let Some(ref_expr) = value.get("$refExpr") {
-            if let Some(condition) = ref_expr.get("condition") {
-                let when_true: ReferenceExpression = serde_json::from_value(
-                    ref_expr.get("whenTrue").cloned().unwrap_or(Value::Null)
-                ).map_err(serde::de::Error::custom)?;
-                let when_false: ReferenceExpression = serde_json::from_value(
-                    ref_expr.get("whenFalse").cloned().unwrap_or(Value::Null)
-                ).map_err(serde::de::Error::custom)?;
-                let match_value = ref_expr.get("matchValue")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
-                return Ok(ReferenceExpression::create_conditional(
-                    condition.clone(),
-                    match_value,
-                    when_true,
-                    when_false,
-                ));
-            }
-            let format = ref_expr.get("format")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let args = ref_expr.get("args")
-                .and_then(|v| v.as_array())
-                .cloned()
-                .unwrap_or_default();
-            return Ok(ReferenceExpression::new(format, args));
-        }
-        if value.get("$handle").is_some() {
-            let handle: Handle = serde_json::from_value(value)
-                .map_err(serde::de::Error::custom)?;
-            return Ok(Self {
-                format: None, args: None,
-                condition: None, when_true: None, when_false: None,
-                match_value: None, is_conditional: false,
-                handle: Some(handle), client: None,
-            });
-        }
-        Err(serde::de::Error::custom("expected $refExpr or $handle"))
     }
 }
 

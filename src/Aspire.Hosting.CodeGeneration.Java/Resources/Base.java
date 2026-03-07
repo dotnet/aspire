@@ -37,8 +37,7 @@ class ResourceBuilderBase extends HandleWrapperBase {
 
 /**
  * ReferenceExpression represents a reference expression.
- * Supports value mode (format + args), conditional mode (condition + whenTrue + whenFalse),
- * and handle mode (wrapping a server-returned handle).
+ * Supports value mode (format + args) and conditional mode (condition + whenTrue + whenFalse).
  */
 class ReferenceExpression {
     // Value mode fields
@@ -52,29 +51,10 @@ class ReferenceExpression {
     private final String matchValue;
     private final boolean isConditional;
 
-    // Handle mode fields
-    private final Handle handle;
-    private final AspireClient client;
-
     // Value mode constructor
     ReferenceExpression(String format, Object... args) {
         this.format = format;
         this.args = args;
-        this.condition = null;
-        this.whenTrue = null;
-        this.whenFalse = null;
-        this.matchValue = null;
-        this.isConditional = false;
-        this.handle = null;
-        this.client = null;
-    }
-
-    // Handle mode constructor
-    ReferenceExpression(Handle handle, AspireClient client) {
-        this.handle = handle;
-        this.client = client;
-        this.format = null;
-        this.args = null;
         this.condition = null;
         this.whenTrue = null;
         this.whenFalse = null;
@@ -91,8 +71,6 @@ class ReferenceExpression {
         this.isConditional = true;
         this.format = null;
         this.args = null;
-        this.handle = null;
-        this.client = null;
     }
 
     String getFormat() {
@@ -103,14 +81,7 @@ class ReferenceExpression {
         return args;
     }
 
-    Handle getHandle() {
-        return handle;
-    }
-
     Map<String, Object> toJson() {
-        if (handle != null) {
-            return handle.toJson();
-        }
         if (isConditional) {
             var condPayload = new java.util.HashMap<String, Object>();
             condPayload.put("condition", AspireClient.serializeValue(condition));

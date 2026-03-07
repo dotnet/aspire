@@ -14,8 +14,6 @@ class ReferenceExpression:
     def __init__(self, format_string: str, value_providers: List[Any]) -> None:
         self._format_string = format_string
         self._value_providers = value_providers
-        self._handle: Handle | None = None
-        self._client: AspireClient | None = None
         self._condition: Any = None
         self._when_true: ReferenceExpression | None = None
         self._when_false: ReferenceExpression | None = None
@@ -33,8 +31,6 @@ class ReferenceExpression:
         expr = ReferenceExpression.__new__(ReferenceExpression)
         expr._format_string = ""
         expr._value_providers = []
-        expr._handle = None
-        expr._client = None
         expr._condition = condition
         expr._when_true = when_true
         expr._when_false = when_false
@@ -42,24 +38,7 @@ class ReferenceExpression:
         expr._is_conditional = True
         return expr
 
-    @staticmethod
-    def _from_handle(handle: "Handle", client: "AspireClient") -> "ReferenceExpression":
-        """Creates a ReferenceExpression wrapping a server-returned handle."""
-        expr = ReferenceExpression.__new__(ReferenceExpression)
-        expr._format_string = ""
-        expr._value_providers = []
-        expr._handle = handle
-        expr._client = client
-        expr._condition = None
-        expr._when_true = None
-        expr._when_false = None
-        expr._match_value = None
-        expr._is_conditional = False
-        return expr
-
     def to_json(self) -> Dict[str, Any]:
-        if self._handle is not None:
-            return self._handle.to_json()
         if self._is_conditional:
             return {
                 "$expr": {
@@ -75,8 +54,6 @@ class ReferenceExpression:
         return {"$expr": payload}
 
     def __str__(self) -> str:
-        if self._handle is not None:
-            return "ReferenceExpression(handle)"
         if self._is_conditional:
             return "ReferenceExpression(conditional)"
         return f"ReferenceExpression({self._format_string})"
