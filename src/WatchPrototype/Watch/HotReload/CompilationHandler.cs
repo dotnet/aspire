@@ -22,6 +22,7 @@ namespace Microsoft.DotNet.Watch
         /// <summary>
         /// Lock to synchronize:
         /// <see cref="_runningProjects"/>
+        /// <see cref="_activeProjectRelaunchOperations"/>
         /// <see cref="_previousUpdates"/>
         /// </summary>
         private readonly object _runningProjectsAndUpdatesGuard = new();
@@ -32,6 +33,16 @@ namespace Microsoft.DotNet.Watch
         /// </summary>
         private ImmutableDictionary<string, ImmutableArray<RunningProject>> _runningProjects
             = ImmutableDictionary<string, ImmutableArray<RunningProject>>.Empty.WithComparers(PathUtilities.OSSpecificPathComparer);
+
+        /// <summary>
+        /// Maps <see cref="ProjectInstance.FullPath"/> to the list of active restart operations for the project.
+        /// The <see cref="RestartOperation"/> of the project instance is added whenever a process crashes (terminated with non-zero exit code)
+        /// and the corresponding <see cref="RunningProject"/> is removed from <see cref="_runningProjects"/>.
+        ///
+        /// When a file change is observed whose containing project is listed here, the associated relaunch operations are executed.
+        /// </summary>
+        private ImmutableDictionary<string, ImmutableArray<RestartOperation>> _activeProjectRelaunchOperations
+            = ImmutableDictionary<string, ImmutableArray<RestartOperation>>.Empty.WithComparers(PathUtilities.OSSpecificPathComparer);
 
         /// <summary>
         /// All updates that were attempted. Includes updates whose application failed.
@@ -145,10 +156,19 @@ namespace Microsoft.DotNet.Watch
                     await previousOnExit(processId, exitCode);
                 }
 
-                // Remove the running project if it has been published to _runningProjects (if it hasn't exited during initialization):
-                if (publishedRunningProject != null && RemoveRunningProject(publishedRunningProject))
+                if (publishedRunningProject != null)
                 {
-                    await publishedRunningProject.DisposeAsync(isExiting: true);
+                    var relaunch =
+                        !cancellationToken.IsCancellationRequested &&
+                        !publishedRunningProject.Options.IsMainProject &&
+                        exitCode.HasValue &&
+                        exitCode.Value != 0;
+
+                    // Remove the running project if it has been published to _runningProjects (if it hasn't exited during initialization):
+                    if (RemoveRunningProject(publishedRunningProject, relaunch))
+                    {
+                        await publishedRunningProject.DisposeAsync(isExiting: true);
+                    }
                 }
             };
 
@@ -222,12 +242,7 @@ namespace Microsoft.DotNet.Watch
 
                         // Only add the running process after it has been up-to-date.
                         // This will prevent new updates being applied before we have applied all the previous updates.
-                        if (!_runningProjects.TryGetValue(projectPath, out var projectInstances))
-                        {
-                            projectInstances = [];
-                        }
-
-                        _runningProjects = _runningProjects.SetItem(projectPath, projectInstances.Add(runningProject));
+                        _runningProjects = _runningProjects.Add(projectPath, runningProject);
 
                         // transfer ownership to _runningProjects
                         publishedRunningProject = runningProject;
@@ -390,26 +405,59 @@ namespace Microsoft.DotNet.Watch
             }
         }
 
-        public async ValueTask ApplyManagedCodeAndStaticAssetUpdatesAsync(
+        public async ValueTask ApplyManagedCodeAndStaticAssetUpdatesAndRelaunchAsync(
             IReadOnlyList<HotReloadService.Update> managedCodeUpdates,
             IReadOnlyDictionary<RunningProject, List<StaticWebAsset>> staticAssetUpdates,
+            ImmutableArray<ChangedFile> changedFiles,
+            LoadedProjectGraph projectGraph,
             Stopwatch stopwatch,
             CancellationToken cancellationToken)
         {
             var applyTasks = new List<Task>();
             ImmutableDictionary<string, ImmutableArray<RunningProject>> projectsToUpdate = [];
 
+            IReadOnlyList<RestartOperation> relaunchOperations;
+            lock (_runningProjectsAndUpdatesGuard)
+            {
+                // Adding the updates makes sure that all new processes receive them before they are added to running processes.
+                _previousUpdates = _previousUpdates.AddRange(managedCodeUpdates);
+
+                // Capture the set of processes that do not have the currently calculated deltas yet.
+                projectsToUpdate = _runningProjects;
+
+                // Determine relaunch operations at the same time as we capture running processes,
+                // so that these sets are consistent even if another process crashes while doing so.
+                relaunchOperations = GetRelaunchOperations_NoLock(changedFiles, projectGraph);
+            }
+
+            // Relaunch projects after _previousUpdates were updated above.
+            // Ensures that the current and previous updates will be applied as initial updates to the newly launched processes.
+            // We also capture _runningProjects above, before launching new ones, so that the current updates are not applied twice to the relaunched processes.
+            // Static asset changes do not need to be updated in the newly launched processes since the application will read their updated content once it launches.
+            // Fire and forget.
+            foreach (var relaunchOperation in relaunchOperations)
+            {
+                // fire and forget:
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await relaunchOperation.Invoke(cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // nop
+                    }
+                    catch (Exception e)
+                    {
+                        // Handle all exceptions since this is a fire-and-forget task.
+                        _context.Logger.LogError("Failed to relaunch: {Exception}", e.ToString());
+                    }
+                }, cancellationToken);
+            }
+
             if (managedCodeUpdates is not [])
             {
-                lock (_runningProjectsAndUpdatesGuard)
-                {
-                    // Adding the updates makes sure that all new processes receive them before they are added to running processes.
-                    _previousUpdates = _previousUpdates.AddRange(managedCodeUpdates);
-
-                    // Capture the set of processes that do not have the currently calculated deltas yet.
-                    projectsToUpdate = _runningProjects;
-                }
-
                 // Apply changes to all running projects, even if they do not have a static project dependency on any project that changed.
                 // The process may load any of the binaries using MEF or some other runtime dependency loader.
 
@@ -470,14 +518,14 @@ namespace Microsoft.DotNet.Watch
                         projectsToUpdate.Select(e => e.Value.First().Options.Representation).Concat(
                             staticAssetUpdates.Select(e => e.Key.Options.Representation)));
                 }
+                catch (OperationCanceledException)
+                {
+                    // nop
+                }
                 catch (Exception e)
                 {
                     // Handle all exceptions since this is a fire-and-forget task.
-
-                    if (e is not OperationCanceledException)
-                    {
-                        _context.Logger.LogError("Failed to apply managedCodeUpdates: {Exception}", e.ToString());
-                    }
+                    _context.Logger.LogError("Failed to apply managedCodeUpdates: {Exception}", e.ToString());
                 }
             }
         }
@@ -531,8 +579,7 @@ namespace Microsoft.DotNet.Watch
             ReportRudeEdits();
 
             // report or clear diagnostics in the browser UI
-            await ForEachProjectAsync(
-                _runningProjects,
+            await _runningProjects.ForEachValueAsync(
                 (project, cancellationToken) => project.Clients.ReportCompilationErrorsInApplicationAsync([.. errorsToDisplayInApp], cancellationToken).AsTask() ?? Task.CompletedTask,
                 cancellationToken);
 
@@ -865,37 +912,74 @@ namespace Microsoft.DotNet.Watch
             _context.Logger.Log(MessageDescriptor.ProjectsRestarted, projectsToRestart.Count);
         }
 
-        private bool RemoveRunningProject(RunningProject project)
+        private bool RemoveRunningProject(RunningProject project, bool relaunch)
         {
             var projectPath = project.ProjectNode.ProjectInstance.FullPath;
 
-            return UpdateRunningProjects(runningProjectsByPath =>
-            {
-                if (!runningProjectsByPath.TryGetValue(projectPath, out var runningInstances))
-                {
-                    return runningProjectsByPath;
-                }
-
-                var updatedRunningProjects = runningInstances.Remove(project);
-                return updatedRunningProjects is []
-                    ? runningProjectsByPath.Remove(projectPath)
-                    : runningProjectsByPath.SetItem(projectPath, updatedRunningProjects);
-            });
-        }
-
-        private bool UpdateRunningProjects(Func<ImmutableDictionary<string, ImmutableArray<RunningProject>>, ImmutableDictionary<string, ImmutableArray<RunningProject>>> updater)
-        {
             lock (_runningProjectsAndUpdatesGuard)
             {
-                var newRunningProjects = updater(_runningProjects);
-                if (newRunningProjects != _runningProjects)
+                var newRunningProjects = _runningProjects.Remove(projectPath, project);
+                if (newRunningProjects == _runningProjects)
                 {
-                    _runningProjects = newRunningProjects;
-                    return true;
+                    return false;
                 }
 
-                return false;
+                if (relaunch)
+                {
+                    // Create re-launch operation for each instance that crashed
+                    // even if other instances of the project are still running.
+                    _activeProjectRelaunchOperations = _activeProjectRelaunchOperations.Add(projectPath, project.GetRelaunchOperation());
+                }
+
+                _runningProjects = newRunningProjects;
             }
+
+            if (relaunch)
+            {
+                project.ClientLogger.Log(MessageDescriptor.ProcessCrashedAndWillBeRelaunched);
+            }
+
+            return true;
+        }
+
+        private IReadOnlyList<RestartOperation> GetRelaunchOperations_NoLock(IReadOnlyList<ChangedFile> changedFiles, LoadedProjectGraph projectGraph)
+        {
+            if (_activeProjectRelaunchOperations.IsEmpty)
+            {
+                return [];
+            }
+
+            var relaunchOperations = new List<RestartOperation>();
+            foreach (var changedFile in changedFiles)
+            {
+                foreach (var containingProjectPath in changedFile.Item.ContainingProjectPaths)
+                {
+                    if (!projectGraph.Map.TryGetValue(containingProjectPath, out var containingProjectNodes))
+                    {
+                        // Shouldn't happen.
+                        Logger.LogWarning("Project '{Path}' not found in the project graph.", containingProjectPath);
+                        continue;
+                    }
+
+                    // Relaunch all projects whose dependency is affected by this file change.
+                    foreach (var ancestor in containingProjectNodes[0].GetAncestorsAndSelf())
+                    {
+                        var ancestorPath = ancestor.ProjectInstance.FullPath;
+                        if (_activeProjectRelaunchOperations.TryGetValue(ancestorPath, out var operations))
+                        {
+                            relaunchOperations.AddRange(operations);
+                            _activeProjectRelaunchOperations = _activeProjectRelaunchOperations.Remove(ancestorPath);
+
+                            if (_activeProjectRelaunchOperations.IsEmpty)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return relaunchOperations;
         }
 
         public bool TryGetRunningProject(string projectPath, out ImmutableArray<RunningProject> projects)
@@ -905,9 +989,6 @@ namespace Microsoft.DotNet.Watch
                 return _runningProjects.TryGetValue(projectPath, out projects);
             }
         }
-
-        private static Task ForEachProjectAsync(ImmutableDictionary<string, ImmutableArray<RunningProject>> projects, Func<RunningProject, CancellationToken, Task> action, CancellationToken cancellationToken)
-            => Task.WhenAll(projects.SelectMany(entry => entry.Value).Select(project => action(project, cancellationToken))).WaitAsync(cancellationToken);
 
         private static ImmutableArray<HotReloadManagedCodeUpdate> ToManagedCodeUpdates(IEnumerable<HotReloadService.Update> updates)
             => [.. updates.Select(update => new HotReloadManagedCodeUpdate(update.ModuleId, update.MetadataDelta, update.ILDelta, update.PdbDelta, update.UpdatedTypes, update.RequiredCapabilities))];

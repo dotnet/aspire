@@ -79,6 +79,7 @@ namespace Microsoft.DotNet.Watch
                 using var iterationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, forceRestartCancellationSource.Token);
                 var iterationCancellationToken = iterationCancellationSource.Token;
 
+                var suppressWaitForFileChange = false;
                 EvaluationResult? evaluationResult = null;
                 RunningProject? mainRunningProject = null;
                 IRuntimeProcessLauncher? runtimeProcessLauncher = null;
@@ -280,11 +281,7 @@ namespace Microsoft.DotNet.Watch
 
                         // Apply updates only after dependencies have been deployed,
                         // so that updated code doesn't attempt to access the dependency before it has been deployed.
-                        if (updates.ManagedCodeUpdates.Count > 0 || updates.StaticAssetsToUpdate.Count > 0)
-                        {
-                            await compilationHandler.ApplyManagedCodeAndStaticAssetUpdatesAsync(updates.ManagedCodeUpdates, updates.StaticAssetsToUpdate, stopwatch, iterationCancellationToken);
-                        }
-
+                        await compilationHandler.ApplyManagedCodeAndStaticAssetUpdatesAndRelaunchAsync(updates.ManagedCodeUpdates, updates.StaticAssetsToUpdate, changedFiles, evaluationResult.ProjectGraph, stopwatch, iterationCancellationToken);
                         if (updates.ProjectsToRestart is not [])
                         {
                             await compilationHandler.RestartPeripheralProjectsAsync(updates.ProjectsToRestart, shutdownCancellationToken);
@@ -400,6 +397,10 @@ namespace Microsoft.DotNet.Watch
                 {
                     // start next iteration unless shutdown is requested
                 }
+                catch (Exception) when (!(suppressWaitForFileChange = true))
+                {
+                    // unreachable
+                }
                 finally
                 {
                     // stop watching file changes:
@@ -438,7 +439,7 @@ namespace Microsoft.DotNet.Watch
                     {
                         _context.Logger.Log(MessageDescriptor.Restarting);
                     }
-                    else if (mainRunningProject?.IsRestarting != true)
+                    else if (mainRunningProject?.IsRestarting != true && !suppressWaitForFileChange)
                     {
                         using var shutdownOrForcedRestartSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken, forceRestartCancellationSource.Token);
                         await WaitForFileChangeBeforeRestarting(fileWatcher, evaluationResult, shutdownOrForcedRestartSource.Token);
