@@ -53,8 +53,10 @@ impl ResourceBuilderBase {
 /// Supports value mode (format + args) and conditional mode (condition + whenTrue + whenFalse).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReferenceExpression {
-    pub format: String,
-    pub args: Vec<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     condition: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -70,8 +72,8 @@ pub struct ReferenceExpression {
 impl ReferenceExpression {
     pub fn new(format: impl Into<String>, args: Vec<Value>) -> Self {
         Self {
-            format: format.into(),
-            args,
+            format: Some(format.into()),
+            args: Some(args),
             condition: None,
             when_true: None,
             when_false: None,
@@ -83,8 +85,8 @@ impl ReferenceExpression {
     /// Creates a conditional reference expression from its parts.
     pub fn create_conditional(condition: Value, match_value: impl Into<String>, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
         Self {
-            format: String::new(),
-            args: Vec::new(),
+            format: None,
+            args: None,
             condition: Some(condition),
             when_true: Some(Box::new(when_true)),
             when_false: Some(Box::new(when_false)),
@@ -106,8 +108,8 @@ impl ReferenceExpression {
         }
         json!({
             "$refExpr": {
-                "format": self.format,
-                "args": self.args
+                "format": self.format.as_deref().unwrap_or_default(),
+                "args": self.args.as_deref().unwrap_or_default()
             }
         })
     }
