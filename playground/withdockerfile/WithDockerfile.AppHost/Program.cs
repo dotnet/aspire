@@ -25,8 +25,8 @@ builder.AddContainer("dynamic-sync", "dynamic-sync-image")
             FROM mcr.microsoft.com/oss/go/microsoft/golang:1.23 AS builder
             WORKDIR /app
             COPY . .
-            RUN echo "Built at {timestamp}" > /build-info.txt
             RUN go build -o qots .
+            RUN echo "Built at {timestamp}" > /build-info.txt
             
             FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
             COPY --from=builder /app/qots /qots
