@@ -881,7 +881,8 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             projectFilePath: projectFile,
             packageName: package.Id,
             packageVersion: package.Version,
-            nugetSource: null, // When source is null we append --no-restore.
+            nugetSource: null,
+            noRestore: false,
             options: new(),
             cancellationToken: cancellationToken);
 

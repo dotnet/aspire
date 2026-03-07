@@ -32,7 +32,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -741,7 +741,7 @@ internal sealed class DotNetCliRunner(
             options: options,
             cancellationToken: cancellationToken);
     }
-    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
@@ -767,11 +767,11 @@ internal sealed class DotNetCliRunner(
             cliArgsList.Add(packageVersion);
         }
 
-        if (string.IsNullOrEmpty(nugetSource))
+        if (noRestore)
         {
             cliArgsList.Add("--no-restore");
         }
-        else
+        if (!string.IsNullOrEmpty(nugetSource))
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
