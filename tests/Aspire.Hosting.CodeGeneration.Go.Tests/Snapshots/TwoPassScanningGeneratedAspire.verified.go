@@ -1296,11 +1296,10 @@ func (s *EndpointReference) GetValueAsync(cancellationToken *CancellationToken) 
 }
 
 // GetTlsValue gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
-func (s *EndpointReference) GetTlsValue(parameterName string, enabledValue *ReferenceExpression, disabledValue *ReferenceExpression) (*ConditionalReferenceExpression, error) {
+func (s *EndpointReference) GetTlsValue(enabledValue *ReferenceExpression, disabledValue *ReferenceExpression) (*ConditionalReferenceExpression, error) {
 	reqArgs := map[string]any{
 		"context": SerializeValue(s.Handle()),
 	}
-	reqArgs["parameterName"] = SerializeValue(parameterName)
 	reqArgs["enabledValue"] = SerializeValue(enabledValue)
 	reqArgs["disabledValue"] = SerializeValue(disabledValue)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", reqArgs)

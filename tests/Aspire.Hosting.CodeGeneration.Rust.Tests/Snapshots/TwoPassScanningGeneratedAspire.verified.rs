@@ -1460,10 +1460,9 @@ impl EndpointReference {
     }
 
     /// Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
-    pub fn get_tls_value(&self, parameter_name: &str, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ConditionalReferenceExpression, Box<dyn std::error::Error>> {
+    pub fn get_tls_value(&self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ConditionalReferenceExpression, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("context".to_string(), self.handle.to_json());
-        args.insert("parameterName".to_string(), serde_json::to_value(&parameter_name).unwrap_or(Value::Null));
         args.insert("enabledValue".to_string(), serde_json::to_value(&enabled_value).unwrap_or(Value::Null));
         args.insert("disabledValue".to_string(), serde_json::to_value(&disabled_value).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)?;

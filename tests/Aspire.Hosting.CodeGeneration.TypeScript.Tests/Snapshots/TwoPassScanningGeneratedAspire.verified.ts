@@ -761,8 +761,8 @@ export class EndpointReference {
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    async getTlsValue(parameterName: string, enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
-        const rpcArgs: Record<string, unknown> = { context: this._handle, parameterName, enabledValue, disabledValue };
+    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, enabledValue, disabledValue };
         return await this._client.invokeCapability<ConditionalReferenceExpression>(
             'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
             rpcArgs
@@ -790,8 +790,8 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    getTlsValue(parameterName: string, enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
-        return this._promise.then(obj => obj.getTlsValue(parameterName, enabledValue, disabledValue));
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ConditionalReferenceExpression> {
+        return this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue));
     }
 
 }

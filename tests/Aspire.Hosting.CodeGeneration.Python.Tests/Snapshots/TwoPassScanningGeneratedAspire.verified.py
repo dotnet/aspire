@@ -749,10 +749,9 @@ class EndpointReference(HandleWrapperBase):
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)
 
-    def get_tls_value(self, parameter_name: str, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ConditionalReferenceExpression:
+    def get_tls_value(self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ConditionalReferenceExpression:
         """Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise."""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
-        args["parameterName"] = serialize_value(parameter_name)
         args["enabledValue"] = serialize_value(enabled_value)
         args["disabledValue"] = serialize_value(disabled_value)
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)
