@@ -29,7 +29,14 @@ public class OpenAIFunctionalTests
             return healthCheckTcs.Task;
         });
 
-        var resource = builder.AddOpenAI("resource")
+        var openai = builder.AddOpenAI("resource");
+
+        // Remove the default status page health check from the parent OpenAI resource
+        // to avoid external HTTP calls to status.openai.com during tests.
+        var statusPageHealthCheck = Enumerable.Single(openai.Resource.Annotations, x => x is HealthCheckAnnotation hca && hca.Key == "resource_check");
+        openai.Resource.Annotations.Remove(statusPageHealthCheck);
+
+        var resource = openai
                       .AddModel("chat", "gpt-4o-mini")
                       .WithHealthCheck("blocking_check");
 
