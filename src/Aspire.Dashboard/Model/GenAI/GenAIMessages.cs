@@ -10,14 +10,29 @@ using Microsoft.OpenApi;
 namespace Aspire.Dashboard.Model.GenAI;
 
 /// <summary>
-/// Represents text, tool calls, and generic parts.
+/// Represents text, tool calls, data parts, and generic parts.
 /// </summary>
-[JsonConverter(typeof(MessagePartConverter))]
+[JsonDerivedType(typeof(TextPart))]
+[JsonDerivedType(typeof(ToolCallRequestPart))]
+[JsonDerivedType(typeof(ToolCallResponsePart))]
+[JsonDerivedType(typeof(BlobPart))]
+[JsonDerivedType(typeof(FilePart))]
+[JsonDerivedType(typeof(UriPart))]
+[JsonDerivedType(typeof(ReasoningPart))]
+[JsonDerivedType(typeof(ServerToolCallPart))]
+[JsonDerivedType(typeof(ServerToolCallResponsePart))]
+[JsonDerivedType(typeof(GenericPart))]
 public abstract class MessagePart
 {
     public const string TextType = "text";
     public const string ToolCallType = "tool_call";
     public const string ToolCallResponseType = "tool_call_response";
+    public const string BlobType = "blob";
+    public const string FileType = "file";
+    public const string UriType = "uri";
+    public const string ReasoningType = "reasoning";
+    public const string ServerToolCallType = "server_tool_call";
+    public const string ServerToolCallResponseType = "server_tool_call_response";
 
     public string Type { get; set; } = default!;
 }
@@ -65,6 +80,93 @@ public class ToolCallResponsePart : MessagePart
 }
 
 /// <summary>
+/// Represents blob binary data sent inline to the model.
+/// </summary>
+public class BlobPart : MessagePart
+{
+    public BlobPart()
+    {
+        Type = BlobType;
+    }
+
+    public string? MimeType { get; set; }
+    public string? Modality { get; set; }
+    public string? Content { get; set; }
+}
+
+/// <summary>
+/// Represents an external referenced file sent to the model by file ID.
+/// </summary>
+public class FilePart : MessagePart
+{
+    public FilePart()
+    {
+        Type = FileType;
+    }
+
+    public string? MimeType { get; set; }
+    public string? Modality { get; set; }
+    public string? FileId { get; set; }
+}
+
+/// <summary>
+/// Represents an external referenced file sent to the model by URI.
+/// </summary>
+public class UriPart : MessagePart
+{
+    public UriPart()
+    {
+        Type = UriType;
+    }
+
+    public string? MimeType { get; set; }
+    public string? Modality { get; set; }
+    public string? Uri { get; set; }
+}
+
+/// <summary>
+/// Represents reasoning/thinking content received from the model.
+/// </summary>
+public class ReasoningPart : MessagePart
+{
+    public ReasoningPart()
+    {
+        Type = ReasoningType;
+    }
+
+    public string? Content { get; set; }
+}
+
+/// <summary>
+/// Represents a server-side tool call invocation.
+/// </summary>
+public class ServerToolCallPart : MessagePart
+{
+    public ServerToolCallPart()
+    {
+        Type = ServerToolCallType;
+    }
+
+    public string? Id { get; set; }
+    public string? Name { get; set; }
+    public JsonNode? ServerToolCall { get; set; }
+}
+
+/// <summary>
+/// Represents a server-side tool call response.
+/// </summary>
+public class ServerToolCallResponsePart : MessagePart
+{
+    public ServerToolCallResponsePart()
+    {
+        Type = ServerToolCallResponseType;
+    }
+
+    public string? Id { get; set; }
+    public JsonNode? ServerToolCallResponse { get; set; }
+}
+
+/// <summary>
 /// Represents an arbitrary message part with any type and properties.
 /// </summary>
 public class GenericPart : MessagePart
@@ -97,35 +199,6 @@ public class ToolDefinition
     public OpenApiSchema? Parameters { get; set; }
 }
 
-/// <summary>
-/// Custom converter to handle polymorphic message parts.
-/// </summary>
-public class MessagePartConverter : JsonConverter<MessagePart>
-{
-    public override MessagePart? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        using var doc = JsonDocument.ParseValue(ref reader);
-        if (!doc.RootElement.TryGetProperty("type", out var typeProp))
-        {
-            throw new JsonException("Missing 'type' property.");
-        }
-
-        var type = typeProp.GetString();
-        return type switch
-        {
-            MessagePart.TextType => JsonSerializer.Deserialize<TextPart>(doc.RootElement.GetRawText(), options),
-            MessagePart.ToolCallType => JsonSerializer.Deserialize<ToolCallRequestPart>(doc.RootElement.GetRawText(), options),
-            MessagePart.ToolCallResponseType => JsonSerializer.Deserialize<ToolCallResponsePart>(doc.RootElement.GetRawText(), options),
-            _ => JsonSerializer.Deserialize<GenericPart>(doc.RootElement.GetRawText(), options),
-        };
-    }
-
-    public override void Write(Utf8JsonWriter writer, MessagePart value, JsonSerializerOptions options)
-    {
-        JsonSerializer.Serialize(writer, (object)value, value.GetType(), options);
-    }
-}
-
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -135,6 +208,12 @@ public class MessagePartConverter : JsonConverter<MessagePart>
 [JsonSerializable(typeof(TextPart))]
 [JsonSerializable(typeof(ToolCallRequestPart))]
 [JsonSerializable(typeof(ToolCallResponsePart))]
+[JsonSerializable(typeof(BlobPart))]
+[JsonSerializable(typeof(FilePart))]
+[JsonSerializable(typeof(UriPart))]
+[JsonSerializable(typeof(ReasoningPart))]
+[JsonSerializable(typeof(ServerToolCallPart))]
+[JsonSerializable(typeof(ServerToolCallResponsePart))]
 [JsonSerializable(typeof(GenericPart))]
 [JsonSerializable(typeof(ChatMessage))]
 [JsonSerializable(typeof(List<ChatMessage>))]
