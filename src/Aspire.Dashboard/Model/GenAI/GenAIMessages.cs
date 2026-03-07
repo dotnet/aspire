@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -113,11 +114,31 @@ public class MessagePartConverter : JsonConverter<MessagePart>
         var type = typeProp.GetString();
         return type switch
         {
-            MessagePart.TextType => JsonSerializer.Deserialize<TextPart>(doc.RootElement.GetRawText(), options),
+            MessagePart.TextType => DeserializeTextPart(doc.RootElement, options),
             MessagePart.ToolCallType => JsonSerializer.Deserialize<ToolCallRequestPart>(doc.RootElement.GetRawText(), options),
             MessagePart.ToolCallResponseType => JsonSerializer.Deserialize<ToolCallResponsePart>(doc.RootElement.GetRawText(), options),
             _ => JsonSerializer.Deserialize<GenericPart>(doc.RootElement.GetRawText(), options),
         };
+    }
+
+    private static TextPart DeserializeTextPart(JsonElement element, JsonSerializerOptions options)
+    {
+        // Handle content being either a string or an array of content parts.
+        // Some SDKs emit content as an array, e.g. [{"type":"text","text":"..."}]
+        if (element.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == JsonValueKind.Array)
+        {
+            var sb = new StringBuilder();
+            foreach (var item in contentProp.EnumerateArray())
+            {
+                if (item.TryGetProperty("text", out var textProp) && textProp.ValueKind == JsonValueKind.String)
+                {
+                    sb.Append(textProp.GetString());
+                }
+            }
+            return new TextPart { Content = sb.ToString() };
+        }
+
+        return JsonSerializer.Deserialize<TextPart>(element.GetRawText(), options)!;
     }
 
     public override void Write(Utf8JsonWriter writer, MessagePart value, JsonSerializerOptions options)

@@ -249,17 +249,22 @@ public sealed class GenAIVisualizerDialogViewModel
         {
             if (!string.IsNullOrEmpty(systemInstructions))
             {
-                var instructionParts = DeserializeWithErrorHandling(GenAIHelpers.GenAISystemInstructions, systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
-                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList(), internalId: null));
+                var (instructionParts, truncated) = DeserializeArrayIncrementally(systemInstructions, (ref Utf8JsonReader r) => JsonSerializer.Deserialize(ref r, GenAIMessagesContext.Default.MessagePart));
+                var parts = instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
+                if (truncated)
+                {
+                    parts.Add(GenAIItemPartViewModel.CreateErrorMessage(Resources.Dialogs.GenAIUnexpectedOrTruncatedContent));
+                }
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, parts, internalId: null));
                 currentIndex++;
             }
             if (!string.IsNullOrEmpty(inputMessages))
             {
-                ParseMessages(viewModel, inputMessages, GenAIHelpers.GenAIInputMessages, isOutput: false, ref currentIndex);
+                ParseMessages(viewModel, inputMessages, isOutput: false, ref currentIndex);
             }
             if (!string.IsNullOrEmpty(outputMessages))
             {
-                ParseMessages(viewModel, outputMessages, GenAIHelpers.GenAIOutputInstructions, isOutput: true, ref currentIndex);
+                ParseMessages(viewModel, outputMessages, isOutput: true, ref currentIndex);
             }
 
             return;
@@ -308,10 +313,10 @@ public sealed class GenAIVisualizerDialogViewModel
         ParseLangSmithFormat(viewModel, ref currentIndex);
     }
 
-    private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, string description, bool isOutput, ref int currentIndex)
+    private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, bool isOutput, ref int currentIndex)
     {
-        var inputParts = DeserializeWithErrorHandling(description, messages, GenAIMessagesContext.Default.ListChatMessage)!;
-        foreach (var msg in inputParts)
+        var (chatMessages, truncated) = DeserializeArrayIncrementally(messages, (ref Utf8JsonReader r) => JsonSerializer.Deserialize(ref r, GenAIMessagesContext.Default.ChatMessage));
+        foreach (var msg in chatMessages)
         {
             var parts = msg.Parts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
             var type = msg.Role switch
@@ -322,6 +327,13 @@ public sealed class GenAIVisualizerDialogViewModel
                 _ => GenAIItemType.UserMessage
             };
             viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type, parts, internalId: null));
+            currentIndex++;
+        }
+
+        if (truncated)
+        {
+            var truncationType = isOutput ? GenAIItemType.OutputMessage : GenAIItemType.UserMessage;
+            viewModel.Items.Add(CreateMessage(viewModel, currentIndex, truncationType, [GenAIItemPartViewModel.CreateErrorMessage(Resources.Dialogs.GenAIUnexpectedOrTruncatedContent)], internalId: null));
             currentIndex++;
         }
 
@@ -502,6 +514,69 @@ public sealed class GenAIVisualizerDialogViewModel
                 }
             }
         }
+    }
+
+    private delegate T? ReadElement<T>(ref Utf8JsonReader reader);
+
+    private static (List<T> items, bool truncated) DeserializeArrayIncrementally<T>(string json, ReadElement<T> readElement)
+    {
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var readerOptions = new JsonReaderOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+        var reader = new Utf8JsonReader(bytes, readerOptions);
+        return DeserializeArrayIncrementally(ref reader, readElement);
+    }
+
+    private static (List<T> items, bool truncated) DeserializeArrayIncrementally<T>(ref Utf8JsonReader reader, ReadElement<T> readElement)
+    {
+        var items = new List<T>();
+
+        // Read start of array. Let exceptions propagate for truly invalid JSON.
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+        {
+            throw new JsonException("Expected a JSON array.");
+        }
+
+        while (true)
+        {
+            bool readSuccess;
+            try
+            {
+                readSuccess = reader.Read();
+            }
+            catch (JsonException)
+            {
+                return (items, true);
+            }
+
+            if (!readSuccess)
+            {
+                return (items, true);
+            }
+
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                break;
+            }
+
+            try
+            {
+                var item = readElement(ref reader);
+                if (item is not null)
+                {
+                    items.Add(item);
+                }
+            }
+            catch (JsonException)
+            {
+                return (items, true);
+            }
+        }
+
+        return (items, false);
     }
 
     private static TValue DeserializeWithErrorHandling<TValue>(string description, string json, JsonTypeInfo<TValue> jsonTypeInfo)
