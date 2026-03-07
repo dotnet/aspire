@@ -250,7 +250,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unexpected or truncated content..
+        ///   Looks up a localized string similar to Unexpected or truncated message content..
         /// </summary>
         public static string GenAIUnexpectedOrTruncatedContent {
             get {

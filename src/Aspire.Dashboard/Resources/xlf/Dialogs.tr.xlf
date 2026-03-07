@@ -278,8 +278,8 @@
         <note />
       </trans-unit>
       <trans-unit id="GenAIUnexpectedOrTruncatedContent">
-        <source>Unexpected or truncated content.</source>
-        <target state="new">Unexpected or truncated content.</target>
+        <source>Unexpected or truncated message content.</source>
+        <target state="new">Unexpected or truncated message content.</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
