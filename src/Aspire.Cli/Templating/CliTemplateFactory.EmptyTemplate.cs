@@ -137,20 +137,20 @@ internal sealed partial class CliTemplateFactory
 
     private async Task ApplyLocalhostTldToScaffoldedRunProfileAsync(string outputPath, string projectName, CancellationToken cancellationToken)
     {
-        var appHostRunProfilePath = Path.Combine(outputPath, "apphost.run.json");
-        if (!File.Exists(appHostRunProfilePath))
+        var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
+
+        var aspireConfigPath = Path.Combine(outputPath, Configuration.AspireConfigFile.FileName);
+        if (!File.Exists(aspireConfigPath))
         {
-            _logger.LogDebug("Skipping localhost TLD update because '{RunProfilePath}' was not found.", appHostRunProfilePath);
+            _logger.LogDebug("Skipping localhost TLD update because aspire.config.json was not found in '{OutputPath}'.", outputPath);
             return;
         }
 
-        var hostName = $"{projectName.ToLowerInvariant()}.dev.localhost";
-        var content = await File.ReadAllTextAsync(appHostRunProfilePath, cancellationToken);
+        var content = await File.ReadAllTextAsync(aspireConfigPath, cancellationToken);
         var updatedContent = content.Replace("://localhost", $"://{hostName}", StringComparison.Ordinal);
-
         if (!string.Equals(content, updatedContent, StringComparison.Ordinal))
         {
-            await File.WriteAllTextAsync(appHostRunProfilePath, updatedContent, cancellationToken);
+            await File.WriteAllTextAsync(aspireConfigPath, updatedContent, cancellationToken);
         }
     }
 

@@ -127,6 +127,29 @@ internal sealed class ProjectLocator(
 
         while (true)
         {
+            // Check aspire.config.json first
+            var aspireConfig = AspireConfigFile.Load(searchDirectory.FullName);
+            if (aspireConfig?.AppHost?.Path is { } configAppHostPath)
+            {
+                var qualifiedPath = Path.IsPathRooted(configAppHostPath)
+                    ? configAppHostPath
+                    : Path.Combine(searchDirectory.FullName, configAppHostPath);
+                qualifiedPath = PathNormalizer.NormalizePathForCurrentPlatform(qualifiedPath);
+                var appHostFile = new FileInfo(qualifiedPath);
+
+                if (appHostFile.Exists)
+                {
+                    return appHostFile;
+                }
+                else
+                {
+                    var configFilePath = Path.Combine(searchDirectory.FullName, AspireConfigFile.FileName);
+                    interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, configFilePath, qualifiedPath));
+                    return null;
+                }
+            }
+
+            // Fall back to .aspire/settings.json
             var settingsFile = new FileInfo(ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName));
 
             if (settingsFile.Exists)

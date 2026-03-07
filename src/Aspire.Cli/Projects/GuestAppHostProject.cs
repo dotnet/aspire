@@ -158,7 +158,122 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
     {
         var effectiveSdkVersion = GetEffectiveSdkVersion();
-        return AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+
+        // If aspire.config.json exists, load from it
+        if (AspireConfigFile.Exists(directory.FullName))
+        {
+            var aspireConfig = AspireConfigFile.Load(directory.FullName);
+            if (aspireConfig is not null)
+            {
+                var config = aspireConfig.ToLegacyConfiguration();
+                config.SdkVersion ??= effectiveSdkVersion;
+                return config;
+            }
+        }
+
+        // If .aspire/settings.json exists but aspire.config.json doesn't, migrate
+        var legacyConfig = AspireJsonConfiguration.Load(directory.FullName);
+        if (legacyConfig is not null)
+        {
+            // Read apphost.run.json profiles if it exists
+            Dictionary<string, AspireConfigProfile>? profiles = null;
+            var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
+            if (File.Exists(apphostRunPath))
+            {
+                profiles = ReadApphostRunProfiles(apphostRunPath);
+            }
+
+            // Merge into AspireConfigFile
+            var aspireConfig = AspireConfigFile.FromLegacy(legacyConfig, profiles);
+            aspireConfig.Save(directory.FullName);
+
+            // Delete legacy files
+            var settingsPath = AspireJsonConfiguration.GetFilePath(directory.FullName);
+            if (File.Exists(settingsPath))
+            {
+                File.Delete(settingsPath);
+            }
+            if (File.Exists(apphostRunPath))
+            {
+                File.Delete(apphostRunPath);
+            }
+
+            // Delete .aspire/ directory if empty
+            var aspireFolder = Path.Combine(directory.FullName, AspireJsonConfiguration.SettingsFolder);
+            if (Directory.Exists(aspireFolder) && !Directory.EnumerateFileSystemEntries(aspireFolder).Any())
+            {
+                Directory.Delete(aspireFolder);
+            }
+
+            _interactionService.DisplayMessage(KnownEmojis.FileCabinet, "Migrated configuration to aspire.config.json");
+
+            legacyConfig.SdkVersion ??= effectiveSdkVersion;
+            return legacyConfig;
+        }
+
+        // Neither exists — create new
+        var newConfig = new AspireJsonConfiguration();
+        newConfig.SdkVersion ??= effectiveSdkVersion;
+        return newConfig;
+    }
+
+    private static Dictionary<string, AspireConfigProfile>? ReadApphostRunProfiles(string apphostRunPath)
+    {
+        try
+        {
+            var json = File.ReadAllText(apphostRunPath);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
+            {
+                return null;
+            }
+
+            var profiles = new Dictionary<string, AspireConfigProfile>();
+            foreach (var prop in profilesElement.EnumerateObject())
+            {
+                var profile = new AspireConfigProfile();
+
+                if (prop.Value.TryGetProperty("applicationUrl", out var appUrl) &&
+                    appUrl.ValueKind == JsonValueKind.String)
+                {
+                    profile.ApplicationUrl = appUrl.GetString();
+                }
+
+                if (prop.Value.TryGetProperty("environmentVariables", out var envVars))
+                {
+                    profile.EnvironmentVariables = new Dictionary<string, string>();
+                    foreach (var envProp in envVars.EnumerateObject())
+                    {
+                        if (envProp.Value.ValueKind == JsonValueKind.String)
+                        {
+                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
+                        }
+                    }
+                }
+
+                profiles[prop.Name] = profile;
+            }
+
+            return profiles.Count > 0 ? profiles : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
+    {
+        var aspireConfig = AspireConfigFile.Load(directory.FullName) ?? new AspireConfigFile();
+        aspireConfig.AppHost ??= new AspireConfigAppHost();
+        aspireConfig.AppHost.Path = config.AppHostPath;
+        aspireConfig.AppHost.Language = config.Language;
+        aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
+        aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
+        aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
+        aspireConfig.Features = config.Features ?? aspireConfig.Features;
+        aspireConfig.Save(directory.FullName);
     }
 
     private string GetPrepareSdkVersion(AspireJsonConfiguration config)
@@ -312,11 +427,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     return (Success: true, Output: prepareOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: needsCodeGen);
                 }, emoji: KnownEmojis.Gear);
 
-            // Save the channel to settings.json if available (config already has SdkVersion)
+            // Save the channel to settings if available (config already has SdkVersion)
             if (buildResult.ChannelName is not null)
             {
                 config.Channel = buildResult.ChannelName;
-                config.Save(directory.FullName);
+                SaveConfiguration(config, directory);
             }
 
             if (!buildResult.Success)
@@ -506,8 +621,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // For guest apphosts, look for apphost.run.json
-        // similar to how .NET single-file apphosts use apphost.run.json
+        // Check aspire.config.json first for launch profiles
+        var aspireConfig = AspireConfigFile.Load(directory.FullName);
+        if (aspireConfig?.Profiles is { Count: > 0 })
+        {
+            return ReadProfileFromAspireConfig(aspireConfig);
+        }
+
+        // Fall back to apphost.run.json / launchSettings.json
         var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
         var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
 
@@ -515,7 +636,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (!File.Exists(configPath))
         {
-            _logger.LogDebug("No apphost.run.json or launchSettings.json found in {Path}", directory.FullName);
+            _logger.LogDebug("No aspire.config.json, apphost.run.json, or launchSettings.json found in {Path}", directory.FullName);
             return null;
         }
 
@@ -584,6 +705,49 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _logger.LogWarning(ex, "Failed to read launchSettings.json");
             return null;
         }
+    }
+
+    private Dictionary<string, string>? ReadProfileFromAspireConfig(AspireConfigFile aspireConfig)
+    {
+        AspireConfigProfile? profile;
+
+        // Prefer 'https' profile, then fall back to first
+        if (aspireConfig.Profiles!.TryGetValue("https", out var httpsProfile))
+        {
+            profile = httpsProfile;
+        }
+        else
+        {
+            profile = aspireConfig.Profiles.Values.FirstOrDefault();
+        }
+
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var result = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(profile.ApplicationUrl))
+        {
+            result["ASPNETCORE_URLS"] = profile.ApplicationUrl;
+        }
+
+        if (profile.EnvironmentVariables is not null)
+        {
+            foreach (var kvp in profile.EnvironmentVariables)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+
+        if (result.Count == 0)
+        {
+            return null;
+        }
+
+        _logger.LogDebug("Read {Count} environment variables from aspire.config.json", result.Count);
+        return result;
     }
 
     /// <inheritdoc />
@@ -846,9 +1010,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Load config - source of truth for SDK version and packages
         var config = LoadConfiguration(directory);
 
-        // Update .aspire/settings.json with the new package
+        // Update configuration with the new package
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
-        config.Save(directory.FullName);
+        SaveConfiguration(config, directory);
 
         // Build and regenerate SDK code with the new package
         await BuildAndGenerateSdkAsync(directory, cancellationToken);
@@ -961,7 +1125,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         {
             config.AddOrUpdatePackage(packageId, newVersion);
         }
-        config.Save(directory.FullName);
+        SaveConfiguration(config, directory);
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
