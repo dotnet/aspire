@@ -124,8 +124,7 @@ internal sealed class CodeGenerationService
             Name = p.Name,
             Description = p.Description,
             Type = MapTypeRef(p.Type),
-            IsOptional = p.IsOptional,
-            Description = p.Description
+            IsOptional = p.IsOptional
         }).ToList()
     };
 
@@ -257,7 +256,6 @@ internal sealed class DtoPropertyResponse
     public string? Description { get; set; }
     public TypeRefResponse? Type { get; set; }
     public bool IsOptional { get; set; }
-    public string? Description { get; set; }
 }
 
 internal sealed class EnumTypeResponse
