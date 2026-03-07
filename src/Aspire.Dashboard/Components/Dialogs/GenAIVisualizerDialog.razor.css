@@ -284,6 +284,10 @@
     font-size: small;
 }
 
+::deep .tab-container .tool-description * {
+    font-size: inherit;
+}
+
 ::deep .tab-container .tool-footer {
     padding-left: 4px;
     font-weight: 500;

@@ -318,7 +318,7 @@
                                                         <div class="tool-description">
                                                             <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@toolVM.ToolDefinition.Description" />
                                                         </div>
-                                                        <FluentDivider />
+                                                        <hr />
                                                     }
                                                     @if (toolVM.ToolDefinition.Parameters is { Properties: { Count: > 0 } properties })
                                                     {
