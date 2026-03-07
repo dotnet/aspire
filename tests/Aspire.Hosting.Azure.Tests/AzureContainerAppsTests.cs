@@ -2468,4 +2468,92 @@ public class AzureContainerAppsTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public async Task ConditionalBranchWithParameterReference()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var featureFlag = builder.AddParameter("enable-feature");
+        var connectionPrefix = builder.AddParameter("connection-prefix");
+
+        var project = builder.AddProject<Project>("api", launchProfileName: null);
+
+        project.WithEnvironment(context =>
+        {
+            var conditional = ReferenceExpression.CreateConditional(
+                featureFlag.Resource,
+                bool.TrueString,
+                ReferenceExpression.Create($"prefix-{connectionPrefix.Resource}-enabled"),
+                ReferenceExpression.Create($"disabled"));
+
+            context.EnvironmentVariables["FEATURE_CONNECTION"] = conditional;
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var proj = Assert.Single(model.GetProjectResources());
+        proj.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task NestedConditionalExpressions()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var outerFlag = builder.AddParameter("outer-flag");
+        var innerFlag = builder.AddParameter("inner-flag");
+
+        var project = builder.AddProject<Project>("api", launchProfileName: null);
+
+        project.WithEnvironment(context =>
+        {
+            var innerConditional = ReferenceExpression.CreateConditional(
+                innerFlag.Resource,
+                bool.TrueString,
+                ReferenceExpression.Create($"inner-true"),
+                ReferenceExpression.Create($"inner-false"));
+
+            var outerConditional = ReferenceExpression.CreateConditional(
+                outerFlag.Resource,
+                bool.TrueString,
+                innerConditional,
+                ReferenceExpression.Create($"outer-false"));
+
+            context.EnvironmentVariables["NESTED_FEATURE"] = outerConditional;
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var proj = Assert.Single(model.GetProjectResources());
+        proj.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }
