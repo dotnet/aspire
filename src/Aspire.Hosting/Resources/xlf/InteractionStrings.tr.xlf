@@ -67,8 +67,8 @@ Değer şu anda [kullanıcı gizli dizinleri](https://learn.microsoft.com/aspnet
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
-        <source>The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</source>
-        <target state="new">The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</target>
+        <source>The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
+        <target state="new">The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
@@ -77,8 +77,8 @@ Değer şu anda [kullanıcı gizli dizinleri](https://learn.microsoft.com/aspnet
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedMessage">
-        <source>No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</source>
-        <target state="new">No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</target>
+        <source>No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
+        <target state="new">No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedTitle">

@@ -188,13 +188,13 @@
     <value>Development certificate not fully trusted</value>
   </data>
   <data name="DeveloperCertificateNotFullyTrustedMessage" xml:space="preserve">
-    <value>The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</value>
+    <value>The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</value>
   </data>
   <data name="NoDeveloperCertificateTrustedTitle" xml:space="preserve">
     <value>No trusted development certificate</value>
   </data>
   <data name="NoDeveloperCertificateTrustedMessage" xml:space="preserve">
-    <value>No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</value>
+    <value>No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information.</value>
   </data>
   <data name="SetParameterTitle" xml:space="preserve">
     <value>Set parameter</value>
