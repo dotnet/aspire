@@ -1,5 +1,5 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle } from './transport.js';
+import { Handle, AspireClient, MarshalledHandle, wrapIfHandle } from './transport.js';
 
 // Re-export transport types for convenience
 export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
