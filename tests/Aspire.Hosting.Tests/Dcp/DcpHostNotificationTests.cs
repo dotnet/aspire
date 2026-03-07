@@ -135,13 +135,7 @@ public sealed class DcpHostNotificationTests
         var timeProvider = new FakeTimeProvider();
         var developerCertificateService = new TestDeveloperCertificateService([certificate], false, true, false, latestCertificateIsUntrusted: true);
         var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
-        var appHostDirectory = Path.Combine(Path.GetTempPath(), "aspire-apphost-test");
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["AppHost:Directory"] = appHostDirectory
-            })
-            .Build();
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -162,12 +156,11 @@ public sealed class DcpHostNotificationTests
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        var expectedMessage = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, $"'{appHostDirectory}'");
         Assert.Equal(InteractionStrings.DeveloperCertificateNotFullyTrustedTitle, interaction.Title);
-        Assert.Equal(expectedMessage, interaction.Message);
+        Assert.Equal(InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
-        Assert.Contains(testSink.Writes, w => w.LogLevel == LogLevel.Warning && w.Message is not null && w.Message.Contains(appHostDirectory, StringComparison.Ordinal));
+        Assert.Contains(testSink.Writes, w => w.LogLevel == LogLevel.Warning && w.Message is not null && w.Message.Contains("aka.ms/aspire/devcerts", StringComparison.Ordinal));
     }
 
     [Fact]
