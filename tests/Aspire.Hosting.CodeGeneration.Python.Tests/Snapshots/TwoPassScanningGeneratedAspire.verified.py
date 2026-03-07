@@ -65,6 +65,7 @@ class EndpointProperty(str, Enum):
     SCHEME = "Scheme"
     TARGET_PORT = "TargetPort"
     HOST_AND_PORT = "HostAndPort"
+    TLS_ENABLED = "TlsEnabled"
 
 class IconVariant(str, Enum):
     REGULAR = "Regular"
@@ -710,6 +711,11 @@ class EndpointReference(HandleWrapperBase):
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.isHttps", args)
 
+    def tls_enabled(self) -> bool:
+        """Gets the TlsEnabled property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", args)
+
     def port(self) -> float:
         """Gets the Port property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
@@ -742,6 +748,13 @@ class EndpointReference(HandleWrapperBase):
         if cancellation_token_id is not None:
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)
+
+    def get_tls_value(self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ReferenceExpression:
+        """Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise."""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["enabledValue"] = serialize_value(enabled_value)
+        args["disabledValue"] = serialize_value(disabled_value)
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)
 
 
 class EndpointReferenceExpression(HandleWrapperBase):
@@ -1921,12 +1934,6 @@ class ProjectResource(ResourceBuilderBase):
             args["operation"] = operation_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
 
-
-class ReferenceExpression(HandleWrapperBase):
-    def __init__(self, handle: Handle, client: AspireClient):
-        super().__init__(handle, client)
-
-    pass
 
 class ResourceLoggerService(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -3517,7 +3524,6 @@ class UpdateCommandStateContext(HandleWrapperBase):
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", lambda handle, client: IDistributedApplicationBuilder(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplication", lambda handle, client: DistributedApplication(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference", lambda handle, client: EndpointReference(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, client: ReferenceExpression(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", lambda handle, client: IResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment", lambda handle, client: IResourceWithEnvironment(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints", lambda handle, client: IResourceWithEndpoints(handle, client))

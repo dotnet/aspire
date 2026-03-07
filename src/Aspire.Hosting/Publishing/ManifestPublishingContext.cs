@@ -47,6 +47,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private readonly Dictionary<ParameterResource, Dictionary<string, string>> _formattedParameters = [];
 
+    private readonly Dictionary<string, ReferenceExpression> _conditionalExpressions = new(StringComparers.ResourceName);
+
     private readonly HashSet<string> _manifestResourceNames = new(StringComparers.ResourceName);
 
     private readonly IPortAllocator _portAllocator = new PortAllocator();
@@ -85,7 +87,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         Writer.WriteStartObject();
-        Writer.WriteString("$schema", SchemaUtils.SchemaVersion);
         Writer.WriteStartObject("resources");
 
         foreach (var resource in model.Resources)
@@ -96,6 +97,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         await WriteReferencedResources(model).ConfigureAwait(false);
 
         WriteRemainingFormattedParameters();
+
+        await WriteConditionalExpressionsAsync().ConfigureAwait(false);
 
         Writer.WriteEndObject();
         Writer.WriteEndObject();
@@ -665,6 +668,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         if (value is ReferenceExpression referenceExpression)
         {
             RegisterFormattedParameters(referenceExpression);
+            RegisterConditionalExpressions(referenceExpression);
         }
 
         if (value is IResource resource)
@@ -738,6 +742,18 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             _ = GetFormattedResourceNameForProvider(providers[i], format);
+        }
+    }
+
+    private void RegisterConditionalExpressions(ReferenceExpression referenceExpression)
+    {
+        foreach (var provider in referenceExpression.ValueProviders)
+        {
+            if (provider is ReferenceExpression { IsConditional: true, Name: string name } conditional)
+            {
+                _conditionalExpressions.TryAdd(name, conditional);
+                _manifestResourceNames.Add(name);
+            }
         }
     }
 
@@ -834,6 +850,21 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             WriteFormattedParameterResources(parameter);
         }
+    }
+
+    private async Task WriteConditionalExpressionsAsync()
+    {
+        foreach (var (name, conditional) in _conditionalExpressions)
+        {
+            var resolvedValue = await conditional.GetValueAsync(CancellationToken).ConfigureAwait(false);
+
+            Writer.WriteStartObject(name);
+            Writer.WriteString("type", "value.v0");
+            Writer.WriteString("connectionString", resolvedValue ?? string.Empty);
+            Writer.WriteEndObject();
+        }
+
+        _conditionalExpressions.Clear();
     }
 
     private string? GetFormattedResourceNameForProvider(object provider, string format)

@@ -203,6 +203,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var handleType in handleTypes.OrderBy(t => t.ClassName, StringComparer.Ordinal))
         {
+            // Skip types defined in base.py (ReferenceExpression)
+            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
             var baseClass = handleType.IsResourceBuilder ? "ResourceBuilderBase" : "HandleWrapperBase";
             WriteLine($"class {handleType.ClassName}({baseClass}):");
             WriteLine("    def __init__(self, handle: Handle, client: AspireClient):");
@@ -357,6 +362,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var handleType in handleTypes)
         {
+            // Skip types defined in base.py
+            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
             WriteLine($"register_handle_wrapper(\"{handleType.TypeId}\", lambda handle, client: {handleType.ClassName}(handle, client))");
         }
 

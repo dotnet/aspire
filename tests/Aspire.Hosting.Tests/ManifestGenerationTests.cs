@@ -230,7 +230,8 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}", container.GetProperty("connectionString").GetString());
+        var connectionString = container.GetProperty("connectionString").GetString();
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}{cond-rediscontainer-bindings-tcp-tlsenabled-91f82fca.connectionString}", connectionString);
     }
 
     [Fact]
@@ -296,7 +297,6 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         var expectedManifest = $$"""
             {
-              "$schema": "{{SchemaUtils.SchemaVersion}}",
               "resources": {
                 "servicea": {
                   "type": "project.v0",
@@ -382,7 +382,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                     "REDIS_HOST": "{redis.bindings.tcp.host}",
                     "REDIS_PORT": "{redis.bindings.tcp.port}",
                     "REDIS_PASSWORD": "{redis-password.value}",
-                    "REDIS_URI": "redis://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                    "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "POSTGRESDB_HOST": "{postgres.bindings.tcp.host}",
                     "POSTGRESDB_PORT": "{postgres.bindings.tcp.port}",
@@ -407,7 +407,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                 },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}{cond-redis-bindings-tcp-tlsenabled-7a0eaf42.connectionString}",
                   "image": "{{ComponentTestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "entrypoint": "/bin/sh",
                   "args": [
@@ -419,7 +419,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                   },
                   "bindings": {
                     "tcp": {
-                      "scheme": "tcp",
+                      "scheme": "redis",
                       "protocol": "tcp",
                       "transport": "tcp",
                       "targetPort": 6379
@@ -490,6 +490,10 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                   "type": "annotated.string",
                   "value": "{postgres-password.value}",
                   "filter": "uri"
+                },
+                "cond-redis-bindings-tcp-tlsenabled-7a0eaf42": {
+                  "type": "value.v0",
+                  "connectionString": ""
                 }
               }
             }
@@ -558,10 +562,10 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with ContainerFilesDestinationAnnotation
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = sourceContainer.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = sourceContainer.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             });
 
         builder.Build().Run();
@@ -601,10 +605,10 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with ContainerFilesDestinationAnnotation
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = sourceContainer.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = sourceContainer.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             });
 
         builder.Build().Run();
@@ -647,15 +651,15 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
 
         // Create a destination container with multiple ContainerFilesDestinationAnnotations
         var destContainer = builder.AddContainer("dest", "nginx:alpine")
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = source1.Resource, 
-                DestinationPath = "/usr/share/nginx/html" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = source1.Resource,
+                DestinationPath = "/usr/share/nginx/html"
             })
-            .WithAnnotation(new ContainerFilesDestinationAnnotation 
-            { 
-                Source = source2.Resource, 
-                DestinationPath = "/usr/share/nginx/assets" 
+            .WithAnnotation(new ContainerFilesDestinationAnnotation
+            {
+                Source = source2.Resource,
+                DestinationPath = "/usr/share/nginx/assets"
             });
 
         builder.Build().Run();

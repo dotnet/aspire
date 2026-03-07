@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Aspire.Hosting.Utils;
@@ -12,6 +13,18 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A <see cref="ReferenceExpression"/> operates in one of two modes:
+/// </para>
+/// <list type="bullet">
+///   <item><b>Value mode</b> — a format string with interpolated <see cref="IValueProvider"/> parameters
+///   (e.g., <c>"redis://{0}:{1}"</c>).</item>
+///   <item><b>Conditional mode</b> — a ternary-style expression that selects between two branch
+///   expressions based on the string value of a <see cref="Condition"/>. Created via
+///   <see cref="CreateConditional"/>.</item>
+/// </list>
+/// </remarks>
 [AspireExport]
 [DebuggerDisplay("ReferenceExpression = {ValueExpression}, Providers = {ValueProviders.Count}")]
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
@@ -22,9 +35,14 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <remarks>Use this field to represent a default or uninitialized reference expression. The instance has
     /// an empty name and contains no value providers or arguments.</remarks>
     public static readonly ReferenceExpression Empty = Create(string.Empty, [], [], []);
-
     private readonly string[] _manifestExpressions;
     private readonly string?[] _stringFormats;
+
+    // Conditional mode fields (null when in value mode)
+    private readonly IValueProvider? _condition;
+    private readonly ReferenceExpression? _whenTrue;
+    private readonly ReferenceExpression? _whenFalse;
+    private readonly string? _name;
 
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
     {
@@ -36,6 +54,24 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         ValueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;
         _stringFormats = stringFormats;
+    }
+
+    private ReferenceExpression(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(whenTrue);
+        ArgumentNullException.ThrowIfNull(whenFalse);
+
+        _condition = condition;
+        _whenTrue = whenTrue;
+        _whenFalse = whenFalse;
+        _name = GenerateConditionalName(condition, whenTrue, whenFalse);
+
+        // Set value-mode fields to safe defaults so callers never see null.
+        Format = string.Empty;
+        ValueProviders = [];
+        _manifestExpressions = [];
+        _stringFormats = [];
     }
 
     /// <summary>
@@ -58,13 +94,77 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// </summary>
     public IReadOnlyList<IValueProvider> ValueProviders { get; }
 
-    IEnumerable<object> IValueWithReferences.References => ValueProviders;
+    /// <summary>
+    /// Gets a value indicating whether this expression is a conditional expression that selects
+    /// between two branches based on a condition.
+    /// </summary>
+    public bool IsConditional => _condition is not null;
+
+    /// <summary>
+    /// Gets the condition value provider whose result is compared to <see cref="bool.TrueString"/>,
+    /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
+    /// </summary>
+    public IValueProvider? Condition => _condition;
+
+    /// <summary>
+    /// Gets the expression to evaluate when <see cref="Condition"/> evaluates to <see cref="bool.TrueString"/>,
+    /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
+    /// </summary>
+    public ReferenceExpression? WhenTrue => _whenTrue;
+
+    /// <summary>
+    /// Gets the expression to evaluate when <see cref="Condition"/> does not evaluate to <see cref="bool.TrueString"/>,
+    /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
+    /// </summary>
+    public ReferenceExpression? WhenFalse => _whenFalse;
+
+    /// <summary>
+    /// Gets the name of this conditional expression, used as the manifest resource name for the <c>value.v0</c> entry,
+    /// or <see langword="null"/> when <see cref="IsConditional"/> is <see langword="false"/>.
+    /// </summary>
+    internal string? Name => _name;
+
+    IEnumerable<object> IValueWithReferences.References
+    {
+        get
+        {
+            if (IsConditional)
+            {
+                if (_condition is IValueWithReferences conditionRefs)
+                {
+                    foreach (var reference in conditionRefs.References)
+                    {
+                        yield return reference;
+                    }
+                }
+
+                foreach (var reference in ((IValueWithReferences)_whenTrue!).References)
+                {
+                    yield return reference;
+                }
+
+                foreach (var reference in ((IValueWithReferences)_whenFalse!).References)
+                {
+                    yield return reference;
+                }
+
+                yield break;
+            }
+
+            foreach (var vp in ValueProviders)
+            {
+                yield return vp;
+            }
+        }
+    }
 
     /// <summary>
     /// The value expression for the format string.
     /// </summary>
     public string ValueExpression =>
-        string.Format(CultureInfo.InvariantCulture, Format, _manifestExpressions);
+        IsConditional
+            ? $"{{{_name}.connectionString}}"
+            : string.Format(CultureInfo.InvariantCulture, Format, _manifestExpressions);
 
     /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
@@ -73,6 +173,13 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
+        if (IsConditional)
+        {
+            var conditionValue = await _condition!.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
+            var branch = string.Equals(conditionValue, bool.TrueString, StringComparison.OrdinalIgnoreCase) ? _whenTrue! : _whenFalse!;
+            return await branch.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
         {
@@ -117,6 +224,74 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     public static ReferenceExpression Create(in ExpressionInterpolatedStringHandler handler)
     {
         return handler.GetExpression();
+    }
+
+    /// <summary>
+    /// Creates a conditional <see cref="ReferenceExpression"/> that selects between two branch expressions
+    /// based on the string value of a condition.
+    /// </summary>
+    /// <param name="condition">A value provider whose result is compared to <see cref="bool.TrueString"/>
+    /// to determine which branch to evaluate.</param>
+    /// <param name="whenTrue">The expression to evaluate when the condition is <see langword="true"/>.</param>
+    /// <param name="whenFalse">The expression to evaluate when the condition is <see langword="false"/>.</param>
+    /// <returns>A new conditional <see cref="ReferenceExpression"/>.</returns>
+    public static ReferenceExpression CreateConditional(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    {
+        return new ReferenceExpression(condition, whenTrue, whenFalse);
+    }
+
+    private static string GenerateConditionalName(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    {
+        string baseName;
+
+        if (condition is IManifestExpressionProvider expressionProvider)
+        {
+            var expression = expressionProvider.ValueExpression;
+            var sanitized = SanitizeExpression(expression);
+            baseName = sanitized.Length > 0 ? $"cond-{sanitized}" : "cond-expr";
+        }
+        else
+        {
+            baseName = "cond-expr";
+        }
+
+        var hash = ComputeConditionalHash(condition, whenTrue, whenFalse);
+        return $"{baseName}-{hash}";
+    }
+
+    private static string ComputeConditionalHash(IValueProvider condition, ReferenceExpression whenTrue, ReferenceExpression whenFalse)
+    {
+        var xxHash = new XxHash32();
+
+        var conditionExpr = condition is IManifestExpressionProvider mep ? mep.ValueExpression : condition.GetType().Name;
+        xxHash.Append(Encoding.UTF8.GetBytes(conditionExpr));
+        xxHash.Append(Encoding.UTF8.GetBytes(whenTrue.ValueExpression));
+        xxHash.Append(Encoding.UTF8.GetBytes(whenFalse.ValueExpression));
+
+        var hashBytes = xxHash.GetCurrentHash();
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+    private static string SanitizeExpression(string expression)
+    {
+        var builder = new StringBuilder(expression.Length);
+        var lastWasSeparator = false;
+
+        foreach (var ch in expression)
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                builder.Append(char.ToLowerInvariant(ch));
+                lastWasSeparator = false;
+            }
+            else if (!lastWasSeparator && builder.Length > 0)
+            {
+                builder.Append('-');
+                lastWasSeparator = true;
+            }
+        }
+
+        return builder.ToString().TrimEnd('-');
     }
 
     /// <summary>

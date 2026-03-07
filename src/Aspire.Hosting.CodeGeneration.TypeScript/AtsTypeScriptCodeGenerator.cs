@@ -456,8 +456,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         GenerateOptionsInterfaces();
 
         // Generate type classes (context types and wrapper types)
+        // Skip types defined in base.ts (ReferenceExpression)
         foreach (var typeClass in typeClasses)
         {
+            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
             GenerateTypeClass(typeClass);
         }
 
@@ -1490,8 +1495,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("// Register wrapper factories for typed handle wrapping in callbacks");
 
         // Register type classes (context types like EnvironmentCallbackContext)
+        // Skip types defined in base.ts (their wrapper registration is handled differently)
         foreach (var typeClass in typeClasses)
         {
+            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
             var className = _wrapperClassNames.GetValueOrDefault(typeClass.TypeId) ?? DeriveClassName(typeClass.TypeId);
             var handleType = GetHandleTypeName(typeClass.TypeId);
             WriteLine($"registerHandleWrapper('{typeClass.TypeId}', (handle, client) => new {className}(handle as {handleType}, client));");

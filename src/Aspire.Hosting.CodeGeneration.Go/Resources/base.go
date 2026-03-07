@@ -37,14 +37,42 @@ func NewResourceBuilderBase(handle *Handle, client *AspireClient) ResourceBuilde
 }
 
 // ReferenceExpression represents a reference expression.
+// Supports value mode (Format + Args), conditional mode (Condition + WhenTrue + WhenFalse),
+// and handle mode (wrapping a server-returned handle).
 type ReferenceExpression struct {
+	// Value mode fields
 	Format string
 	Args   []any
+
+	// Conditional mode fields
+	Condition any
+	WhenTrue  *ReferenceExpression
+	WhenFalse *ReferenceExpression
+
+	// Handle mode fields (when wrapping a server-returned handle)
+	handle        *Handle
+	client        *AspireClient
+	isConditional bool
 }
 
-// NewReferenceExpression creates a new reference expression.
+// NewReferenceExpression creates a new reference expression in value mode.
 func NewReferenceExpression(format string, args ...any) *ReferenceExpression {
 	return &ReferenceExpression{Format: format, Args: args}
+}
+
+// NewReferenceExpressionFromHandle creates a ReferenceExpression wrapping a server-returned handle.
+func NewReferenceExpressionFromHandle(handle *Handle, client *AspireClient) *ReferenceExpression {
+	return &ReferenceExpression{handle: handle, client: client}
+}
+
+// CreateConditionalReferenceExpression creates a conditional reference expression from its parts.
+func CreateConditionalReferenceExpression(condition any, whenTrue *ReferenceExpression, whenFalse *ReferenceExpression) *ReferenceExpression {
+	return &ReferenceExpression{
+		Condition:     condition,
+		WhenTrue:      whenTrue,
+		WhenFalse:     whenFalse,
+		isConditional: true,
+	}
 }
 
 // RefExpr is a convenience function for creating reference expressions.
@@ -54,12 +82,34 @@ func RefExpr(format string, args ...any) *ReferenceExpression {
 
 // ToJSON returns the reference expression as a JSON-serializable map.
 func (r *ReferenceExpression) ToJSON() map[string]any {
+	if r.handle != nil {
+		return r.handle.ToJSON()
+	}
+	if r.isConditional {
+		return map[string]any{
+			"$refExpr": map[string]any{
+				"condition": SerializeValue(r.Condition),
+				"whenTrue":  r.WhenTrue.ToJSON(),
+				"whenFalse": r.WhenFalse.ToJSON(),
+			},
+		}
+	}
 	return map[string]any{
 		"$refExpr": map[string]any{
 			"format": r.Format,
 			"args":   r.Args,
 		},
 	}
+}
+
+// Handle returns the underlying handle, if in handle mode.
+func (r *ReferenceExpression) Handle() *Handle {
+	return r.handle
+}
+
+// Client returns the AspireClient, if in handle mode.
+func (r *ReferenceExpression) Client() *AspireClient {
+	return r.client
 }
 
 // AspireList is a handle-backed list with lazy handle resolution.

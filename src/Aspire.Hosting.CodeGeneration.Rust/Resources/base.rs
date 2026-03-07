@@ -50,27 +50,100 @@ impl ResourceBuilderBase {
 }
 
 /// A reference expression for dynamic values.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Supports value mode (format + args), conditional mode (condition + whenTrue + whenFalse),
+/// and handle mode (wrapping a server-returned handle).
 pub struct ReferenceExpression {
-    pub format: String,
-    pub args: Vec<Value>,
+    // Value mode fields
+    pub format: Option<String>,
+    pub args: Option<Vec<Value>>,
+
+    // Conditional mode fields
+    condition: Option<Value>,
+    when_true: Option<Box<ReferenceExpression>>,
+    when_false: Option<Box<ReferenceExpression>>,
+    is_conditional: bool,
+
+    // Handle mode fields
+    handle: Option<Handle>,
+    client: Option<Arc<AspireClient>>,
 }
 
 impl ReferenceExpression {
+    /// Creates a new value-mode reference expression.
     pub fn new(format: impl Into<String>, args: Vec<Value>) -> Self {
         Self {
-            format: format.into(),
-            args,
+            format: Some(format.into()),
+            args: Some(args),
+            condition: None,
+            when_true: None,
+            when_false: None,
+            is_conditional: false,
+            handle: None,
+            client: None,
         }
     }
 
+    /// Creates a new handle-mode reference expression from a server-returned handle.
+    pub fn from_handle(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self {
+            format: None,
+            args: None,
+            condition: None,
+            when_true: None,
+            when_false: None,
+            is_conditional: false,
+            handle: Some(handle),
+            client: Some(client),
+        }
+    }
+
+    /// Creates a conditional reference expression from its parts.
+    pub fn create_conditional(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
+        Self {
+            format: None,
+            args: None,
+            condition: Some(condition),
+            when_true: Some(Box::new(when_true)),
+            when_false: Some(Box::new(when_false)),
+            is_conditional: true,
+            handle: None,
+            client: None,
+        }
+    }
+
+    pub fn handle(&self) -> Option<&Handle> {
+        self.handle.as_ref()
+    }
+
+    pub fn client(&self) -> Option<&Arc<AspireClient>> {
+        self.client.as_ref()
+    }
+
     pub fn to_json(&self) -> Value {
+        if let Some(ref handle) = self.handle {
+            return handle.to_json();
+        }
+        if self.is_conditional {
+            return json!({
+                "$refExpr": {
+                    "condition": serialize_value(self.condition.clone().unwrap()),
+                    "whenTrue": self.when_true.as_ref().unwrap().to_json(),
+                    "whenFalse": self.when_false.as_ref().unwrap().to_json()
+                }
+            });
+        }
         json!({
             "$refExpr": {
-                "format": self.format,
-                "args": self.args
+                "format": self.format.as_ref().unwrap(),
+                "args": self.args.as_ref().unwrap()
             }
         })
+    }
+}
+
+impl HasHandle for ReferenceExpression {
+    fn handle(&self) -> &Handle {
+        self.handle.as_ref().expect("ReferenceExpression is not in handle mode")
     }
 }
 
