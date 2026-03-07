@@ -2,13 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Shared marshalling logic for converting between .NET objects and JSON in the ATS type system.
@@ -16,27 +15,28 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 internal sealed class AtsMarshaller
 {
     private readonly HandleRegistry _handles;
-    private readonly Hosting.Ats.AtsContext _context;
+    private readonly AtsContext _context;
     private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly Lazy<AtsCallbackProxyFactory> _callbackProxyFactory;
+    private readonly ReferenceExpressionFactory _referenceExpressionFactory;
 
-    /// <summary>
-    /// Creates a new marshaller instance.
-    /// </summary>
     /// <param name="handles">The handle registry for marshalling handles.</param>
     /// <param name="context">The ATS context for type classification.</param>
     /// <param name="cancellationTokenRegistry">The cancellation token registry.</param>
     /// <param name="callbackProxyFactory">Lazy callback proxy factory to break circular dependency.</param>
+    /// <param name="referenceExpressionFactory">Factory for constructing isolated ReferenceExpression instances.</param>
     public AtsMarshaller(
         HandleRegistry handles,
-        Hosting.Ats.AtsContext context,
+        AtsContext context,
         CancellationTokenRegistry cancellationTokenRegistry,
-        Lazy<AtsCallbackProxyFactory> callbackProxyFactory)
+        Lazy<AtsCallbackProxyFactory> callbackProxyFactory,
+        ReferenceExpressionFactory referenceExpressionFactory)
     {
         _handles = handles;
         _context = context;
         _cancellationTokenRegistry = cancellationTokenRegistry;
         _callbackProxyFactory = callbackProxyFactory;
+        _referenceExpressionFactory = referenceExpressionFactory;
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ internal sealed class AtsMarshaller
     /// <param name="value">The value to marshal.</param>
     /// <param name="typeRef">The type metadata from the scanner.</param>
     /// <returns>The JSON representation, or null if the value is null.</returns>
-    public JsonNode? MarshalToJson(object? value, Hosting.Ats.AtsTypeRef typeRef)
+    public JsonNode? MarshalToJson(object? value, AtsTypeRef typeRef)
     {
         if (value == null)
         {
@@ -136,20 +136,20 @@ internal sealed class AtsMarshaller
         }
 
         // Handle 'any' type - fall back to runtime type inspection
-        if (typeRef.TypeId == Hosting.Ats.AtsConstants.Any)
+        if (typeRef.TypeId == AtsConstants.Any)
         {
             return MarshalToJson(value);
         }
 
         return typeRef.Category switch
         {
-            Hosting.Ats.AtsTypeCategory.Handle => _handles.Marshal(value, typeRef.TypeId),
-            Hosting.Ats.AtsTypeCategory.Primitive => SerializePrimitive(value),
-            Hosting.Ats.AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
-            Hosting.Ats.AtsTypeCategory.Dto => SerializeDto(value),
-            Hosting.Ats.AtsTypeCategory.Array => SerializeArray(value, typeRef.ElementType),
-            Hosting.Ats.AtsTypeCategory.List => _handles.Marshal(value, typeRef.TypeId),
-            Hosting.Ats.AtsTypeCategory.Dict => _handles.Marshal(value, typeRef.TypeId),
+            AtsTypeCategory.Handle => _handles.Marshal(value, typeRef.TypeId),
+            AtsTypeCategory.Primitive => SerializePrimitive(value),
+            AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
+            AtsTypeCategory.Dto => SerializeDto(value),
+            AtsTypeCategory.Array => SerializeArray(value, typeRef.ElementType),
+            AtsTypeCategory.List => _handles.Marshal(value, typeRef.TypeId),
+            AtsTypeCategory.Dict => _handles.Marshal(value, typeRef.TypeId),
             _ => throw new InvalidOperationException($"Unknown type category: {typeRef.Category}")
         };
     }
@@ -185,7 +185,7 @@ internal sealed class AtsMarshaller
         return JsonNode.Parse(json);
     }
 
-    private JsonNode? SerializeArray(object value, Hosting.Ats.AtsTypeRef? elementType)
+    private JsonNode? SerializeArray(object value, AtsTypeRef? elementType)
     {
         var jsonArray = new JsonArray();
         foreach (var item in (IEnumerable)value)
@@ -220,14 +220,14 @@ internal sealed class AtsMarshaller
 
         return category switch
         {
-            Hosting.Ats.AtsTypeCategory.Primitive => SerializePrimitive(value),
-            Hosting.Ats.AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
-            Hosting.Ats.AtsTypeCategory.Dto => SerializeDto(value),
-            Hosting.Ats.AtsTypeCategory.Array => SerializeArrayRuntime(value),
-            Hosting.Ats.AtsTypeCategory.List => MarshalListHandle(value, type),
-            Hosting.Ats.AtsTypeCategory.Dict => MarshalDictHandle(value, type),
-            Hosting.Ats.AtsTypeCategory.Handle => _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type)),
-            _ => _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type))
+            AtsTypeCategory.Primitive => SerializePrimitive(value),
+            AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
+            AtsTypeCategory.Dto => SerializeDto(value),
+            AtsTypeCategory.Array => SerializeArrayRuntime(value),
+            AtsTypeCategory.List => MarshalListHandle(value, type),
+            AtsTypeCategory.Dict => MarshalDictHandle(value, type),
+            AtsTypeCategory.Handle => _handles.Marshal(value, AtsTypeMapping.DeriveTypeId(type)),
+            _ => _handles.Marshal(value, AtsTypeMapping.DeriveTypeId(type))
         };
     }
 
@@ -253,7 +253,7 @@ internal sealed class AtsMarshaller
             }
         }
         // Fallback for non-generic lists
-        return _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type));
+        return _handles.Marshal(value, AtsTypeMapping.DeriveTypeId(type));
     }
 
     private JsonNode? MarshalDictHandle(object value, Type type)
@@ -268,7 +268,7 @@ internal sealed class AtsMarshaller
             }
         }
         // Fallback for non-generic dicts
-        return _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type));
+        return _handles.Marshal(value, AtsTypeMapping.DeriveTypeId(type));
     }
 
     /// <summary>
@@ -305,7 +305,7 @@ internal sealed class AtsMarshaller
         var exprRef = ReferenceExpressionRef.FromJsonNode(node);
         if (exprRef != null)
         {
-            return exprRef.ToReferenceExpression(_handles, capabilityId, paramName);
+            return exprRef.ToReferenceExpression(_referenceExpressionFactory, _handles, capabilityId, paramName);
         }
 
         // Handle callbacks - any delegate type is treated as a callback
@@ -433,13 +433,12 @@ internal sealed class AtsMarshaller
                 }
             }
 
-            // DTOs - must have [AspireDto] attribute
-            var dtoAttr = targetType.GetCustomAttribute<AspireDtoAttribute>();
-            if (dtoAttr == null)
+            // DTOs - must be part of the scanned ATS context
+            if (!IsDtoType(targetType))
             {
                 throw CapabilityException.InvalidArgument(
                     capabilityId, paramName,
-                    $"Parameter type '{targetType.Name}' must have [AspireDto] attribute to be deserialized from JSON");
+                    $"Parameter type '{targetType.Name}' must have [AspireDto] and be a scanned ATS DTO type to be deserialized from JSON");
             }
             return JsonSerializer.Deserialize(jsonObj.ToJsonString(), targetType, s_jsonOptions);
         }
@@ -545,7 +544,7 @@ internal sealed class AtsMarshaller
     /// <returns><c>true</c> if the type is a DTO type; otherwise, <c>false</c>.</returns>
     public bool IsDtoType(Type type)
     {
-        return _context.GetCategory(type) == Hosting.Ats.AtsTypeCategory.Dto;
+        return _context.GetCategory(type) == AtsTypeCategory.Dto;
     }
 
     /// <summary>
@@ -610,3 +609,4 @@ internal sealed class AtsMarshaller
         }
     }
 }
+

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -12,21 +11,17 @@ namespace Aspire.Hosting.RemoteHost;
 internal sealed class RemoteAppHostService
 {
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
-    private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ILogger<RemoteAppHostService> _logger;
 
-    // ATS (Aspire Type System) components
-    private readonly CapabilityDispatcher _capabilityDispatcher;
+    private readonly AtsSessionProxy _sessionProxy;
 
     public RemoteAppHostService(
         JsonRpcCallbackInvoker callbackInvoker,
-        CancellationTokenRegistry cancellationTokenRegistry,
-        CapabilityDispatcher capabilityDispatcher,
+        AtsSessionProxy sessionProxy,
         ILogger<RemoteAppHostService> logger)
     {
         _callbackInvoker = callbackInvoker;
-        _cancellationTokenRegistry = cancellationTokenRegistry;
-        _capabilityDispatcher = capabilityDispatcher;
+        _sessionProxy = sessionProxy;
         _logger = logger;
     }
 
@@ -56,7 +51,7 @@ internal sealed class RemoteAppHostService
     public bool CancelToken(string tokenId)
     {
         _logger.LogDebug("cancelToken({TokenId})", tokenId);
-        return _cancellationTokenRegistry.Cancel(tokenId);
+        return _sessionProxy.CancelToken(tokenId);
     }
 
     #region ATS Capabilities
@@ -74,7 +69,7 @@ internal sealed class RemoteAppHostService
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var result = await _capabilityDispatcher.InvokeAsync(capabilityId, args).ConfigureAwait(false);
+            var result = await _sessionProxy.InvokeCapabilityAsync(capabilityId, args).ConfigureAwait(false);
             _logger.LogDebug("   invokeCapability({CapabilityId}) result: {Result}", capabilityId, result?.ToJsonString() ?? "null");
             return result;
         }

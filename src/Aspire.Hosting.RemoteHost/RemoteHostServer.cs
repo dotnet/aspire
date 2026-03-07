@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.RemoteHost.Ats;
 using Aspire.Hosting.RemoteHost.CodeGeneration;
 using Aspire.Hosting.RemoteHost.Language;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,23 +41,15 @@ public static class RemoteHostServer
 
         // Singletons
         services.AddSingleton<AssemblyLoader>();
-        services.AddSingleton<AtsContextFactory>();
-        services.AddSingleton(sp => sp.GetRequiredService<AtsContextFactory>().GetContext());
+        services.AddSingleton<AtsCatalogProxy>();
         services.AddSingleton<CodeGeneratorResolver>();
         services.AddSingleton<CodeGenerationService>();
         services.AddSingleton<LanguageSupportResolver>();
         services.AddSingleton<LanguageService>();
 
         // Register scoped services for per-client state
-        services.AddScoped<HandleRegistry>();
-        services.AddScoped<CancellationTokenRegistry>();
         services.AddScoped<JsonRpcCallbackInvoker>();
-        services.AddScoped<ICallbackInvoker>(sp => sp.GetRequiredService<JsonRpcCallbackInvoker>());
-        services.AddScoped<AtsCallbackProxyFactory>();
-        // Register Lazy<T> for breaking circular dependency between AtsMarshaller and AtsCallbackProxyFactory
-        services.AddScoped(sp => new Lazy<AtsCallbackProxyFactory>(() => sp.GetRequiredService<AtsCallbackProxyFactory>()));
-        services.AddScoped<AtsMarshaller>();
-        services.AddScoped<CapabilityDispatcher>();
+        services.AddScoped(sp => sp.GetRequiredService<AtsCatalogProxy>().CreateSession(sp.GetRequiredService<JsonRpcCallbackInvoker>()));
         services.AddScoped<RemoteAppHostService>();
     }
 }

@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.RemoteHost.Ats;
+using HostingCallbackInvoker = Aspire.Hosting.Ats.ICallbackInvoker;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -224,7 +225,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ContextTypePropertyReturnsValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
 
         // Create and register a context object
         // Type ID = {AssemblyName}/{FullTypeName}
@@ -317,7 +318,7 @@ public class CapabilityDispatcherTests
     public void Invoke_NestedContextTypePropertyReturnsHandle()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestParentContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestParentContextType).Assembly]);
 
         // Create and register the parent context with a nested context
         var nestedContext = new TestNestedContextType { Operation = "Publish", IsPublishMode = true };
@@ -395,7 +396,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertySetterUpdatesValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
 
         // Create and register a context object
         var context = new TestContextType { Name = "original-name" };
@@ -417,7 +418,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertySetterUpdatesIntValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
 
         var context = new TestContextType { Count = 10 };
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestContextType");
@@ -436,7 +437,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertySetterUpdatesBoolValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
 
         var context = new TestContextType { IsEnabled = true };
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestContextType");
@@ -455,7 +456,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertySetterThrowsWhenValueMissing()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestContextType).Assembly]);
 
         var context = new TestContextType();
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestContextType");
@@ -488,7 +489,7 @@ public class CapabilityDispatcherTests
     public void Invoke_InstanceMethodCallsMethodOnContext()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
 
         var context = new TestTypeWithMethods();
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestTypeWithMethods");
@@ -506,7 +507,7 @@ public class CapabilityDispatcherTests
     public void Invoke_InstanceMethodWithParameters()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
 
         var context = new TestTypeWithMethods();
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestTypeWithMethods");
@@ -527,7 +528,7 @@ public class CapabilityDispatcherTests
     public void Invoke_AsyncInstanceMethod()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
 
         var context = new TestTypeWithMethods();
         var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestTypeWithMethods");
@@ -574,7 +575,7 @@ public class CapabilityDispatcherTests
         var invoker = new TestCallbackInvoker();
         var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker);
         using var _ = callbackFactory;
-        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
+        var dispatcher = CreateDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
 
         var args = new JsonObject
         {
@@ -597,7 +598,7 @@ public class CapabilityDispatcherTests
         var invoker = new TestCallbackInvoker();
         var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker);
         using var _ = callbackFactory;
-        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
+        var dispatcher = CreateDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
 
         var args = new JsonObject
         {
@@ -618,7 +619,7 @@ public class CapabilityDispatcherTests
         var invoker = new TestCallbackInvoker();
         var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker);
         using var _ = callbackFactory;
-        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
+        var dispatcher = CreateDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
 
         var args = new JsonObject
         {
@@ -641,7 +642,7 @@ public class CapabilityDispatcherTests
         var invoker = new TestCallbackInvoker { ResultToReturn = JsonValue.Create(42) };
         var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker);
         using var _ = callbackFactory;
-        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
+        var dispatcher = CreateDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
 
         var args = new JsonObject
         {
@@ -660,7 +661,7 @@ public class CapabilityDispatcherTests
         var handles = new HandleRegistry();
         // No callback factory provided - use marshaller that throws on callback access
         var marshaller = CreateTestMarshaller(handles);
-        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
+        var dispatcher = CreateDispatcher(handles, marshaller, [typeof(TestCapabilitiesWithCallback).Assembly]);
 
         var args = new JsonObject
         {
@@ -800,7 +801,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ReturnsMutableListAsHandle()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly]);
 
         var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableList", null);
 
@@ -815,7 +816,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ListGet_ReturnsItemAtIndex()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a list and get its handle
         var listResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableList", null);
@@ -839,7 +840,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ListRemoveAt_RemovesItem()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a list and get its handle
         var listResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableList", null);
@@ -872,7 +873,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ListLength_ReturnsCount()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a list and get its handle
         var listResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableList", null);
@@ -894,7 +895,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ListClear_RemovesAllItems()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a list and get its handle
         var listResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableList", null);
@@ -924,7 +925,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ReturnsMutableDictAsHandle()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly]);
 
         var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
 
@@ -939,7 +940,7 @@ public class CapabilityDispatcherTests
     public void Invoke_DictGet_ReturnsValueForKey()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a dict and get its handle
         var dictResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
@@ -963,7 +964,7 @@ public class CapabilityDispatcherTests
     public void Invoke_DictRemove_RemovesKey()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a dict and get its handle
         var dictResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
@@ -996,7 +997,7 @@ public class CapabilityDispatcherTests
     public void Invoke_DictHas_ReturnsTrueForExistingKey()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a dict and get its handle
         var dictResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
@@ -1030,7 +1031,7 @@ public class CapabilityDispatcherTests
     public void Invoke_DictKeys_ReturnsAllKeys()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a dict and get its handle
         var dictResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
@@ -1056,7 +1057,7 @@ public class CapabilityDispatcherTests
     public void Invoke_DictCount_ReturnsEntryCount()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeCategoryCapabilities).Assembly, typeof(AspireExportAttribute).Assembly]);
 
         // Create a dict and get its handle
         var dictResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnMutableDict", null);
@@ -1078,7 +1079,7 @@ public class CapabilityDispatcherTests
     public void Invoke_AcceptEnum_DispatchesEnumFromString()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
 
         var args = new JsonObject
         {
@@ -1095,7 +1096,7 @@ public class CapabilityDispatcherTests
     public void Invoke_AcceptEnum_DispatchesEnumFromStringCaseInsensitive()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
 
         var args = new JsonObject
         {
@@ -1112,7 +1113,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ReturnEnum_ReturnsEnumAsString()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
 
         var args = new JsonObject
         {
@@ -1129,7 +1130,7 @@ public class CapabilityDispatcherTests
     public void Invoke_AcceptOptionalEnum_WithValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
 
         var args = new JsonObject
         {
@@ -1146,7 +1147,7 @@ public class CapabilityDispatcherTests
     public void Invoke_AcceptOptionalEnum_WithoutValue()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestEnumCapabilities).Assembly]);
 
         var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/acceptOptionalEnum", new JsonObject());
 
@@ -1163,7 +1164,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertyGetter_ResolvesBuilderToResource()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
 
         // Create a resource and wrap it in a builder, but register the BUILDER in the handle registry
         var resource = new TestResourceWithProperties("test-resource") { Color = "blue" };
@@ -1182,7 +1183,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertySetter_ResolvesBuilderToResource()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
 
         var resource = new TestResourceWithProperties("test-resource") { Color = "red" };
         var builder = new TestResourceBuilder<TestResourceWithProperties>(resource);
@@ -1202,7 +1203,7 @@ public class CapabilityDispatcherTests
     public void Invoke_InstanceMethod_ResolvesBuilderToResource()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithMethods).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithMethods).Assembly]);
 
         var resource = new TestResourceWithMethods("test-resource");
         var builder = new TestResourceBuilder<TestResourceWithMethods>(resource);
@@ -1223,7 +1224,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertyGetter_WorksDirectlyOnResource()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
 
         // When the handle contains the resource directly (not wrapped in a builder), it should still work
         var resource = new TestResourceWithProperties("test-resource") { Color = "yellow" };
@@ -1240,7 +1241,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertyGetter_ResolvesInheritedPropertyViaBuilder()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
 
         var resource = new TestResourceWithProperties("my-resource") { Color = "red" };
         var builder = new TestResourceBuilder<TestResourceWithProperties>(resource);
@@ -1257,7 +1258,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropertyGetter_ThrowsWhenHandleIsUnrelatedType()
     {
         var handles = new HandleRegistry();
-        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
+        var dispatcher = CreateDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestResourceWithProperties).Assembly]);
 
         var handleId = handles.Register("not-a-resource", "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestResourceWithProperties");
         var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
@@ -1272,7 +1273,17 @@ public class CapabilityDispatcherTests
     {
         var handles = new HandleRegistry();
         var marshaller = CreateTestMarshaller(handles);
-        return new CapabilityDispatcher(handles, marshaller, assemblies);
+        return CreateDispatcher(handles, marshaller, assemblies);
+    }
+
+    private static CapabilityDispatcher CreateDispatcher(HandleRegistry handles, AtsMarshaller marshaller, params Assembly[] assemblies)
+    {
+        return new CapabilityDispatcher(handles, marshaller, CreateContext(assemblies));
+    }
+
+    private static AtsContext CreateContext(params Assembly[] assemblies)
+    {
+        return AtsCapabilityScanner.ScanAssemblies(assemblies).ToAtsContext();
     }
 
     private static AtsMarshaller CreateTestMarshaller(HandleRegistry? handles = null, CancellationTokenRegistry? ctRegistry = null)
@@ -1280,17 +1291,27 @@ public class CapabilityDispatcherTests
         handles ??= new HandleRegistry();
         ctRegistry ??= new CancellationTokenRegistry();
         var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
-        return new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+        return new AtsMarshaller(
+            handles,
+            context,
+            ctRegistry,
+            new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()),
+            new ReferenceExpressionFactory());
     }
 
     private static (AtsMarshaller Marshaller, AtsCallbackProxyFactory CallbackFactory) CreateTestMarshallerWithCallbacks(
         HandleRegistry handles,
-        ICallbackInvoker invoker)
+        HostingCallbackInvoker invoker)
     {
         var ctRegistry = new CancellationTokenRegistry();
         var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
         AtsCallbackProxyFactory? callbackFactory = null;
-        var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => callbackFactory!));
+        var marshaller = new AtsMarshaller(
+            handles,
+            context,
+            ctRegistry,
+            new Lazy<AtsCallbackProxyFactory>(() => callbackFactory!),
+            new ReferenceExpressionFactory());
         callbackFactory = new AtsCallbackProxyFactory(invoker, handles, ctRegistry, marshaller);
         return (marshaller, callbackFactory);
     }
@@ -1588,3 +1609,4 @@ internal sealed class TestResourceWithMethods : Resource
         return $"{prefix}, {Name}!";
     }
 }
+

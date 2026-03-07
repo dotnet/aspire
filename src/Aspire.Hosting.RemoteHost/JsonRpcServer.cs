@@ -186,8 +186,8 @@ internal sealed class JsonRpcServer : BackgroundService
         var clientId = Guid.NewGuid().ToString("N")[..8]; // Short client identifier
         var disconnectReason = "unknown";
 
-        // Create a DI scope for this client connection
-        // All scoped services (HandleRegistry, RemoteAppHostService, etc.) are per-client
+        // Create a DI scope for this client connection.
+        // All scoped services (AtsSessionProxy, RemoteAppHostService, etc.) are per-client.
         _logger.LogDebug("Creating DI scope for client {ClientId}", clientId);
         var scope = _scopeFactory.CreateAsyncScope();
         await using var _ = scope.ConfigureAwait(false);

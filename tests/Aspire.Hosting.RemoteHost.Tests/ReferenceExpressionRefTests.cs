@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -253,7 +252,11 @@ public class ReferenceExpressionRefTests
             }
 
             var exprRef = ReferenceExpressionRef.FromJsonNode(json);
-            return exprRef!.ToReferenceExpression(handles, capabilityId, paramName);
+            return (ReferenceExpression)exprRef!.ToReferenceExpression(
+                new ReferenceExpressionFactory(),
+                handles,
+                capabilityId,
+                paramName);
         }
     }
 

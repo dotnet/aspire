@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Reference to a ReferenceExpression in the ATS protocol.
@@ -30,7 +30,7 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// value providers array. Each value provider can be:
 /// </para>
 /// <list type="bullet">
-///   <item>A handle to an object that implements both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/></item>
+///   <item>A handle to an object that can participate in a reference expression inside the isolated Aspire.Hosting load context</item>
 ///   <item>A string literal that will be included directly in the expression</item>
 /// </list>
 /// </remarks>
@@ -102,24 +102,26 @@ internal sealed class ReferenceExpressionRef
     }
 
     /// <summary>
-    /// Creates a ReferenceExpression from this reference by resolving handles.
+    /// Creates an isolated ReferenceExpression from this reference by resolving handles.
     /// </summary>
+    /// <param name="referenceExpressionFactory">Factory for building isolated reference expressions.</param>
     /// <param name="handles">The handle registry to resolve handles from.</param>
     /// <param name="capabilityId">The capability ID for error messages.</param>
     /// <param name="paramName">The parameter name for error messages.</param>
-    /// <returns>A constructed ReferenceExpression.</returns>
+    /// <returns>A constructed isolated ReferenceExpression instance.</returns>
     /// <exception cref="CapabilityException">Thrown if handles cannot be resolved or are invalid types.</exception>
-    public ReferenceExpression ToReferenceExpression(
+    public object ToReferenceExpression(
+        ReferenceExpressionFactory referenceExpressionFactory,
         HandleRegistry handles,
         string capabilityId,
         string paramName)
     {
-        var builder = new ReferenceExpressionBuilder();
+        var builder = referenceExpressionFactory.CreateBuilder();
 
         if (ValueProviders == null || ValueProviders.Length == 0)
         {
             // No value providers - just a literal string
-            builder.AppendLiteral(Format);
+            referenceExpressionFactory.AppendLiteral(builder, Format);
         }
         else
         {
@@ -163,22 +165,33 @@ internal sealed class ReferenceExpressionRef
                     if (provider is string literalString)
                     {
                         // String value providers are treated as literals
-                        builder.AppendLiteral(literalString);
+                        referenceExpressionFactory.AppendLiteral(builder, literalString);
                     }
                     else if (provider != null)
                     {
                         // Object value providers (handles) are appended as value providers
-                        builder.AppendValueProvider(provider);
+                        try
+                        {
+                            referenceExpressionFactory.AppendValueProvider(builder, provider);
+                        }
+                        catch (TargetInvocationException ex) when (ex.InnerException is ArgumentException inner)
+                        {
+                            throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.valueProviders[{index}]", inner.Message);
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.valueProviders[{index}]", ex.Message);
+                        }
                     }
                 }
                 else
                 {
-                    builder.AppendLiteral(part);
+                    referenceExpressionFactory.AppendLiteral(builder, part);
                 }
             }
         }
 
-        return builder.Build();
+        return referenceExpressionFactory.Build(builder);
     }
 
     /// <summary>
@@ -228,3 +241,4 @@ internal sealed class ReferenceExpressionRef
         return [.. parts];
     }
 }
+

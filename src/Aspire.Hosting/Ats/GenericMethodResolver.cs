@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Helper for resolving generic methods from runtime arguments.
@@ -87,3 +87,4 @@ internal static class GenericMethodResolver
         return null;
     }
 }
+

@@ -3,7 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.RemoteHost.Ats;
+using HostingCallbackInvoker = Aspire.Hosting.Ats.ICallbackInvoker;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -178,6 +178,29 @@ public class CallbackProxyTests
         Assert.Equal("test", args["p0"]?.GetValue<string>());
     }
 
+    [Fact]
+    public async Task InvokedProxy_WithCancellationToken_RoundTripsThroughRegistry()
+    {
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
+        using var cts = new CancellationTokenSource();
+
+        var proxy = (TestCallbackWithCancellation)factory.CreateProxy("test-callback", typeof(TestCallbackWithCancellation))!;
+
+        await proxy("test", cts.Token);
+
+        Assert.Single(invoker.Invocations);
+        var args = Assert.IsType<JsonObject>(invoker.Invocations[0].Args);
+        var tokenId = args["$cancellationToken"]?.GetValue<string>();
+
+        Assert.NotNull(tokenId);
+        Assert.True(factory.CancellationTokenRegistry.TryGetToken(tokenId!, out var token));
+        Assert.False(token.IsCancellationRequested);
+
+        Assert.True(factory.CancellationTokenRegistry.Cancel(tokenId!));
+        Assert.True(token.IsCancellationRequested);
+    }
+
     // Callback error handling tests
     [Fact]
     public async Task InvokedProxy_PropagatesExceptionFromInvoker()
@@ -338,7 +361,7 @@ public class CallbackProxyTests
         Assert.Equal(20, dto2.Count);
     }
 
-    private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null, bool registerDtoTypes = false)
+    private static AtsCallbackProxyFactory CreateFactory(HostingCallbackInvoker? invoker = null, bool registerDtoTypes = false)
     {
         var handles = new HandleRegistry();
         var ctRegistry = new CancellationTokenRegistry();
@@ -349,7 +372,12 @@ public class CallbackProxyTests
             }
             : [];
         var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = dtoTypes, EnumTypes = [] };
-        var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+        var marshaller = new AtsMarshaller(
+            handles,
+            context,
+            ctRegistry,
+            new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()),
+            new ReferenceExpressionFactory());
         return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles, ctRegistry, marshaller);
     }
 
@@ -384,7 +412,7 @@ public class CallbackProxyTests
     }
 }
 
-internal sealed class TestCallbackInvoker : ICallbackInvoker
+internal sealed class TestCallbackInvoker : HostingCallbackInvoker
 {
     public List<(string CallbackId, JsonNode? Args)> Invocations { get; } = [];
     public JsonNode? ResultToReturn { get; set; }

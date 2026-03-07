@@ -5,11 +5,9 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Delegate for capability implementations.
@@ -31,7 +29,6 @@ internal sealed class CapabilityDispatcher
     private readonly HandleRegistry _handles;
     private readonly AtsMarshaller _marshaller;
     private readonly ILogger _logger;
-    private Hosting.Ats.AtsContext? _atsContext;
 
     /// <summary>
     /// Represents a registered capability.
@@ -44,62 +41,28 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Creates a new CapabilityDispatcher for DI.
+    /// Creates a new CapabilityDispatcher for a pre-scanned ATS context.
     /// </summary>
-    /// <param name="handles">The handle registry for resolving handle references.</param>
-    /// <param name="assemblyLoader">The assembly loader to get assemblies from.</param>
-    /// <param name="marshaller">The marshaller for converting objects to/from JSON.</param>
-    /// <param name="logger">The logger.</param>
     public CapabilityDispatcher(
         HandleRegistry handles,
-        AssemblyLoader assemblyLoader,
         AtsMarshaller marshaller,
-        ILogger<CapabilityDispatcher> logger)
+        AtsContext context,
+        ILogger<CapabilityDispatcher>? logger = null)
     {
         _handles = handles;
         _marshaller = marshaller;
-        _logger = logger;
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<CapabilityDispatcher>.Instance;
 
-        // Scan for capabilities on initialization
-        ScanAssemblies(assemblyLoader.GetAssemblies());
+        RegisterCapabilities(context);
     }
 
     /// <summary>
-    /// Creates a new CapabilityDispatcher for testing purposes.
+    /// Registers capabilities from the scanned ATS context.
     /// </summary>
-    /// <param name="handles">The handle registry for resolving handle references.</param>
-    /// <param name="marshaller">The marshaller for converting objects to/from JSON.</param>
-    /// <param name="assemblies">The assemblies to scan for capabilities.</param>
-    internal CapabilityDispatcher(
-        HandleRegistry handles,
-        AtsMarshaller marshaller,
-        IReadOnlyList<Assembly> assemblies)
+    private void RegisterCapabilities(AtsContext context)
     {
-        _handles = handles;
-        _marshaller = marshaller;
-        _logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CapabilityDispatcher>.Instance;
-
-        ScanAssemblies(assemblies);
-    }
-
-    /// <summary>
-    /// Scans the provided assemblies for [AspireExport] and [AspireContextType] attributes.
-    /// Uses the shared AtsCapabilityScanner for discovery.
-    /// </summary>
-    private void ScanAssemblies(IEnumerable<Assembly> assemblies)
-    {
-        var assemblyList = assemblies.ToList();
-
-        _logger.LogDebug("Scanning {AssemblyCount} assemblies for capabilities...", assemblyList.Count);
-
-        // Scan all assemblies at once to get combined result with AtsContext
-        var result = AtsCapabilityScanner.ScanAssemblies(assemblyList);
-
-        // Store the AtsContext for capability registration
-        _atsContext = result.ToAtsContext();
-
         // Log diagnostics from the scanner
-        foreach (var diagnostic in result.Diagnostics)
+        foreach (var diagnostic in context.Diagnostics)
         {
             if (diagnostic.Severity == AtsDiagnosticSeverity.Error)
             {
@@ -112,21 +75,21 @@ internal sealed class CapabilityDispatcher
         }
 
         // Register all capabilities
-        foreach (var capability in result.Capabilities)
+        foreach (var capability in context.Capabilities)
         {
             if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter)
-                && result.Properties.TryGetValue(capability.CapabilityId, out var property))
+                && context.Properties.TryGetValue(capability.CapabilityId, out var property))
             {
                 // Context type property capability
                 RegisterContextTypeProperty(capability, property);
             }
             else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod
-                && result.Methods.TryGetValue(capability.CapabilityId, out var instanceMethod))
+                && context.Methods.TryGetValue(capability.CapabilityId, out var instanceMethod))
             {
                 // Context type method capability (instance method)
                 RegisterContextTypeMethod(capability, instanceMethod);
             }
-            else if (result.Methods.TryGetValue(capability.CapabilityId, out var method))
+            else if (context.Methods.TryGetValue(capability.CapabilityId, out var method))
             {
                 // Static method capability
                 RegisterFromCapability(capability, method);
@@ -409,7 +372,7 @@ internal sealed class CapabilityDispatcher
                 throw tie.InnerException;
             }
 
-            // Handle async methods - await instead of blocking
+            // Handle async methods- await instead of blocking
             if (result is Task task)
             {
                 try
@@ -533,8 +496,8 @@ internal sealed class CapabilityDispatcher
 
     /// <summary>
     /// Resolves the correct target object for a member invocation.
-    /// Handles the case where the handle contains an <see cref="IResourceBuilder{T}"/> but the
-    /// member is declared on the resource type <c>T</c>, since
+    /// Handles the case where the handle contains a builder whose <c>Resource</c> property
+    /// is the actual declaring type for the member being invoked, since
     /// <c>AtsCapabilityScanner.MapToAtsTypeId</c> maps both to the same type ID.
     /// </summary>
     private static object ResolveContextTarget(object contextObj, Type declaringType)
@@ -544,11 +507,15 @@ internal sealed class CapabilityDispatcher
             return contextObj;
         }
 
-        // Handle is a builder, but the member is on the resource type - extract .Resource
-        if (contextObj is IResourceBuilder<IResource> builder &&
-            declaringType.IsInstanceOfType(builder.Resource))
+        // Handle is a builder, but the member is on the resource type - extract .Resource.
+        var resourceProperty = contextObj.GetType().GetProperty("Resource", BindingFlags.Public | BindingFlags.Instance);
+        if (resourceProperty?.CanRead == true)
         {
-            return builder.Resource;
+            var resource = resourceProperty.GetValue(contextObj);
+            if (resource is not null && declaringType.IsInstanceOfType(resource))
+            {
+                return resource;
+            }
         }
 
         // No bridge matched — return as-is; the CLR will throw TargetException if the
@@ -667,3 +634,4 @@ internal static class CapabilityJsonExtensions
         return handles.Marshal(obj, typeId);
     }
 }
+
