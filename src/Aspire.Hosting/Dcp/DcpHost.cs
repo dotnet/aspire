@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Collections;
-using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
@@ -154,27 +153,20 @@ internal sealed class DcpHost
 
             if (hasNoTrustedCerts || hasNewerUntrustedCert)
             {
-                var trustLocation = "your project folder";
-                var appHostDirectory = _configuration["AppHost:Directory"];
-                if (!string.IsNullOrWhiteSpace(appHostDirectory))
-                {
-                    trustLocation = $"'{appHostDirectory}'";
-                }
-
                 string title;
                 string message;
 
                 if (hasNoTrustedCerts)
                 {
                     title = InteractionStrings.NoDeveloperCertificateTrustedTitle;
-                    message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.NoDeveloperCertificateTrustedMessage, trustLocation);
+                    message = InteractionStrings.NoDeveloperCertificateTrustedMessage;
                     _logger.LogWarning("No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.");
                 }
                 else
                 {
                     title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
-                    message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
-                    _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
+                    message = InteractionStrings.DeveloperCertificateNotFullyTrustedMessage;
+                    _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.");
                 }
 
                 // Check if the interaction service is available (dashboard enabled)
