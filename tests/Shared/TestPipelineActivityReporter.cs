@@ -272,5 +272,17 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 
             return Task.CompletedTask;
         }
+
+        public Task UpdateAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(statusText);
+            return UpdateAsync(statusText.Value, cancellationToken);
+        }
+
+        public Task CompleteAsync(MarkdownString completionMessage, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(completionMessage);
+            return CompleteAsync(completionMessage.Value, completionState, cancellationToken);
+        }
     }
 }

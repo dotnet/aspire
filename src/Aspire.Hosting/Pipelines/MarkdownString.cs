@@ -18,10 +18,10 @@ namespace Aspire.Hosting.Pipelines;
 /// <example>
 /// <code>
 /// // Log a message with Markdown formatting
-/// step.Log(LogLevel.Information, new MarkdownString("Deployed **myapp** to [https://myapp.azurewebsites.net](https://myapp.azurewebsites.net)"));
+/// step.Log(LogLevel.Information, new MarkdownString("Deployed **myapp** to [endpoint](https://example.com)"));
 ///
 /// // Add a Markdown-formatted value to the pipeline summary
-/// summary.Add("📦 Resource Group", new MarkdownString($"[{rgName}]({portalUrl})"));
+/// summary.Add("Key", new MarkdownString($"[{name}]({url})"));
 /// </code>
 /// </example>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
