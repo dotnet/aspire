@@ -25,4 +25,9 @@ internal sealed class TestCliUpdateNotifier : ICliUpdateNotifier
     {
         return IsUpdateAvailableCallback?.Invoke() ?? false;
     }
+
+    public string? GetNewerVersionString()
+    {
+        return null;
+    }
 }

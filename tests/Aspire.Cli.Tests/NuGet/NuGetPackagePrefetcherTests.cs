@@ -7,7 +7,7 @@ using Aspire.Cli.NuGet;
 
 namespace Aspire.Cli.Tests.NuGet;
 
-public class NuGetPackagePrefetcherTests
+public class CliBackgroundServiceTests
 {
     [Fact]
     public void CliExecutionContextSetsCommand()

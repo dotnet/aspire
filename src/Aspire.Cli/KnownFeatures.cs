@@ -29,6 +29,7 @@ internal static class KnownFeatures
     public static string ExperimentalPolyglotGo => "experimentalPolyglot:go";
     public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+    public static string AutoUpdateEnabled => "autoUpdateEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
     {
@@ -100,6 +101,11 @@ internal static class KnownFeatures
         [RunningInstanceDetectionEnabled] = new(
             RunningInstanceDetectionEnabled,
             "Enable or disable detection of already running Aspire instances to prevent conflicts",
+            DefaultValue: true),
+        
+        [AutoUpdateEnabled] = new(
+            AutoUpdateEnabled,
+            "Enable or disable automatic background updates of the Aspire CLI to the latest version",
             DefaultValue: true)
     };
 

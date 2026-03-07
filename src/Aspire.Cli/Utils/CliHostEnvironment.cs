@@ -25,6 +25,11 @@ internal interface ICliHostEnvironment
     /// Gets whether the host supports colors and ANSI codes.
     /// </summary>
     bool SupportsAnsi { get; }
+
+    /// <summary>
+    /// Gets whether the CLI is running in a CI environment.
+    /// </summary>
+    bool IsRunningInCI { get; }
 }
 
 /// <summary>
@@ -66,8 +71,14 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
     /// </summary>
     public bool SupportsAnsi { get; }
 
+    /// <summary>
+    /// Gets whether the CLI is running in a CI environment.
+    /// </summary>
+    public bool IsRunningInCI { get; }
+
     public CliHostEnvironment(IConfiguration configuration, bool nonInteractive)
     {
+        IsRunningInCI = IsCI(configuration);
         // If --non-interactive is explicitly set, disable interactive input and output.
         // This takes precedence over all other settings including ASPIRE_PLAYGROUND.
         if (nonInteractive)

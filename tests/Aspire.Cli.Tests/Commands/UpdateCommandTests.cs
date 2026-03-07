@@ -95,7 +95,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var updateCommand = CreateUpdateCommand(workspace);
 
         // Act
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        UpdateCommand.CleanupOldBackupFiles(targetExePath);
 
         // Assert
         Assert.False(File.Exists(oldBackup1), "Old backup file should be deleted");
@@ -118,7 +118,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var updateCommand = CreateUpdateCommand(workspace);
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        UpdateCommand.CleanupOldBackupFiles(targetExePath);
 
         // On Windows, locked files cannot be deleted, so the file should still exist
         // On Mac/Linux, locked files can be deleted, so the file may be deleted
@@ -141,7 +141,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var updateCommand = CreateUpdateCommand(workspace);
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(nonExistentPath);
+        UpdateCommand.CleanupOldBackupFiles(nonExistentPath);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var updateCommand = CreateUpdateCommand(workspace);
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        UpdateCommand.CleanupOldBackupFiles(targetExePath);
     }
 
     private UpdateCommand CreateUpdateCommand(TemporaryWorkspace workspace)

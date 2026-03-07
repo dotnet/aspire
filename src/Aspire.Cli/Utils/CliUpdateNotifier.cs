@@ -14,6 +14,7 @@ internal interface ICliUpdateNotifier
     Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
     void NotifyIfUpdateAvailable();
     bool IsUpdateAvailable();
+    string? GetNewerVersionString();
 }
 
 internal class CliUpdateNotifier(
@@ -73,6 +74,22 @@ internal class CliUpdateNotifier(
 
         var newerVersion = PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages);
         return newerVersion is not null;
+    }
+
+    public string? GetNewerVersionString()
+    {
+        if (_availablePackages is null)
+        {
+            return null;
+        }
+
+        var currentVersion = GetCurrentVersion();
+        if (currentVersion is null)
+        {
+            return null;
+        }
+
+        return PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages)?.ToString();
     }
 
     /// <summary>

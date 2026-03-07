@@ -119,8 +119,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.BannerServiceFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
-        services.AddSingleton<NuGetPackagePrefetcher>();
-        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        services.AddSingleton<CliBackgroundService>();
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<CliBackgroundService>());
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);

@@ -279,8 +279,8 @@ public class Program
             return sp.GetRequiredService<NuGetPackageCache>();
         });
 
-        builder.Services.AddSingleton<NuGetPackagePrefetcher>();
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        builder.Services.AddSingleton<CliBackgroundService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<CliBackgroundService>());
         builder.Services.AddSingleton<AuxiliaryBackchannelMonitor>();
         builder.Services.AddSingleton<IAuxiliaryBackchannelMonitor>(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
@@ -583,6 +583,15 @@ public class Program
         };
 
         Console.OutputEncoding = Encoding.UTF8;
+
+        // Handle internal auto-update command (runs in a detached background process, no DI needed)
+        if (args.Length >= 2 && args[0] == "internal-auto-update")
+        {
+            return await Utils.AutoUpdater.SilentDownloadAndStageAsync(args[1], args.Length >= 3 ? args[2] : null);
+        }
+
+        // Apply staged update if available (before normal startup)
+        Utils.AutoUpdater.AppliedVersion = Utils.AutoUpdater.TryApplyStagedUpdate();
 
         using var app = await BuildApplicationAsync(args);
 
