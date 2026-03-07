@@ -340,7 +340,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             import {
                 ResourceBuilderBase,
                 ReferenceExpression,
-                ConditionalReferenceExpression,
                 refExpr,
                 AspireDict,
                 AspireList
@@ -438,8 +437,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
         // Add ReferenceExpression (defined in base.ts, not generated)
         _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
-        // Add ConditionalReferenceExpression (defined in base.ts, not generated)
-        _wrapperClassNames[AtsConstants.ConditionalReferenceExpressionTypeId] = "ConditionalReferenceExpression";
 
         // Pre-scan all capabilities to collect options interfaces
         // This must happen AFTER wrapper class names are populated so types resolve correctly
@@ -459,11 +456,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         GenerateOptionsInterfaces();
 
         // Generate type classes (context types and wrapper types)
-        // Skip types defined in base.ts (ReferenceExpression, ConditionalReferenceExpression)
+        // Skip types defined in base.ts (ReferenceExpression)
         foreach (var typeClass in typeClasses)
         {
-            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId ||
-                typeClass.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId)
             {
                 continue;
             }
@@ -1440,7 +1436,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             // Re-export commonly used types
             export { Handle, CapabilityError, registerCallback } from './transport.js';
-            export { refExpr, ReferenceExpression, ConditionalReferenceExpression } from './base.js';
+            export { refExpr, ReferenceExpression } from './base.js';
             """);
         WriteLine();
     }
@@ -1502,8 +1498,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Skip types defined in base.ts (their wrapper registration is handled differently)
         foreach (var typeClass in typeClasses)
         {
-            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId ||
-                typeClass.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            if (typeClass.TypeId == AtsConstants.ReferenceExpressionTypeId)
             {
                 continue;
             }

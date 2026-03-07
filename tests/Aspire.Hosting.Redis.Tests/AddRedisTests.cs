@@ -918,8 +918,8 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
 
     private static string AssertContainsConditionalReference(string valueExpression)
     {
-        var match = Regex.Match(valueExpression, @"\{(cond-[^.]+)\.value\}");
-        Assert.True(match.Success, $"Expected value expression to contain a conditional reference '{{cond-*.value}}', but got: {valueExpression}");
+        var match = Regex.Match(valueExpression, @"\{(cond-[^.]+)\.connectionString\}");
+        Assert.True(match.Success, $"Expected value expression to contain a conditional reference '{{cond-*.connectionString}}', but got: {valueExpression}");
         return match.Groups[1].Value;
     }
 

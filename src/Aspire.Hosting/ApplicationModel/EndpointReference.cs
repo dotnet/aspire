@@ -127,7 +127,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     }
 
     /// <summary>
-    /// Creates a <see cref="ConditionalReferenceExpression"/> that resolves to <paramref name="enabledValue"/> when
+    /// Creates a conditional <see cref="ReferenceExpression"/> that resolves to <paramref name="enabledValue"/> when
     /// <see cref="EndpointAnnotation.TlsEnabled"/> is <see langword="true"/> on this endpoint, or to
     /// <paramref name="disabledValue"/> otherwise.
     /// </summary>
@@ -139,11 +139,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </remarks>
     /// <param name="enabledValue">The expression to evaluate when TLS is enabled (e.g., <c>",ssl=true"</c>).</param>
     /// <param name="disabledValue">The expression to evaluate when TLS is not enabled.</param>
-    /// <returns>A <see cref="ConditionalReferenceExpression"/> whose value tracks the TLS state of this endpoint.</returns>
+    /// <returns>A conditional <see cref="ReferenceExpression"/> whose value tracks the TLS state of this endpoint.</returns>
     [AspireExport(Description = "Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.")]
-    public ConditionalReferenceExpression GetTlsValue(ReferenceExpression enabledValue, ReferenceExpression disabledValue)
+    public ReferenceExpression GetTlsValue(ReferenceExpression enabledValue, ReferenceExpression disabledValue)
     {
-        return ConditionalReferenceExpression.Create(
+        return ReferenceExpression.CreateConditional(
             Property(EndpointProperty.TlsEnabled),
             enabledValue,
             disabledValue);

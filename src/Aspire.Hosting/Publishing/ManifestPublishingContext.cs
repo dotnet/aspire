@@ -47,7 +47,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private readonly Dictionary<ParameterResource, Dictionary<string, string>> _formattedParameters = [];
 
-    private readonly Dictionary<string, ConditionalReferenceExpression> _conditionalExpressions = new(StringComparers.ResourceName);
+    private readonly Dictionary<string, ReferenceExpression> _conditionalExpressions = new(StringComparers.ResourceName);
 
     private readonly HashSet<string> _manifestResourceNames = new(StringComparers.ResourceName);
 
@@ -749,10 +749,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         foreach (var provider in referenceExpression.ValueProviders)
         {
-            if (provider is ConditionalReferenceExpression conditional)
+            if (provider is ReferenceExpression { IsConditional: true, Name: string name } conditional)
             {
-                _conditionalExpressions.TryAdd(conditional.Name, conditional);
-                _manifestResourceNames.Add(conditional.Name);
+                _conditionalExpressions.TryAdd(name, conditional);
+                _manifestResourceNames.Add(name);
             }
         }
     }
@@ -860,7 +860,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
             Writer.WriteStartObject(name);
             Writer.WriteString("type", "value.v0");
-            Writer.WriteString("value", resolvedValue ?? string.Empty);
+            Writer.WriteString("connectionString", resolvedValue ?? string.Empty);
             Writer.WriteEndObject();
         }
 

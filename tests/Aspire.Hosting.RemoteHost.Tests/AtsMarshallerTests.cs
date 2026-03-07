@@ -931,7 +931,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ConditionalReferenceExpression.Create(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
 
         var result = marshaller.MarshalToJson(conditional);
 
@@ -950,7 +950,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ConditionalReferenceExpression.Create(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         Assert.NotNull(json);
@@ -970,15 +970,15 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ConditionalReferenceExpression.Create(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         var handleId = json!["$handle"]!.GetValue<string>();
         registry.TryGet(handleId, out var retrieved, out _);
-        var retrievedConditional = Assert.IsType<ConditionalReferenceExpression>(retrieved);
+        var retrievedConditional = Assert.IsType<ReferenceExpression>(retrieved);
 
         Assert.StartsWith("cond-test-condition", retrievedConditional.Name);
-        Assert.Equal(",ssl=true", await retrievedConditional.GetValueAsync());
+        Assert.Equal(",ssl=true", await retrievedConditional.GetValueAsync(default));
     }
 
     [Fact]
@@ -989,14 +989,14 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.FalseString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ConditionalReferenceExpression.Create(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         var handleId = json!["$handle"]!.GetValue<string>();
         registry.TryGet(handleId, out var retrieved, out _);
-        var retrievedConditional = Assert.IsType<ConditionalReferenceExpression>(retrieved);
+        var retrievedConditional = Assert.IsType<ReferenceExpression>(retrieved);
 
-        Assert.Null(await retrievedConditional.GetValueAsync());
+        Assert.Null(await retrievedConditional.GetValueAsync(default));
     }
 
     private sealed class TestConditionValueProvider(string value) : IValueProvider, IManifestExpressionProvider
@@ -1011,20 +1011,20 @@ public class AtsMarshallerTests
     }
 
     [Fact]
-    public void UnmarshalFromJson_UnmarshalsCondExprToConditionalReferenceExpression()
+    public void UnmarshalFromJson_UnmarshalsCondExprToReferenceExpression()
     {
         var registry = new HandleRegistry();
 
         // Register a condition IValueProvider as a handle
         var condition = new TestConditionValueProvider(bool.TrueString);
-        var conditionHandleId = registry.Register(condition, AtsConstants.ConditionalReferenceExpressionTypeId);
+        var conditionHandleId = registry.Register(condition, AtsConstants.ReferenceExpressionTypeId);
 
         var (marshaller, context) = CreateMarshallerWithContext(registry);
 
-        // Build the $condExpr JSON that a client would send
+        // Build the unified $expr JSON with conditional mode
         var json = new JsonObject
         {
-            ["$condExpr"] = new JsonObject
+            ["$expr"] = new JsonObject
             {
                 ["condition"] = new JsonObject
                 {
@@ -1047,8 +1047,8 @@ public class AtsMarshallerTests
             }
         };
 
-        var result = marshaller.UnmarshalFromJson(json, typeof(ConditionalReferenceExpression), context);
-        var cre = Assert.IsType<ConditionalReferenceExpression>(result);
+        var result = marshaller.UnmarshalFromJson(json, typeof(ReferenceExpression), context);
+        var cre = Assert.IsType<ReferenceExpression>(result);
 
         Assert.NotNull(cre);
     }
@@ -1059,13 +1059,13 @@ public class AtsMarshallerTests
         var registry = new HandleRegistry();
 
         var condition = new TestConditionValueProvider(bool.TrueString);
-        var conditionHandleId = registry.Register(condition, AtsConstants.ConditionalReferenceExpressionTypeId);
+        var conditionHandleId = registry.Register(condition, AtsConstants.ReferenceExpressionTypeId);
 
         var (marshaller, context) = CreateMarshallerWithContext(registry);
 
         var json = new JsonObject
         {
-            ["$condExpr"] = new JsonObject
+            ["$expr"] = new JsonObject
             {
                 ["condition"] = new JsonObject
                 {
@@ -1088,9 +1088,9 @@ public class AtsMarshallerTests
             }
         };
 
-        var result = marshaller.UnmarshalFromJson(json, typeof(ConditionalReferenceExpression), context);
-        var cre = Assert.IsType<ConditionalReferenceExpression>(result);
-        var value = await cre.GetValueAsync();
+        var result = marshaller.UnmarshalFromJson(json, typeof(ReferenceExpression), context);
+        var cre = Assert.IsType<ReferenceExpression>(result);
+        var value = await cre.GetValueAsync(default);
 
         Assert.Equal(",ssl=true", value);
     }
@@ -1101,13 +1101,13 @@ public class AtsMarshallerTests
         var registry = new HandleRegistry();
 
         var condition = new TestConditionValueProvider(bool.FalseString);
-        var conditionHandleId = registry.Register(condition, AtsConstants.ConditionalReferenceExpressionTypeId);
+        var conditionHandleId = registry.Register(condition, AtsConstants.ReferenceExpressionTypeId);
 
         var (marshaller, context) = CreateMarshallerWithContext(registry);
 
         var json = new JsonObject
         {
-            ["$condExpr"] = new JsonObject
+            ["$expr"] = new JsonObject
             {
                 ["condition"] = new JsonObject
                 {
@@ -1130,9 +1130,9 @@ public class AtsMarshallerTests
             }
         };
 
-        var result = marshaller.UnmarshalFromJson(json, typeof(ConditionalReferenceExpression), context);
-        var cre = Assert.IsType<ConditionalReferenceExpression>(result);
-        var value = await cre.GetValueAsync();
+        var result = marshaller.UnmarshalFromJson(json, typeof(ReferenceExpression), context);
+        var cre = Assert.IsType<ReferenceExpression>(result);
+        var value = await cre.GetValueAsync(default);
 
         // An empty format string with no value providers results in null from ReferenceExpression.GetValueAsync
         Assert.Null(value);
@@ -1146,7 +1146,7 @@ public class AtsMarshallerTests
 
         var json = new JsonObject
         {
-            ["$condExpr"] = new JsonObject
+            ["$expr"] = new JsonObject
             {
                 ["condition"] = new JsonObject
                 {
@@ -1170,6 +1170,6 @@ public class AtsMarshallerTests
         };
 
         Assert.Throws<CapabilityException>(() =>
-            marshaller.UnmarshalFromJson(json, typeof(ConditionalReferenceExpression), context));
+            marshaller.UnmarshalFromJson(json, typeof(ReferenceExpression), context));
     }
 }

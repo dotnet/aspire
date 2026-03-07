@@ -104,7 +104,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         WriteLine("from typing import Any, Callable, Dict, List");
         WriteLine();
         WriteLine("from transport import AspireClient, Handle, CapabilityError, register_callback, register_handle_wrapper, register_cancellation");
-        WriteLine("from base import AspireDict, AspireList, ReferenceExpression, ConditionalReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value");
+        WriteLine("from base import AspireDict, AspireList, ReferenceExpression, ref_expr, HandleWrapperBase, ResourceBuilderBase, serialize_value");
         WriteLine();
     }
 
@@ -203,9 +203,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var handleType in handleTypes.OrderBy(t => t.ClassName, StringComparer.Ordinal))
         {
-            // Skip types defined in base.py (ReferenceExpression, ConditionalReferenceExpression)
-            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId ||
-                handleType.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            // Skip types defined in base.py (ReferenceExpression)
+            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId)
             {
                 continue;
             }
@@ -364,8 +363,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var handleType in handleTypes)
         {
             // Skip types defined in base.py
-            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId ||
-                handleType.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
+            if (handleType.TypeId == AtsConstants.ReferenceExpressionTypeId)
             {
                 continue;
             }
@@ -586,11 +584,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
         {
             return nameof(ReferenceExpression);
-        }
-
-        if (typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
-        {
-            return "ConditionalReferenceExpression";
         }
 
         return typeRef.Category switch

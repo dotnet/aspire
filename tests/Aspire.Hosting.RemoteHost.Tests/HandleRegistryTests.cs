@@ -350,9 +350,9 @@ public class HandleRefTests
     {
         var registry = new HandleRegistry();
         var condition = new TestConditionProvider(bool.TrueString);
-        var conditional = ConditionalReferenceExpression.Create(
+        var conditional = ReferenceExpression.CreateConditional(
             condition, ReferenceExpression.Create($",ssl=true"), ReferenceExpression.Empty);
-        var typeId = AtsConstants.ConditionalReferenceExpressionTypeId;
+        var typeId = AtsConstants.ReferenceExpressionTypeId;
 
         var handleId = registry.Register(conditional, typeId);
         var found = registry.TryGet(handleId, out var retrieved, out var retrievedTypeId);

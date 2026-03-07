@@ -50,62 +50,62 @@ impl ResourceBuilderBase {
 }
 
 /// A reference expression for dynamic values.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Supports value mode (format + args), conditional mode (condition + whenTrue + whenFalse),
+/// and handle mode (wrapping a server-returned handle).
 pub struct ReferenceExpression {
-    pub format: String,
-    pub args: Vec<Value>,
-}
+    // Value mode fields
+    pub format: Option<String>,
+    pub args: Option<Vec<Value>>,
 
-impl ReferenceExpression {
-    pub fn new(format: impl Into<String>, args: Vec<Value>) -> Self {
-        Self {
-            format: format.into(),
-            args,
-        }
-    }
-
-    pub fn to_json(&self) -> Value {
-        json!({
-            "$refExpr": {
-                "format": self.format,
-                "args": self.args
-            }
-        })
-    }
-}
-
-/// A conditional reference expression that selects between two ReferenceExpression branches.
-/// The condition and branches are evaluated on the AppHost server.
-pub struct ConditionalReferenceExpression {
-    // Expression mode fields
+    // Conditional mode fields
     condition: Option<Value>,
-    when_true: Option<ReferenceExpression>,
-    when_false: Option<ReferenceExpression>,
+    when_true: Option<Box<ReferenceExpression>>,
+    when_false: Option<Box<ReferenceExpression>>,
+    is_conditional: bool,
 
     // Handle mode fields
     handle: Option<Handle>,
     client: Option<Arc<AspireClient>>,
 }
 
-impl ConditionalReferenceExpression {
-    /// Creates a new ConditionalReferenceExpression from a server-returned handle.
-    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+impl ReferenceExpression {
+    /// Creates a new value-mode reference expression.
+    pub fn new(format: impl Into<String>, args: Vec<Value>) -> Self {
         Self {
+            format: Some(format.into()),
+            args: Some(args),
             condition: None,
             when_true: None,
             when_false: None,
+            is_conditional: false,
+            handle: None,
+            client: None,
+        }
+    }
+
+    /// Creates a new handle-mode reference expression from a server-returned handle.
+    pub fn from_handle(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self {
+            format: None,
+            args: None,
+            condition: None,
+            when_true: None,
+            when_false: None,
+            is_conditional: false,
             handle: Some(handle),
             client: Some(client),
         }
     }
 
     /// Creates a conditional reference expression from its parts.
-    pub fn create(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
+    pub fn create_conditional(condition: Value, when_true: ReferenceExpression, when_false: ReferenceExpression) -> Self {
         Self {
-            name: None,
+            format: None,
+            args: None,
             condition: Some(condition),
-            when_true: Some(when_true),
-            when_false: Some(when_false),
+            when_true: Some(Box::new(when_true)),
+            when_false: Some(Box::new(when_false)),
+            is_conditional: true,
             handle: None,
             client: None,
         }
@@ -123,19 +123,27 @@ impl ConditionalReferenceExpression {
         if let Some(ref handle) = self.handle {
             return handle.to_json();
         }
+        if self.is_conditional {
+            return json!({
+                "$refExpr": {
+                    "condition": serialize_value(self.condition.clone().unwrap()),
+                    "whenTrue": self.when_true.as_ref().unwrap().to_json(),
+                    "whenFalse": self.when_false.as_ref().unwrap().to_json()
+                }
+            });
+        }
         json!({
-            "$condExpr": {
-                "condition": serialize_value(self.condition.clone().unwrap()),
-                "whenTrue": self.when_true.as_ref().unwrap().to_json(),
-                "whenFalse": self.when_false.as_ref().unwrap().to_json()
+            "$refExpr": {
+                "format": self.format.as_ref().unwrap(),
+                "args": self.args.as_ref().unwrap()
             }
         })
     }
 }
 
-impl HasHandle for ConditionalReferenceExpression {
+impl HasHandle for ReferenceExpression {
     fn handle(&self) -> &Handle {
-        self.handle.as_ref().expect("ConditionalReferenceExpression is in expression mode, not handle mode")
+        self.handle.as_ref().expect("ReferenceExpression is not in handle mode")
     }
 }
 

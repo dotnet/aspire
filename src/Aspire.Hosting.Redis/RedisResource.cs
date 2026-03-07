@@ -81,8 +81,15 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     internal List<string> Args { get; set; } = new();
 
+    private ReferenceExpression? _cachedConnectionString;
+
     private ReferenceExpression BuildConnectionString()
     {
+        if (_cachedConnectionString is not null)
+        {
+            return _cachedConnectionString;
+        }
+
         var builder = new ReferenceExpressionBuilder();
         builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
@@ -95,7 +102,8 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             enabledValue: ReferenceExpression.Create($",ssl=true"),
             disabledValue: ReferenceExpression.Empty)}");
 
-        return builder.Build();
+        _cachedConnectionString = builder.Build();
+        return _cachedConnectionString;
     }
 
     /// <summary>

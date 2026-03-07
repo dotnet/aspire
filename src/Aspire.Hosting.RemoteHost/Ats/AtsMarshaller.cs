@@ -300,20 +300,13 @@ internal sealed class AtsMarshaller
             return handleObj;
         }
 
-        // Check for reference expression (similar to handle, but constructs a ReferenceExpression)
-        // Format: { "$expr": { "format": "...", "valueProviders": [...] } }
+        // Check for reference expression (value or conditional)
+        // Value format: { "$expr": { "format": "...", "valueProviders": [...] } }
+        // Conditional format: { "$expr": { "condition": <handle>, "whenTrue": <$expr>, "whenFalse": <$expr> } }
         var exprRef = ReferenceExpressionRef.FromJsonNode(node);
         if (exprRef != null)
         {
             return exprRef.ToReferenceExpression(_handles, capabilityId, paramName);
-        }
-
-        // Check for conditional reference expression
-        // Format: { "$condExpr": { "name": "...", "condition": <handle>, "whenTrue": <$expr>, "whenFalse": <$expr> } }
-        var condExprRef = ConditionalReferenceExpressionRef.FromJsonNode(node);
-        if (condExprRef != null)
-        {
-            return condExprRef.ToConditionalReferenceExpression(_handles, capabilityId, paramName);
         }
 
         // Handle callbacks - any delegate type is treated as a callback

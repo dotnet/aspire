@@ -119,7 +119,7 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         WriteLine("    register_callback, register_cancellation, serialize_value,");
         WriteLine("};");
         WriteLine("use crate::base::{");
-        WriteLine("    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression, ConditionalReferenceExpression,");
+        WriteLine("    HandleWrapperBase, ResourceBuilderBase, ReferenceExpression,");
         WriteLine("    AspireList, AspireDict, serialize_handle, HasHandle,");
         WriteLine("};");
         WriteLine();
@@ -195,11 +195,6 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         {
             // Skip ReferenceExpression - it's defined in base.rs
             if (dto.TypeId == AtsConstants.ReferenceExpressionTypeId)
-            {
-                continue;
-            }
-
-            if (dto.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
             {
                 continue;
             }
@@ -573,9 +568,8 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         var handleTypeIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var handleType in context.HandleTypes)
         {
-            // Skip ReferenceExpression, ConditionalReferenceExpression and CancellationToken - they're defined in base.rs/transport.rs
+            // Skip ReferenceExpression and CancellationToken - they're defined in base.rs/transport.rs
             if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId
-                || handleType.AtsTypeId == AtsConstants.ConditionalReferenceExpressionTypeId
                 || IsCancellationTokenTypeId(handleType.AtsTypeId))
             {
                 continue;
@@ -695,11 +689,6 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             return isOptional ? "Option<ReferenceExpression>" : "ReferenceExpression";
         }
 
-        if (typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
-        {
-            return isOptional ? "Option<ConditionalReferenceExpression>" : "ConditionalReferenceExpression";
-        }
-
         var baseType = typeRef.Category switch
         {
             AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId),
@@ -736,11 +725,6 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
         {
             return isOptional ? "Option<ReferenceExpression>" : "ReferenceExpression";
-        }
-
-        if (typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId)
-        {
-            return isOptional ? "Option<ConditionalReferenceExpression>" : "ConditionalReferenceExpression";
         }
 
         var baseType = typeRef.Category switch
@@ -822,7 +806,6 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
     private static bool IsHandleType(AtsTypeRef? typeRef) =>
         typeRef?.Category == AtsTypeCategory.Handle
         && typeRef.TypeId != AtsConstants.ReferenceExpressionTypeId
-        && typeRef.TypeId != AtsConstants.ConditionalReferenceExpressionTypeId
         && !IsCancellationTokenTypeId(typeRef.TypeId);
 
     private static bool IsCancellationToken(AtsParameterInfo parameter) =>
@@ -839,9 +822,8 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             return;
         }
 
-        // Skip ReferenceExpression, ConditionalReferenceExpression and CancellationToken - they're defined in base.rs/transport.rs
+        // Skip ReferenceExpression and CancellationToken - they're defined in base.rs/transport.rs
         if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId
-            || typeRef.TypeId == AtsConstants.ConditionalReferenceExpressionTypeId
             || IsCancellationTokenTypeId(typeRef.TypeId))
         {
             return;
