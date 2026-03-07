@@ -25,7 +25,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
         await File.WriteAllTextAsync(configPath, "{ invalid json content");
 
         var openCodeCliRunner = new FakeOpenCodeCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), CreateExecutionContext(workspace.WorkspaceRoot), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -51,7 +51,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
         await File.WriteAllTextAsync(configPath, "");
 
         var openCodeCliRunner = new FakeOpenCodeCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), CreateExecutionContext(workspace.WorkspaceRoot), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -75,7 +75,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
         await File.WriteAllTextAsync(configPath, originalContent);
 
         var openCodeCliRunner = new FakeOpenCodeCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new OpenCodeAgentEnvironmentScanner(openCodeCliRunner, CreatePlaywrightCliInstaller(), CreateExecutionContext(workspace.WorkspaceRoot), NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
@@ -110,6 +110,20 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
             new TestInteractionService(),
             new ConfigurationBuilder().Build(),
             NullLogger<PlaywrightCliInstaller>.Instance);
+    }
+
+    private static CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    {
+        return new CliExecutionContext(
+            workingDirectory: workingDirectory,
+            hivesDirectory: workingDirectory,
+            cacheDirectory: workingDirectory,
+            sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
+            debugMode: false,
+            environmentVariables: new Dictionary<string, string?>(),
+            homeDirectory: workingDirectory);
     }
 
     private sealed class FakeOpenCodeCliRunner(SemVersion? version) : IOpenCodeCliRunner

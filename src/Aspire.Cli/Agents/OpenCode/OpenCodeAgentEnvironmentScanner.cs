@@ -16,12 +16,11 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string OpenCodeConfigFileName = "opencode.jsonc";
     private const string AspireServerName = "aspire";
-    private static readonly string s_skillFilePath = Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireSkillName, "SKILL.md");
     private static readonly string s_skillBaseDirectory = Path.Combine(".opencode", "skill");
-    private const string SkillFileDescription = "Create Aspire skill file (.opencode/skill/aspire/SKILL.md)";
 
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
     private readonly PlaywrightCliInstaller _playwrightCliInstaller;
+    private readonly CliExecutionContext _executionContext;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
@@ -29,14 +28,17 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
     /// <param name="playwrightCliInstaller">The Playwright CLI installer for secure installation.</param>
+    /// <param name="executionContext">The CLI execution context for accessing environment variables and settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, PlaywrightCliInstaller playwrightCliInstaller, ILogger<OpenCodeAgentEnvironmentScanner> logger)
+    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, PlaywrightCliInstaller playwrightCliInstaller, CliExecutionContext executionContext, ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
         ArgumentNullException.ThrowIfNull(playwrightCliInstaller);
+        ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(logger);
         _openCodeCliRunner = openCodeCliRunner;
         _playwrightCliInstaller = playwrightCliInstaller;
+        _executionContext = executionContext;
         _logger = logger;
     }
 
@@ -70,13 +72,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
             // Register Playwright CLI installation applicator
             CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
-
-            // Try to add skill file applicator for OpenCode
-            CommonAgentApplicators.TryAddSkillFileApplicator(
-                context,
-                context.RepositoryRoot,
-                s_skillFilePath,
-                SkillFileDescription);
         }
         else
         {
@@ -93,13 +88,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 
                 // Register Playwright CLI installation applicator
                 CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
-                
-                // Try to add skill file applicator for OpenCode
-                CommonAgentApplicators.TryAddSkillFileApplicator(
-                    context,
-                    context.RepositoryRoot,
-                    s_skillFilePath,
-                    SkillFileDescription);
             }
             else
             {
