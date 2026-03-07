@@ -178,11 +178,13 @@ suite('Dotnet Debugger Extension Tests', () => {
         assert.strictEqual(debugConfig.executablePath, 'exePath');
         assert.strictEqual(debugConfig.checkForDevCert, true);
 
-        // serverReadyAction should be present with the applicationUrl
+        // serverReadyAction should be present when launchBrowser is true
         assert.notStrictEqual(debugConfig.serverReadyAction, undefined);
-        assert.strictEqual(debugConfig.serverReadyAction.uriFormat, 'https://localhost:5001');
+        assert.strictEqual(debugConfig.serverReadyAction?.uriFormat, 'https://localhost:5001');
+        assert.strictEqual(debugConfig.serverReadyAction?.pattern, '\\bNow listening on:\\s+(https?://\\S+)');
 
         // cleanup
         fs.rmSync(tempDir, { recursive: true, force: true });
     });
+
 });
