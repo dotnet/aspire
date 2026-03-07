@@ -50,7 +50,7 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
 
         sequenceBuilder.AspireNew("BundleStarterApp", counter)
             // Start AppHost in detached mode and capture JSON output
-            .Type("aspire run --detach --format json | tee /tmp/aspire-detach.json")
+            .Type("aspire start --format json | tee /tmp/aspire-detach.json")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3))
             // Verify the dashboard is reachable by extracting the URL from the detach output

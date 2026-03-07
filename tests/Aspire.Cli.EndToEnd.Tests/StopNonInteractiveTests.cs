@@ -56,8 +56,8 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -135,7 +135,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -144,7 +144,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -222,7 +222,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -231,7 +231,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -314,7 +314,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -323,7 +323,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
