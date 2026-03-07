@@ -10,10 +10,13 @@ namespace Aspire.Hosting
 {
     public static partial class QdrantBuilderExtensions
     {
+        [AspireExport("addQdrant", Description = "Adds a Qdrant resource to the application. A container is used for local development.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? apiKey = null, int? grpcPort = null, int? httpPort = null) { throw null; }
 
+        [AspireExport("withDataBindMount", Description = "Adds a bind mount for the data folder to a Qdrant container resource.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
+        [AspireExport("withDataVolume", Description = "Adds a named volume for the data folder to a Qdrant container resource.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<TDestination> WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> qdrantResource, string? connectionName = null)

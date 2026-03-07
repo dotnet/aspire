@@ -10,21 +10,30 @@ namespace Aspire.Hosting
 {
     public static partial class JavaScriptHostingExtensions
     {
+        [AspireExport("addJavaScriptApp", Description = "Adds a JavaScript application resource")]
         public static ApplicationModel.IResourceBuilder<JavaScript.JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string runScriptName = "dev") { throw null; }
 
+        [AspireExport("addNodeApp", Description = "Adds a Node.js application resource")]
         public static ApplicationModel.IResourceBuilder<JavaScript.NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath) { throw null; }
 
+        [AspireExport("addViteApp", Description = "Adds a Vite application resource")]
         public static ApplicationModel.IResourceBuilder<JavaScript.ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string runScriptName = "dev") { throw null; }
 
+        [AspireExport("withBuildScript", Description = "Specifies an npm script to run before starting the application")]
         public static ApplicationModel.IResourceBuilder<TResource> WithBuildScript<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, string scriptName, string[]? args = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<TResource> WithBun<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null)
+            where TResource : JavaScript.JavaScriptAppResource { throw null; }
+
+        [AspireExport("withNpm", Description = "Configures npm as the package manager")]
         public static ApplicationModel.IResourceBuilder<TResource> WithNpm<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string? installCommand = null, string[]? installArgs = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<TResource> WithPnpm<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
 
+        [AspireExport("withRunScript", Description = "Specifies an npm script to run during development")]
         public static ApplicationModel.IResourceBuilder<TResource> WithRunScript<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, string scriptName, string[]? args = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
 
@@ -41,6 +50,7 @@ namespace Aspire.Hosting.JavaScript
     {
     }
 
+    [AspireExport(ExposeProperties = true)]
     public partial class JavaScriptAppResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, IResourceWithContainerFiles
     {
         public JavaScriptAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
@@ -101,6 +111,7 @@ namespace Aspire.Hosting.JavaScript
         public string ScriptName { get { throw null; } }
     }
 
+    [AspireExport(ExposeProperties = true)]
     public partial class NodeAppResource : JavaScriptAppResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IContainerFilesDestinationResource
     {
         public NodeAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }

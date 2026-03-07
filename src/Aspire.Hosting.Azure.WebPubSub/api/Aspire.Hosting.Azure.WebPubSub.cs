@@ -10,16 +10,21 @@ namespace Aspire.Hosting
 {
     public static partial class AzureWebPubSubExtensions
     {
+        [AspireExport("addAzureWebPubSub", Description = "Adds an Azure Web PubSub resource to the distributed application model.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [AspireExport("addEventHandler2", MethodName = "addEventHandler", Description = "Adds an event handler to an Azure Web PubSub hub.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddEventHandler(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> builder, ApplicationModel.ReferenceExpression urlExpression, string userEventPattern = "*", string[]? systemEvents = null, global::Azure.Provisioning.WebPubSub.UpstreamAuthSettings? authSettings = null) { throw null; }
 
+        [AspireExport("addEventHandler1", MethodName = "addEventHandler", Description = "Adds an event handler to an Azure Web PubSub hub.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddEventHandler(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> builder, ApplicationModel.ReferenceExpression.ExpressionInterpolatedStringHandler urlTemplateExpression, string userEventPattern = "*", string[]? systemEvents = null, global::Azure.Provisioning.WebPubSub.UpstreamAuthSettings? authSettings = null) { throw null; }
 
+        [AspireExport("addHub", Description = "Adds a hub to the Azure Web PubSub resource.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddHub(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> builder, string name, string? hubName = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubHubResource> AddHub(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> builder, string hubName) { throw null; }
 
+        [AspireExportIgnore(Reason = "WebPubSubBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureWebPubSubRole-based overload instead.")]
         public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureWebPubSubResource> target, params global::Azure.Provisioning.WebPubSub.WebPubSubBuiltInRole[] roles)
             where T : ApplicationModel.IResource { throw null; }
     }
@@ -27,6 +32,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
     public partial class AzureWebPubSubHubResource : Resource, IResourceWithParent<AzureWebPubSubResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : base(default!) { }
@@ -40,13 +46,17 @@ namespace Aspire.Hosting.ApplicationModel
         public AzureWebPubSubResource Parent { get { throw null; } }
     }
 
-    public partial class AzureWebPubSubResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
+    public partial class AzureWebPubSubResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, Azure.IAzurePrivateEndpointTarget
     {
         public AzureWebPubSubResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        Azure.BicepOutputReference Azure.IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference Endpoint { get { throw null; } }
+
+        public Azure.BicepOutputReference Id { get { throw null; } }
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
@@ -55,5 +65,9 @@ namespace Aspire.Hosting.ApplicationModel
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string Azure.IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> Azure.IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }

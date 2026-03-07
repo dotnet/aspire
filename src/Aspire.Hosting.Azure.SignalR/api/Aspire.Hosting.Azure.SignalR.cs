@@ -10,10 +10,13 @@ namespace Aspire.Hosting
 {
     public static partial class AzureSignalRExtensions
     {
+        [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Azure.AzureSignalRServiceMode serviceMode) { throw null; }
 
+        [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [AspireExport("runAsEmulator", Description = "Configures an Azure SignalR resource to be emulated. This resource requires an  to be added to the application model. Please note that the resource will be emulated in Serverless mode.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureSignalREmulatorResource>>? configureContainer = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.AzureSignalRResource> target, params global::Azure.Provisioning.SignalR.SignalRBuiltInRole[] roles)
@@ -23,13 +26,17 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
-    public partial class AzureSignalRResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, IResourceWithEndpoints
+    public partial class AzureSignalRResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, IResourceWithEndpoints, Azure.IAzurePrivateEndpointTarget
     {
         public AzureSignalRResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        Azure.BicepOutputReference Azure.IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public Azure.BicepOutputReference HostName { get { throw null; } }
+
+        public Azure.BicepOutputReference Id { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
@@ -40,6 +47,10 @@ namespace Aspire.Hosting.ApplicationModel
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string Azure.IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> Azure.IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }
 
