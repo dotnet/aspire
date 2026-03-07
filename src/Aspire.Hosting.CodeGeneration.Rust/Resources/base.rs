@@ -158,6 +158,51 @@ impl Serialize for ReferenceExpression {
     }
 }
 
+impl<'de> Deserialize<'de> for ReferenceExpression {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = Value::deserialize(deserializer)?;
+        if let Some(ref_expr) = value.get("$refExpr") {
+            if let Some(condition) = ref_expr.get("condition") {
+                let when_true: ReferenceExpression = serde_json::from_value(
+                    ref_expr.get("whenTrue").cloned().unwrap_or(Value::Null)
+                ).map_err(serde::de::Error::custom)?;
+                let when_false: ReferenceExpression = serde_json::from_value(
+                    ref_expr.get("whenFalse").cloned().unwrap_or(Value::Null)
+                ).map_err(serde::de::Error::custom)?;
+                let match_value = ref_expr.get("matchValue")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                return Ok(ReferenceExpression::create_conditional(
+                    condition.clone(),
+                    match_value,
+                    when_true,
+                    when_false,
+                ));
+            }
+            let format = ref_expr.get("format")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let args = ref_expr.get("args")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default();
+            return Ok(ReferenceExpression::new(format, args));
+        }
+        if value.get("$handle").is_some() {
+            let handle: Handle = serde_json::from_value(value)
+                .map_err(serde::de::Error::custom)?;
+            return Ok(Self {
+                format: None, args: None,
+                condition: None, when_true: None, when_false: None,
+                match_value: None, is_conditional: false,
+                handle: Some(handle), client: None,
+            });
+        }
+        Err(serde::de::Error::custom("expected $refExpr or $handle"))
+    }
+}
+
 /// Convenience function to create a reference expression.
 pub fn ref_expr(format: impl Into<String>, args: Vec<Value>) -> ReferenceExpression {
     ReferenceExpression::new(format, args)
