@@ -168,7 +168,7 @@ internal sealed class DcpHost
                 {
                     title = InteractionStrings.NoDeveloperCertificateTrustedTitle;
                     message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.NoDeveloperCertificateTrustedMessage, trustLocation);
-                    _logger.LogWarning("No trusted ASP.NET Core Development Certificate was found. Run `dotnet dev-certs https --trust` from {TrustLocation} to trust the certificate.", trustLocation);
+                    _logger.LogWarning("No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.");
                 }
                 else
                 {
