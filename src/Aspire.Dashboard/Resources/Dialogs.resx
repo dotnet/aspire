@@ -433,7 +433,7 @@
     <value>Error displaying GenAI content:</value>
   </data>
   <data name="GenAIUnexpectedOrTruncatedContent" xml:space="preserve">
-    <value>Unexpected or truncated content.</value>
+    <value>Unexpected or truncated message content.</value>
   </data>
   <data name="McpServerDialogIntroduction" xml:space="preserve">
     <value>Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.</value>
