@@ -80,5 +80,10 @@ public static class AzurePublicIPAddressExtensions
         {
             Value = pip.Name
         });
+
+        infra.Add(new ProvisioningOutput("ipAddress", typeof(string))
+        {
+            Value = pip.IPAddress
+        });
     }
 }
