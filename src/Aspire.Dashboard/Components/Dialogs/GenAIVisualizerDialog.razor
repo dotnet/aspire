@@ -301,7 +301,7 @@
                                 @if (Content.ToolDefinitions.Count > 0)
                                 {
                                     <FluentAccordion Class="tools-list">
-                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function").OrderBy(t => t.ToolDefinition.Name))
+                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function").OrderBy(t => t.ToolDefinition.Name, StringComparer.OrdinalIgnoreCase))
                                         {
                                             <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
                                                 <HeadingTemplate>
@@ -315,8 +315,10 @@
                                                 <ChildContent>
                                                     @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
                                                     {
-                                                        <p class="tool-description">@toolVM.ToolDefinition.Description</p>
-                                                        <hr />
+                                                        <div class="tool-description">
+                                                            <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@toolVM.ToolDefinition.Description" />
+                                                        </div>
+                                                        <FluentDivider />
                                                     }
                                                     @if (toolVM.ToolDefinition.Parameters is { Properties: { Count: > 0 } properties })
                                                     {
