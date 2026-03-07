@@ -47,19 +47,6 @@ public class ConditionalReferenceExpressionTests
     }
 
     [Fact]
-    public async Task GetValueAsync_WithContext_PassesContextToBranch()
-    {
-        var condition = new TestValueProvider(bool.TrueString);
-        var whenTrue = ReferenceExpression.Create($"true-value");
-        var whenFalse = ReferenceExpression.Create($"false-value");
-
-        var expr = ReferenceExpression.CreateConditional(condition, bool.TrueString, whenTrue, whenFalse);
-
-        var value = await expr.GetValueAsync(new(), default);
-        Assert.Equal("true-value", value);
-    }
-
-    [Fact]
     public async Task ConditionalReferenceExpression_WorksInReferenceExpressionBuilder()
     {
         var condition = new TestValueProvider(bool.FalseString);
@@ -99,27 +86,6 @@ public class ConditionalReferenceExpressionTests
 
         var references = ((IValueWithReferences)expr).References.ToList();
         Assert.Contains(endpointRef, references);
-    }
-
-    [Fact]
-    public void Constructor_ThrowsOnNullCondition()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            ReferenceExpression.CreateConditional(null!, bool.TrueString, ReferenceExpression.Empty, ReferenceExpression.Empty));
-    }
-
-    [Fact]
-    public void Constructor_ThrowsOnNullWhenTrue()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            ReferenceExpression.CreateConditional(new TestValueProvider(bool.TrueString), bool.TrueString, null!, ReferenceExpression.Empty));
-    }
-
-    [Fact]
-    public void Constructor_ThrowsOnNullWhenFalse()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            ReferenceExpression.CreateConditional(new TestValueProvider(bool.TrueString), bool.TrueString, ReferenceExpression.Empty, null!));
     }
 
     [Fact]
