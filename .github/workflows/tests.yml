@@ -264,13 +264,14 @@ jobs:
 
       - name: Generate test results summary
         if: always()
-        run: >
-          ${{ github.workspace }}/dotnet.sh
-          run
-          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
-          --
-          ${{ github.workspace }}/testresults
-          --combined
+        shell: bash
+        run: |
+          ${{ github.workspace }}/dotnet.sh \
+            run \
+            --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj \
+            -- \
+            ${{ github.workspace }}/testresults \
+            --combined
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
