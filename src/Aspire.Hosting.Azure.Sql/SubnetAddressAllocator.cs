@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using Aspire.Hosting.Azure;
@@ -10,6 +11,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Allocates subnet address space within a virtual network.
 /// </summary>
+[Experimental("ASPIREAZURE003")]
 internal static class SubnetAddressAllocator
 {
     /// <summary>
