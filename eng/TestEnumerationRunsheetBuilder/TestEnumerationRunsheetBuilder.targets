@@ -56,7 +56,7 @@
 
       <!-- Determine requiresNugets based on project properties -->
       <_RequiresNugets>false</_RequiresNugets>
-      <_RequiresNugets Condition="'$(RequiresNugets)' == 'true'">true</_RequiresNugets>
+      <_RequiresNugets Condition="'$(RequiredNuGetsForTesting)' == 'true'">true</_RequiresNugets>
 
       <!-- Determine requiresTestSdk based on project properties -->
       <_RequiresTestSdk>false</_RequiresTestSdk>

@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <!-- This test project requires built NuGet packages to run -->
+    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+
     <!-- Only run on Linux; no docker support on Windows yet -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
     <!-- Issue: https://github.com/dotnet/aspire/issues/9198 -->
@@ -16,8 +20,6 @@
     <!-- This isn't needed as the sdk will add them by default -->
     <IncludeTestPackages>false</IncludeTestPackages>
     <DeployOutsideOfRepoSupportFilesDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesDir>
-
-    <RequiresNugets>true</RequiresNugets>
 
     <_BuildForTestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
     <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>

@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
+    <!-- This test project requires built NuGet packages to run -->
+    <RequiredNuGetsForTesting>true</RequiredNuGetsForTesting>
+
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
@@ -17,7 +20,6 @@
     <TestClassNamePrefixForCI>Aspire.Templates.Tests</TestClassNamePrefixForCI>
 
     <!-- Templates tests require packages and SDK -->
-    <RequiresNugets>true</RequiresNugets>
     <RequiresTestSdk>true</RequiresTestSdk>
     <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
 
