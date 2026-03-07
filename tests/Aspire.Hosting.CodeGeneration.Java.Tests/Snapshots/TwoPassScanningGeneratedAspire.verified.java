@@ -1170,6 +1170,49 @@ class CSharpAppResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -1592,6 +1635,49 @@ class ConnectionStringResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -1908,6 +1994,49 @@ class ContainerRegistryResource extends ResourceBuilderBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+    }
+
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
     }
 
     /** Gets the resource name */
@@ -2618,6 +2747,49 @@ class ContainerResource extends ResourceBuilderBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+    }
+
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
     }
 
     /** Gets the resource name */
@@ -3512,6 +3684,49 @@ class DotnetToolResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -4403,6 +4618,49 @@ class ExecutableResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -4776,6 +5034,49 @@ class ExternalServiceResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -4936,6 +5237,17 @@ class IContainerFilesDestinationResource extends HandleWrapperBase {
 class IDistributedApplicationBuilder extends HandleWrapperBase {
     IDistributedApplicationBuilder(Handle handle, AspireClient client) {
         super(handle, client);
+    }
+
+    /** Adds a connection string with a builder callback */
+    public ConnectionStringResource addConnectionStringBuilder(String name, Function<Object[], Object> connectionStringBuilder) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        if (connectionStringBuilder != null) {
+            reqArgs.put("connectionStringBuilder", getClient().registerCallback(connectionStringBuilder));
+        }
+        return (ConnectionStringResource) getClient().invokeCapability("Aspire.Hosting/addConnectionStringBuilder", reqArgs);
     }
 
     /** Adds a container resource */
@@ -5448,6 +5760,49 @@ class ParameterResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5568,6 +5923,164 @@ class ParameterResource extends ResourceBuilderBase {
             reqArgs.put("operation", getClient().registerCallback(operation));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext. */
+class PipelineConfigurationContext extends HandleWrapperBase {
+    PipelineConfigurationContext(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the Steps property */
+    public PipelineStep[] steps() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (PipelineStep[]) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.steps", reqArgs);
+    }
+
+    /** Sets the Steps property */
+    public PipelineConfigurationContext setSteps(PipelineStep[] value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineConfigurationContext) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setSteps", reqArgs);
+    }
+
+    /** Gets pipeline steps with the specified tag */
+    public PipelineStep[] getStepsByTag(String tag) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("tag", AspireClient.serializeValue(tag));
+        return (PipelineStep[]) getClient().invokeCapability("Aspire.Hosting.Pipelines/getStepsByTag", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep. */
+class PipelineStep extends HandleWrapperBase {
+    PipelineStep(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the Name property */
+    public String name() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (String) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.name", reqArgs);
+    }
+
+    /** Sets the Name property */
+    public PipelineStep setName(String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setName", reqArgs);
+    }
+
+    /** Gets the Description property */
+    public String description() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (String) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.description", reqArgs);
+    }
+
+    /** Sets the Description property */
+    public PipelineStep setDescription(String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setDescription", reqArgs);
+    }
+
+    /** Gets the DependsOnSteps property */
+    private AspireList<String> dependsOnStepsField;
+    public AspireList<String> dependsOnSteps() {
+        if (dependsOnStepsField == null) {
+            dependsOnStepsField = new AspireList<>(getHandle(), getClient(), "Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps");
+        }
+        return dependsOnStepsField;
+    }
+
+    /** Sets the DependsOnSteps property */
+    public PipelineStep setDependsOnSteps(AspireList<String> value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setDependsOnSteps", reqArgs);
+    }
+
+    /** Gets the RequiredBySteps property */
+    private AspireList<String> requiredByStepsField;
+    public AspireList<String> requiredBySteps() {
+        if (requiredByStepsField == null) {
+            requiredByStepsField = new AspireList<>(getHandle(), getClient(), "Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps");
+        }
+        return requiredByStepsField;
+    }
+
+    /** Sets the RequiredBySteps property */
+    public PipelineStep setRequiredBySteps(AspireList<String> value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setRequiredBySteps", reqArgs);
+    }
+
+    /** Gets the Tags property */
+    private AspireList<String> tagsField;
+    public AspireList<String> tags() {
+        if (tagsField == null) {
+            tagsField = new AspireList<>(getHandle(), getClient(), "Aspire.Hosting.Pipelines/PipelineStep.tags");
+        }
+        return tagsField;
+    }
+
+    /** Sets the Tags property */
+    public PipelineStep setTags(AspireList<String> value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setTags", reqArgs);
+    }
+
+    /** Adds a dependency on another step by name */
+    public void dependsOn(String stepName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        getClient().invokeCapability("Aspire.Hosting.Pipelines/dependsOn", reqArgs);
+    }
+
+    /** Specifies that another step requires this step by name */
+    public void requiredBy(String stepName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        getClient().invokeCapability("Aspire.Hosting.Pipelines/requiredBy", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext. */
+class PipelineStepContext extends HandleWrapperBase {
+    PipelineStepContext(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the ExecutionContext property */
+    public DistributedApplicationExecutionContext executionContext() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (DistributedApplicationExecutionContext) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.executionContext", reqArgs);
+    }
+
+    /** Gets the CancellationToken property */
+    public CancellationToken cancellationToken() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (CancellationToken) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken", reqArgs);
     }
 
 }
@@ -6167,6 +6680,49 @@ class ProjectResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Gets the resource name */
     public String getResourceName() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -6358,6 +6914,58 @@ class ProjectResourceOptions extends HandleWrapperBase {
         reqArgs.put("context", AspireClient.serializeValue(getHandle()));
         reqArgs.put("value", AspireClient.serializeValue(value));
         return (ProjectResourceOptions) getClient().invokeCapability("Aspire.Hosting/ProjectResourceOptions.setExcludeKestrelEndpoints", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder. */
+class ReferenceExpressionBuilder extends HandleWrapperBase {
+    ReferenceExpressionBuilder(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the IsEmpty property */
+    public boolean isEmpty() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (boolean) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/ReferenceExpressionBuilder.isEmpty", reqArgs);
+    }
+
+    /** Appends a literal string to the reference expression */
+    public void appendLiteral(String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        getClient().invokeCapability("Aspire.Hosting.ApplicationModel/appendLiteral", reqArgs);
+    }
+
+    /** Appends a formatted string value to the reference expression */
+    public void appendFormatted(String value, String format) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        if (format != null) {
+            reqArgs.put("format", AspireClient.serializeValue(format));
+        }
+        getClient().invokeCapability("Aspire.Hosting.ApplicationModel/appendFormatted", reqArgs);
+    }
+
+    /** Appends a value provider to the reference expression */
+    public void appendValueProvider(Object valueProvider, String format) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("valueProvider", AspireClient.serializeValue(valueProvider));
+        if (format != null) {
+            reqArgs.put("format", AspireClient.serializeValue(format));
+        }
+        getClient().invokeCapability("Aspire.Hosting.ApplicationModel/appendValueProvider", reqArgs);
+    }
+
+    /** Builds the reference expression */
+    public ReferenceExpression build() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (ReferenceExpression) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/build", reqArgs);
     }
 
 }
@@ -7297,6 +7905,49 @@ class TestDatabaseResource extends ResourceBuilderBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+    }
+
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
     }
 
     /** Adds a volume */
@@ -8259,6 +8910,49 @@ class TestRedisResource extends ResourceBuilderBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+    }
+
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
     }
 
     /** Adds a volume */
@@ -9326,6 +10020,49 @@ class TestVaultResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
+    /** Adds a pipeline step to the resource */
+    public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("stepName", AspireClient.serializeValue(stepName));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        if (dependsOn != null) {
+            reqArgs.put("dependsOn", AspireClient.serializeValue(dependsOn));
+        }
+        if (requiredBy != null) {
+            reqArgs.put("requiredBy", AspireClient.serializeValue(requiredBy));
+        }
+        if (tags != null) {
+            reqArgs.put("tags", AspireClient.serializeValue(tags));
+        }
+        if (description != null) {
+            reqArgs.put("description", AspireClient.serializeValue(description));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    public IResource withPipelineConfigurationAsync(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    public IResource withPipelineConfiguration(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs);
+    }
+
     /** Adds a volume */
     public ContainerResource withVolume(String target, String name, Boolean isReadOnly) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -9528,6 +10265,9 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", (h, c) -> new DistributedApplicationExecutionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", (h, c) -> new DistributedApplicationExecutionContextOptions(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions", (h, c) -> new ProjectResourceOptions(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext", (h, c) -> new PipelineConfigurationContext(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep", (h, c) -> new PipelineStep(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext", (h, c) -> new PipelineStepContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", (h, c) -> new DistributedApplicationResourceEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEvent", (h, c) -> new IDistributedApplicationEvent(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent", (h, c) -> new IDistributedApplicationResourceEvent(h, c));
@@ -9535,6 +10275,7 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", (h, c) -> new CommandLineArgsCallbackContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", (h, c) -> new EndpointReferenceExpression(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", (h, c) -> new EnvironmentCallbackContext(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder", (h, c) -> new ReferenceExpressionBuilder(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext", (h, c) -> new UpdateCommandStateContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", (h, c) -> new ExecuteCommandContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", (h, c) -> new ResourceUrlsCallbackContext(h, c));
@@ -9554,11 +10295,11 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", (h, c) -> new TestVaultResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", (h, c) -> new ITestVaultResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", (h, c) -> new IContainerFilesDestinationResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/List<string>", (h, c) -> new AspireList(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,any>", (h, c) -> new AspireDict(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/List<any>", (h, c) -> new AspireList(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", (h, c) -> new AspireDict(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/List<Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation>", (h, c) -> new AspireList(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/List<string>", (h, c) -> new AspireList(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,string>", (h, c) -> new AspireDict(h, c));
     }
 

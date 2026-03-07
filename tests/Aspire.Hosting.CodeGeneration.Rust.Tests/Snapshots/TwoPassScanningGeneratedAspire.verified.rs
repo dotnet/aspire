@@ -1332,6 +1332,52 @@ impl CSharpAppResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -1865,6 +1911,52 @@ impl ConnectionStringResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -2257,6 +2349,52 @@ impl ContainerRegistryResource {
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }
@@ -3110,6 +3248,52 @@ impl ContainerResource {
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }
@@ -4269,6 +4453,52 @@ impl DotnetToolResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -5379,6 +5609,52 @@ impl ExecutableResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -5857,6 +6133,52 @@ impl ExternalServiceResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -6097,6 +6419,18 @@ impl IDistributedApplicationBuilder {
 
     pub fn client(&self) -> &Arc<AspireClient> {
         &self.client
+    }
+
+    /// Adds a connection string with a builder callback
+    pub fn add_connection_string_builder(&self, name: &str, connection_string_builder: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<ConnectionStringResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
+        let callback_id = register_callback(connection_string_builder);
+        args.insert("connectionStringBuilder".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/addConnectionStringBuilder", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(ConnectionStringResource::new(handle, self.client.clone()))
     }
 
     /// Adds a container resource
@@ -6967,6 +7301,52 @@ impl ParameterResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -7111,6 +7491,228 @@ impl ParameterResource {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/withCancellableOperation", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext
+pub struct PipelineConfigurationContext {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for PipelineConfigurationContext {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl PipelineConfigurationContext {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the Steps property
+    pub fn steps(&self) -> Result<Vec<PipelineStep>, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.steps", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Sets the Steps property
+    pub fn set_steps(&self, value: Vec<PipelineStep>) -> Result<PipelineConfigurationContext, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setSteps", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineConfigurationContext::new(handle, self.client.clone()))
+    }
+
+    /// Gets pipeline steps with the specified tag
+    pub fn get_steps_by_tag(&self, tag: &str) -> Result<Vec<PipelineStep>, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("tag".to_string(), serde_json::to_value(&tag).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/getStepsByTag", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep
+pub struct PipelineStep {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for PipelineStep {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl PipelineStep {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the Name property
+    pub fn name(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.name", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Sets the Name property
+    pub fn set_name(&self, value: &str) -> Result<PipelineStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setName", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStep::new(handle, self.client.clone()))
+    }
+
+    /// Gets the Description property
+    pub fn description(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.description", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Sets the Description property
+    pub fn set_description(&self, value: &str) -> Result<PipelineStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setDescription", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStep::new(handle, self.client.clone()))
+    }
+
+    /// Gets the DependsOnSteps property
+    pub fn depends_on_steps(&self) -> AspireList<String> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps")
+    }
+
+    /// Sets the DependsOnSteps property
+    pub fn set_depends_on_steps(&self, value: AspireList<String>) -> Result<PipelineStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setDependsOnSteps", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStep::new(handle, self.client.clone()))
+    }
+
+    /// Gets the RequiredBySteps property
+    pub fn required_by_steps(&self) -> AspireList<String> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps")
+    }
+
+    /// Sets the RequiredBySteps property
+    pub fn set_required_by_steps(&self, value: AspireList<String>) -> Result<PipelineStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setRequiredBySteps", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStep::new(handle, self.client.clone()))
+    }
+
+    /// Gets the Tags property
+    pub fn tags(&self) -> AspireList<String> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.Pipelines/PipelineStep.tags")
+    }
+
+    /// Sets the Tags property
+    pub fn set_tags(&self, value: AspireList<String>) -> Result<PipelineStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setTags", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStep::new(handle, self.client.clone()))
+    }
+
+    /// Adds a dependency on another step by name
+    pub fn depends_on(&self, step_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/dependsOn", args)?;
+        Ok(())
+    }
+
+    /// Specifies that another step requires this step by name
+    pub fn required_by(&self, step_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/requiredBy", args)?;
+        Ok(())
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext
+pub struct PipelineStepContext {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for PipelineStepContext {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl PipelineStepContext {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the ExecutionContext property
+    pub fn execution_context(&self) -> Result<DistributedApplicationExecutionContext, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.executionContext", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(DistributedApplicationExecutionContext::new(handle, self.client.clone()))
+    }
+
+    /// Gets the CancellationToken property
+    pub fn cancellation_token(&self) -> Result<CancellationToken, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(CancellationToken::new(handle, self.client.clone()))
     }
 }
 
@@ -7831,6 +8433,52 @@ impl ProjectResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Gets the resource name
     pub fn get_resource_name(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -8076,6 +8724,81 @@ impl ProjectResourceOptions {
         let result = self.client.invoke_capability("Aspire.Hosting/ProjectResourceOptions.setExcludeKestrelEndpoints", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(ProjectResourceOptions::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder
+pub struct ReferenceExpressionBuilder {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for ReferenceExpressionBuilder {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl ReferenceExpressionBuilder {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the IsEmpty property
+    pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/ReferenceExpressionBuilder.isEmpty", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Appends a literal string to the reference expression
+    pub fn append_literal(&self, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/appendLiteral", args)?;
+        Ok(())
+    }
+
+    /// Appends a formatted string value to the reference expression
+    pub fn append_formatted(&self, value: &str, format: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        if let Some(ref v) = format {
+            args.insert("format".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/appendFormatted", args)?;
+        Ok(())
+    }
+
+    /// Appends a value provider to the reference expression
+    pub fn append_value_provider(&self, value_provider: &Value, format: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("valueProvider".to_string(), serde_json::to_value(&value_provider).unwrap_or(Value::Null));
+        if let Some(ref v) = format {
+            args.insert("format".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/appendValueProvider", args)?;
+        Ok(())
+    }
+
+    /// Builds the reference expression
+    pub fn build(&self) -> Result<ReferenceExpression, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/build", args)?;
+        Ok(serde_json::from_value(result)?)
     }
 }
 
@@ -9271,6 +9994,52 @@ impl TestDatabaseResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
     /// Adds a volume
     pub fn with_volume(&self, target: &str, name: Option<&str>, is_read_only: Option<bool>) -> Result<ContainerResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -10442,6 +11211,52 @@ impl TestRedisResource {
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }
@@ -11726,6 +12541,52 @@ impl TestVaultResource {
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Adds a pipeline step to the resource
+    pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        args.insert("stepName".to_string(), serde_json::to_value(&step_name).unwrap_or(Value::Null));
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        if let Some(ref v) = depends_on {
+            args.insert("dependsOn".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = required_by {
+            args.insert("requiredBy".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = tags {
+            args.insert("tags".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = description {
+            args.insert("description".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via an async callback
+    pub fn with_pipeline_configuration_async(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IResource::new(handle, self.client.clone()))
+    }
+
+    /// Configures pipeline step dependencies via a callback
+    pub fn with_pipeline_configuration(&self, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<IResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(callback);
+        args.insert("callback".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }

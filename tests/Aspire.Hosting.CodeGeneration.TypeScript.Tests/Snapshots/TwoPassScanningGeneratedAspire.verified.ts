@@ -110,6 +110,9 @@ type ProjectResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationMo
 /** Handle to ReferenceExpression */
 type ReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'>;
 
+/** Handle to ReferenceExpressionBuilder */
+type ReferenceExpressionBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder'>;
+
 /** Handle to ResourceLoggerService */
 type ResourceLoggerServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService'>;
 
@@ -145,6 +148,15 @@ type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.I
 
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
+
+/** Handle to PipelineConfigurationContext */
+type PipelineConfigurationContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext'>;
+
+/** Handle to PipelineStep */
+type PipelineStepHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep'>;
+
+/** Handle to PipelineStepContext */
+type PipelineStepContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext'>;
 
 /** Handle to ProjectResourceOptions */
 type ProjectResourceOptionsHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions'>;
@@ -384,6 +396,14 @@ export interface AddTestRedisOptions {
     port?: number;
 }
 
+export interface AppendFormattedOptions {
+    format?: string;
+}
+
+export interface AppendValueProviderOptions {
+    format?: string;
+}
+
 export interface GetStatusAsyncOptions {
     cancellationToken?: AbortSignal;
 }
@@ -507,6 +527,13 @@ export interface WithOptionalStringOptions {
 
 export interface WithPersistenceOptions {
     mode?: TestPersistenceMode;
+}
+
+export interface WithPipelineStepFactoryOptions {
+    dependsOn?: string[];
+    requiredBy?: string[];
+    tags?: string[];
+    description?: string;
 }
 
 export interface WithReferenceOptions {
@@ -1000,6 +1027,246 @@ export class ExecuteCommandContext {
 }
 
 // ============================================================================
+// PipelineConfigurationContext
+// ============================================================================
+
+/**
+ * Type class for PipelineConfigurationContext.
+ */
+export class PipelineConfigurationContext {
+    constructor(private _handle: PipelineConfigurationContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Steps property */
+    steps = {
+        get: async (): Promise<PipelineStep[]> => {
+            return await this._client.invokeCapability<PipelineStep[]>(
+                'Aspire.Hosting.Pipelines/PipelineConfigurationContext.steps',
+                { context: this._handle }
+            );
+        },
+        set: async (value: PipelineStep[]): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Pipelines/PipelineConfigurationContext.setSteps',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets pipeline steps with the specified tag */
+    async getStepsByTag(tag: string): Promise<PipelineStep[]> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, tag };
+        return await this._client.invokeCapability<PipelineStep[]>(
+            'Aspire.Hosting.Pipelines/getStepsByTag',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for PipelineConfigurationContext that enables fluent chaining.
+ */
+export class PipelineConfigurationContextPromise implements PromiseLike<PipelineConfigurationContext> {
+    constructor(private _promise: Promise<PipelineConfigurationContext>) {}
+
+    then<TResult1 = PipelineConfigurationContext, TResult2 = never>(
+        onfulfilled?: ((value: PipelineConfigurationContext) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets pipeline steps with the specified tag */
+    getStepsByTag(tag: string): Promise<PipelineStep[]> {
+        return this._promise.then(obj => obj.getStepsByTag(tag));
+    }
+
+}
+
+// ============================================================================
+// PipelineStep
+// ============================================================================
+
+/**
+ * Type class for PipelineStep.
+ */
+export class PipelineStep {
+    constructor(private _handle: PipelineStepHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Name property */
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Pipelines/PipelineStep.name',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Pipelines/PipelineStep.setName',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the Description property */
+    description = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.Pipelines/PipelineStep.description',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Pipelines/PipelineStep.setDescription',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the DependsOnSteps property */
+    private _dependsOnSteps?: AspireList<string>;
+    get dependsOnSteps(): AspireList<string> {
+        if (!this._dependsOnSteps) {
+            this._dependsOnSteps = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps',
+                'Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps'
+            );
+        }
+        return this._dependsOnSteps;
+    }
+
+    /** Gets the RequiredBySteps property */
+    private _requiredBySteps?: AspireList<string>;
+    get requiredBySteps(): AspireList<string> {
+        if (!this._requiredBySteps) {
+            this._requiredBySteps = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps',
+                'Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps'
+            );
+        }
+        return this._requiredBySteps;
+    }
+
+    /** Gets the Tags property */
+    private _tags?: AspireList<string>;
+    get tags(): AspireList<string> {
+        if (!this._tags) {
+            this._tags = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.Pipelines/PipelineStep.tags',
+                'Aspire.Hosting.Pipelines/PipelineStep.tags'
+            );
+        }
+        return this._tags;
+    }
+
+    /** Adds a dependency on another step by name */
+    /** @internal */
+    async _dependsOnInternal(stepName: string): Promise<PipelineStep> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, stepName };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.Pipelines/dependsOn',
+            rpcArgs
+        );
+        return this;
+    }
+
+    dependsOn(stepName: string): PipelineStepPromise {
+        return new PipelineStepPromise(this._dependsOnInternal(stepName));
+    }
+
+    /** Specifies that another step requires this step by name */
+    /** @internal */
+    async _requiredByInternal(stepName: string): Promise<PipelineStep> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, stepName };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.Pipelines/requiredBy',
+            rpcArgs
+        );
+        return this;
+    }
+
+    requiredBy(stepName: string): PipelineStepPromise {
+        return new PipelineStepPromise(this._requiredByInternal(stepName));
+    }
+
+}
+
+/**
+ * Thenable wrapper for PipelineStep that enables fluent chaining.
+ */
+export class PipelineStepPromise implements PromiseLike<PipelineStep> {
+    constructor(private _promise: Promise<PipelineStep>) {}
+
+    then<TResult1 = PipelineStep, TResult2 = never>(
+        onfulfilled?: ((value: PipelineStep) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds a dependency on another step by name */
+    dependsOn(stepName: string): PipelineStepPromise {
+        return new PipelineStepPromise(this._promise.then(obj => obj.dependsOn(stepName)));
+    }
+
+    /** Specifies that another step requires this step by name */
+    requiredBy(stepName: string): PipelineStepPromise {
+        return new PipelineStepPromise(this._promise.then(obj => obj.requiredBy(stepName)));
+    }
+
+}
+
+// ============================================================================
+// PipelineStepContext
+// ============================================================================
+
+/**
+ * Type class for PipelineStepContext.
+ */
+export class PipelineStepContext {
+    constructor(private _handle: PipelineStepContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the ExecutionContext property */
+    executionContext = {
+        get: async (): Promise<DistributedApplicationExecutionContext> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationExecutionContextHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.executionContext',
+                { context: this._handle }
+            );
+            return new DistributedApplicationExecutionContext(handle, this._client);
+        },
+    };
+
+    /** Gets the CancellationToken property */
+    cancellationToken = {
+        get: async (): Promise<AbortSignal> => {
+            return await this._client.invokeCapability<AbortSignal>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken',
+                { context: this._handle }
+            );
+        },
+    };
+
+}
+
+// ============================================================================
 // ProjectResourceOptions
 // ============================================================================
 
@@ -1059,6 +1326,124 @@ export class ProjectResourceOptions {
             );
         }
     };
+
+}
+
+// ============================================================================
+// ReferenceExpressionBuilder
+// ============================================================================
+
+/**
+ * Type class for ReferenceExpressionBuilder.
+ */
+export class ReferenceExpressionBuilder {
+    constructor(private _handle: ReferenceExpressionBuilderHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the IsEmpty property */
+    isEmpty = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/ReferenceExpressionBuilder.isEmpty',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Appends a literal string to the reference expression */
+    /** @internal */
+    async _appendLiteralInternal(value: string): Promise<ReferenceExpressionBuilder> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, value };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/appendLiteral',
+            rpcArgs
+        );
+        return this;
+    }
+
+    appendLiteral(value: string): ReferenceExpressionBuilderPromise {
+        return new ReferenceExpressionBuilderPromise(this._appendLiteralInternal(value));
+    }
+
+    /** Appends a formatted string value to the reference expression */
+    /** @internal */
+    async _appendFormattedInternal(value: string, format?: string): Promise<ReferenceExpressionBuilder> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, value };
+        if (format !== undefined) rpcArgs.format = format;
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/appendFormatted',
+            rpcArgs
+        );
+        return this;
+    }
+
+    appendFormatted(value: string, options?: AppendFormattedOptions): ReferenceExpressionBuilderPromise {
+        const format = options?.format;
+        return new ReferenceExpressionBuilderPromise(this._appendFormattedInternal(value, format));
+    }
+
+    /** Appends a value provider to the reference expression */
+    /** @internal */
+    async _appendValueProviderInternal(valueProvider: any, format?: string): Promise<ReferenceExpressionBuilder> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, valueProvider };
+        if (format !== undefined) rpcArgs.format = format;
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/appendValueProvider',
+            rpcArgs
+        );
+        return this;
+    }
+
+    appendValueProvider(valueProvider: any, options?: AppendValueProviderOptions): ReferenceExpressionBuilderPromise {
+        const format = options?.format;
+        return new ReferenceExpressionBuilderPromise(this._appendValueProviderInternal(valueProvider, format));
+    }
+
+    /** Builds the reference expression */
+    async build(): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting.ApplicationModel/build',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for ReferenceExpressionBuilder that enables fluent chaining.
+ */
+export class ReferenceExpressionBuilderPromise implements PromiseLike<ReferenceExpressionBuilder> {
+    constructor(private _promise: Promise<ReferenceExpressionBuilder>) {}
+
+    then<TResult1 = ReferenceExpressionBuilder, TResult2 = never>(
+        onfulfilled?: ((value: ReferenceExpressionBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Appends a literal string to the reference expression */
+    appendLiteral(value: string): ReferenceExpressionBuilderPromise {
+        return new ReferenceExpressionBuilderPromise(this._promise.then(obj => obj.appendLiteral(value)));
+    }
+
+    /** Appends a formatted string value to the reference expression */
+    appendFormatted(value: string, options?: AppendFormattedOptions): ReferenceExpressionBuilderPromise {
+        return new ReferenceExpressionBuilderPromise(this._promise.then(obj => obj.appendFormatted(value, options)));
+    }
+
+    /** Appends a value provider to the reference expression */
+    appendValueProvider(valueProvider: any, options?: AppendValueProviderOptions): ReferenceExpressionBuilderPromise {
+        return new ReferenceExpressionBuilderPromise(this._promise.then(obj => obj.appendValueProvider(valueProvider, options)));
+    }
+
+    /** Builds the reference expression */
+    build(): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.build());
+    }
 
 }
 
@@ -1451,6 +1836,26 @@ export class DistributedApplicationBuilder {
         return new DistributedApplicationPromise(this._buildInternal());
     }
 
+    /** Adds a connection string with a builder callback */
+    /** @internal */
+    async _addConnectionStringBuilderInternal(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): Promise<ConnectionStringResource> {
+        const connectionStringBuilderId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ReferenceExpressionBuilderHandle;
+            const obj = new ReferenceExpressionBuilder(objHandle, this._client);
+            await connectionStringBuilder(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, connectionStringBuilder: connectionStringBuilderId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/addConnectionStringBuilder',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    addConnectionStringBuilder(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._addConnectionStringBuilderInternal(name, connectionStringBuilder));
+    }
+
     /** Adds a container resource */
     /** @internal */
     async _addContainerInternal(name: string, image: string): Promise<ContainerResource> {
@@ -1652,6 +2057,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Builds the distributed application */
     build(): DistributedApplicationPromise {
         return new DistributedApplicationPromise(this._promise.then(obj => obj.build()));
+    }
+
+    /** Adds a connection string with a builder callback */
+    addConnectionStringBuilder(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.addConnectionStringBuilder(name, connectionStringBuilder)));
     }
 
     /** Adds a container resource */
@@ -2180,6 +2590,74 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
         return new ConnectionStringResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ConnectionStringResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ConnectionStringResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -2576,6 +3054,21 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
+    }
+
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
@@ -2970,6 +3463,74 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
         return new ContainerRegistryResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ContainerRegistryResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ContainerRegistryResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -3299,6 +3860,21 @@ export class ContainerRegistryResourcePromise implements PromiseLike<ContainerRe
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -4327,6 +4903,74 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         return new ContainerResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ContainerResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ContainerResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -4876,6 +5520,21 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -5959,6 +6618,74 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
         return new CSharpAppResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): CSharpAppResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new CSharpAppResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -6523,6 +7250,21 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -7716,6 +8458,74 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
         return new DotnetToolResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): DotnetToolResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new DotnetToolResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -8315,6 +9125,21 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -9353,6 +10178,74 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         return new ExecutableResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ExecutableResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ExecutableResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -9904,6 +10797,21 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
+    }
+
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
@@ -10317,6 +11225,74 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
         return new ExternalServiceResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ExternalServiceResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ExternalServiceResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -10651,6 +11627,21 @@ export class ExternalServiceResourcePromise implements PromiseLike<ExternalServi
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -11054,6 +12045,74 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
         return new ParameterResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ParameterResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ParameterResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -11388,6 +12447,21 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -12431,6 +13505,74 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         return new ProjectResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ProjectResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ProjectResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -12985,6 +14127,21 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -14287,6 +15444,74 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestDatabaseResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new TestDatabaseResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
+    /** @internal */
     private async _withVolumeInternal(target: string, name?: string, isReadOnly?: boolean): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle, target };
         if (name !== undefined) rpcArgs.name = name;
@@ -14939,6 +16164,21 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Adds a volume */
@@ -16276,6 +17516,74 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestRedisResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new TestRedisResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
+    /** @internal */
     private async _withVolumeInternal(target: string, name?: string, isReadOnly?: boolean): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle, target };
         if (name !== undefined) rpcArgs.name = name;
@@ -17110,6 +18418,21 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Adds a volume */
@@ -18477,6 +19800,74 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestVaultResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new TestVaultResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
+    /** @internal */
     private async _withVolumeInternal(target: string, name?: string, isReadOnly?: boolean): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle, target };
         if (name !== undefined) rpcArgs.name = name;
@@ -19146,6 +20537,21 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
+    }
+
     /** Adds a volume */
     withVolume(target: string, options?: WithVolumeOptions): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
@@ -19598,6 +21004,74 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new ResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
     }
 
+    /** @internal */
+    private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
+            const arg = new PipelineStepContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, stepName, callback: callbackId };
+        if (dependsOn !== undefined) rpcArgs.dependsOn = dependsOn;
+        if (requiredBy !== undefined) rpcArgs.requiredBy = requiredBy;
+        if (tags !== undefined) rpcArgs.tags = tags;
+        if (description !== undefined) rpcArgs.description = description;
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withPipelineStepFactory',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ResourcePromise {
+        const dependsOn = options?.dependsOn;
+        const requiredBy = options?.requiredBy;
+        const tags = options?.tags;
+        const description = options?.description;
+        return new ResourcePromise(this._withPipelineStepFactoryInternal(stepName, callback, dependsOn, requiredBy, tags, description));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationAsyncInternal(callback: (arg: PipelineConfigurationContext) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as PipelineConfigurationContextHandle;
+            const arg = new PipelineConfigurationContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withPipelineConfigurationAsync',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withPipelineConfigurationAsyncInternal(callback));
+    }
+
+    /** @internal */
+    private async _withPipelineConfigurationInternal(callback: (obj: PipelineConfigurationContext) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as PipelineConfigurationContextHandle;
+            const obj = new PipelineConfigurationContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withPipelineConfiguration',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withPipelineConfigurationInternal(callback));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -19927,6 +21401,21 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Sets the remote image tag for publishing */
     withRemoteImageTag(remoteImageTag: string): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
+    }
+
+    /** Adds a pipeline step to the resource */
+    withPipelineStepFactory(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, options?: WithPipelineStepFactoryOptions): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withPipelineStepFactory(stepName, callback, options)));
+    }
+
+    /** Configures pipeline step dependencies via an async callback */
+    withPipelineConfigurationAsync(callback: (arg: PipelineConfigurationContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withPipelineConfigurationAsync(callback)));
+    }
+
+    /** Configures pipeline step dependencies via a callback */
+    withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
     }
 
     /** Gets the resource name */
@@ -21302,7 +22791,11 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointRe
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression', (handle, client) => new EndpointReferenceExpression(handle as EndpointReferenceExpressionHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext', (handle, client) => new PipelineConfigurationContext(handle as PipelineConfigurationContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep', (handle, client) => new PipelineStep(handle as PipelineStepHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext', (handle, client) => new PipelineStepContext(handle as PipelineStepContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions', (handle, client) => new ProjectResourceOptions(handle as ProjectResourceOptionsHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder', (handle, client) => new ReferenceExpressionBuilder(handle as ReferenceExpressionBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext', (handle, client) => new TestCollectionContext(handle as TestCollectionContextHandle, client));

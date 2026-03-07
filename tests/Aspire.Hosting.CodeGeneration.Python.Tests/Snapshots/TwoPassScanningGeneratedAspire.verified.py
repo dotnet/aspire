@@ -689,6 +689,39 @@ class CSharpAppResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -1012,6 +1045,39 @@ class ConnectionStringResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -1247,6 +1313,39 @@ class ContainerRegistryResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
+
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
 
     def get_resource_name(self) -> str:
         """Gets the resource name"""
@@ -1765,6 +1864,39 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
+
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
 
     def get_resource_name(self) -> str:
         """Gets the resource name"""
@@ -2419,6 +2551,39 @@ class DotnetToolResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -3071,6 +3236,39 @@ class ExecutableResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -3347,6 +3545,39 @@ class ExternalServiceResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -3465,6 +3696,15 @@ class IContainerFilesDestinationResource(HandleWrapperBase):
 class IDistributedApplicationBuilder(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
+
+    def add_connection_string_builder(self, name: str, connection_string_builder: Callable[[ReferenceExpressionBuilder], None]) -> ConnectionStringResource:
+        """Adds a connection string with a builder callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        connection_string_builder_id = register_callback(connection_string_builder) if connection_string_builder is not None else None
+        if connection_string_builder_id is not None:
+            args["connectionStringBuilder"] = connection_string_builder_id
+        return self._client.invoke_capability("Aspire.Hosting/addConnectionStringBuilder", args)
 
     def add_container(self, name: str, image: str) -> ContainerResource:
         """Adds a container resource"""
@@ -3843,6 +4083,39 @@ class ParameterResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -3933,6 +4206,135 @@ class ParameterResource(ResourceBuilderBase):
         if operation_id is not None:
             args["operation"] = operation_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
+
+
+class PipelineConfigurationContext(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def steps(self) -> list[PipelineStep]:
+        """Gets the Steps property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.steps", args)
+
+    def set_steps(self, value: list[PipelineStep]) -> PipelineConfigurationContext:
+        """Sets the Steps property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setSteps", args)
+
+    def get_steps_by_tag(self, tag: str) -> list[PipelineStep]:
+        """Gets pipeline steps with the specified tag"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["tag"] = serialize_value(tag)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/getStepsByTag", args)
+
+
+class PipelineStep(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def name(self) -> str:
+        """Gets the Name property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.name", args)
+
+    def set_name(self, value: str) -> PipelineStep:
+        """Sets the Name property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setName", args)
+
+    def description(self) -> str:
+        """Gets the Description property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.description", args)
+
+    def set_description(self, value: str) -> PipelineStep:
+        """Sets the Description property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setDescription", args)
+
+    @property
+    def depends_on_steps(self) -> AspireList[str]:
+        """Gets the DependsOnSteps property"""
+        if not hasattr(self, '_depends_on_steps'):
+            self._depends_on_steps = AspireList(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps"
+            )
+        return self._depends_on_steps
+
+    def set_depends_on_steps(self, value: AspireList[str]) -> PipelineStep:
+        """Sets the DependsOnSteps property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setDependsOnSteps", args)
+
+    @property
+    def required_by_steps(self) -> AspireList[str]:
+        """Gets the RequiredBySteps property"""
+        if not hasattr(self, '_required_by_steps'):
+            self._required_by_steps = AspireList(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps"
+            )
+        return self._required_by_steps
+
+    def set_required_by_steps(self, value: AspireList[str]) -> PipelineStep:
+        """Sets the RequiredBySteps property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setRequiredBySteps", args)
+
+    @property
+    def tags(self) -> AspireList[str]:
+        """Gets the Tags property"""
+        if not hasattr(self, '_tags'):
+            self._tags = AspireList(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.Pipelines/PipelineStep.tags"
+            )
+        return self._tags
+
+    def set_tags(self, value: AspireList[str]) -> PipelineStep:
+        """Sets the Tags property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStep.setTags", args)
+
+    def depends_on(self, step_name: str) -> None:
+        """Adds a dependency on another step by name"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        self._client.invoke_capability("Aspire.Hosting.Pipelines/dependsOn", args)
+        return None
+
+    def required_by(self, step_name: str) -> None:
+        """Specifies that another step requires this step by name"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        self._client.invoke_capability("Aspire.Hosting.Pipelines/requiredBy", args)
+        return None
+
+
+class PipelineStepContext(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def execution_context(self) -> DistributedApplicationExecutionContext:
+        """Gets the ExecutionContext property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.executionContext", args)
+
+    def cancellation_token(self) -> CancellationToken:
+        """Gets the CancellationToken property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken", args)
 
 
 class ProjectResource(ResourceBuilderBase):
@@ -4368,6 +4770,39 @@ class ProjectResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def get_resource_name(self) -> str:
         """Gets the resource name"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -4517,6 +4952,46 @@ class ReferenceExpression(HandleWrapperBase):
         super().__init__(handle, client)
 
     pass
+
+class ReferenceExpressionBuilder(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def is_empty(self) -> bool:
+        """Gets the IsEmpty property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/ReferenceExpressionBuilder.isEmpty", args)
+
+    def append_literal(self, value: str) -> None:
+        """Appends a literal string to the reference expression"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        self._client.invoke_capability("Aspire.Hosting.ApplicationModel/appendLiteral", args)
+        return None
+
+    def append_formatted(self, value: str, format: str | None = None) -> None:
+        """Appends a formatted string value to the reference expression"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        if format is not None:
+            args["format"] = serialize_value(format)
+        self._client.invoke_capability("Aspire.Hosting.ApplicationModel/appendFormatted", args)
+        return None
+
+    def append_value_provider(self, value_provider: Any, format: str | None = None) -> None:
+        """Appends a value provider to the reference expression"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["valueProvider"] = serialize_value(value_provider)
+        if format is not None:
+            args["format"] = serialize_value(format)
+        self._client.invoke_capability("Aspire.Hosting.ApplicationModel/appendValueProvider", args)
+        return None
+
+    def build(self) -> ReferenceExpression:
+        """Builds the reference expression"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/build", args)
+
 
 class ResourceLoggerService(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -5216,6 +5691,39 @@ class TestDatabaseResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
+
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
 
     def with_volume(self, target: str, name: str | None = None, is_read_only: bool = False) -> ContainerResource:
         """Adds a volume"""
@@ -5919,6 +6427,39 @@ class TestRedisResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
+
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
 
     def with_volume(self, target: str, name: str | None = None, is_read_only: bool = False) -> ContainerResource:
         """Adds a volume"""
@@ -6707,6 +7248,39 @@ class TestVaultResource(ResourceBuilderBase):
         args["remoteImageTag"] = serialize_value(remote_image_tag)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
+    def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
+        """Adds a pipeline step to the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["stepName"] = serialize_value(step_name)
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        if depends_on is not None:
+            args["dependsOn"] = serialize_value(depends_on)
+        if required_by is not None:
+            args["requiredBy"] = serialize_value(required_by)
+        if tags is not None:
+            args["tags"] = serialize_value(tags)
+        if description is not None:
+            args["description"] = serialize_value(description)
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineStepFactory", args)
+
+    def with_pipeline_configuration_async(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via an async callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfigurationAsync", args)
+
+    def with_pipeline_configuration(self, callback: Callable[[PipelineConfigurationContext], None]) -> IResource:
+        """Configures pipeline step dependencies via a callback"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        callback_id = register_callback(callback) if callback is not None else None
+        if callback_id is not None:
+            args["callback"] = callback_id
+        return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
     def with_volume(self, target: str, name: str | None = None, is_read_only: bool = False) -> ContainerResource:
         """Adds a volume"""
         args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
@@ -6863,6 +7437,9 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedAppli
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", lambda handle, client: DistributedApplicationExecutionContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", lambda handle, client: DistributedApplicationExecutionContextOptions(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions", lambda handle, client: ProjectResourceOptions(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext", lambda handle, client: PipelineConfigurationContext(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep", lambda handle, client: PipelineStep(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext", lambda handle, client: PipelineStepContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", lambda handle, client: DistributedApplicationResourceEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEvent", lambda handle, client: IDistributedApplicationEvent(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent", lambda handle, client: IDistributedApplicationResourceEvent(handle, client))
@@ -6870,6 +7447,7 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedAppl
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", lambda handle, client: CommandLineArgsCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", lambda handle, client: EndpointReferenceExpression(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", lambda handle, client: EnvironmentCallbackContext(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder", lambda handle, client: ReferenceExpressionBuilder(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext", lambda handle, client: UpdateCommandStateContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", lambda handle, client: ExecuteCommandContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", lambda handle, client: ResourceUrlsCallbackContext(handle, client))
@@ -6889,11 +7467,11 @@ register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosti
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", lambda handle, client: ITestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", lambda handle, client: IContainerFilesDestinationResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/List<string>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,any>", lambda handle, client: AspireDict(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<any>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", lambda handle, client: AspireDict(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation>", lambda handle, client: AspireList(handle, client))
-register_handle_wrapper("Aspire.Hosting/List<string>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,string>", lambda handle, client: AspireDict(handle, client))
 
 # ============================================================================

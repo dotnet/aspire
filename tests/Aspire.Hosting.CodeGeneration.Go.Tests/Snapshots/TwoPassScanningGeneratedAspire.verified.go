@@ -1145,6 +1145,56 @@ func (s *CSharpAppResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *CSharpAppResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *CSharpAppResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *CSharpAppResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *CSharpAppResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -1777,6 +1827,56 @@ func (s *ConnectionStringResource) WithRemoteImageTag(remoteImageTag string) (*I
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ConnectionStringResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ConnectionStringResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ConnectionStringResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *ConnectionStringResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -2247,6 +2347,56 @@ func (s *ContainerRegistryResource) WithRemoteImageTag(remoteImageTag string) (*
 	}
 	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ContainerRegistryResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ContainerRegistryResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ContainerRegistryResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -3224,6 +3374,56 @@ func (s *ContainerResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	}
 	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ContainerResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ContainerResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ContainerResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -4490,6 +4690,56 @@ func (s *DotnetToolResource) WithRemoteImageTag(remoteImageTag string) (*IResour
 	}
 	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *DotnetToolResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *DotnetToolResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *DotnetToolResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -5766,6 +6016,56 @@ func (s *ExecutableResource) WithRemoteImageTag(remoteImageTag string) (*IResour
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ExecutableResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ExecutableResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ExecutableResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *ExecutableResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -6322,6 +6622,56 @@ func (s *ExternalServiceResource) WithRemoteImageTag(remoteImageTag string) (*IR
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ExternalServiceResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ExternalServiceResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ExternalServiceResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *ExternalServiceResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -6570,6 +6920,22 @@ func NewIDistributedApplicationBuilder(handle *Handle, client *AspireClient) *ID
 	return &IDistributedApplicationBuilder{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// AddConnectionStringBuilder adds a connection string with a builder callback
+func (s *IDistributedApplicationBuilder) AddConnectionStringBuilder(name string, connectionStringBuilder func(...any) any) (*ConnectionStringResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	if connectionStringBuilder != nil {
+		reqArgs["connectionStringBuilder"] = RegisterCallback(connectionStringBuilder)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addConnectionStringBuilder", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConnectionStringResource), nil
 }
 
 // AddContainer adds a container resource
@@ -7326,6 +7692,56 @@ func (s *ParameterResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ParameterResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ParameterResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ParameterResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *ParameterResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -7512,6 +7928,240 @@ func (s *ParameterResource) WithCancellableOperation(operation func(...any) any)
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// PipelineConfigurationContext wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext.
+type PipelineConfigurationContext struct {
+	HandleWrapperBase
+}
+
+// NewPipelineConfigurationContext creates a new PipelineConfigurationContext.
+func NewPipelineConfigurationContext(handle *Handle, client *AspireClient) *PipelineConfigurationContext {
+	return &PipelineConfigurationContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Steps gets the Steps property
+func (s *PipelineConfigurationContext) Steps() (*[]*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.steps", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*[]*PipelineStep), nil
+}
+
+// SetSteps sets the Steps property
+func (s *PipelineConfigurationContext) SetSteps(value []*PipelineStep) (*PipelineConfigurationContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setSteps", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineConfigurationContext), nil
+}
+
+// GetStepsByTag gets pipeline steps with the specified tag
+func (s *PipelineConfigurationContext) GetStepsByTag(tag string) (*[]*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["tag"] = SerializeValue(tag)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/getStepsByTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*[]*PipelineStep), nil
+}
+
+// PipelineStep wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep.
+type PipelineStep struct {
+	HandleWrapperBase
+	dependsOnSteps *AspireList[string]
+	requiredBySteps *AspireList[string]
+	tags *AspireList[string]
+}
+
+// NewPipelineStep creates a new PipelineStep.
+func NewPipelineStep(handle *Handle, client *AspireClient) *PipelineStep {
+	return &PipelineStep{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Name gets the Name property
+func (s *PipelineStep) Name() (*string, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.name", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// SetName sets the Name property
+func (s *PipelineStep) SetName(value string) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setName", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
+// Description gets the Description property
+func (s *PipelineStep) Description() (*string, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.description", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// SetDescription sets the Description property
+func (s *PipelineStep) SetDescription(value string) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setDescription", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
+// DependsOnSteps gets the DependsOnSteps property
+func (s *PipelineStep) DependsOnSteps() *AspireList[string] {
+	if s.dependsOnSteps == nil {
+		s.dependsOnSteps = NewAspireListWithGetter[string](s.Handle(), s.Client(), "Aspire.Hosting.Pipelines/PipelineStep.dependsOnSteps")
+	}
+	return s.dependsOnSteps
+}
+
+// SetDependsOnSteps sets the DependsOnSteps property
+func (s *PipelineStep) SetDependsOnSteps(value *AspireList[string]) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setDependsOnSteps", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
+// RequiredBySteps gets the RequiredBySteps property
+func (s *PipelineStep) RequiredBySteps() *AspireList[string] {
+	if s.requiredBySteps == nil {
+		s.requiredBySteps = NewAspireListWithGetter[string](s.Handle(), s.Client(), "Aspire.Hosting.Pipelines/PipelineStep.requiredBySteps")
+	}
+	return s.requiredBySteps
+}
+
+// SetRequiredBySteps sets the RequiredBySteps property
+func (s *PipelineStep) SetRequiredBySteps(value *AspireList[string]) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setRequiredBySteps", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
+// Tags gets the Tags property
+func (s *PipelineStep) Tags() *AspireList[string] {
+	if s.tags == nil {
+		s.tags = NewAspireListWithGetter[string](s.Handle(), s.Client(), "Aspire.Hosting.Pipelines/PipelineStep.tags")
+	}
+	return s.tags
+}
+
+// SetTags sets the Tags property
+func (s *PipelineStep) SetTags(value *AspireList[string]) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setTags", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
+// DependsOn adds a dependency on another step by name
+func (s *PipelineStep) DependsOn(stepName string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/dependsOn", reqArgs)
+	return err
+}
+
+// RequiredBy specifies that another step requires this step by name
+func (s *PipelineStep) RequiredBy(stepName string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/requiredBy", reqArgs)
+	return err
+}
+
+// PipelineStepContext wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext.
+type PipelineStepContext struct {
+	HandleWrapperBase
+}
+
+// NewPipelineStepContext creates a new PipelineStepContext.
+func NewPipelineStepContext(handle *Handle, client *AspireClient) *PipelineStepContext {
+	return &PipelineStepContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// ExecutionContext gets the ExecutionContext property
+func (s *PipelineStepContext) ExecutionContext() (*DistributedApplicationExecutionContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.executionContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationExecutionContext), nil
+}
+
+// CancellationToken gets the CancellationToken property
+func (s *PipelineStepContext) CancellationToken() (*CancellationToken, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CancellationToken), nil
 }
 
 // ProjectResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource.
@@ -8317,6 +8967,56 @@ func (s *ProjectResource) WithRemoteImageTag(remoteImageTag string) (*IResource,
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *ProjectResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *ProjectResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *ProjectResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // GetResourceName gets the resource name
 func (s *ProjectResource) GetResourceName() (*string, error) {
 	reqArgs := map[string]any{
@@ -8618,6 +9318,74 @@ func (s *ProjectResourceOptions) SetExcludeKestrelEndpoints(value bool) (*Projec
 		return nil, err
 	}
 	return result.(*ProjectResourceOptions), nil
+}
+
+// ReferenceExpressionBuilder wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder.
+type ReferenceExpressionBuilder struct {
+	HandleWrapperBase
+}
+
+// NewReferenceExpressionBuilder creates a new ReferenceExpressionBuilder.
+func NewReferenceExpressionBuilder(handle *Handle, client *AspireClient) *ReferenceExpressionBuilder {
+	return &ReferenceExpressionBuilder{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// IsEmpty gets the IsEmpty property
+func (s *ReferenceExpressionBuilder) IsEmpty() (*bool, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ReferenceExpressionBuilder.isEmpty", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// AppendLiteral appends a literal string to the reference expression
+func (s *ReferenceExpressionBuilder) AppendLiteral(value string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/appendLiteral", reqArgs)
+	return err
+}
+
+// AppendFormatted appends a formatted string value to the reference expression
+func (s *ReferenceExpressionBuilder) AppendFormatted(value string, format string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	reqArgs["format"] = SerializeValue(format)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/appendFormatted", reqArgs)
+	return err
+}
+
+// AppendValueProvider appends a value provider to the reference expression
+func (s *ReferenceExpressionBuilder) AppendValueProvider(valueProvider any, format string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["valueProvider"] = SerializeValue(valueProvider)
+	reqArgs["format"] = SerializeValue(format)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/appendValueProvider", reqArgs)
+	return err
+}
+
+// Build builds the reference expression
+func (s *ReferenceExpressionBuilder) Build() (*ReferenceExpression, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/build", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ReferenceExpression), nil
 }
 
 // ResourceLoggerService wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService.
@@ -9910,6 +10678,56 @@ func (s *TestDatabaseResource) WithRemoteImageTag(remoteImageTag string) (*IReso
 	}
 	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *TestDatabaseResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *TestDatabaseResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *TestDatabaseResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -11273,6 +12091,56 @@ func (s *TestRedisResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	}
 	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *TestRedisResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *TestRedisResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *TestRedisResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -12775,6 +13643,56 @@ func (s *TestVaultResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	return result.(*IResource), nil
 }
 
+// WithPipelineStepFactory adds a pipeline step to the resource
+func (s *TestVaultResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["stepName"] = SerializeValue(stepName)
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	reqArgs["dependsOn"] = SerializeValue(dependsOn)
+	reqArgs["requiredBy"] = SerializeValue(requiredBy)
+	reqArgs["tags"] = SerializeValue(tags)
+	reqArgs["description"] = SerializeValue(description)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineStepFactory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfigurationAsync configures pipeline step dependencies via an async callback
+func (s *TestVaultResource) WithPipelineConfigurationAsync(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfigurationAsync", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithPipelineConfiguration configures pipeline step dependencies via a callback
+func (s *TestVaultResource) WithPipelineConfiguration(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withPipelineConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithVolume adds a volume
 func (s *TestVaultResource) WithVolume(target string, name string, isReadOnly bool) (*ContainerResource, error) {
 	reqArgs := map[string]any{
@@ -13105,6 +14023,15 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions", func(h *Handle, c *AspireClient) any {
 		return NewProjectResourceOptions(h, c)
 	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext", func(h *Handle, c *AspireClient) any {
+		return NewPipelineConfigurationContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep", func(h *Handle, c *AspireClient) any {
+		return NewPipelineStep(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext", func(h *Handle, c *AspireClient) any {
+		return NewPipelineStepContext(h, c)
+	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationResourceEventSubscription(h, c)
 	})
@@ -13125,6 +14052,9 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewEnvironmentCallbackContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder", func(h *Handle, c *AspireClient) any {
+		return NewReferenceExpressionBuilder(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext", func(h *Handle, c *AspireClient) any {
 		return NewUpdateCommandStateContext(h, c)
@@ -13183,6 +14113,9 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", func(h *Handle, c *AspireClient) any {
 		return NewIContainerFilesDestinationResource(h, c)
 	})
+	RegisterHandleWrapper("Aspire.Hosting/List<string>", func(h *Handle, c *AspireClient) any {
+		return &AspireList[any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
+	})
 	RegisterHandleWrapper("Aspire.Hosting/Dict<string,any>", func(h *Handle, c *AspireClient) any {
 		return &AspireDict[any, any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
 	})
@@ -13193,9 +14126,6 @@ func init() {
 		return &AspireDict[any, any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
 	})
 	RegisterHandleWrapper("Aspire.Hosting/List<Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation>", func(h *Handle, c *AspireClient) any {
-		return &AspireList[any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
-	})
-	RegisterHandleWrapper("Aspire.Hosting/List<string>", func(h *Handle, c *AspireClient) any {
 		return &AspireList[any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Dict<string,string>", func(h *Handle, c *AspireClient) any {
