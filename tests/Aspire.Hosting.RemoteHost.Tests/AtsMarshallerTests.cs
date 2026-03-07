@@ -931,7 +931,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, bool.TrueString, whenTrue, whenFalse);
 
         var result = marshaller.MarshalToJson(conditional);
 
@@ -950,7 +950,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, bool.TrueString, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         Assert.NotNull(json);
@@ -970,7 +970,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.TrueString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, bool.TrueString, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         var handleId = json!["$handle"]!.GetValue<string>();
@@ -989,7 +989,7 @@ public class AtsMarshallerTests
         var condition = new TestConditionValueProvider(bool.FalseString);
         var whenTrue = ReferenceExpression.Create($",ssl=true");
         var whenFalse = ReferenceExpression.Empty;
-        var conditional = ReferenceExpression.CreateConditional(condition, whenTrue, whenFalse);
+        var conditional = ReferenceExpression.CreateConditional(condition, bool.TrueString, whenTrue, whenFalse);
 
         var json = marshaller.MarshalToJson(conditional);
         var handleId = json!["$handle"]!.GetValue<string>();
