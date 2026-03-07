@@ -379,12 +379,33 @@ export interface TestNestedDto {
 // Options Interfaces
 // ============================================================================
 
+export interface AddConnectionStringOptions {
+    environmentVariableName?: string;
+}
+
+export interface AddContainerRegistry1Options {
+    repository?: string;
+}
+
+export interface AddContainerRegistryOptions {
+    repository?: ParameterResource;
+}
+
 export interface AddDockerfileOptions {
     dockerfilePath?: string;
     stage?: string;
 }
 
+export interface AddParameter1Options {
+    publishValueAsDefault?: boolean;
+    secret?: boolean;
+}
+
 export interface AddParameterFromConfigurationOptions {
+    secret?: boolean;
+}
+
+export interface AddParameterOptions {
     secret?: boolean;
 }
 
@@ -1836,6 +1857,21 @@ export class DistributedApplicationBuilder {
         return new DistributedApplicationPromise(this._buildInternal());
     }
 
+    /** Adds a connection string with a reference expression */
+    /** @internal */
+    async _addConnectionString1Internal(name: string, connectionStringExpression: ReferenceExpression): Promise<ConnectionStringResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, connectionStringExpression };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/addConnectionStringExpression',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    addConnectionString1(name: string, connectionStringExpression: ReferenceExpression): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._addConnectionString1Internal(name, connectionStringExpression));
+    }
+
     /** Adds a connection string with a builder callback */
     /** @internal */
     async _addConnectionStringBuilderInternal(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): Promise<ConnectionStringResource> {
@@ -1854,6 +1890,40 @@ export class DistributedApplicationBuilder {
 
     addConnectionStringBuilder(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._addConnectionStringBuilderInternal(name, connectionStringBuilder));
+    }
+
+    /** Adds a container registry resource */
+    /** @internal */
+    async _addContainerRegistryInternal(name: string, endpoint: ParameterResource, repository?: ParameterResource): Promise<ContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, endpoint };
+        if (repository !== undefined) rpcArgs.repository = repository;
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/addContainerRegistry',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    addContainerRegistry(name: string, endpoint: ParameterResource, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise {
+        const repository = options?.repository;
+        return new ContainerRegistryResourcePromise(this._addContainerRegistryInternal(name, endpoint, repository));
+    }
+
+    /** Adds a container registry with string endpoint */
+    /** @internal */
+    async _addContainerRegistry1Internal(name: string, endpoint: string, repository?: string): Promise<ContainerRegistryResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, endpoint };
+        if (repository !== undefined) rpcArgs.repository = repository;
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/addContainerRegistryFromString',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    addContainerRegistry1(name: string, endpoint: string, options?: AddContainerRegistry1Options): ContainerRegistryResourcePromise {
+        const repository = options?.repository;
+        return new ContainerRegistryResourcePromise(this._addContainerRegistry1Internal(name, endpoint, repository));
     }
 
     /** Adds a container resource */
@@ -1920,6 +1990,87 @@ export class DistributedApplicationBuilder {
         return new ExecutableResourcePromise(this._addExecutableInternal(name, command, workingDirectory, args));
     }
 
+    /** Adds an external service resource */
+    /** @internal */
+    async _addExternalServiceInternal(name: string, url: string): Promise<ExternalServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, url };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/addExternalService',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    addExternalService(name: string, url: string): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._addExternalServiceInternal(name, url));
+    }
+
+    /** Adds an external service with a URI */
+    /** @internal */
+    async _addExternalService2Internal(name: string, uri: string): Promise<ExternalServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, uri };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/addExternalServiceUri',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    addExternalService2(name: string, uri: string): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._addExternalService2Internal(name, uri));
+    }
+
+    /** Adds an external service with a parameter URL */
+    /** @internal */
+    async _addExternalService1Internal(name: string, urlParameter: ParameterResource): Promise<ExternalServiceResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, urlParameter };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/addExternalServiceParameter',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    addExternalService1(name: string, urlParameter: ParameterResource): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._addExternalService1Internal(name, urlParameter));
+    }
+
+    /** Adds a parameter resource */
+    /** @internal */
+    async _addParameterInternal(name: string, secret?: boolean): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        if (secret !== undefined) rpcArgs.secret = secret;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/addParameter',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise {
+        const secret = options?.secret;
+        return new ParameterResourcePromise(this._addParameterInternal(name, secret));
+    }
+
+    /** Adds a parameter with a default value */
+    /** @internal */
+    async _addParameter1Internal(name: string, value: string, publishValueAsDefault?: boolean, secret?: boolean): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        if (publishValueAsDefault !== undefined) rpcArgs.publishValueAsDefault = publishValueAsDefault;
+        if (secret !== undefined) rpcArgs.secret = secret;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/addParameterWithValue',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    addParameter1(name: string, value: string, options?: AddParameter1Options): ParameterResourcePromise {
+        const publishValueAsDefault = options?.publishValueAsDefault;
+        const secret = options?.secret;
+        return new ParameterResourcePromise(this._addParameter1Internal(name, value, publishValueAsDefault, secret));
+    }
+
     /** Adds a parameter sourced from configuration */
     /** @internal */
     async _addParameterFromConfigurationInternal(name: string, configurationKey: string, secret?: boolean): Promise<ParameterResource> {
@@ -1935,6 +2086,23 @@ export class DistributedApplicationBuilder {
     addParameterFromConfiguration(name: string, configurationKey: string, options?: AddParameterFromConfigurationOptions): ParameterResourcePromise {
         const secret = options?.secret;
         return new ParameterResourcePromise(this._addParameterFromConfigurationInternal(name, configurationKey, secret));
+    }
+
+    /** Adds a connection string resource */
+    /** @internal */
+    async _addConnectionStringInternal(name: string, environmentVariableName?: string): Promise<ResourceWithConnectionString> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        if (environmentVariableName !== undefined) rpcArgs.environmentVariableName = environmentVariableName;
+        const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
+            'Aspire.Hosting/addConnectionString',
+            rpcArgs
+        );
+        return new ResourceWithConnectionString(result, this._client);
+    }
+
+    addConnectionString(name: string, options?: AddConnectionStringOptions): ResourceWithConnectionStringPromise {
+        const environmentVariableName = options?.environmentVariableName;
+        return new ResourceWithConnectionStringPromise(this._addConnectionStringInternal(name, environmentVariableName));
     }
 
     /** Adds a .NET project resource */
@@ -2059,9 +2227,24 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new DistributedApplicationPromise(this._promise.then(obj => obj.build()));
     }
 
+    /** Adds a connection string with a reference expression */
+    addConnectionString1(name: string, connectionStringExpression: ReferenceExpression): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.addConnectionString1(name, connectionStringExpression)));
+    }
+
     /** Adds a connection string with a builder callback */
     addConnectionStringBuilder(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.addConnectionStringBuilder(name, connectionStringBuilder)));
+    }
+
+    /** Adds a container registry resource */
+    addContainerRegistry(name: string, endpoint: ParameterResource, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.addContainerRegistry(name, endpoint, options)));
+    }
+
+    /** Adds a container registry with string endpoint */
+    addContainerRegistry1(name: string, endpoint: string, options?: AddContainerRegistry1Options): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.addContainerRegistry1(name, endpoint, options)));
     }
 
     /** Adds a container resource */
@@ -2084,9 +2267,39 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ExecutableResourcePromise(this._promise.then(obj => obj.addExecutable(name, command, workingDirectory, args)));
     }
 
+    /** Adds an external service resource */
+    addExternalService(name: string, url: string): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService(name, url)));
+    }
+
+    /** Adds an external service with a URI */
+    addExternalService2(name: string, uri: string): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService2(name, uri)));
+    }
+
+    /** Adds an external service with a parameter URL */
+    addExternalService1(name: string, urlParameter: ParameterResource): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService1(name, urlParameter)));
+    }
+
+    /** Adds a parameter resource */
+    addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.addParameter(name, options)));
+    }
+
+    /** Adds a parameter with a default value */
+    addParameter1(name: string, value: string, options?: AddParameter1Options): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.addParameter1(name, value, options)));
+    }
+
     /** Adds a parameter sourced from configuration */
     addParameterFromConfiguration(name: string, configurationKey: string, options?: AddParameterFromConfigurationOptions): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.addParameterFromConfiguration(name, configurationKey, options)));
+    }
+
+    /** Adds a connection string resource */
+    addConnectionString(name: string, options?: AddConnectionStringOptions): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(this._promise.then(obj => obj.addConnectionString(name, options)));
     }
 
     /** Adds a .NET project resource */

@@ -13,3 +13,4 @@ ASPIRE011 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka
 ASPIRE012 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE012)
 ASPIRE013 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE013)
 ASPIRE014 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE014)
+ASPIRE015 | Design | Warning | AspireExportAnalyzer, [Documentation](https://aka.ms/aspire/diagnostics/ASPIRE015)

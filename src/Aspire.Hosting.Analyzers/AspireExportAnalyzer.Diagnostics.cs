@@ -91,6 +91,16 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{MissingExportAttributeId}");
 
+        private const string ExportNameShouldBeUniqueId = "ASPIRE015";
+        internal static readonly DiagnosticDescriptor s_exportNameShouldBeUnique = new(
+            id: ExportNameShouldBeUniqueId,
+            title: "Export name should be unique for methods targeting a specific resource type",
+            messageFormat: "Export name '{0}' on method '{1}' may collide across integrations because it targets IResourceBuilder<{2}>. Use a unique name like '{3}'.",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportNameShouldBeUniqueId}");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_exportMethodMustBeStatic,
             s_invalidExportIdFormat,
@@ -99,7 +109,8 @@ public partial class AspireExportAnalyzer
             s_unionRequiresAtLeastTwoTypes,
             s_unionTypeMustBeAtsCompatible,
             s_duplicateExportId,
-            s_missingExportAttribute
+            s_missingExportAttribute,
+            s_exportNameShouldBeUnique
         );
     }
 }

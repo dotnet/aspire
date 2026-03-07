@@ -181,6 +181,12 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             var bag = exportsByKey.GetOrAdd(key, _ => new ConcurrentBag<(IMethodSymbol, Location)>());
             bag.Add((method, location));
         }
+
+        // Rule 7 (ASPIRE015): Warn when export name may collide across integrations
+        if (exportId is not null && method.IsExtensionMethod && method.Parameters.Length > 0)
+        {
+            AnalyzeExportNameUniqueness(context, method, exportId, wellKnownTypes, location);
+        }
     }
 
     private static void AnalyzeMissingExportAttribute(
@@ -216,6 +222,133 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             location,
             method.Name,
             reason ?? "Add [AspireExport] if ATS-compatible, or [AspireExportIgnore] with a reason."));
+    }
+
+    private static void AnalyzeExportNameUniqueness(
+        SymbolAnalysisContext context,
+        IMethodSymbol method,
+        string exportId,
+        WellKnownTypes wellKnownTypes,
+        Location location)
+    {
+        // Only applies to extension methods where the first param is IResourceBuilder<T>
+        // with T being an open generic type parameter (constrained to IResource)
+        var firstParamType = method.Parameters[0].Type;
+        if (!IsOpenGenericResourceBuilder(firstParamType, wellKnownTypes))
+        {
+            return;
+        }
+
+        // Look for a parameter (beyond the first) that is IResourceBuilder<ConcreteType>
+        // where ConcreteType is a specific resource type (not a type parameter)
+        string? concreteTargetTypeName = null;
+        for (var i = 1; i < method.Parameters.Length; i++)
+        {
+            concreteTargetTypeName = GetConcreteResourceBuilderTypeName(method.Parameters[i].Type, wellKnownTypes);
+            if (concreteTargetTypeName is not null)
+            {
+                break;
+            }
+        }
+
+        if (concreteTargetTypeName is null)
+        {
+            return;
+        }
+
+        // Check if the export ID matches the method name (camelCase), suggesting it wasn't made unique
+        var expectedDefault = char.ToLowerInvariant(method.Name[0]) + method.Name.Substring(1);
+        if (!string.Equals(exportId, expectedDefault, StringComparison.Ordinal))
+        {
+            // Export name was explicitly customized, assume the author made it unique
+            return;
+        }
+
+        // Strip the "Resource" suffix from the concrete type name to build a suggested unique name
+        var shortName = concreteTargetTypeName;
+        if (shortName.EndsWith("Resource", StringComparison.Ordinal))
+        {
+            shortName = shortName.Substring(0, shortName.Length - "Resource".Length);
+        }
+
+        // Remove common prefixes like "Azure" to keep the suggestion concise
+        if (shortName.StartsWith("Azure", StringComparison.Ordinal))
+        {
+            shortName = shortName.Substring("Azure".Length);
+        }
+
+        var suggestedName = $"with{shortName}{method.Name.Substring(4)}"; // e.g., "withSearchRoleAssignments"
+        if (method.Name.Length <= 4)
+        {
+            suggestedName = $"{exportId}{shortName}";
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Diagnostics.s_exportNameShouldBeUnique,
+            location,
+            exportId,
+            method.Name,
+            concreteTargetTypeName,
+            suggestedName));
+    }
+
+    /// <summary>
+    /// Checks if the type is IResourceBuilder&lt;T&gt; where T is a type parameter (open generic).
+    /// </summary>
+    private static bool IsOpenGenericResourceBuilder(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    {
+        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return false;
+        }
+
+        try
+        {
+            var iResourceBuilderType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IResourceBuilder_1);
+            if (!SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, iResourceBuilderType))
+            {
+                return false;
+            }
+
+            // Check that the type argument is a type parameter (open generic), not a concrete type
+            return namedType.TypeArguments.Length == 1 && namedType.TypeArguments[0] is ITypeParameterSymbol;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// If the type is IResourceBuilder&lt;ConcreteType&gt; (not open generic), returns the ConcreteType name; otherwise null.
+    /// </summary>
+    private static string? GetConcreteResourceBuilderTypeName(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    {
+        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return null;
+        }
+
+        try
+        {
+            var iResourceBuilderType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IResourceBuilder_1);
+            if (!SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, iResourceBuilderType))
+            {
+                return null;
+            }
+
+            // Check that the type argument is a concrete type, not a type parameter
+            if (namedType.TypeArguments.Length == 1 && namedType.TypeArguments[0] is not ITypeParameterSymbol)
+            {
+                return namedType.TypeArguments[0].Name;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found
+        }
+
+        return null;
     }
 
     private static bool IsBuilderType(ITypeSymbol type, WellKnownTypes wellKnownTypes)

@@ -1033,4 +1033,161 @@ public class AspireExportAnalyzerTests
 
         await test.RunAsync();
     }
+
+    // ASPIRE015 Tests - Export name should be unique for target-specific methods
+
+    [Fact]
+    public async Task ExportNameMatchesMethodName_WithConcreteTarget_ReportsASPIRE015()
+    {
+        var diagnostic = AspireExportAnalyzer.Diagnostics.s_exportNameShouldBeUnique;
+
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public class MyResource : IResource
+            {
+                public string Name => "test";
+                public ResourceAnnotationCollection Annotations { get; } = new();
+            }
+
+            public static class TestExports
+            {
+                [AspireExport("withRoleAssignments")]
+                internal static IResourceBuilder<T> WithRoleAssignments<T>(
+                    this IResourceBuilder<T> builder,
+                    IResourceBuilder<MyResource> target,
+                    params string[] roles)
+                    where T : IResource
+                    => builder;
+            }
+            """,
+            [new DiagnosticResult(diagnostic).WithLocation(15, 6).WithArguments("withRoleAssignments", "WithRoleAssignments", "MyResource", "withMyRoleAssignments")]);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ExportNameIsUnique_WithConcreteTarget_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public class MyResource : IResource
+            {
+                public string Name => "test";
+                public ResourceAnnotationCollection Annotations { get; } = new();
+            }
+
+            public static class TestExports
+            {
+                [AspireExport("withMyRoleAssignments")]
+                internal static IResourceBuilder<T> WithRoleAssignments<T>(
+                    this IResourceBuilder<T> builder,
+                    IResourceBuilder<MyResource> target,
+                    params string[] roles)
+                    where T : IResource
+                    => builder;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ExportNameMatchesMethodName_NoConcreteTarget_NoDiagnostics()
+    {
+        // No concrete IResourceBuilder<T> parameter, so no risk of collision
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("withEnvironment")]
+                internal static IResourceBuilder<T> WithEnvironment<T>(
+                    this IResourceBuilder<T> builder,
+                    string name,
+                    string value)
+                    where T : IResource
+                    => builder;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ExportNameMatchesMethodName_ConcreteFirstParam_NoDiagnostics()
+    {
+        // First param is IResourceBuilder<MyResource> (not open generic), so it's already scoped
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public class MyResource : IResource
+            {
+                public string Name => "test";
+                public ResourceAnnotationCollection Annotations { get; } = new();
+            }
+
+            public static class TestExports
+            {
+                [AspireExport("addDatabase")]
+                internal static IResourceBuilder<MyResource> AddDatabase(
+                    this IResourceBuilder<MyResource> builder,
+                    string name)
+                    => builder;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ExportNameMatchesMethodName_AzureResourceSuffix_SuggestsCleanName()
+    {
+        var diagnostic = AspireExportAnalyzer.Diagnostics.s_exportNameShouldBeUnique;
+
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public class AzureSearchResource : IResource
+            {
+                public string Name => "test";
+                public ResourceAnnotationCollection Annotations { get; } = new();
+            }
+
+            public static class TestExports
+            {
+                [AspireExport("withRoleAssignments")]
+                internal static IResourceBuilder<T> WithRoleAssignments<T>(
+                    this IResourceBuilder<T> builder,
+                    IResourceBuilder<AzureSearchResource> target,
+                    params string[] roles)
+                    where T : IResource
+                    => builder;
+            }
+            """,
+            [new DiagnosticResult(diagnostic).WithLocation(15, 6).WithArguments("withRoleAssignments", "WithRoleAssignments", "AzureSearchResource", "withSearchRoleAssignments")]);
+
+        await test.RunAsync();
+    }
 }
