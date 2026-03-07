@@ -279,8 +279,14 @@
     margin-right: 0.25rem;
 }
 
+::deep .tab-container .tool-description {
+    margin: 0 0 8px 4px;
+    font-size: small;
+}
+
 ::deep .tab-container .tool-footer {
     padding-left: 4px;
+    font-weight: 500;
 }
 
 ::deep .tab-container .tool-parameters-table {
