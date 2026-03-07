@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../MonitorCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostsDrawerTitle">
+        <source>App Hosts</source>
+        <target state="new">App Hosts</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to AppHost...</source>
+        <target state="new">Connecting to AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Launch a TUI to monitor running Aspire apphosts and resources.</source>
+        <target state="new">Launch a TUI to monitor running Aspire apphosts and resources.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoParametersAvailable">
+        <source>No parameters available.</source>
+        <target state="new">No parameters available.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResourcesAvailable">
+        <source>No resources available.</source>
+        <target state="new">No resources available.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found. Start an AppHost with 'aspire run' first.</source>
+        <target state="new">No running AppHosts found. Start an AppHost with 'aspire run' first.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QuitShortcut">
+        <source>Quit</source>
+        <target state="new">Quit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesTab">
+        <source>Resources</source>
+        <target state="new">Resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="new">Scanning for running AppHosts...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TabShortcut">
+        <source>Switch Tab</source>
+        <target state="new">Switch Tab</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
