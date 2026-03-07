@@ -291,6 +291,7 @@
 ::deep .tab-container .tool-footer {
     padding-left: 4px;
     font-weight: 500;
+    margin-bottom: 8px;
 }
 
 ::deep .tab-container .tool-parameters-table {
