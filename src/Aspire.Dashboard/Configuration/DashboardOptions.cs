@@ -149,8 +149,10 @@ public sealed class ApiOptions
 
     /// <summary>
     /// Gets or sets whether the Telemetry HTTP API is enabled.
-    /// When false, the /api/telemetry/* endpoints are not registered.
-    /// Defaults to true.
+    /// When <see langword="false"/>, the /api/telemetry/* endpoints are not registered.
+    /// Defaults to <see langword="true"/> when the dashboard frontend is unsecured or an API key is configured.
+    /// Defaults to <see langword="false"/> when the frontend requires authentication (e.g., OpenID Connect
+    /// or BrowserToken) and no API key is configured, to prevent unauthenticated access to telemetry data.
     /// </summary>
     public bool? Enabled { get; set; }
 

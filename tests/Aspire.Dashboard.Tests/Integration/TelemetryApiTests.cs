@@ -82,6 +82,86 @@ public class TelemetryApiTests
         Assert.Equal(apiKey.Length, options.Api.GetPrimaryApiKeyBytesOrNull()!.Length);
     }
 
+    [Fact]
+    public async Task Configuration_ApiDefaultsToDisabled_WhenFrontendIsBrowserToken()
+    {
+        // Arrange - BrowserToken frontend with no API key configured
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+            // Don't set any Api config — no API key
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - API should default to disabled when frontend has auth but no API key
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.False(options.Api.Enabled);
+    }
+
+    [Fact]
+    public async Task Configuration_ApiStaysEnabled_WhenExplicitlyEnabled()
+    {
+        // Arrange - BrowserToken frontend, explicitly enable API with API key auth
+        var apiKey = "TestKey123!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+            config[DashboardConfigNames.DashboardApiEnabledName.ConfigKey] = "true";
+            config[DashboardConfigNames.DashboardApiAuthModeName.ConfigKey] = ApiAuthMode.ApiKey.ToString();
+            config[DashboardConfigNames.DashboardApiPrimaryApiKeyName.ConfigKey] = apiKey;
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - API should be enabled because explicitly configured
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.True(options.Api.Enabled);
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Configuration_ApiStaysEnabled_WhenApiKeyConfigured()
+    {
+        // Arrange - BrowserToken frontend with API key configured (should auto-enable ApiKey auth mode)
+        var apiKey = "TestKey123!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+            config[DashboardConfigNames.DashboardApiPrimaryApiKeyName.ConfigKey] = apiKey;
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - API should be enabled because an API key is configured (AuthMode defaults to ApiKey)
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.Equal(ApiAuthMode.ApiKey, options.Api.AuthMode);
+        Assert.NotEqual(false, options.Api.Enabled);
+    }
+
+    [Fact]
+    public async Task Configuration_ApiStaysEnabled_WhenFrontendUnsecured()
+    {
+        // Arrange - Unsecured frontend with no API key configured
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+            // Don't set any Api config
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - API should remain enabled when frontend is also unsecured
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.NotEqual(false, options.Api.Enabled);
+        Assert.Equal(ApiAuthMode.Unsecured, options.Api.AuthMode);
+
+        // Verify endpoints work
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     #endregion
 
     [Fact]
