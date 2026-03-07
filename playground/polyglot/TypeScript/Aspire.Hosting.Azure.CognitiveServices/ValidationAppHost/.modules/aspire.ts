@@ -1559,18 +1559,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureBicepResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1764,8 +1764,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -1994,18 +1994,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureEnvironmentResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2106,8 +2106,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -2411,18 +2411,18 @@ export class AzureOpenAIDeploymentResource extends ResourceBuilderBase<AzureOpen
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureOpenAIDeploymentResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureOpenAIDeploymentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureOpenAIDeploymentResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureOpenAIDeploymentResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIDeploymentResourcePromise {
-        return new AzureOpenAIDeploymentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIDeploymentResourcePromise {
+        return new AzureOpenAIDeploymentResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2498,8 +2498,8 @@ export class AzureOpenAIDeploymentResourcePromise implements PromiseLike<AzureOp
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIDeploymentResourcePromise {
-        return new AzureOpenAIDeploymentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIDeploymentResourcePromise {
+        return new AzureOpenAIDeploymentResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
 }
@@ -2698,18 +2698,18 @@ export class AzureOpenAIResource extends ResourceBuilderBase<AzureOpenAIResource
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureOpenAIResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureOpenAIResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureOpenAIResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureOpenAIResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIResourcePromise {
-        return new AzureOpenAIResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIResourcePromise {
+        return new AzureOpenAIResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3057,8 +3057,8 @@ export class AzureOpenAIResourcePromise implements PromiseLike<AzureOpenAIResour
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIResourcePromise {
-        return new AzureOpenAIResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureOpenAIResourcePromise {
+        return new AzureOpenAIResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3337,18 +3337,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureProvisioningResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3671,8 +3671,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3946,18 +3946,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4300,8 +4300,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5090,18 +5090,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ContainerResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -5362,8 +5362,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -5944,18 +5944,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ExecutableResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6176,8 +6176,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -6393,18 +6393,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ParameterResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -6480,8 +6480,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
 }
@@ -7047,18 +7047,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ProjectResource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -7279,8 +7279,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -7771,18 +7771,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<Resource> {
+    private async _withCognitiveServicesRoleAssignmentsInternal(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.CognitiveServices/withRoleAssignments',
+            'Aspire.Hosting.Azure.CognitiveServices/withCognitiveServicesRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ResourcePromise {
+        return new ResourcePromise(this._withCognitiveServicesRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7853,8 +7853,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Cognitive Services roles to a resource */
-    withRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withCognitiveServicesRoleAssignments(target: AzureOpenAIResource, roles: AzureOpenAIRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withCognitiveServicesRoleAssignments(target, roles)));
     }
 
 }

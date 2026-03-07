@@ -1660,18 +1660,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureBicepResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1875,8 +1875,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -2135,18 +2135,18 @@ export class AzureContainerAppEnvironmentResource extends ResourceBuilderBase<Az
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerAppEnvironmentResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerAppEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureContainerAppEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureContainerAppEnvironmentResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
-        return new AzureContainerAppEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2578,8 +2578,8 @@ export class AzureContainerAppEnvironmentResourcePromise implements PromiseLike<
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
-        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerAppEnvironmentResourcePromise {
+        return new AzureContainerAppEnvironmentResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Configures resources to use azd naming conventions */
@@ -2936,18 +2936,18 @@ export class AzureContainerRegistryResource extends ResourceBuilderBase<AzureCon
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerRegistryResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureContainerRegistryResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureContainerRegistryResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
-        return new AzureContainerRegistryResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3305,8 +3305,8 @@ export class AzureContainerRegistryResourcePromise implements PromiseLike<AzureC
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
-        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureContainerRegistryResourcePromise {
+        return new AzureContainerRegistryResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3615,18 +3615,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureEnvironmentResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -3737,8 +3737,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -3962,18 +3962,18 @@ export class AzureLogAnalyticsWorkspaceResource extends ResourceBuilderBase<Azur
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureLogAnalyticsWorkspaceResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureLogAnalyticsWorkspaceResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureLogAnalyticsWorkspaceResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureLogAnalyticsWorkspaceResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
-        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4326,8 +4326,8 @@ export class AzureLogAnalyticsWorkspaceResourcePromise implements PromiseLike<Az
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
-        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureLogAnalyticsWorkspaceResourcePromise {
+        return new AzureLogAnalyticsWorkspaceResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4636,18 +4636,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureProvisioningResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4980,8 +4980,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5285,18 +5285,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5649,8 +5649,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -6469,18 +6469,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ContainerResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6849,8 +6849,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Configures the container resource to be published as an Azure Container App */
@@ -7486,18 +7486,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ExecutableResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -7826,8 +7826,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Configures the executable resource to be published as an Azure Container App */
@@ -8098,18 +8098,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ParameterResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -8195,8 +8195,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
 }
@@ -8792,18 +8792,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ProjectResource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -9132,8 +9132,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
     /** Configures the project resource to be published as an Azure Container App */
@@ -9775,18 +9775,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<Resource> {
+    private async _withContainerRegistryRoleAssignmentsInternal(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.ContainerRegistry/withRoleAssignments',
+            'Aspire.Hosting.Azure.ContainerRegistry/withContainerRegistryRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._withContainerRegistryRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -9867,8 +9867,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Azure Container Registry roles to a resource. */
-    withRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withContainerRegistryRoleAssignments(target: AzureContainerRegistryResource, roles: AzureContainerRegistryRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withContainerRegistryRoleAssignments(target, roles)));
     }
 
 }

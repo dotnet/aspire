@@ -2135,18 +2135,18 @@ export class AzureAppConfigurationEmulatorResource extends ResourceBuilderBase<A
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureAppConfigurationEmulatorResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureAppConfigurationEmulatorResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureAppConfigurationEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureAppConfigurationEmulatorResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationEmulatorResourcePromise {
-        return new AzureAppConfigurationEmulatorResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationEmulatorResourcePromise {
+        return new AzureAppConfigurationEmulatorResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2422,8 +2422,8 @@ export class AzureAppConfigurationEmulatorResourcePromise implements PromiseLike
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationEmulatorResourcePromise {
-        return new AzureAppConfigurationEmulatorResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationEmulatorResourcePromise {
+        return new AzureAppConfigurationEmulatorResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -2805,18 +2805,18 @@ export class AzureAppConfigurationResource extends ResourceBuilderBase<AzureAppC
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureAppConfigurationResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureAppConfigurationResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureAppConfigurationResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureAppConfigurationResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationResourcePromise {
-        return new AzureAppConfigurationResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationResourcePromise {
+        return new AzureAppConfigurationResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3204,8 +3204,8 @@ export class AzureAppConfigurationResourcePromise implements PromiseLike<AzureAp
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationResourcePromise {
-        return new AzureAppConfigurationResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureAppConfigurationResourcePromise {
+        return new AzureAppConfigurationResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3484,18 +3484,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureBicepResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -3689,8 +3689,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -3919,18 +3919,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureEnvironmentResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -4031,8 +4031,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -4226,18 +4226,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureProvisioningResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4560,8 +4560,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4835,18 +4835,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5189,8 +5189,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5821,18 +5821,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ContainerResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6043,8 +6043,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -6625,18 +6625,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ExecutableResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6857,8 +6857,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -7074,18 +7074,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ParameterResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7161,8 +7161,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
 }
@@ -7728,18 +7728,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ProjectResource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -7960,8 +7960,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -8452,18 +8452,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<Resource> {
+    private async _withAppConfigurationRoleAssignmentsInternal(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.AppConfiguration/withRoleAssignments',
+            'Aspire.Hosting.Azure.AppConfiguration/withAppConfigurationRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ResourcePromise {
+        return new ResourcePromise(this._withAppConfigurationRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -8534,8 +8534,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns App Configuration roles to a resource */
-    withRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withAppConfigurationRoleAssignments(target: AzureAppConfigurationResource, roles: AzureAppConfigurationRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withAppConfigurationRoleAssignments(target, roles)));
     }
 
 }

@@ -1568,18 +1568,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureBicepResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1773,8 +1773,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -2003,18 +2003,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureEnvironmentResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2115,8 +2115,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -2310,18 +2310,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureProvisioningResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -2644,8 +2644,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -2919,18 +2919,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3273,8 +3273,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3572,18 +3572,18 @@ export class AzureWebPubSubHubResource extends ResourceBuilderBase<AzureWebPubSu
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureWebPubSubHubResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureWebPubSubHubResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureWebPubSubHubResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureWebPubSubHubResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubHubResourcePromise {
-        return new AzureWebPubSubHubResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubHubResourcePromise {
+        return new AzureWebPubSubHubResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -3659,8 +3659,8 @@ export class AzureWebPubSubHubResourcePromise implements PromiseLike<AzureWebPub
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubHubResourcePromise {
-        return new AzureWebPubSubHubResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubHubResourcePromise {
+        return new AzureWebPubSubHubResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
 }
@@ -3861,18 +3861,18 @@ export class AzureWebPubSubResource extends ResourceBuilderBase<AzureWebPubSubRe
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureWebPubSubResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<AzureWebPubSubResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureWebPubSubResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new AzureWebPubSubResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubResourcePromise {
-        return new AzureWebPubSubResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubResourcePromise {
+        return new AzureWebPubSubResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4220,8 +4220,8 @@ export class AzureWebPubSubResourcePromise implements PromiseLike<AzureWebPubSub
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubResourcePromise {
-        return new AzureWebPubSubResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): AzureWebPubSubResourcePromise {
+        return new AzureWebPubSubResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5010,18 +5010,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ContainerResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -5282,8 +5282,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -5864,18 +5864,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ExecutableResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6096,8 +6096,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -6313,18 +6313,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ParameterResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -6400,8 +6400,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
 }
@@ -6967,18 +6967,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ProjectResource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -7199,8 +7199,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -7691,18 +7691,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<Resource> {
+    private async _withWebPubSubRoleAssignmentsInternal(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.WebPubSub/withRoleAssignments',
+            'Aspire.Hosting.Azure.WebPubSub/withWebPubSubRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ResourcePromise {
+        return new ResourcePromise(this._withWebPubSubRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7773,8 +7773,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Azure Web PubSub roles to a resource */
-    withRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withWebPubSubRoleAssignments(target: AzureWebPubSubResource, roles: AzureWebPubSubRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withWebPubSubRoleAssignments(target, roles)));
     }
 
 }

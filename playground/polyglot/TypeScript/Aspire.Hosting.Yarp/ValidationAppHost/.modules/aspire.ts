@@ -4990,6 +4990,36 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
     }
 
     /** @internal */
+    private async _withStaticFilesInternal(): Promise<YarpResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<YarpResourceHandle>(
+            'Aspire.Hosting.Yarp/withStaticFiles1',
+            rpcArgs
+        );
+        return new YarpResource(result, this._client);
+    }
+
+    /** Enables static file serving in the YARP resource. Static files are served from the wwwroot folder. */
+    withStaticFiles(): YarpResourcePromise {
+        return new YarpResourcePromise(this._withStaticFilesInternal());
+    }
+
+    /** @internal */
+    private async _withStaticFiles1Internal(sourcePath: string): Promise<YarpResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, sourcePath };
+        const result = await this._client.invokeCapability<YarpResourceHandle>(
+            'Aspire.Hosting.Yarp/withStaticFiles2',
+            rpcArgs
+        );
+        return new YarpResource(result, this._client);
+    }
+
+    /** Enables static file serving. In run mode: bind mounts  to /wwwroot. */
+    withStaticFiles1(sourcePath: string): YarpResourcePromise {
+        return new YarpResourcePromise(this._withStaticFiles1Internal(sourcePath));
+    }
+
+    /** @internal */
     private async _publishWithStaticFilesInternal(resourceWithFiles: ResourceBuilderBase): Promise<YarpResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, resourceWithFiles };
         const result = await this._client.invokeCapability<YarpResourceHandle>(
@@ -5234,6 +5264,16 @@ export class YarpResourcePromise implements PromiseLike<YarpResource> {
     /** Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port. */
     withHostHttpsPort(options?: WithHostHttpsPortOptions): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.withHostHttpsPort(options)));
+    }
+
+    /** Enables static file serving in the YARP resource. Static files are served from the wwwroot folder. */
+    withStaticFiles(): YarpResourcePromise {
+        return new YarpResourcePromise(this._promise.then(obj => obj.withStaticFiles()));
+    }
+
+    /** Enables static file serving. In run mode: bind mounts  to /wwwroot. */
+    withStaticFiles1(sourcePath: string): YarpResourcePromise {
+        return new YarpResourcePromise(this._promise.then(obj => obj.withStaticFiles1(sourcePath)));
     }
 
     /** In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot. */

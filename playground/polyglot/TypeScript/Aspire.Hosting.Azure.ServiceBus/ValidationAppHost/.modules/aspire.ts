@@ -1615,18 +1615,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureBicepResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1820,8 +1820,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -2050,18 +2050,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureEnvironmentResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2162,8 +2162,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -2357,18 +2357,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureProvisioningResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -2691,8 +2691,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3508,18 +3508,18 @@ export class AzureServiceBusEmulatorResource extends ResourceBuilderBase<AzureSe
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusEmulatorResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusEmulatorResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureServiceBusEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureServiceBusEmulatorResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusEmulatorResourcePromise {
-        return new AzureServiceBusEmulatorResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusEmulatorResourcePromise {
+        return new AzureServiceBusEmulatorResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -3790,8 +3790,8 @@ export class AzureServiceBusEmulatorResourcePromise implements PromiseLike<Azure
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusEmulatorResourcePromise {
-        return new AzureServiceBusEmulatorResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusEmulatorResourcePromise {
+        return new AzureServiceBusEmulatorResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -4180,18 +4180,18 @@ export class AzureServiceBusQueueResource extends ResourceBuilderBase<AzureServi
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusQueueResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusQueueResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureServiceBusQueueResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureServiceBusQueueResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusQueueResourcePromise {
-        return new AzureServiceBusQueueResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusQueueResourcePromise {
+        return new AzureServiceBusQueueResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -4267,8 +4267,8 @@ export class AzureServiceBusQueueResourcePromise implements PromiseLike<AzureSer
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusQueueResourcePromise {
-        return new AzureServiceBusQueueResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusQueueResourcePromise {
+        return new AzureServiceBusQueueResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
 }
@@ -4669,18 +4669,18 @@ export class AzureServiceBusResource extends ResourceBuilderBase<AzureServiceBus
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureServiceBusResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureServiceBusResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusResourcePromise {
-        return new AzureServiceBusResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusResourcePromise {
+        return new AzureServiceBusResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5078,8 +5078,8 @@ export class AzureServiceBusResourcePromise implements PromiseLike<AzureServiceB
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusResourcePromise {
-        return new AzureServiceBusResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusResourcePromise {
+        return new AzureServiceBusResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -5530,18 +5530,18 @@ export class AzureServiceBusSubscriptionResource extends ResourceBuilderBase<Azu
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusSubscriptionResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusSubscriptionResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureServiceBusSubscriptionResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureServiceBusSubscriptionResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusSubscriptionResourcePromise {
-        return new AzureServiceBusSubscriptionResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusSubscriptionResourcePromise {
+        return new AzureServiceBusSubscriptionResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -5617,8 +5617,8 @@ export class AzureServiceBusSubscriptionResourcePromise implements PromiseLike<A
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusSubscriptionResourcePromise {
-        return new AzureServiceBusSubscriptionResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusSubscriptionResourcePromise {
+        return new AzureServiceBusSubscriptionResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
 }
@@ -5913,18 +5913,18 @@ export class AzureServiceBusTopicResource extends ResourceBuilderBase<AzureServi
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusTopicResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureServiceBusTopicResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureServiceBusTopicResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureServiceBusTopicResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusTopicResourcePromise {
-        return new AzureServiceBusTopicResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusTopicResourcePromise {
+        return new AzureServiceBusTopicResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -6005,8 +6005,8 @@ export class AzureServiceBusTopicResourcePromise implements PromiseLike<AzureSer
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusTopicResourcePromise {
-        return new AzureServiceBusTopicResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureServiceBusTopicResourcePromise {
+        return new AzureServiceBusTopicResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
 }
@@ -6190,18 +6190,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -6544,8 +6544,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -7176,18 +7176,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ContainerResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -7398,8 +7398,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -7980,18 +7980,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ExecutableResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -8212,8 +8212,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -8429,18 +8429,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ParameterResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -8516,8 +8516,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
 }
@@ -9083,18 +9083,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ProjectResource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -9315,8 +9315,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -9807,18 +9807,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<Resource> {
+    private async _withServiceBusRoleAssignmentsInternal(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.ServiceBus/withRoleAssignments',
+            'Aspire.Hosting.Azure.ServiceBus/withServiceBusRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ResourcePromise {
+        return new ResourcePromise(this._withServiceBusRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -9889,8 +9889,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Service Bus roles to a resource */
-    withRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withServiceBusRoleAssignments(target: AzureServiceBusResource, roles: AzureServiceBusRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withServiceBusRoleAssignments(target, roles)));
     }
 
 }

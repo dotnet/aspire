@@ -1814,18 +1814,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureBicepResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -1941,8 +1941,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -2156,18 +2156,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureEnvironmentResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2248,8 +2248,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -2866,18 +2866,18 @@ export class AzureKeyVaultResource extends ResourceBuilderBase<AzureKeyVaultReso
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureKeyVaultResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureKeyVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureKeyVaultResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureKeyVaultResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultResourcePromise {
-        return new AzureKeyVaultResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultResourcePromise {
+        return new AzureKeyVaultResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets a secret reference from the Azure Key Vault */
@@ -3152,8 +3152,8 @@ export class AzureKeyVaultResourcePromise implements PromiseLike<AzureKeyVaultRe
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultResourcePromise {
-        return new AzureKeyVaultResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultResourcePromise {
+        return new AzureKeyVaultResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
     /** Gets a secret reference from the Azure Key Vault */
@@ -3362,18 +3362,18 @@ export class AzureKeyVaultSecretResource extends ResourceBuilderBase<AzureKeyVau
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureKeyVaultSecretResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureKeyVaultSecretResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureKeyVaultSecretResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureKeyVaultSecretResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultSecretResourcePromise {
-        return new AzureKeyVaultSecretResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultSecretResourcePromise {
+        return new AzureKeyVaultSecretResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -3444,8 +3444,8 @@ export class AzureKeyVaultSecretResourcePromise implements PromiseLike<AzureKeyV
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultSecretResourcePromise {
-        return new AzureKeyVaultSecretResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureKeyVaultSecretResourcePromise {
+        return new AzureKeyVaultSecretResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -3653,18 +3653,18 @@ export class AzurePostgresFlexibleServerDatabaseResource extends ResourceBuilder
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzurePostgresFlexibleServerDatabaseResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzurePostgresFlexibleServerDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzurePostgresFlexibleServerDatabaseResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzurePostgresFlexibleServerDatabaseResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerDatabaseResourcePromise {
-        return new AzurePostgresFlexibleServerDatabaseResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerDatabaseResourcePromise {
+        return new AzurePostgresFlexibleServerDatabaseResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -3740,8 +3740,8 @@ export class AzurePostgresFlexibleServerDatabaseResourcePromise implements Promi
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerDatabaseResourcePromise {
-        return new AzurePostgresFlexibleServerDatabaseResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerDatabaseResourcePromise {
+        return new AzurePostgresFlexibleServerDatabaseResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -4435,18 +4435,18 @@ export class AzurePostgresFlexibleServerResource extends ResourceBuilderBase<Azu
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzurePostgresFlexibleServerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzurePostgresFlexibleServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzurePostgresFlexibleServerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzurePostgresFlexibleServerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerResourcePromise {
-        return new AzurePostgresFlexibleServerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerResourcePromise {
+        return new AzurePostgresFlexibleServerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -4672,8 +4672,8 @@ export class AzurePostgresFlexibleServerResourcePromise implements PromiseLike<A
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerResourcePromise {
-        return new AzurePostgresFlexibleServerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzurePostgresFlexibleServerResourcePromise {
+        return new AzurePostgresFlexibleServerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -5109,18 +5109,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureProvisioningResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -5281,8 +5281,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -5738,18 +5738,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -5915,8 +5915,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -6497,18 +6497,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ContainerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -6689,8 +6689,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -7301,18 +7301,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ExecutableResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7503,8 +7503,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -7705,18 +7705,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ParameterResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7792,8 +7792,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -8532,18 +8532,18 @@ export class PgAdminContainerResource extends ResourceBuilderBase<PgAdminContain
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PgAdminContainerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PgAdminContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<PgAdminContainerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new PgAdminContainerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgAdminContainerResourcePromise {
-        return new PgAdminContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgAdminContainerResourcePromise {
+        return new PgAdminContainerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -8791,8 +8791,8 @@ export class PgAdminContainerResourcePromise implements PromiseLike<PgAdminConta
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgAdminContainerResourcePromise {
-        return new PgAdminContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgAdminContainerResourcePromise {
+        return new PgAdminContainerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
     /** Sets the host port for pgAdmin */
@@ -9536,18 +9536,18 @@ export class PgWebContainerResource extends ResourceBuilderBase<PgWebContainerRe
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PgWebContainerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PgWebContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<PgWebContainerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new PgWebContainerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgWebContainerResourcePromise {
-        return new PgWebContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgWebContainerResourcePromise {
+        return new PgWebContainerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -9795,8 +9795,8 @@ export class PgWebContainerResourcePromise implements PromiseLike<PgWebContainer
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgWebContainerResourcePromise {
-        return new PgWebContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PgWebContainerResourcePromise {
+        return new PgWebContainerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
     /** Sets the host port for pgweb */
@@ -10046,18 +10046,18 @@ export class PostgresDatabaseResource extends ResourceBuilderBase<PostgresDataba
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresDatabaseResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<PostgresDatabaseResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new PostgresDatabaseResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresDatabaseResourcePromise {
-        return new PostgresDatabaseResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresDatabaseResourcePromise {
+        return new PostgresDatabaseResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -10167,8 +10167,8 @@ export class PostgresDatabaseResourcePromise implements PromiseLike<PostgresData
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresDatabaseResourcePromise {
-        return new PostgresDatabaseResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresDatabaseResourcePromise {
+        return new PostgresDatabaseResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
     /** Adds Postgres MCP server */
@@ -10917,18 +10917,18 @@ export class PostgresMcpContainerResource extends ResourceBuilderBase<PostgresMc
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresMcpContainerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresMcpContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<PostgresMcpContainerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new PostgresMcpContainerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresMcpContainerResourcePromise {
-        return new PostgresMcpContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresMcpContainerResourcePromise {
+        return new PostgresMcpContainerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -11159,8 +11159,8 @@ export class PostgresMcpContainerResourcePromise implements PromiseLike<Postgres
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresMcpContainerResourcePromise {
-        return new PostgresMcpContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresMcpContainerResourcePromise {
+        return new PostgresMcpContainerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -12028,18 +12028,18 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresServerResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<PostgresServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<PostgresServerResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new PostgresServerResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresServerResourcePromise {
+        return new PostgresServerResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -12433,8 +12433,8 @@ export class PostgresServerResourcePromise implements PromiseLike<PostgresServer
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): PostgresServerResourcePromise {
+        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
     /** Adds a PostgreSQL database */
@@ -13090,18 +13090,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ProjectResource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -13292,8 +13292,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }
@@ -13769,18 +13769,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<Resource> {
+    private async _withKeyVaultRoleAssignmentsInternal(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.KeyVault/withRoleAssignments',
+            'Aspire.Hosting.Azure.KeyVault/withKeyVaultRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ResourcePromise {
+        return new ResourcePromise(this._withKeyVaultRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -13851,8 +13851,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Key Vault roles to a resource */
-    withRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withKeyVaultRoleAssignments(target: AzureKeyVaultResource, roles: AzureKeyVaultRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withKeyVaultRoleAssignments(target, roles)));
     }
 
 }

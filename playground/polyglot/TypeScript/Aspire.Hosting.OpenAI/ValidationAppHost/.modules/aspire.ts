@@ -1715,6 +1715,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -1980,6 +1995,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
     }
 
     /** Adds an HTTP health check */
@@ -2488,6 +2508,21 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -2701,6 +2736,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
+    }
+
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
@@ -2841,6 +2881,21 @@ export class OpenAIModelResource extends ResourceBuilderBase<OpenAIModelResource
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<OpenAIModelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<OpenAIModelResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new OpenAIModelResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): OpenAIModelResourcePromise {
+        return new OpenAIModelResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<OpenAIModelResource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -2884,6 +2939,21 @@ export class OpenAIModelResource extends ResourceBuilderBase<OpenAIModelResource
             'Aspire.Hosting/getResourceName',
             rpcArgs
         );
+    }
+
+    /** @internal */
+    private async _withHealthCheckInternal(): Promise<OpenAIModelResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<OpenAIModelResourceHandle>(
+            'Aspire.Hosting.OpenAI/withHealthCheck',
+            rpcArgs
+        );
+        return new OpenAIModelResource(result, this._client);
+    }
+
+    /** Adds a health check for the OpenAI model resource. */
+    withHealthCheck(): OpenAIModelResourcePromise {
+        return new OpenAIModelResourcePromise(this._withHealthCheckInternal());
     }
 
 }
@@ -2933,6 +3003,11 @@ export class OpenAIModelResourcePromise implements PromiseLike<OpenAIModelResour
         return new OpenAIModelResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): OpenAIModelResourcePromise {
+        return new OpenAIModelResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
+    }
+
     /** Adds a resource command */
     withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): OpenAIModelResourcePromise {
         return new OpenAIModelResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
@@ -2946,6 +3021,11 @@ export class OpenAIModelResourcePromise implements PromiseLike<OpenAIModelResour
     /** Gets the resource name */
     getResourceName(): Promise<string> {
         return this._promise.then(obj => obj.getResourceName());
+    }
+
+    /** Adds a health check for the OpenAI model resource. */
+    withHealthCheck(): OpenAIModelResourcePromise {
+        return new OpenAIModelResourcePromise(this._promise.then(obj => obj.withHealthCheck()));
     }
 
 }
@@ -3065,6 +3145,21 @@ export class OpenAIResource extends ResourceBuilderBase<OpenAIResourceHandle> {
     /** Prevents resource from starting automatically */
     withExplicitStart(): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<OpenAIResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<OpenAIResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new OpenAIResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): OpenAIResourcePromise {
+        return new OpenAIResourcePromise(this._withHealthCheck1Internal(key));
     }
 
     /** @internal */
@@ -3203,6 +3298,11 @@ export class OpenAIResourcePromise implements PromiseLike<OpenAIResource> {
     /** Prevents resource from starting automatically */
     withExplicitStart(): OpenAIResourcePromise {
         return new OpenAIResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): OpenAIResourcePromise {
+        return new OpenAIResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
     }
 
     /** Adds a resource command */
@@ -3372,6 +3472,21 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ParameterResource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -3467,6 +3582,11 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Prevents resource from starting automatically */
     withExplicitStart(): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
     }
 
     /** Adds a resource command */
@@ -3965,6 +4085,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -4178,6 +4313,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
     }
 
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
+    }
+
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
@@ -4366,6 +4506,21 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
+    private async _withHealthCheck1Internal(key: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ResourcePromise {
+        return new ResourcePromise(this._withHealthCheck1Internal(key));
+    }
+
+    /** @internal */
     private async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<Resource> {
         const executeCommandId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
@@ -4456,6 +4611,11 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Prevents resource from starting automatically */
     withExplicitStart(): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck1(key: string): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withHealthCheck1(key)));
     }
 
     /** Adds a resource command */

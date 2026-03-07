@@ -1650,18 +1650,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBicepResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1855,8 +1855,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -2085,18 +2085,18 @@ export class AzureBlobStorageContainerResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBlobStorageContainerResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBlobStorageContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBlobStorageContainerResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureBlobStorageContainerResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageContainerResourcePromise {
-        return new AzureBlobStorageContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageContainerResourcePromise {
+        return new AzureBlobStorageContainerResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2167,8 +2167,8 @@ export class AzureBlobStorageContainerResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageContainerResourcePromise {
-        return new AzureBlobStorageContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageContainerResourcePromise {
+        return new AzureBlobStorageContainerResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -2352,18 +2352,18 @@ export class AzureBlobStorageResource extends ResourceBuilderBase<AzureBlobStora
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBlobStorageResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureBlobStorageResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBlobStorageResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureBlobStorageResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageResourcePromise {
-        return new AzureBlobStorageResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageResourcePromise {
+        return new AzureBlobStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2434,8 +2434,8 @@ export class AzureBlobStorageResourcePromise implements PromiseLike<AzureBlobSto
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageResourcePromise {
-        return new AzureBlobStorageResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureBlobStorageResourcePromise {
+        return new AzureBlobStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -2619,18 +2619,18 @@ export class AzureDataLakeStorageFileSystemResource extends ResourceBuilderBase<
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureDataLakeStorageFileSystemResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureDataLakeStorageFileSystemResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureDataLakeStorageFileSystemResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureDataLakeStorageFileSystemResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageFileSystemResourcePromise {
-        return new AzureDataLakeStorageFileSystemResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageFileSystemResourcePromise {
+        return new AzureDataLakeStorageFileSystemResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2701,8 +2701,8 @@ export class AzureDataLakeStorageFileSystemResourcePromise implements PromiseLik
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageFileSystemResourcePromise {
-        return new AzureDataLakeStorageFileSystemResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageFileSystemResourcePromise {
+        return new AzureDataLakeStorageFileSystemResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -2886,18 +2886,18 @@ export class AzureDataLakeStorageResource extends ResourceBuilderBase<AzureDataL
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureDataLakeStorageResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureDataLakeStorageResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureDataLakeStorageResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureDataLakeStorageResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageResourcePromise {
-        return new AzureDataLakeStorageResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageResourcePromise {
+        return new AzureDataLakeStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -2968,8 +2968,8 @@ export class AzureDataLakeStorageResourcePromise implements PromiseLike<AzureDat
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageResourcePromise {
-        return new AzureDataLakeStorageResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureDataLakeStorageResourcePromise {
+        return new AzureDataLakeStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -3153,18 +3153,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureEnvironmentResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -3265,8 +3265,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -3857,18 +3857,18 @@ export class AzureFunctionsProjectResource extends ResourceBuilderBase<AzureFunc
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureFunctionsProjectResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureFunctionsProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureFunctionsProjectResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureFunctionsProjectResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureFunctionsProjectResourcePromise {
-        return new AzureFunctionsProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureFunctionsProjectResourcePromise {
+        return new AzureFunctionsProjectResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -4094,8 +4094,8 @@ export class AzureFunctionsProjectResourcePromise implements PromiseLike<AzureFu
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureFunctionsProjectResourcePromise {
-        return new AzureFunctionsProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureFunctionsProjectResourcePromise {
+        return new AzureFunctionsProjectResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -4294,18 +4294,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureProvisioningResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4628,8 +4628,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4903,18 +4903,18 @@ export class AzureQueueStorageQueueResource extends ResourceBuilderBase<AzureQue
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureQueueStorageQueueResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureQueueStorageQueueResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureQueueStorageQueueResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureQueueStorageQueueResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageQueueResourcePromise {
-        return new AzureQueueStorageQueueResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageQueueResourcePromise {
+        return new AzureQueueStorageQueueResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -4985,8 +4985,8 @@ export class AzureQueueStorageQueueResourcePromise implements PromiseLike<AzureQ
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageQueueResourcePromise {
-        return new AzureQueueStorageQueueResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageQueueResourcePromise {
+        return new AzureQueueStorageQueueResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -5170,18 +5170,18 @@ export class AzureQueueStorageResource extends ResourceBuilderBase<AzureQueueSto
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureQueueStorageResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureQueueStorageResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureQueueStorageResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureQueueStorageResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageResourcePromise {
-        return new AzureQueueStorageResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageResourcePromise {
+        return new AzureQueueStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -5252,8 +5252,8 @@ export class AzureQueueStorageResourcePromise implements PromiseLike<AzureQueueS
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageResourcePromise {
-        return new AzureQueueStorageResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureQueueStorageResourcePromise {
+        return new AzureQueueStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -6047,18 +6047,18 @@ export class AzureStorageEmulatorResource extends ResourceBuilderBase<AzureStora
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureStorageEmulatorResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureStorageEmulatorResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureStorageEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureStorageEmulatorResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageEmulatorResourcePromise {
-        return new AzureStorageEmulatorResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageEmulatorResourcePromise {
+        return new AzureStorageEmulatorResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6349,8 +6349,8 @@ export class AzureStorageEmulatorResourcePromise implements PromiseLike<AzureSto
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageEmulatorResourcePromise {
-        return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageEmulatorResourcePromise {
+        return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -6843,18 +6843,18 @@ export class AzureStorageResource extends ResourceBuilderBase<AzureStorageResour
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureStorageResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureStorageResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureStorageResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureStorageResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageResourcePromise {
-        return new AzureStorageResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageResourcePromise {
+        return new AzureStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -7277,8 +7277,8 @@ export class AzureStorageResourcePromise implements PromiseLike<AzureStorageReso
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageResourcePromise {
-        return new AzureStorageResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureStorageResourcePromise {
+        return new AzureStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -7557,18 +7557,18 @@ export class AzureTableStorageResource extends ResourceBuilderBase<AzureTableSto
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureTableStorageResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureTableStorageResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureTableStorageResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureTableStorageResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureTableStorageResourcePromise {
-        return new AzureTableStorageResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureTableStorageResourcePromise {
+        return new AzureTableStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7639,8 +7639,8 @@ export class AzureTableStorageResourcePromise implements PromiseLike<AzureTableS
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureTableStorageResourcePromise {
-        return new AzureTableStorageResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureTableStorageResourcePromise {
+        return new AzureTableStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -7824,18 +7824,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -8178,8 +8178,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -8810,18 +8810,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ContainerResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -9032,8 +9032,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -9614,18 +9614,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ExecutableResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -9846,8 +9846,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -10063,18 +10063,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ParameterResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -10150,8 +10150,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }
@@ -10702,18 +10702,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ProjectResource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -10929,8 +10929,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -11421,18 +11421,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<Resource> {
+    private async _withStorageRoleAssignmentsInternal(target: AzureStorageResource, roles: AzureStorageRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.Storage/withRoleAssignments',
+            'Aspire.Hosting.Azure.Storage/withStorageRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ResourcePromise {
+        return new ResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -11503,8 +11503,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Azure Storage roles to a resource */
-    withRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withStorageRoleAssignments(target: AzureStorageResource, roles: AzureStorageRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
 }

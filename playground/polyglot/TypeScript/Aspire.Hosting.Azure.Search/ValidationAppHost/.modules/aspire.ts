@@ -1556,18 +1556,18 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureBicepResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new AzureBicepResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -1761,8 +1761,8 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Publishes an Azure resource to the manifest as a connection string */
@@ -1991,18 +1991,18 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureEnvironmentResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new AzureEnvironmentResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -2103,8 +2103,8 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Sets the Azure location for the shared Azure environment resource */
@@ -2298,18 +2298,18 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureProvisioningResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureProvisioningResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new AzureProvisioningResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -2632,8 +2632,8 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -2907,18 +2907,18 @@ export class AzureSearchResource extends ResourceBuilderBase<AzureSearchResource
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureSearchResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureSearchResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureSearchResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new AzureSearchResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureSearchResourcePromise {
-        return new AzureSearchResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureSearchResourcePromise {
+        return new AzureSearchResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3261,8 +3261,8 @@ export class AzureSearchResourcePromise implements PromiseLike<AzureSearchResour
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureSearchResourcePromise {
-        return new AzureSearchResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureSearchResourcePromise {
+        return new AzureSearchResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3541,18 +3541,18 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureUserAssignedIdentityResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<AzureUserAssignedIdentityResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new AzureUserAssignedIdentityResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -3895,8 +3895,8 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Gets an output reference from an Azure Bicep template resource */
@@ -4685,18 +4685,18 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ContainerResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -4957,8 +4957,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -5539,18 +5539,18 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ExecutableResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -5771,8 +5771,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -5988,18 +5988,18 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ParameterResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -6075,8 +6075,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
 }
@@ -6642,18 +6642,18 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ProjectResource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
     /** @internal */
@@ -6874,8 +6874,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
     /** Sets an environment variable from a Bicep output reference */
@@ -7366,18 +7366,18 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<Resource> {
+    private async _withSearchRoleAssignmentsInternal(target: AzureSearchResource, roles: AzureSearchRole[]): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting.Azure.Search/withRoleAssignments',
+            'Aspire.Hosting.Azure.Search/withSearchRoleAssignments',
             rpcArgs
         );
         return new Resource(result, this._client);
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ResourcePromise {
-        return new ResourcePromise(this._withRoleAssignmentsInternal(target, roles));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ResourcePromise {
+        return new ResourcePromise(this._withSearchRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -7448,8 +7448,8 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Assigns Azure AI Search roles to a resource */
-    withRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRoleAssignments(target, roles)));
+    withSearchRoleAssignments(target: AzureSearchResource, roles: AzureSearchRole[]): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withSearchRoleAssignments(target, roles)));
     }
 
 }
