@@ -54,27 +54,27 @@ internal sealed class ReportingTask : IReportingTask
     /// <inheritdoc />
     public async Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
     {
-        await ParentStep.Reporter.UpdateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.UpdateTaskAsync(this, statusText, enableMarkdown: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task UpdateAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(statusText);
-        await ParentStep.Reporter.UpdateTaskAsync(this, statusText.Value, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
+        await ParentStep.Reporter.UpdateTaskAsync(this, statusText.Value, enableMarkdown: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
     {
-        await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage, cancellationToken).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage, enableMarkdown: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task CompleteAsync(MarkdownString completionMessage, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(completionMessage);
-        await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage.Value, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
+        await ParentStep.Reporter.CompleteTaskAsync(this, completionState, completionMessage.Value, enableMarkdown: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

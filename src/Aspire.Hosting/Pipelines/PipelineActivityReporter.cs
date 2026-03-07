@@ -59,7 +59,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return step;
     }
 
-    public async Task<ReportingTask> CreateTaskAsync(ReportingStep step, string statusText, CancellationToken cancellationToken, bool enableMarkdown = false)
+    public async Task<ReportingTask> CreateTaskAsync(ReportingStep step, string statusText, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -96,7 +96,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return task;
     }
 
-    public async Task CompleteStepAsync(ReportingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken, bool enableMarkdown = false)
+    public async Task CompleteStepAsync(ReportingStep step, string completionText, CompletionState completionState, bool enableMarkdown, CancellationToken cancellationToken)
     {
         lock (step)
         {
@@ -126,7 +126,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateTaskAsync(ReportingTask task, string statusText, CancellationToken cancellationToken, bool enableMarkdown = false)
+    public async Task UpdateTaskAsync(ReportingTask task, string statusText, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
@@ -192,7 +192,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         ActivityItemUpdated.Writer.TryWrite(state);
     }
 
-    public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken, bool enableMarkdown = false)
+    public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {

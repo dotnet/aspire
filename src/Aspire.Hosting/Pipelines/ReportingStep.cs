@@ -98,7 +98,7 @@ internal sealed class ReportingStep : IReportingStep
             throw new InvalidOperationException("Cannot create task: Reporter is not set.");
         }
 
-        return await Reporter.CreateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
+        return await Reporter.CreateTaskAsync(this, statusText, enableMarkdown: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -111,7 +111,7 @@ internal sealed class ReportingStep : IReportingStep
             throw new InvalidOperationException("Cannot create task: Reporter is not set.");
         }
 
-        return await Reporter.CreateTaskAsync(this, statusText.Value, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
+        return await Reporter.CreateTaskAsync(this, statusText.Value, enableMarkdown: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -159,7 +159,7 @@ internal sealed class ReportingStep : IReportingStep
             throw new InvalidOperationException("Cannot complete step: Reporter is not set.");
         }
 
-        await Reporter.CompleteStepAsync(this, completionText, completionState, cancellationToken).ConfigureAwait(false);
+        await Reporter.CompleteStepAsync(this, completionText, completionState, enableMarkdown: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -172,7 +172,7 @@ internal sealed class ReportingStep : IReportingStep
             throw new InvalidOperationException("Cannot complete step: Reporter is not set.");
         }
 
-        await Reporter.CompleteStepAsync(this, completionText.Value, completionState, cancellationToken, enableMarkdown: true).ConfigureAwait(false);
+        await Reporter.CompleteStepAsync(this, completionText.Value, completionState, enableMarkdown: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -205,6 +205,6 @@ internal sealed class ReportingStep : IReportingStep
             }
             : CompletionText;
 
-        await Reporter.CompleteStepAsync(this, completionText, finalState, CancellationToken.None).ConfigureAwait(false);
+        await Reporter.CompleteStepAsync(this, completionText, finalState, enableMarkdown: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
     }
 }

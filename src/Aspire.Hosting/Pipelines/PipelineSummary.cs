@@ -35,12 +35,22 @@ namespace Aspire.Hosting.Pipelines;
 ///
 ///     // Add plain text summary items
 ///     context.PipelineContext.Summary.Add("☁️ Target", "Azure");
+///     context.PipelineContext.Summary.Add("📦 Resource Group", "rg-myapp");
 ///     context.PipelineContext.Summary.Add("🔑 Subscription", "12345678-1234-1234-1234-123456789012");
 ///     context.PipelineContext.Summary.Add("🌐 Location", "eastus");
+/// }
+///
+///     // Kubernetes example
+///     context.PipelineContext.Summary.Add("☸️ Target", "Kubernetes");
+///     context.PipelineContext.Summary.Add("📦 Namespace", "production");
+///     context.PipelineContext.Summary.Add("🖥️ Cluster", "my-cluster");
+///
+///     // Docker example
+///     context.PipelineContext.Summary.Add("🐳 Target", "Docker");
+///     context.PipelineContext.Summary.Add("🌐 Endpoint", "localhost:8080");
 ///
 ///     // Add a Markdown-formatted value (e.g., a clickable link)
 ///     context.PipelineContext.Summary.Add("📦 Resource Group", new MarkdownString($"[{rgName}]({portalUrl})"));
-/// }
 /// </code>
 /// </example>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
