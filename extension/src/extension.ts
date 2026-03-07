@@ -26,6 +26,7 @@ import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 import { AspireAppHostTreeProvider } from './views/AspireAppHostTreeProvider';
+import { installCliStableCommand, installCliDailyCommand, verifyCliInstalledCommand } from './commands/walkthroughCommands';
 import { AspireStatusBarProvider } from './views/AspireStatusBarProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
@@ -68,6 +69,11 @@ export async function activate(context: vscode.ExtensionContext) {
   const runAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.runAppHost', () => editorCommandProvider.tryExecuteRunAppHost(true));
   const debugAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.debugAppHost', () => editorCommandProvider.tryExecuteRunAppHost(false));
 
+  // Walkthrough commands (no CLI check - CLI may not be installed yet)
+  const installCliStableRegistration = vscode.commands.registerCommand('aspire-vscode.installCliStable', installCliStableCommand);
+  const installCliDailyRegistration = vscode.commands.registerCommand('aspire-vscode.installCliDaily', installCliDailyCommand);
+  const verifyCliInstalledRegistration = vscode.commands.registerCommand('aspire-vscode.verifyCliInstalled', verifyCliInstalledCommand);
+
   // Aspire panel - running app hosts tree view
   const appHostTreeProvider = new AspireAppHostTreeProvider(terminalProvider);
   const appHostTreeView = vscode.window.createTreeView('aspire-vscode.runningAppHosts', {
@@ -97,6 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, cliUpdateSelfCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
+  context.subscriptions.push(installCliStableRegistration, installCliDailyRegistration, verifyCliInstalledRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider();
   context.subscriptions.push(

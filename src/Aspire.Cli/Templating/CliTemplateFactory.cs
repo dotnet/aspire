@@ -67,9 +67,24 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         _logger = logger;
     }
 
+    public IEnumerable<ITemplate> GetTemplates()
+    {
+        return GetTemplateDefinitions();
+    }
+
     public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        IEnumerable<ITemplate> templates =
+        return Task.FromResult(GetTemplateDefinitions());
+    }
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IEnumerable<ITemplate>>([]);
+    }
+
+    private IEnumerable<ITemplate> GetTemplateDefinitions()
+    {
+        return
         [
             new CallbackTemplate(
                 KnownTemplateId.TypeScriptStarter,
@@ -95,13 +110,6 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                     languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
                 selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
         ];
-
-        return Task.FromResult(templates);
-    }
-
-    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<ITemplate>>([]);
     }
 
     private static string ApplyTokens(string content, string projectName, string projectNameLower, string aspireVersion, TemplatePorts ports, string hostName = "localhost")

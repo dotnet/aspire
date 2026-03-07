@@ -23,6 +23,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly INewCommandPrompter _prompter;
+    private readonly ITemplateProvider _templateProvider;
     private readonly ITemplate[] _templates;
     private readonly IFeatures _features;
     private readonly IPackagingService _packagingService;
@@ -75,6 +76,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _prompter = prompter;
+        _templateProvider = templateProvider;
         _features = features;
         _packagingService = packagingService;
         _configurationService = configurationService;
@@ -102,7 +104,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_languageOption);
 
-        _templates = templateProvider.GetTemplatesAsync(CancellationToken.None).GetAwaiter().GetResult().ToArray();
+        // Register template definitions as subcommands synchronously.
+        // This uses GetTemplates() which returns template definitions without
+        // performing any async I/O (e.g. SDK availability checks). Runtime
+        // availability is checked in ExecuteAsync via GetTemplatesAsync().
+        _templates = templateProvider.GetTemplates().ToArray();
 
         foreach (var template in _templates)
         {
@@ -199,10 +205,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return (true, selectedLanguageId);
     }
 
-    private ITemplate[] GetTemplatesForPrompt(ParseResult parseResult)
+    private ITemplate[] GetTemplatesForPrompt(ITemplate[] availableTemplates, ParseResult parseResult)
     {
         var explicitLanguageId = ParseExplicitLanguageId(parseResult);
-        var templatesForPrompt = _templates.ToList();
+        var templatesForPrompt = availableTemplates.ToList();
 
         if (!string.IsNullOrWhiteSpace(explicitLanguageId))
         {
@@ -214,19 +220,24 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return templatesForPrompt.ToArray();
     }
 
-    private async Task<ITemplate?> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<ITemplate?> GetProjectTemplateAsync(ITemplate[] availableTemplates, ParseResult parseResult, CancellationToken cancellationToken)
     {
         // If a subcommand was matched (e.g., aspire new aspire-starter), find the template by command name
         if (parseResult.CommandResult.Command != this)
         {
-            var subcommandTemplate = _templates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
+            var subcommandTemplate = availableTemplates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
             if (subcommandTemplate is not null)
             {
                 return subcommandTemplate;
             }
+
+            // The template subcommand was parsed successfully but the template is
+            // not available at runtime (e.g. .NET SDK is not installed).
+            InteractionService.DisplayError($"Template '{parseResult.CommandResult.Command.Name}' is not available. Ensure the required runtime is installed.");
+            return null;
         }
 
-        var templatesForPrompt = GetTemplatesForPrompt(parseResult);
+        var templatesForPrompt = GetTemplatesForPrompt(availableTemplates, parseResult);
         if (templatesForPrompt.Length == 0)
         {
             InteractionService.DisplayError("No templates are available for the current environment.");
@@ -301,7 +312,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+        // Resolve which templates are actually available at runtime (performs
+        // async checks like SDK availability). This may be a subset of the
+        // templates registered as subcommands.
+        var availableTemplates = (await _templateProvider.GetTemplatesAsync(cancellationToken)).ToArray();
+
+        var template = await GetProjectTemplateAsync(availableTemplates, parseResult, cancellationToken);
         if (template is null)
         {
             return ExitCodeConstants.InvalidCommand;
