@@ -10,6 +10,9 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.InternalTesting;
 
@@ -840,6 +843,135 @@ internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 internal sealed record PromptInputData(string Name, string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
 internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers, bool UpdateResponse);
+
+// Enhanced TestConsoleInteractionService that tracks interaction types
+[SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]
+internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInteractionService
+{
+    private readonly Queue<(string response, ResponseType type)> _responses = new();
+    private bool _shouldCancel;
+
+    public ConsoleOutput Console { get; set; }
+    public List<StringPromptCall> StringPromptCalls { get; } = [];
+    public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
+    public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
+    public List<string> DisplayedErrors { get; } = [];
+
+    public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
+    public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
+    public void SetupBooleanResponse(bool response) => _responses.Enqueue((response.ToString().ToLower(), ResponseType.Boolean));
+    public void SetupCancellationResponse() => _shouldCancel = true;
+
+    public void SetupSequentialResponses(params (string response, ResponseType type)[] responses)
+    {
+        foreach (var (response, type) in responses)
+        {
+            _responses.Enqueue((response, type));
+        }
+    }
+
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        StringPromptCalls.Add(new StringPromptCall(promptText, defaultValue, isSecret));
+
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            return Task.FromResult(response.response);
+        }
+
+        return Task.FromResult(defaultValue ?? string.Empty);
+    }
+
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+        => PromptForStringAsync(promptText, defaultValue, validator, isSecret: false, required, cancellationToken);
+
+    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            // Find the choice that matches the response
+            var matchingChoice = choices.FirstOrDefault(c => choiceFormatter(c) == response.response || c.ToString() == response.response);
+            if (matchingChoice != null)
+            {
+                return Task.FromResult(matchingChoice);
+            }
+        }
+
+        return Task.FromResult(choices.First());
+    }
+
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        _ = _responses.TryDequeue(out _);
+
+        if (preSelected is not null)
+        {
+            return Task.FromResult<IReadOnlyList<T>>(preSelected.ToList());
+        }
+
+        // For simplicity, return all choices in the test
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
+    }
+
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
+    {
+        BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));
+
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        if (_responses.TryDequeue(out var response))
+        {
+            return Task.FromResult(bool.Parse(response.response));
+        }
+
+        return Task.FromResult(defaultValue);
+    }
+
+    // Default implementations for other interface methods
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
+    public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false) => action();
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
+    public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
+    public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
+    public void DisplaySuccess(string message, bool allowMarkup = false) { }
+    public void DisplaySubtleMessage(string message, bool allowMarkup = false) { }
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayCancellationMessage() { }
+    public void DisplayEmptyLine() { }
+    public void DisplayPlainText(string text) { }
+    public void DisplayRawText(string text, ConsoleOutput? consoleOverride = null) { }
+    public void DisplayMarkdown(string markdown) { }
+    public void DisplayMarkupLine(string markup) { }
+
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
+
+    public void DisplayRenderable(IRenderable renderable) { }
+    public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var messageType = isErrorMessage ? "error" : "info";
+        System.Console.WriteLine($"#{lineNumber} [{messageType}] {message}");
+    }
+}
 
 // Input type constants that match the Aspire CLI implementation
 internal static class InputTypes

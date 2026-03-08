@@ -90,4 +90,19 @@
   <data name="ConfigurationCompletedWithErrors" xml:space="preserve">
     <value>Configuration completed with errors. Please fix the reported issues and re-run the command.</value>
   </data>
+  <data name="SkipNoneDescription" xml:space="preserve">
+    <value>None — skip</value>
+  </data>
+  <data name="InitCommand_WhatToConfigure" xml:space="preserve">
+    <value>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</value>
+  </data>
+  <data name="InitCommand_NothingSelected" xml:space="preserve">
+    <value>No options selected. Nothing to configure.</value>
+  </data>
+  <data name="InitCommand_ConfigureMcpServer" xml:space="preserve">
+    <value>Install Aspire MCP server</value>
+  </data>
+  <data name="InitCommand_InstallSkillFile" xml:space="preserve">
+    <value>Install Aspire skill file (Recommended)</value>
+  </data>
 </root>

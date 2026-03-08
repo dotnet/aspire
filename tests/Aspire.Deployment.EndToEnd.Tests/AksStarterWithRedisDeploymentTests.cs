@@ -79,25 +79,6 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-            // Pattern searchers for aspire new interactive prompts
-            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-                .FindPattern("> Starter App");
-
-            var waitingForProjectNamePrompt = new CellPatternSearcher()
-                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-            var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
-
-            var waitingForUrlsPrompt = new CellPatternSearcher()
-                .Find("Use *.dev.localhost URLs");
-
-            var waitingForRedisPrompt = new CellPatternSearcher()
-                .Find("Use Redis Cache");
-
-            var waitingForTestPrompt = new CellPatternSearcher()
-                .Find("Do you want to create a test project?");
-
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -196,22 +177,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
 
             // Step 11: Create starter project with Redis enabled
             output.WriteLine("Step 11: Creating Aspire starter project with Redis...");
-            sequenceBuilder.Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select first template (Starter App ASP.NET Core/Blazor)
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type(projectName)
-                .Enter()
-                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Accept default output path
-                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for localhost URLs (default)
-                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "Yes" for Redis Cache (first/default option)
-                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for test project (default)
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+            sequenceBuilder.AspireNew(projectName, counter);
 
             // Step 12: Navigate to project directory
             output.WriteLine("Step 12: Navigating to project directory...");

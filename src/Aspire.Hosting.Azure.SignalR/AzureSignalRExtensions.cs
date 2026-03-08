@@ -192,6 +192,7 @@ public static class AzureSignalRExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "SignalRBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureSignalRRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureSignalRResource> target,
@@ -199,5 +200,41 @@ public static class AzureSignalRExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, SignalRBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure SignalR resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure SignalR resource.</param>
+    /// <param name="roles">The Azure SignalR roles to be assigned (for example, <see cref="AzureSignalRRole.SignalRContributor"/>).</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureSignalRRole"/> value.</exception>
+    [AspireExport("withSignalRRoleAssignments", Description = "Assigns Azure SignalR roles to a resource")]
+    internal static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureSignalRResource> target,
+        params AzureSignalRRole[] roles)
+        where T : IResource
+    {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<SignalRBuiltInRole>());
+        }
+
+        var builtInRoles = new SignalRBuiltInRole[roles.Length];
+        for (var i = 0; i < roles.Length; i++)
+        {
+            builtInRoles[i] = roles[i] switch
+            {
+                AzureSignalRRole.SignalRContributor => SignalRBuiltInRole.SignalRContributor,
+                AzureSignalRRole.SignalRAppServer => SignalRBuiltInRole.SignalRAppServer,
+                AzureSignalRRole.SignalRRestApiOwner => SignalRBuiltInRole.SignalRRestApiOwner,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureSignalRRole)} value.", nameof(roles))
+            };
+        }
+
+        return builder.WithRoleAssignments(target, builtInRoles);
     }
 }

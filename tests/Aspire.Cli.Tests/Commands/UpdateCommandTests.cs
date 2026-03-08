@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
@@ -904,6 +905,94 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_SelfUpdate_WhenStagingFeatureFlagDisabled_DoesNotShowStagingChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        IEnumerable? capturedChoices = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => new TestInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    capturedChoices = choices;
+                    return PackageChannelNames.Stable;
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotNull(capturedChoices);
+        var channelList = capturedChoices.Cast<string>().ToList();
+        Assert.DoesNotContain(PackageChannelNames.Staging, channelList);
+        Assert.Contains(PackageChannelNames.Stable, channelList);
+        Assert.Contains(PackageChannelNames.Daily, channelList);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WhenStagingFeatureFlagEnabled_ShowsStagingChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        IEnumerable? capturedChoices = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.EnabledFeatures = [KnownFeatures.StagingChannelEnabled];
+
+            options.InteractionServiceFactory = _ => new TestInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    capturedChoices = choices;
+                    return PackageChannelNames.Stable;
+                }
+            };
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self");
+
+        await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotNull(capturedChoices);
+        var channelList = capturedChoices.Cast<string>().ToList();
+        Assert.Contains(PackageChannelNames.Staging, channelList);
+        Assert.Contains(PackageChannelNames.Stable, channelList);
+        Assert.Contains(PackageChannelNames.Daily, channelList);
+    }
+
+    [Fact]
     public async Task UpdateCommand_SelfOption_IsAvailableAndParseable()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -961,8 +1050,8 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
         => _innerService.ConfirmAsync(promptText, defaultValue, cancellationToken);
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
         => _innerService.PromptForSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, bool optional = false, CancellationToken cancellationToken = default) where T : notnull 
-        => _innerService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, optional, cancellationToken);
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull 
+        => _innerService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, preSelected, optional, cancellationToken);
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) 
         => _innerService.DisplayIncompatibleVersionError(ex, appHostHostingVersion);
     public void DisplayError(string errorMessage) => _innerService.DisplayError(errorMessage);

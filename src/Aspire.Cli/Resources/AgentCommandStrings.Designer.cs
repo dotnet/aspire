@@ -149,5 +149,50 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ConfigurationCompletedWithErrors", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to None — skip.
+        /// </summary>
+        internal static string SkipNoneDescription {
+            get {
+                return ResourceManager.GetString("SkipNoneDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to What would you like to configure?.
+        /// </summary>
+        internal static string InitCommand_WhatToConfigure {
+            get {
+                return ResourceManager.GetString("InitCommand_WhatToConfigure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No options selected. Nothing to configure..
+        /// </summary>
+        internal static string InitCommand_NothingSelected {
+            get {
+                return ResourceManager.GetString("InitCommand_NothingSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Install Aspire MCP server.
+        /// </summary>
+        internal static string InitCommand_ConfigureMcpServer {
+            get {
+                return ResourceManager.GetString("InitCommand_ConfigureMcpServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Install Aspire skill file (Recommended).
+        /// </summary>
+        internal static string InitCommand_InstallSkillFile {
+            get {
+                return ResourceManager.GetString("InitCommand_InstallSkillFile", resourceCulture);
+            }
+        }
     }
 }

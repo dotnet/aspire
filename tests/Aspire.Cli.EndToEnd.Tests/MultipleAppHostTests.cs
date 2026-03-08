@@ -9,7 +9,7 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// Tests that <c>aspire run --detach --format json</c> produces well-formed JSON
+/// Tests that <c>aspire start --format json</c> produces well-formed JSON
 /// without human-readable messages polluting stdout.
 /// </summary>
 public sealed class MultipleAppHostTests(ITestOutputHelper output)
@@ -26,25 +26,6 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // aspire new prompts
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find("Enter the project name (");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find("Enter the output path:");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find("Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find("Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find("Do you want to create a test project?");
-
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -58,22 +39,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         }
 
         // Create a single project using aspire new
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select Starter App
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TestApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestApp", counter);
 
         sequenceBuilder.ClearScreen(counter);
 
@@ -86,7 +52,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         // First: launch the apphost with --detach (interactive, no JSON)
         // Just wait for the command to complete (WaitForSuccessPrompt waits for the shell prompt)
         sequenceBuilder
-            .Type("aspire run --detach")
+            .Type("aspire start")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -97,7 +63,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         // stderr is left visible in the terminal for debugging (human-readable messages go to stderr
         // when --format json is used, which is exactly what this PR validates).
         sequenceBuilder
-            .Type("aspire run --detach --format json > output.json")
+            .Type("aspire start --format json > output.json")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

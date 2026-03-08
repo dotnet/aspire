@@ -183,6 +183,7 @@ public static class FoundryExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "CognitiveServicesBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureAIFoundryRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<FoundryResource> target,
@@ -190,6 +191,42 @@ public static class FoundryExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, CognitiveServicesBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Microsoft Foundry resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Microsoft Foundry resource.</param>
+    /// <param name="roles">The Microsoft Foundry roles to be assigned (for example, <see cref="AzureAIFoundryRole.CognitiveServicesOpenAIUser"/>).</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureAIFoundryRole"/> value.</exception>
+    [AspireExport("withAIFoundryRoleAssignments", Description = "Assigns Microsoft Foundry roles to a resource")]
+    internal static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<FoundryResource> target,
+        params AzureAIFoundryRole[] roles)
+        where T : IResource
+    {
+        if (roles is null || roles.Length == 0)
+        {
+            return builder.WithRoleAssignments(target, Array.Empty<CognitiveServicesBuiltInRole>());
+        }
+
+        var builtInRoles = new CognitiveServicesBuiltInRole[roles.Length];
+        for (var i = 0; i < roles.Length; i++)
+        {
+            builtInRoles[i] = roles[i] switch
+            {
+                AzureAIFoundryRole.CognitiveServicesOpenAIContributor => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor,
+                AzureAIFoundryRole.CognitiveServicesOpenAIUser => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser,
+                AzureAIFoundryRole.CognitiveServicesUser => CognitiveServicesBuiltInRole.CognitiveServicesUser,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureAIFoundryRole)} value.", nameof(roles))
+            };
+        }
+
+        return builder.WithRoleAssignments(target, builtInRoles);
     }
 
     private static IResourceBuilder<FoundryResource> WithInitializer(this IResourceBuilder<FoundryResource> builder)

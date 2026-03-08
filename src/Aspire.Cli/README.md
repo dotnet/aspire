@@ -79,8 +79,8 @@ aspire new
 # Run the apphost
 aspire run
 
-# Run in the background (useful for CI and agent environments)
-aspire run --detach --isolated
+# Start in the background (useful for CI and agent environments)
+aspire start --isolated
 
 # Check resource status
 aspire describe
@@ -96,7 +96,7 @@ aspire logs webapi
 aspire stop
 
 # Wait for a resource to be healthy (CI/scripts)
-aspire run --detach
+aspire start
 aspire wait webapi --timeout 60
 
 # Add an integration

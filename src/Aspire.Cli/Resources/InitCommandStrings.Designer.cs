@@ -116,5 +116,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ResolvingTemplateVersion", resourceCulture);
             }
         }
+
+        internal static string SolutionAndProjectInSameDirectory {
+            get {
+                return ResourceManager.GetString("SolutionAndProjectInSameDirectory", resourceCulture);
+            }
+        }
     }
 }

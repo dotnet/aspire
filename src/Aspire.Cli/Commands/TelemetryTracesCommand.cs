@@ -7,9 +7,9 @@ using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Otlp.Serialization;
 using Aspire.Cli.Utils;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
@@ -238,7 +238,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
     private void DisplayTracesTable(string json, IReadOnlyList<IOtlpResource> allResources)
     {
-        var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var response = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceSpans = response?.Data?.ResourceSpans;
 
         if (resourceSpans is null or { Length: 0 })
@@ -311,7 +311,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
     private void DisplayTraceDetails(string json, string traceId, IReadOnlyList<IOtlpResource> allResources)
     {
-        var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var response = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceSpans = response?.Data?.ResourceSpans;
 
         // Collect all spans with their metadata

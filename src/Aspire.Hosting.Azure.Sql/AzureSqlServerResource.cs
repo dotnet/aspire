@@ -27,6 +27,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithConnectionString, IAzurePrivateEndpointTarget, IAzurePrivateEndpointTargetNotification
 {
     private const string AciSubnetDelegationServiceId = "Microsoft.ContainerInstance/containerGroups";
@@ -58,16 +59,22 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     /// <summary>
     /// Gets the fully qualified domain name (FQDN) output reference from the bicep template for the Azure SQL Server resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts. Use <see cref="HostName"/> instead.</remarks>
+    [AspireExportIgnore]
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
     /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the "id" output reference for the resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public BicepOutputReference Id => new("id", this);
 
     private BicepOutputReference AdminName => new("sqlServerAdminName", this);
@@ -155,11 +162,15 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
     public bool IsContainer => InnerResource is not null;
 
     /// <inheritdoc />
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the Azure SQL database resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts. Use <see cref="Databases"/> instead.</remarks>
+    [AspireExportIgnore]
     public IReadOnlyDictionary<string, AzureSqlDatabaseResource> AzureSqlDatabases => _databases;
 
     /// <summary>
