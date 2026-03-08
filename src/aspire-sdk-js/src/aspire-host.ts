@@ -1,4 +1,4 @@
-import type { ChildProcess } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { aspireExec, aspireJson, aspireFollow, aspireStream } from './cli.js';
 import type {
   StartOptions,
@@ -174,6 +174,28 @@ export class AspireHost {
     return aspireFollow<LogEntry>(args, {
       appHost: this.appHost,
     });
+  }
+
+  /**
+   * Pipe live logs to a writable stream (e.g. `process.stdout`).
+   * Runs `aspire logs --follow` in the background as plain text.
+   * Returns the child process — call `.kill()` to stop.
+   */
+  followLogs(resourceName?: string, output: NodeJS.WritableStream = process.stdout): ChildProcess {
+    const args = ['logs', '--follow', '--non-interactive', '--nologo'];
+    if (resourceName) {
+      args.splice(1, 0, resourceName);
+    }
+    args.push('--apphost', this.appHost);
+
+    const child = spawn('aspire', args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.pipe(output, { end: false });
+    child.stderr.pipe(output, { end: false });
+
+    return child;
   }
 
   // ---------------------------------------------------------------------------
