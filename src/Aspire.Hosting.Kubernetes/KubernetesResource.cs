@@ -479,13 +479,18 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
     private async Task<object> BuildHelmTernary(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, ReferenceExpression expr, ParameterResource conditionParam, bool embedded)
     {
-        // Process both branches to see if they resolve to plain strings.
+        // Process both branches to get their rendered values.
         var whenTrueResult = await ProcessValueAsync(context, executionContext, expr.WhenTrue!, embedded).ConfigureAwait(false);
         var whenFalseResult = await ProcessValueAsync(context, executionContext, expr.WhenFalse!, embedded).ConfigureAwait(false);
 
-        // If either branch produced a HelmValue (e.g., references another parameter),
-        // fall back to static resolution since nested Helm expressions aren't supported.
-        if (whenTrueResult is HelmValue || whenFalseResult is HelmValue)
+        var whenTrueStr = whenTrueResult.ToString() ?? string.Empty;
+        var whenFalseStr = whenFalseResult.ToString() ?? string.Empty;
+
+        // If either branch resolved to a Helm expression (e.g., a parameter reference like
+        // {{ .Values.config.x }}), fall back to static resolution since nesting Helm
+        // expressions inside a ternary produces invalid Go templates.
+        if (whenTrueStr.ContainsHelmExpression() || whenFalseStr.ContainsHelmExpression()
+            || whenTrueResult is HelmValue || whenFalseResult is HelmValue)
         {
             var conditionContext = new ValueProviderContext { ExecutionContext = executionContext };
             var conditionStr = await expr.Condition!.GetValueAsync(conditionContext, default).ConfigureAwait(false);
@@ -510,11 +515,11 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         // Extract the values path (e.g., .Values.parameters.myapp.enable_tls) from {{ expression }}.
         var conditionPath = HelmExtensions.ScalarExpressionPattern().Match(paramExpression).Value.Trim();
 
-        var whenTrueStr = EscapeGoTemplateString(whenTrueResult.ToString() ?? string.Empty);
-        var whenFalseStr = EscapeGoTemplateString(whenFalseResult.ToString() ?? string.Empty);
-        var matchStr = EscapeGoTemplateString(expr.MatchValue ?? string.Empty);
+        var escapedTrue = EscapeGoTemplateString(whenTrueStr);
+        var escapedFalse = EscapeGoTemplateString(whenFalseStr);
+        var escapedMatch = EscapeGoTemplateString(expr.MatchValue ?? string.Empty);
 
-        var helmExpression = $"ternary \"{whenTrueStr}\" \"{whenFalseStr}\" (eq {conditionPath} \"{matchStr}\") {HelmExtensions.PipelineDelimiter} quote"
+        var helmExpression = $"ternary \"{escapedTrue}\" \"{escapedFalse}\" (eq {conditionPath} \"{escapedMatch}\") {HelmExtensions.PipelineDelimiter} quote"
             .ToHelmExpression();
 
         return HelmValue.Literal(helmExpression);

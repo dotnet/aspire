@@ -562,6 +562,63 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
+    [Fact]
+    public async Task PublishAsync_ConditionalWithParameterBranch_FallsBackToStaticResolution()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // The condition is a ParameterResource, but one branch also references a parameter.
+        // This forces the fallback to static resolution because nested Helm expressions
+        // (a ternary whose branch value is itself a {{ .Values.x }} reference) aren't supported.
+        var enableTls = builder.AddParameter("enable-tls", "True", publishValueAsDefault: true);
+        var tlsSuffix = builder.AddParameter("tls-suffix", ",ssl=true", publishValueAsDefault: true);
+
+        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment(context =>
+            {
+                var conditional = ReferenceExpression.CreateConditional(
+                    enableTls.Resource,
+                    bool.TrueString,
+                    ReferenceExpression.Create($"{tlsSuffix.Resource}"),
+                    ReferenceExpression.Create($",ssl=false"));
+
+                context.EnvironmentVariables["TLS_SUFFIX"] = conditional;
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/config.yaml",
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
     private sealed class TestConditionProvider(string value) : IValueProvider, IManifestExpressionProvider
     {
         public string ValueExpression => "test-condition";
