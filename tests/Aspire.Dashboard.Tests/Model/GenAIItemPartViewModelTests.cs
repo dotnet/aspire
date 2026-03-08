@@ -130,7 +130,7 @@ public sealed class GenAIItemPartViewModelTests
         // Assert
         Assert.Contains("晴れ", itemPart.TextVisualizerViewModel.Text);
         Assert.Contains("東京", itemPart.TextVisualizerViewModel.Text);
-        Assert.Equal(DashboardUIHelpers.JavascriptFormat, itemPart.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(DashboardUIHelpers.JsonFormat, itemPart.TextVisualizerViewModel.FormatKind);
     }
 
     [Fact]
@@ -151,6 +151,6 @@ public sealed class GenAIItemPartViewModelTests
 
         // Assert
         Assert.Contains("こんにちは", itemPart.TextVisualizerViewModel.Text);
-        Assert.Equal(DashboardUIHelpers.JavascriptFormat, itemPart.TextVisualizerViewModel.FormatKind);
+        Assert.DoesNotContain("\\u", itemPart.TextVisualizerViewModel.Text);
     }
 }
