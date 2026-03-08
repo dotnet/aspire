@@ -397,6 +397,40 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
                 continue;
             }
 
+            // Handle-backed AspireList/AspireDict parameters: serialize via their handle
+            if (IsAspireListOrDictParam(parameter.Type))
+            {
+                if (parameter.IsOptional)
+                {
+                    WriteLine($"        if let Some(ref v) = {paramName} {{");
+                    WriteLine($"            args.insert(\"{parameter.Name}\".to_string(), v.handle().to_json());");
+                    WriteLine("        }");
+                }
+                else
+                {
+                    WriteLine($"        args.insert(\"{parameter.Name}\".to_string(), {paramName}.handle().to_json());");
+                }
+                continue;
+            }
+
+            // Collections of handle types: serialize each element via its handle
+            if (IsCollectionOfHandleTypes(parameter.Type))
+            {
+                if (parameter.IsOptional)
+                {
+                    WriteLine($"        if let Some(ref v) = {paramName} {{");
+                    WriteLine($"            let handles: Vec<Value> = v.iter().map(|item| item.handle().to_json()).collect();");
+                    WriteLine($"            args.insert(\"{parameter.Name}\".to_string(), Value::Array(handles));");
+                    WriteLine("        }");
+                }
+                else
+                {
+                    WriteLine($"        let handles: Vec<Value> = {paramName}.iter().map(|item| item.handle().to_json()).collect();");
+                    WriteLine($"        args.insert(\"{parameter.Name}\".to_string(), Value::Array(handles));");
+                }
+                continue;
+            }
+
             if (parameter.IsOptional)
             {
                 WriteLine($"        if let Some(ref v) = {paramName} {{");
@@ -439,6 +473,13 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
                 // Handle-backed AspireList
                 WriteLine($"        let handle: Handle = serde_json::from_value(result)?;");
                 WriteLine($"        Ok(AspireList::new(handle, self.client.clone()))");
+            }
+            else if (IsCollectionOfHandleTypes(returnTypeRef))
+            {
+                // Readonly list of handle types: deserialize as Vec<Handle> and wrap each
+                var elementType = MapTypeRefToRust(returnTypeRef!.ElementType, false);
+                WriteLine($"        let handles: Vec<Handle> = serde_json::from_value(result)?;");
+                WriteLine($"        Ok(handles.into_iter().map(|h| {elementType}::new(h, self.client.clone())).collect())");
             }
             else
             {
@@ -812,6 +853,17 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         typeRef?.Category == AtsTypeCategory.Handle
         && typeRef.TypeId != AtsConstants.ReferenceExpressionTypeId
         && !IsCancellationTokenTypeId(typeRef.TypeId);
+
+    private static bool IsCollectionOfHandleTypes(AtsTypeRef? typeRef) =>
+        typeRef is not null
+        && (typeRef.Category == AtsTypeCategory.Array || (typeRef.Category == AtsTypeCategory.List && typeRef.IsReadOnly))
+        && typeRef.ElementType is not null
+        && IsHandleType(typeRef.ElementType);
+
+    private static bool IsAspireListOrDictParam(AtsTypeRef? typeRef) =>
+        typeRef is not null
+        && ((typeRef.Category == AtsTypeCategory.List && !typeRef.IsReadOnly)
+            || (typeRef.Category == AtsTypeCategory.Dict && !typeRef.IsReadOnly));
 
     private static bool IsCancellationToken(AtsParameterInfo parameter) =>
         IsCancellationTokenTypeId(parameter.Type?.TypeId);
