@@ -494,7 +494,7 @@ app.MapGet("/genai-trace", async () =>
                   {
                     "type": "tool_call",
                     "name": "get_weather",
-                    "call_id": "call_abc123",
+                    "id": "call_abc123",
                     "arguments": "{\"location\": \"東京\", \"unit\": \"celsius\"}"
                   }
                 ]
@@ -504,7 +504,7 @@ app.MapGet("/genai-trace", async () =>
                 "parts": [
                   {
                     "type": "tool_call_response",
-                    "call_id": "call_abc123",
+                    "id": "call_abc123",
                     "response": "- First (最初)\r\n- Second (二番目)\r\n- 天気予報: 東京は晴れ、気温25度です。"
                   }
                 ]
