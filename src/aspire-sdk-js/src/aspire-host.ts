@@ -55,6 +55,9 @@ export class AspireHost {
     if (options.noBuild) {
       args.push('--no-build');
     }
+    if (options.isolated) {
+      args.push('--isolated');
+    }
     if (options.args?.length) {
       args.push('--', ...options.args);
     }

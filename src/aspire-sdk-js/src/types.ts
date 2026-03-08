@@ -93,6 +93,8 @@ export interface StartOptions {
   args?: string[];
   /** Don't build before starting. */
   noBuild?: boolean;
+  /** Run with randomized ports and isolated user secrets, allowing multiple instances simultaneously. */
+  isolated?: boolean;
 }
 
 /** Options for waiting on a resource. */
