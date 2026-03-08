@@ -1,0 +1,5 @@
+﻿parameters: {}
+secrets: {}
+config:
+  myapp:
+    TLS_SUFFIX: ",ssl=true"

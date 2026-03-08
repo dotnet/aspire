@@ -429,6 +429,20 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
             if (value is ReferenceExpression expr)
             {
+                // Handle conditional expressions by resolving the condition to its
+                // actual value. Kubernetes YAML cannot represent conditionals, so
+                // the branch must be selected at generation time.
+                if (expr.IsConditional)
+                {
+                    var conditionContext = new ValueProviderContext { ExecutionContext = executionContext };
+                    var conditionStr = await expr.Condition!.GetValueAsync(conditionContext, default).ConfigureAwait(false);
+
+                    var branch = string.Equals(conditionStr, expr.MatchValue, StringComparison.OrdinalIgnoreCase)
+                        ? expr.WhenTrue!
+                        : expr.WhenFalse!;
+                    return await ProcessValueAsync(context, executionContext, branch, embedded).ConfigureAwait(false);
+                }
+
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
                     return (await ProcessValueAsync(context, executionContext, expr.ValueProviders[0], true).ConfigureAwait(false)).ToString() ?? string.Empty;

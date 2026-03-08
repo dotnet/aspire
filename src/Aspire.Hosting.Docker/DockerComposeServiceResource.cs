@@ -110,7 +110,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
     /// <inheritdoc/>
     public DockerComposeEnvironmentResource Parent => _composeEnvironmentResource;
 
-    internal Service BuildComposeService()
+    internal async Task<Service> BuildComposeServiceAsync()
     {
         var composeService = new Service
         {
@@ -125,7 +125,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         SetContainerName(composeService);
         SetEntryPoint(composeService);
         SetPullPolicy(composeService);
-        AddEnvironmentVariablesAndCommandLineArgs(composeService);
+        await AddEnvironmentVariablesAndCommandLineArgsAsync(composeService).ConfigureAwait(false);
         AddPorts(composeService);
         AddVolumes(composeService);
         SetDependsOn(composeService);
@@ -215,13 +215,13 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         }
     }
 
-    private void AddEnvironmentVariablesAndCommandLineArgs(Service composeService)
+    private async Task AddEnvironmentVariablesAndCommandLineArgsAsync(Service composeService)
     {
         var env = new Dictionary<string, string>();
 
         foreach (var kv in EnvironmentVariables)
         {
-            var value = this.ProcessValue(kv.Value);
+            var value = await this.ProcessValueAsync(kv.Value).ConfigureAwait(false);
 
             env[kv.Key] = value?.ToString() ?? string.Empty;
         }
@@ -238,7 +238,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
         foreach (var arg in Args)
         {
-            var value = this.ProcessValue(arg);
+            var value = await this.ProcessValueAsync(arg).ConfigureAwait(false);
 
             if (value is not string str)
             {
