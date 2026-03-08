@@ -409,6 +409,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
+        // Ensure all builder type IDs have handle type aliases.
+        // CreateBuilderModels discovers additional resource types via CollectAllReferencedTypes
+        // (e.g. types that appear only in return types or parameters but aren't direct capability targets).
+        // Without this, the builder class references a handle type that was never declared.
+        foreach (var builder in builders)
+        {
+            if (!dtoTypeIds.Contains(builder.TypeId))
+            {
+                typeIds.Add(builder.TypeId);
+            }
+        }
+
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 

@@ -819,21 +819,18 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Detects method name collisions after capability expansion and renames colliding methods
-    /// with numeric suffixes (1, 2, ...) to disambiguate them deterministically.
-    /// Since ATS doesn't support method overloading, each (TargetTypeId, MethodName) pair must be unique.
-    /// The first capability (sorted by CapabilityId) keeps the original name; subsequent ones are renamed.
+    /// Detects method name collisions after capability expansion and removes colliding methods,
+    /// keeping only the first one (sorted by CapabilityId). A warning is emitted for each
+    /// removed capability. Since ATS doesn't support method overloading, each (TargetTypeId, MethodName)
+    /// pair must be unique. Use [AspireExport(MethodName = "uniqueName")] to resolve collisions.
     /// </summary>
     private static void FilterMethodNameCollisions(List<AtsCapabilityInfo> capabilities, List<AtsDiagnostic> diagnostics)
     {
-        // Find all MethodName values that have collisions on any target type.
-        // Group by MethodName first, then check for collisions within each group.
         var capabilitiesWithTargets = capabilities
             .Where(c => c.ExpandedTargetTypes.Count > 0)
             .SelectMany(c => c.ExpandedTargetTypes.Select(t => (Target: t.TypeId, Capability: c)))
             .ToList();
 
-        // Find (TargetTypeId, MethodName) pairs with collisions
         var collisionGroups = capabilitiesWithTargets
             .GroupBy(x => (x.Target, x.Capability.MethodName))
             .Where(g => g.Count() > 1)
@@ -845,9 +842,7 @@ internal static class AtsCapabilityScanner
         }
 
         // Collect all MethodName values that have collisions and their colliding CapabilityIds.
-        // We assign suffixes per MethodName (not per target type) so that a capability gets
-        // a consistent name across all the target types it expands to.
-        var collidingMethodNames = new Dictionary<string, List<string>>(); // MethodName -> sorted unique CapabilityIds
+        var collidingMethodNames = new Dictionary<string, List<string>>();
 
         foreach (var g in collisionGroups)
         {
@@ -869,31 +864,26 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        // Sort capability IDs deterministically and assign suffixes
+        var capabilitiesToRemove = new HashSet<string>();
+
         foreach (var (methodName, capIds) in collidingMethodNames)
         {
             capIds.Sort(StringComparer.Ordinal);
 
             var conflictingIdsStr = string.Join(", ", capIds);
 
-            // First capability keeps original name, others get numeric suffixes
+            // First capability keeps original name, others are removed
             for (var i = 1; i < capIds.Count; i++)
             {
-                var capId = capIds[i];
-                var capability = capabilities.First(c => c.CapabilityId == capId);
-                var newMethodName = $"{methodName}{i}";
-                capability.MethodName = newMethodName;
+                capabilitiesToRemove.Add(capIds[i]);
 
                 diagnostics.Add(AtsDiagnostic.Warning(
-                    $"Method '{methodName}' has collisions ({conflictingIdsStr}). '{capId}' was renamed to '{newMethodName}'. Use [AspireExport(MethodName = \"uniqueName\")] to set an explicit name.",
-                    capability.SourceLocation ?? capId));
+                    $"Method '{methodName}' has collisions ({conflictingIdsStr}). '{capIds[i]}' was removed. Use [AspireExport(MethodName = \"uniqueName\")] to set an explicit name.",
+                    capIds[i]));
             }
-
-            // Emit a summary warning for the collision
-            diagnostics.Add(AtsDiagnostic.Warning(
-                $"Method '{methodName}' has {capIds.Count} colliding definitions ({conflictingIdsStr}). The first definition keeps the original name; others receive numeric suffixes.",
-                capIds[0]));
         }
+
+        capabilities.RemoveAll(c => capabilitiesToRemove.Contains(c.CapabilityId));
     }
 
     /// <summary>
