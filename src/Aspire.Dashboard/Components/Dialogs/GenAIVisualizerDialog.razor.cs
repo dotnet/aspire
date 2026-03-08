@@ -223,6 +223,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         Content = dialogViewModel;
         _currentSpanContextIndex = _contextSpans.IndexOf(newSpan);
 
+        if (OverviewActiveView is OverviewViewKind.Tools && Content.ToolDefinitions.Count == 0)
+        {
+            OverviewActiveView = OverviewViewKind.InputOutput;
+        }
+        else if (OverviewActiveView is OverviewViewKind.Evaluations && Content.Evaluations.Count == 0)
+        {
+            OverviewActiveView = OverviewViewKind.InputOutput;
+        }
+
         return true;
     }
 

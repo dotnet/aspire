@@ -301,7 +301,7 @@
                                 @if (Content.ToolDefinitions.Count > 0)
                                 {
                                     <FluentAccordion Class="tools-list">
-                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function"))
+                                        @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function").OrderBy(t => t.ToolDefinition.Name, StringComparer.OrdinalIgnoreCase))
                                         {
                                             <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
                                                 <HeadingTemplate>
@@ -310,13 +310,16 @@
                                                             @toolVM.ToolDefinition.Type
                                                         </FluentBadge>
                                                         <span class="tool-name">@toolVM.ToolDefinition.Name</span>
-                                                        @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
-                                                        {
-                                                            <span>@FormatHelpers.TruncateText(toolVM.ToolDefinition.Description, maxLength: 100)</span>
-                                                        }
                                                     </div>
                                                 </HeadingTemplate>
                                                 <ChildContent>
+                                                    @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
+                                                    {
+                                                        <div class="tool-description">
+                                                            <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@toolVM.ToolDefinition.Description" />
+                                                        </div>
+                                                        <hr />
+                                                    }
                                                     @if (toolVM.ToolDefinition.Parameters is { Properties: { Count: > 0 } properties })
                                                     {
                                                         <table class="tool-parameters-table">
