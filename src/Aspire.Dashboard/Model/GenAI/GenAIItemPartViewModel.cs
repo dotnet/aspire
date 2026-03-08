@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Components.Controls;
@@ -19,6 +20,11 @@ public sealed class GenAIPartPropertyViewModel : IPropertyGridItem
 
 public sealed class GenAIItemPartViewModel
 {
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public MessagePart? MessagePart { get; init; }
     public string? ErrorMessage { get; init; }
     public required TextVisualizerViewModel TextVisualizerViewModel { get; init; }
@@ -68,7 +74,7 @@ public sealed class GenAIItemPartViewModel
                 null => string.Empty,
                 JsonObject obj when obj.Count == 0 => string.Empty,
                 JsonArray arr when arr.Count == 0 => string.Empty,
-                _ => toolCallRequestPart.Arguments.ToJsonString()
+                _ => toolCallRequestPart.Arguments.ToJsonString(s_jsonSerializerOptions)
             };
 
             return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({argumentsText})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
@@ -80,13 +86,13 @@ public sealed class GenAIItemPartViewModel
             // And it allows possible Markdown content inside the string to be formatted.
             var toolResponseContent = (toolCallResponsePart.Response?.GetValueKind() == JsonValueKind.String)
                 ? toolCallResponsePart.Response.GetValue<string>()
-                : toolCallResponsePart.Response?.ToJsonString() ?? string.Empty;
+                : toolCallResponsePart.Response?.ToJsonString(s_jsonSerializerOptions) ?? string.Empty;
 
             return new TextVisualizerViewModel(toolResponseContent, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
         }
 
         var additionalProperties = p is GenericPart genericPart ? genericPart.AdditionalProperties ?? [] : [];
-        var content = additionalProperties.Count > 0 ? ToJsonObject(additionalProperties).ToJsonString() : string.Empty;
+        var content = additionalProperties.Count > 0 ? ToJsonObject(additionalProperties).ToJsonString(s_jsonSerializerOptions) : string.Empty;
 
         return new TextVisualizerViewModel(content, indentText: true);
     }
