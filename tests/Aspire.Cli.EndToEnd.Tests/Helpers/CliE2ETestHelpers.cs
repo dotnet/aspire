@@ -622,6 +622,14 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // Set TERM and other environment variables needed by all Docker tests.
+        // TERM=xterm is also in the Dockerfile but re-exporting ensures it
+        // survives any login-shell profile resets.
+        builder
+            .Type("export ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         if (workspace is not null)
         {
             builder
@@ -669,11 +677,12 @@ internal static class CliE2ETestHelpers
             case DockerInstallMode.PullRequest:
                 var prNumber = GetRequiredPrNumber();
                 // Use the local script instead of downloading from raw.githubusercontent.com.
+                // The PR bundle installs binaries to both ~/.aspire/bin and ~/.aspire.
                 return builder
                     .Type($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber}")
                     .Enter()
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300))
-                    .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+                    .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH")
                     .Enter()
                     .WaitForSuccessPrompt(counter);
 

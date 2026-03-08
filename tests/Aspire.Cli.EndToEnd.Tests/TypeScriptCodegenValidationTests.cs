@@ -18,13 +18,12 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
     [Fact]
     public async Task RestoreGeneratesSdkFiles()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot, workspace: workspace);
 
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
@@ -39,15 +38,9 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         var waitingForRestoreSuccess = new CellPatternSearcher()
             .Find("SDK code restored successfully");
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            // Polyglot tests require the bundle because the AppHost server is bundled
-            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireBundleEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Enable polyglot support
         sequenceBuilder.EnablePolyglotSupport(counter);

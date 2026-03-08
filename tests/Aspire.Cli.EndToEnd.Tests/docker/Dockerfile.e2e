@@ -77,14 +77,15 @@ COPY eng/scripts/get-aspire-cli.sh /opt/aspire-scripts/
 COPY eng/scripts/get-aspire-cli-pr.sh /opt/aspire-scripts/
 RUN chmod +x /opt/aspire-scripts/*.sh
 
-# Copy the bundle archive from the build stage.
-COPY --from=build /repo/artifacts/bundle/aspire-*-linux-x64.tar.gz /tmp/
+# Copy the bundle directory from the build stage.
+# When SKIP_SOURCE_BUILD=true the directory is empty; the conditional RUN below handles both cases.
+COPY --from=build /repo/artifacts/bundle /tmp/bundle
 
-# Install the CLI from the bundle archive (no-op when SKIP_SOURCE_BUILD=true).
-RUN if ls /tmp/aspire-*-linux-x64.tar.gz 1>/dev/null 2>&1; then \
+# Install the CLI from the bundle archive (no-op when the bundle directory is empty).
+RUN if ls /tmp/bundle/aspire-*-linux-x64.tar.gz 1>/dev/null 2>&1; then \
       mkdir -p /root/.aspire && \
-      tar -xzf /tmp/aspire-*-linux-x64.tar.gz -C /root/.aspire && \
-      rm -f /tmp/aspire-*-linux-x64.tar.gz; \
+      tar -xzf /tmp/bundle/aspire-*-linux-x64.tar.gz -C /root/.aspire && \
+      rm -f /tmp/bundle/aspire-*-linux-x64.tar.gz; \
     fi
 
 # Create the workspace mount point.
