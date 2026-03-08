@@ -16,6 +16,7 @@ public class HelmExtensionsTests
     [InlineData("{{ .Values.config.myapp.rate | float64 }}", false, ScalarStyle.ForcePlain)]
     [InlineData("{{ ternary \"a\" \"b\" (eq .Values.parameters.myapp.flag \"True\") | quote }}", false, ScalarStyle.ForcePlain)]
     [InlineData("{{ ternary \",ssl=true\" \",ssl=false\" (eq .Values.parameters.myapp.enable_tls \"True\") | quote }}", false, ScalarStyle.ForcePlain)]
+    [InlineData("{{ if eq .Values.parameters.myapp.enable_tls \"True\" }}{{ .Values.config.myapp.tls_suffix | quote }}{{ else }}{{ \",ssl=false\" | quote }}{{ end }}", false, ScalarStyle.ForcePlain)]
     public void ShouldDoubleQuoteString_ReturnsExpectedResult(string value, bool expectedShouldApply, ScalarStyle? expectedStyle)
     {
         var (shouldApply, style) = HelmExtensions.ShouldDoubleQuoteString(value);
@@ -27,17 +28,17 @@ public class HelmExtensionsTests
     [Theory]
     [InlineData("{{ ternary \"a\" \"b\" true }}")]
     [InlineData("{{ ternary \"val1\" \"val2\" (eq .Values.x \"y\") | quote }}")]
-    public void HelmFlowControlPattern_MatchesTernaryExpressions(string value)
+    [InlineData("{{ if eq .Values.parameters.myapp.flag \"True\" }}{{ .Values.config.myapp.suffix | quote }}{{ else }}{{ \"fallback\" | quote }}{{ end }}")]
+    public void HelmFlowControlPattern_MatchesFlowControlExpressions(string value)
     {
-        Assert.Matches(@"^\{\{\s*ternary\b", value);
+        Assert.Matches(HelmExtensions.HelmFlowControlPattern(), value);
     }
 
     [Theory]
     [InlineData("{{ .Values.config.myapp.key }}")]
     [InlineData("plain text")]
-    [InlineData("{{ if eq .Values.x \"y\" }}a{{ else }}b{{ end }}")]
-    public void HelmFlowControlPattern_DoesNotMatchNonTernaryExpressions(string value)
+    public void HelmFlowControlPattern_DoesNotMatchNonFlowControlExpressions(string value)
     {
-        Assert.DoesNotMatch(@"^\{\{\s*ternary\b", value);
+        Assert.DoesNotMatch(HelmExtensions.HelmFlowControlPattern(), value);
     }
 }

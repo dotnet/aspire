@@ -563,16 +563,16 @@ public class KubernetesPublisherTests()
     }
 
     [Fact]
-    public async Task PublishAsync_ConditionalWithParameterBranch_FallsBackToStaticResolution()
+    public async Task PublishAsync_ConditionalWithParameterBranch_UsesIfElseSyntax()
     {
         using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
 
-        // The condition is a ParameterResource, but one branch also references a parameter.
-        // This forces the fallback to static resolution because nested Helm expressions
-        // (a ternary whose branch value is itself a {{ .Values.x }} reference) aren't supported.
+        // The condition is a ParameterResource, and one branch also references a parameter.
+        // This uses {{ if eq ... }}...{{ else }}...{{ end }} syntax since ternary arguments
+        // can't contain nested Helm expressions.
         var enableTls = builder.AddParameter("enable-tls", "True", publishValueAsDefault: true);
         var tlsSuffix = builder.AddParameter("tls-suffix", ",ssl=true", publishValueAsDefault: true);
 

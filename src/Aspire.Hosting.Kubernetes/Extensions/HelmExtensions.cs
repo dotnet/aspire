@@ -91,15 +91,24 @@ internal static partial class HelmExtensions
 
     public static (bool, ScalarStyle?) ShouldDoubleQuoteString(string value)
     {
+        // Flow control expressions (ternary, if/else) must be rendered as plain YAML
+        // so Helm can process them as template expressions without YAML escaping.
+        // This check runs first because if/else blocks contain multiple {{ }} pairs
+        // and won't match ScalarExpressionPattern.
+        if (HelmFlowControlPattern().IsMatch(value))
+        {
+            return (false, ScalarStyle.ForcePlain);
+        }
+
         if (!ScalarExpressionPattern().IsMatch(value))
         {
             return (true, null);
         }
 
         // Scalar Helm expressions that contain type conversions (| int, | float64, etc.)
-        // or flow control (ternary) must be rendered as plain (unquoted) YAML so that Helm
-        // can process them as template expressions without YAML escaping interference.
-        if (EndWithNonStringTypePattern().IsMatch(value) || HelmFlowControlPattern().IsMatch(value))
+        // must be rendered as plain (unquoted) YAML so that Helm can process them as
+        // template expressions without YAML escaping interference.
+        if (EndWithNonStringTypePattern().IsMatch(value))
         {
             return (false, ScalarStyle.ForcePlain);
         }
@@ -107,8 +116,8 @@ internal static partial class HelmExtensions
         return (true, null);
     }
 
-    [GeneratedRegex(@"^\{\{\s*ternary\b")]
-    private static partial Regex HelmFlowControlPattern();
+    [GeneratedRegex(@"^\{\{\s*(ternary|if)\b")]
+    internal static partial Regex HelmFlowControlPattern();
 
     [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
     private static partial Regex EndWithNonStringTypePattern();
