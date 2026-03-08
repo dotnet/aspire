@@ -83,7 +83,8 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
     {
         var lines = resourceName is null
             ? LogLines
-            : LogLines.Where(l => l.ResourceName == resourceName);
+            : LogLines.Where(l => string.Equals(l.ResourceName, resourceName, StringComparison.OrdinalIgnoreCase)
+                                || l.ResourceName.StartsWith(resourceName + "-", StringComparison.OrdinalIgnoreCase));
 
         foreach (var line in lines)
         {

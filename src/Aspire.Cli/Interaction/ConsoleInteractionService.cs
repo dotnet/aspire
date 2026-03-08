@@ -190,7 +190,7 @@ internal class ConsoleInteractionService : IInteractionService
         return await _outConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
@@ -201,21 +201,29 @@ internal class ConsoleInteractionService : IInteractionService
             throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
         }
 
-        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
-        if (!choices.Any())
+        var choicesList = choices.ToList();
+
+        if (choicesList.Count == 0)
         {
             throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
         }
 
+        var preSelectedSet = preSelected is not null ? new HashSet<T>(preSelected) : null;
+
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
             .UseConverter(choiceFormatter)
-            .AddChoices(choices)
             .PageSize(10);
 
-        if (optional)
+        prompt.Required = !optional;
+
+        foreach (var choice in choicesList)
         {
-            prompt.NotRequired();
+            var item = prompt.AddChoice(choice);
+            if (preSelectedSet?.Contains(choice) == true)
+            {
+                item.Select();
+            }
         }
 
         var result = await _outConsole.PromptAsync(prompt, cancellationToken);

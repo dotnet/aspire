@@ -73,30 +73,7 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Create an Aspire project (accept all defaults).
-        var starterAppTemplate = new CellPatternSearcher().FindPattern("> Starter App");
-        var projectNamePrompt = new CellPatternSearcher().Find("Enter the project name");
-        var outputPathPrompt = new CellPatternSearcher().Find("Enter the output path");
-        var urlsPrompt = new CellPatternSearcher().Find("*.dev.localhost URLs");
-        var redisPrompt = new CellPatternSearcher().Find("Use Redis Cache");
-        var testProjectPrompt = new CellPatternSearcher().Find("Do you want to create a test project?");
-
-        sequenceBuilder
-            .Type("aspire new")
-            .Enter()
-            .WaitUntil(s => starterAppTemplate.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Enter() // Select Starter App template
-            .WaitUntil(s => projectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Type("TestProject")
-            .Enter()
-            .WaitUntil(s => outputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default output path
-            .WaitUntil(s => urlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default URL setting
-            .WaitUntil(s => redisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default Redis setting
-            .WaitUntil(s => testProjectPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default test project setting
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestProject", counter);
 
         // Step 3: Navigate into the project and create .claude folder to trigger Claude Code detection.
         sequenceBuilder

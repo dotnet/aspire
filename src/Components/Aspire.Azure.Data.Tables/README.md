@@ -54,7 +54,7 @@ And then the connection information will be retrieved from the `ConnectionString
 
 #### Service URI
 
-The recommended approach is to use a ServiceUri, which works with the `AzureDataTablesSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use a ServiceUri, which works with the `AzureDataTablesSettings.Credential` property to establish a connection. If no credential is configured, a [default TokenCredential is created based on the current environment](https://aka.ms/aspire/default-azure-credential).
 
 ```json
 {

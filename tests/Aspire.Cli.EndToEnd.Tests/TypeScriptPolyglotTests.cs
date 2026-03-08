@@ -73,6 +73,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
             .Enter() // select TypeScript
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .DeclineAgentInitPrompt()
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Create a Vite app using npm create vite

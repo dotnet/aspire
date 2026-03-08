@@ -121,6 +121,7 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
                 .Wait(TimeSpan.FromSeconds(5))
                 .Enter()
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
