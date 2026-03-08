@@ -6938,6 +6938,23 @@ func (s *IDistributedApplicationBuilder) AddConnectionStringBuilder(name string,
 	return result.(*ConnectionStringResource), nil
 }
 
+// AddContainerRegistry adds a container registry resource
+func (s *IDistributedApplicationBuilder) AddContainerRegistry(name string, endpoint *ParameterResource, repository *ParameterResource) (*ContainerRegistryResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["endpoint"] = SerializeValue(endpoint)
+	if repository != nil {
+		reqArgs["repository"] = SerializeValue(repository)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addContainerRegistry", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerRegistryResource), nil
+}
+
 // AddContainer adds a container resource
 func (s *IDistributedApplicationBuilder) AddContainer(name string, image string) (*ContainerResource, error) {
 	reqArgs := map[string]any{
@@ -6998,6 +7015,20 @@ func (s *IDistributedApplicationBuilder) AddExecutable(name string, command stri
 	return result.(*ExecutableResource), nil
 }
 
+// AddExternalService adds an external service resource
+func (s *IDistributedApplicationBuilder) AddExternalService(name string, url string) (*ExternalServiceResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["url"] = SerializeValue(url)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addExternalService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExternalServiceResource), nil
+}
+
 // AppHostDirectory gets the AppHostDirectory property
 func (s *IDistributedApplicationBuilder) AppHostDirectory() (*string, error) {
 	reqArgs := map[string]any{
@@ -7046,6 +7077,20 @@ func (s *IDistributedApplicationBuilder) Build() (*DistributedApplication, error
 	return result.(*DistributedApplication), nil
 }
 
+// AddParameter adds a parameter resource
+func (s *IDistributedApplicationBuilder) AddParameter(name string, secret bool) (*ParameterResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["secret"] = SerializeValue(secret)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addParameter", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ParameterResource), nil
+}
+
 // AddParameterFromConfiguration adds a parameter sourced from configuration
 func (s *IDistributedApplicationBuilder) AddParameterFromConfiguration(name string, configurationKey string, secret bool) (*ParameterResource, error) {
 	reqArgs := map[string]any{
@@ -7059,6 +7104,20 @@ func (s *IDistributedApplicationBuilder) AddParameterFromConfiguration(name stri
 		return nil, err
 	}
 	return result.(*ParameterResource), nil
+}
+
+// AddConnectionString adds a connection string resource
+func (s *IDistributedApplicationBuilder) AddConnectionString(name string, environmentVariableName string) (*IResourceWithConnectionString, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["environmentVariableName"] = SerializeValue(environmentVariableName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addConnectionString", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithConnectionString), nil
 }
 
 // AddProject adds a .NET project resource

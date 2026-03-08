@@ -5250,6 +5250,18 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         return (ConnectionStringResource) getClient().invokeCapability("Aspire.Hosting/addConnectionStringBuilder", reqArgs);
     }
 
+    /** Adds a container registry resource */
+    public ContainerRegistryResource addContainerRegistry(String name, ParameterResource endpoint, ParameterResource repository) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("endpoint", AspireClient.serializeValue(endpoint));
+        if (repository != null) {
+            reqArgs.put("repository", AspireClient.serializeValue(repository));
+        }
+        return (ContainerRegistryResource) getClient().invokeCapability("Aspire.Hosting/addContainerRegistry", reqArgs);
+    }
+
     /** Adds a container resource */
     public ContainerResource addContainer(String name, String image) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5294,6 +5306,15 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         return (ExecutableResource) getClient().invokeCapability("Aspire.Hosting/addExecutable", reqArgs);
     }
 
+    /** Adds an external service resource */
+    public ExternalServiceResource addExternalService(String name, String url) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("url", AspireClient.serializeValue(url));
+        return (ExternalServiceResource) getClient().invokeCapability("Aspire.Hosting/addExternalService", reqArgs);
+    }
+
     /** Gets the AppHostDirectory property */
     public String appHostDirectory() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5322,6 +5343,17 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         return (DistributedApplication) getClient().invokeCapability("Aspire.Hosting/build", reqArgs);
     }
 
+    /** Adds a parameter resource */
+    public ParameterResource addParameter(String name, Boolean secret) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        if (secret != null) {
+            reqArgs.put("secret", AspireClient.serializeValue(secret));
+        }
+        return (ParameterResource) getClient().invokeCapability("Aspire.Hosting/addParameter", reqArgs);
+    }
+
     /** Adds a parameter sourced from configuration */
     public ParameterResource addParameterFromConfiguration(String name, String configurationKey, Boolean secret) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5332,6 +5364,17 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
             reqArgs.put("secret", AspireClient.serializeValue(secret));
         }
         return (ParameterResource) getClient().invokeCapability("Aspire.Hosting/addParameterFromConfiguration", reqArgs);
+    }
+
+    /** Adds a connection string resource */
+    public IResourceWithConnectionString addConnectionString(String name, String environmentVariableName) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        if (environmentVariableName != null) {
+            reqArgs.put("environmentVariableName", AspireClient.serializeValue(environmentVariableName));
+        }
+        return (IResourceWithConnectionString) getClient().invokeCapability("Aspire.Hosting/addConnectionString", reqArgs);
     }
 
     /** Adds a .NET project resource */

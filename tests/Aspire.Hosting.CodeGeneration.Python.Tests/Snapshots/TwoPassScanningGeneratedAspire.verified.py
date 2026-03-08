@@ -3706,6 +3706,15 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
             args["connectionStringBuilder"] = connection_string_builder_id
         return self._client.invoke_capability("Aspire.Hosting/addConnectionStringBuilder", args)
 
+    def add_container_registry(self, name: str, endpoint: ParameterResource, repository: ParameterResource | None = None) -> ContainerRegistryResource:
+        """Adds a container registry resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["endpoint"] = serialize_value(endpoint)
+        if repository is not None:
+            args["repository"] = serialize_value(repository)
+        return self._client.invoke_capability("Aspire.Hosting/addContainerRegistry", args)
+
     def add_container(self, name: str, image: str) -> ContainerResource:
         """Adds a container resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -3740,6 +3749,13 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args["args"] = serialize_value(args)
         return self._client.invoke_capability("Aspire.Hosting/addExecutable", args)
 
+    def add_external_service(self, name: str, url: str) -> ExternalServiceResource:
+        """Adds an external service resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["url"] = serialize_value(url)
+        return self._client.invoke_capability("Aspire.Hosting/addExternalService", args)
+
     def app_host_directory(self) -> str:
         """Gets the AppHostDirectory property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
@@ -3760,6 +3776,13 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/build", args)
 
+    def add_parameter(self, name: str, secret: bool = False) -> ParameterResource:
+        """Adds a parameter resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["secret"] = serialize_value(secret)
+        return self._client.invoke_capability("Aspire.Hosting/addParameter", args)
+
     def add_parameter_from_configuration(self, name: str, configuration_key: str, secret: bool = False) -> ParameterResource:
         """Adds a parameter sourced from configuration"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -3767,6 +3790,14 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args["configurationKey"] = serialize_value(configuration_key)
         args["secret"] = serialize_value(secret)
         return self._client.invoke_capability("Aspire.Hosting/addParameterFromConfiguration", args)
+
+    def add_connection_string(self, name: str, environment_variable_name: str | None = None) -> IResourceWithConnectionString:
+        """Adds a connection string resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        if environment_variable_name is not None:
+            args["environmentVariableName"] = serialize_value(environment_variable_name)
+        return self._client.invoke_capability("Aspire.Hosting/addConnectionString", args)
 
     def add_project(self, name: str, project_path: str, launch_profile_name: str) -> ProjectResource:
         """Adds a .NET project resource"""
