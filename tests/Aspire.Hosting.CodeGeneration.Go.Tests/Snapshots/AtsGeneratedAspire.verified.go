@@ -941,6 +941,21 @@ func (s *TestRedisResource) WaitForReadyAsync(timeout float64, cancellationToken
 	return result.(*bool), nil
 }
 
+// WithMultiParamHandleCallback tests multi-param callback destructuring
+func (s *TestRedisResource) WithMultiParamHandleCallback(callback func(...any) any) (*TestRedisResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withMultiParamHandleCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestRedisResource), nil
+}
+
 // TestResourceContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext.
 type TestResourceContext struct {
 	HandleWrapperBase

@@ -31,7 +31,7 @@ public class ExecuteResourceCommandToolTests
         var tool = new ExecuteResourceCommandTool(monitor, NullLogger<ExecuteResourceCommandTool>.Instance);
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("test-resource", "resource-start")), CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("test-resource", "start")), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("No Aspire AppHost", exception.Message);
         Assert.Contains("--detach", exception.Message);
@@ -48,7 +48,7 @@ public class ExecuteResourceCommandToolTests
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ExecuteResourceCommandTool(monitor, NullLogger<ExecuteResourceCommandTool>.Instance);
-        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "resource-start")), CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "start")), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -57,7 +57,7 @@ public class ExecuteResourceCommandToolTests
         Assert.NotNull(textContent);
         Assert.Contains("successfully", textContent.Text);
         Assert.Contains("api-service", textContent.Text);
-        Assert.Contains("resource-start", textContent.Text);
+        Assert.Contains("start", textContent.Text);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class ExecuteResourceCommandToolTests
         var tool = new ExecuteResourceCommandTool(monitor, NullLogger<ExecuteResourceCommandTool>.Instance);
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("nonexistent", "resource-start")), CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("nonexistent", "start")), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("Resource not found", exception.Message);
     }
@@ -99,7 +99,7 @@ public class ExecuteResourceCommandToolTests
         var tool = new ExecuteResourceCommandTool(monitor, NullLogger<ExecuteResourceCommandTool>.Instance);
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "resource-stop")), CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "stop")), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("cancelled", exception.Message);
     }
@@ -116,16 +116,16 @@ public class ExecuteResourceCommandToolTests
 
         var tool = new ExecuteResourceCommandTool(monitor, NullLogger<ExecuteResourceCommandTool>.Instance);
 
-        // Test with resource-start
-        var startResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "resource-start")), CancellationToken.None).DefaultTimeout();
+        // Test with start
+        var startResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "start")), CancellationToken.None).DefaultTimeout();
         Assert.True(startResult.IsError is null or false);
 
-        // Test with resource-stop
-        var stopResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "resource-stop")), CancellationToken.None).DefaultTimeout();
+        // Test with stop
+        var stopResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "stop")), CancellationToken.None).DefaultTimeout();
         Assert.True(stopResult.IsError is null or false);
 
-        // Test with resource-restart
-        var restartResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "resource-restart")), CancellationToken.None).DefaultTimeout();
+        // Test with restart
+        var restartResult = await tool.CallToolAsync(CallToolContextTestHelper.Create(CreateArguments("api-service", "restart")), CancellationToken.None).DefaultTimeout();
         Assert.True(restartResult.IsError is null or false);
     }
 

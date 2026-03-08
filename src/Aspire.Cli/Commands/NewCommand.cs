@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -22,6 +23,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly INewCommandPrompter _prompter;
+    private readonly ITemplateProvider _templateProvider;
     private readonly ITemplate[] _templates;
     private readonly IFeatures _features;
     private readonly IPackagingService _packagingService;
@@ -74,6 +76,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _prompter = prompter;
+        _templateProvider = templateProvider;
         _features = features;
         _packagingService = packagingService;
         _configurationService = configurationService;
@@ -101,7 +104,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_languageOption);
 
-        _templates = templateProvider.GetTemplatesAsync(CancellationToken.None).GetAwaiter().GetResult().ToArray();
+        // Register template definitions as subcommands synchronously.
+        // This uses GetTemplates() which returns template definitions without
+        // performing any async I/O (e.g. SDK availability checks). Runtime
+        // availability is checked in ExecuteAsync via GetTemplatesAsync().
+        _templates = templateProvider.GetTemplates().ToArray();
 
         foreach (var template in _templates)
         {
@@ -198,10 +205,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return (true, selectedLanguageId);
     }
 
-    private ITemplate[] GetTemplatesForPrompt(ParseResult parseResult)
+    private ITemplate[] GetTemplatesForPrompt(ITemplate[] availableTemplates, ParseResult parseResult)
     {
         var explicitLanguageId = ParseExplicitLanguageId(parseResult);
-        var templatesForPrompt = _templates.ToList();
+        var templatesForPrompt = availableTemplates.ToList();
 
         if (!string.IsNullOrWhiteSpace(explicitLanguageId))
         {
@@ -213,76 +220,104 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return templatesForPrompt.ToArray();
     }
 
-    private async Task<ITemplate?> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<ITemplate?> GetProjectTemplateAsync(ITemplate[] availableTemplates, ParseResult parseResult, CancellationToken cancellationToken)
     {
         // If a subcommand was matched (e.g., aspire new aspire-starter), find the template by command name
         if (parseResult.CommandResult.Command != this)
         {
-            var subcommandTemplate = _templates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
+            var subcommandTemplate = availableTemplates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
             if (subcommandTemplate is not null)
             {
                 return subcommandTemplate;
             }
+
+            // The template subcommand was parsed successfully but the template is
+            // not available at runtime (e.g. .NET SDK is not installed).
+            InteractionService.DisplayError($"Template '{parseResult.CommandResult.Command.Name}' is not available. Ensure the required runtime is installed.");
+            return null;
         }
 
-        var templatesForPrompt = GetTemplatesForPrompt(parseResult);
+        var templatesForPrompt = GetTemplatesForPrompt(availableTemplates, parseResult);
         if (templatesForPrompt.Length == 0)
         {
             InteractionService.DisplayError("No templates are available for the current environment.");
             return null;
         }
 
-        return await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+        var result = await _prompter.PromptForTemplateAsync(templatesForPrompt, cancellationToken);
+
+        // The prompt is cleared after selection.
+        // Write out the selected template again for context before proceeding.
+        if (result != null)
+        {
+            InteractionService.DisplayPlainText($"{NewCommandStrings.SelectAProjectTemplate} {result.Description}");
+        }
+        return result;
     }
 
-    private async Task<string?> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private sealed class ResolveTemplateVersionResult
     {
-        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+        public string? Version { get; init; }
 
-        var configuredChannelName = parseResult.GetValue(_channelOption);
-        if (string.IsNullOrWhiteSpace(configuredChannelName))
-        {
-            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
-        }
+        [MemberNotNullWhen(true, nameof(Version))]
+        [MemberNotNullWhen(false, nameof(ErrorMessage))]
+        public bool Success => Version is not null;
 
-        var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
-            ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
-            : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+        public string? ErrorMessage { get; init; }
+    }
 
-        if (selectedChannel is null)
-        {
-            if (string.IsNullOrWhiteSpace(configuredChannelName))
+    private async Task<ResolveTemplateVersionResult> ResolveCliTemplateVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return await InteractionService.ShowStatusAsync(
+            NewCommandStrings.ResolvingTemplateVersion,
+            async () =>
             {
-                InteractionService.DisplayError("No package channels are available.");
-            }
-            else
-            {
-                InteractionService.DisplayError($"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
-            }
+                var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            return null;
-        }
+                var configuredChannelName = parseResult.GetValue(_channelOption);
+                if (string.IsNullOrWhiteSpace(configuredChannelName))
+                {
+                    configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+                }
 
-        var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
-        var package = packages
-            .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
-            .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
-            .FirstOrDefault();
+                var selectedChannel = string.IsNullOrWhiteSpace(configuredChannelName)
+                    ? channels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit) ?? channels.FirstOrDefault()
+                    : channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
 
-        if (package is null)
-        {
-            InteractionService.DisplayError($"No template versions found in channel '{selectedChannel.Name}'.");
-            return null;
-        }
+                if (selectedChannel is null)
+                {
+                    var errorMessage = string.IsNullOrWhiteSpace(configuredChannelName)
+                        ? "No package channels are available."
+                        : $"No channel found matching '{configuredChannelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}";
 
-        return package.Version;
+                    return new ResolveTemplateVersionResult { ErrorMessage = errorMessage };
+                }
+
+                var packages = await selectedChannel.GetTemplatePackagesAsync(ExecutionContext.WorkingDirectory, cancellationToken);
+                var package = packages
+                    .Where(p => Semver.SemVersion.TryParse(p.Version, Semver.SemVersionStyles.Strict, out _))
+                    .OrderByDescending(p => Semver.SemVersion.Parse(p.Version, Semver.SemVersionStyles.Strict), Semver.SemVersion.PrecedenceComparer)
+                    .FirstOrDefault();
+
+                if (package is null)
+                {
+                    return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
+                }
+
+                return new ResolveTemplateVersionResult { Version = package.Version };
+            });
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+        // Resolve which templates are actually available at runtime (performs
+        // async checks like SDK availability). This may be a subset of the
+        // templates registered as subcommands.
+        var availableTemplates = (await _templateProvider.GetTemplatesAsync(cancellationToken)).ToArray();
+
+        var template = await GetProjectTemplateAsync(availableTemplates, parseResult, cancellationToken);
         if (template is null)
         {
             return ExitCodeConstants.InvalidCommand;
@@ -298,11 +333,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
-            version = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
-            if (string.IsNullOrWhiteSpace(version))
+            var resolveResult = await ResolveCliTemplateVersionAsync(parseResult, cancellationToken);
+            if (!resolveResult.Success)
             {
+                InteractionService.DisplayError(resolveResult.ErrorMessage);
                 return ExitCodeConstants.InvalidCommand;
             }
+
+            version = resolveResult.Version;
         }
 
         var inputs = new TemplateInputs
@@ -456,9 +494,10 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     {
         // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
         // when displaying it as the default value in the prompt
-        return await interactionService.PromptForStringAsync(
+        return await interactionService.PromptForFilePathAsync(
             NewCommandStrings.EnterTheOutputPath,
             defaultValue: path.EscapeMarkup(),
+            directory: true,
             cancellationToken: cancellationToken
             );
     }

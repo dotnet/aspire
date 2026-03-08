@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the AppHost.</source>
-        <target state="new">The programming language for the AppHost.</target>
+        <target state="translated">Linguaggio di programmazione per AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
@@ -45,6 +45,11 @@
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">Percorso di output per il progetto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="translated">Risoluzione della versione del modello in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

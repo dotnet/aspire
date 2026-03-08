@@ -23,8 +23,8 @@ public class ResourceSnapshotMapperTests
             ],
             Commands =
             [
-                new ResourceSnapshotCommand { Name = "resource-stop", State = "Enabled", Description = "Stop" },
-                new ResourceSnapshotCommand { Name = "resource-start", State = "Disabled", Description = "Start" }
+                new ResourceSnapshotCommand { Name = "stop", State = "Enabled", Description = "Stop" },
+                new ResourceSnapshotCommand { Name = "start", State = "Disabled", Description = "Start" }
             ],
             EnvironmentVariables =
             [
@@ -45,7 +45,7 @@ public class ResourceSnapshotMapperTests
 
         // Only enabled commands should be included
         Assert.Single(result.Commands!);
-        Assert.True(result.Commands!.ContainsKey("resource-stop"));
+        Assert.True(result.Commands!.ContainsKey("stop"));
 
         // Only IsFromSpec environment variables should be included
         Assert.Single(result.Environment!);

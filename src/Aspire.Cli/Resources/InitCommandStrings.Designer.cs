@@ -110,5 +110,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AddingServiceDefaultsProjectToSolution", resourceCulture);
             }
         }
+
+        internal static string ResolvingTemplateVersion {
+            get {
+                return ResourceManager.GetString("ResolvingTemplateVersion", resourceCulture);
+            }
+        }
     }
 }

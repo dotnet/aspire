@@ -12,6 +12,7 @@ internal interface IInteractionService
     Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action, KnownEmoji? emoji = null, bool allowMarkup = false);
     void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default);
+    Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
     Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull;
@@ -26,6 +27,7 @@ internal interface IInteractionService
     void DisplaySubtleMessage(string message, bool allowMarkup = false);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayRenderable(IRenderable renderable);
+    Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();
 

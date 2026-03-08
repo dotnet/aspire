@@ -130,3 +130,4 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         await pendingRun;
     }
 }
+

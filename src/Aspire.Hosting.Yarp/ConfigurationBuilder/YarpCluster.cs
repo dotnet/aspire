@@ -10,6 +10,7 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Represents a cluster for YARP routes
 /// </summary>
+[AspireExport]
 public class YarpCluster
 {
     // Testing only

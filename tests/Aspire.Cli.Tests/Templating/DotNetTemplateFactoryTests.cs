@@ -463,6 +463,9 @@ public class DotNetTemplateFactoryTests
         public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
             => throw new NotImplementedException();
 
+        public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
+            => throw new NotImplementedException();
+
         public Task<bool> ConfirmAsync(string prompt, bool defaultAnswer, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
@@ -490,6 +493,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
         public void DisplayRenderable(IRenderable renderable) { }
+        public Task DisplayLiveAsync(IRenderable initialRenderable, Func<Action<IRenderable>, Task> callback) => callback(_ => { });
     }
 
     private sealed class TestDotNetCliRunner : IDotNetCliRunner

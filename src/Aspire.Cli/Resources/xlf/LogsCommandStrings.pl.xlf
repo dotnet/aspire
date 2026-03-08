@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost.</source>
-        <target state="new">Display logs from resources in a running apphost.</target>
+        <target state="translated">Wyświetl dzienniki z zasobów w działającym hoście aplikacji.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stream logs from</source>
-        <target state="new">stream logs from</target>
+        <target state="translated">prześlij strumieniowo dzienniki z</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -59,12 +59,12 @@
       </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line.</source>
-        <target state="new">Show timestamps for each log line.</target>
+        <target state="translated">Pokaż znaczniki czasu dla każdego wiersza dziennika.</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLogs">
         <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
+        <target state="translated">Trwa pobieranie dzienników...</target>
         <note />
       </trans-unit>
     </body>

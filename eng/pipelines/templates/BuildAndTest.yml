@@ -237,6 +237,7 @@ steps:
               -configuration ${{ parameters.buildConfig }}
               -pack
               /p:PrepareForHelix=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build

@@ -2,6 +2,12 @@
   <PropertyGroup>
     <IncludeTestUtilities>true</IncludeTestUtilities>
 
+    <!-- Default timeout values for split tests -->
+    <TestSessionTimeout Condition="'$(TestSessionTimeout)' == ''">20m</TestSessionTimeout>
+    <TestHangTimeout Condition="'$(TestHangTimeout)' == ''">10m</TestHangTimeout>
+    <UncollectedTestsSessionTimeout Condition="'$(UncollectedTestsSessionTimeout)' == ''">15m</UncollectedTestsSessionTimeout>
+    <UncollectedTestsHangTimeout Condition="'$(UncollectedTestsHangTimeout)' == ''">10m</UncollectedTestsHangTimeout>
+
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
@@ -15,6 +21,9 @@
     <_NonQuarantinedTestRunAdditionalArgs>--filter-not-trait "quarantined=true"</_NonQuarantinedTestRunAdditionalArgs>
     <_OuterloopTestRunAdditionalArgs>--filter-trait "outerloop=true"</_OuterloopTestRunAdditionalArgs>
     <_NonOuterloopTestRunAdditionalArgs>--filter-not-trait "outerloop=true"</_NonOuterloopTestRunAdditionalArgs>
+
+    <_ShortName Condition="'$(TestShortName)' != ''">$(TestShortName)</_ShortName>
+    <_ShortName Condition="'$(_ShortName)' == ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(MSBuildProjectName)').Replace('Aspire.', '').Replace('.Tests', ''))</_ShortName>
   </PropertyGroup>
 
   <PropertyGroup>

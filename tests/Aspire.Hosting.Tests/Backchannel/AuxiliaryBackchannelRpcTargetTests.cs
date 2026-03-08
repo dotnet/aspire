@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Backchannel;
 
+[Trait("Partition", "4")]
 public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
 {
     [Fact]
@@ -117,9 +118,9 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
                 new EnvironmentVariableSnapshot("ANOTHER_VAR", "another-value", true)
             ],
             Commands = [
-                new ResourceCommandSnapshot("resource-start", ResourceCommandState.Enabled, "Start", "Start the resource", null, null, null, null, false),
-                new ResourceCommandSnapshot("resource-stop", ResourceCommandState.Disabled, "Stop", "Stop the resource", null, null, null, null, false),
-                new ResourceCommandSnapshot("resource-restart", ResourceCommandState.Hidden, "Restart", null, null, null, null, null, true)
+                new ResourceCommandSnapshot("start", ResourceCommandState.Enabled, "Start", "Start the resource", null, null, null, null, false),
+                new ResourceCommandSnapshot("stop", ResourceCommandState.Disabled, "Stop", "Stop the resource", null, null, null, null, false),
+                new ResourceCommandSnapshot("restart", ResourceCommandState.Hidden, "Restart", null, null, null, null, null, true)
             ],
             Properties = [
                 new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, "normal-value"),
@@ -182,9 +183,9 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
 
         // Commands
         Assert.Equal(3, snapshot.Commands.Length);
-        Assert.Contains(snapshot.Commands, c => c.Name == "resource-start" && c.DisplayName == "Start" && c.Description == "Start the resource" && c.State == "Enabled");
-        Assert.Contains(snapshot.Commands, c => c.Name == "resource-stop" && c.DisplayName == "Stop" && c.Description == "Stop the resource" && c.State == "Disabled");
-        Assert.Contains(snapshot.Commands, c => c.Name == "resource-restart" && c.DisplayName == "Restart" && c.Description == null && c.State == "Hidden");
+        Assert.Contains(snapshot.Commands, c => c.Name == "start" && c.DisplayName == "Start" && c.Description == "Start the resource" && c.State == "Enabled");
+        Assert.Contains(snapshot.Commands, c => c.Name == "stop" && c.DisplayName == "Stop" && c.Description == "Stop the resource" && c.State == "Disabled");
+        Assert.Contains(snapshot.Commands, c => c.Name == "restart" && c.DisplayName == "Restart" && c.Description == null && c.State == "Hidden");
 
         // Properties (sensitive values should be redacted)
         Assert.True(snapshot.Properties.TryGetValue(CustomResourceKnownProperties.Source, out var normalValue));

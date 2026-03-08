@@ -24,6 +24,7 @@ using Polly.Retry;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
+[Trait("Partition", "4")]
 public class DcpExecutorTests
 {
     [Fact]

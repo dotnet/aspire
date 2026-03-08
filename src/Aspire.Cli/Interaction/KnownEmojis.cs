@@ -29,6 +29,7 @@ internal static class KnownEmojis
     public static readonly KnownEmoji FloppyDisk = new("floppy_disk");
     public static readonly KnownEmoji Gear = new("gear");
     public static readonly KnownEmoji Hammer = new("hammer");
+    public static readonly KnownEmoji Ice = new("ice");
     public static readonly KnownEmoji HammerAndWrench = new("hammer_and_wrench");
     public static readonly KnownEmoji Information = new("information");
     public static readonly KnownEmoji Key = new("key");

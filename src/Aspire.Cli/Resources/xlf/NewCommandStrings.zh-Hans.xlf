@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template.</source>
-        <target state="new">Create a new app from an Aspire starter template.</target>
+        <target state="translated">使用 Aspire 初学者模板创建新应用。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the AppHost.</source>
-        <target state="new">The programming language for the AppHost.</target>
+        <target state="translated">AppHost 的编程语言。</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
@@ -45,6 +45,11 @@
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">项目的输出路径。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="translated">正在解析模板版本...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

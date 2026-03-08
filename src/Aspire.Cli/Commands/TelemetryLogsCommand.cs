@@ -28,6 +28,8 @@ internal sealed class TelemetryLogsCommand : BaseCommand
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<TelemetryLogsCommand> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ResourceColorMap _resourceColorMap;
+    private readonly TimeProvider _timeProvider;
 
     // Shared options from TelemetryCommandHelpers
     private static readonly Argument<string?> s_resourceArgument = TelemetryCommandHelpers.CreateResourceArgument();
@@ -50,11 +52,15 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         CliExecutionContext executionContext,
         AspireCliTelemetry telemetry,
         IHttpClientFactory httpClientFactory,
+        ResourceColorMap resourceColorMap,
+        TimeProvider timeProvider,
         ILogger<TelemetryLogsCommand> logger)
         : base("logs", TelemetryCommandStrings.LogsDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _interactionService = interactionService;
         _httpClientFactory = httpClientFactory;
+        _resourceColorMap = resourceColorMap;
+        _timeProvider = timeProvider;
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
@@ -112,6 +118,10 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
         // Resolve resource name to specific instances (handles replicas)
         var resources = await TelemetryCommandHelpers.GetAllResourcesAsync(client, baseUrl, cancellationToken).ConfigureAwait(false);
+        var allOtlpResources = TelemetryCommandHelpers.ToOtlpResources(resources);
+
+        // Pre-resolve colors so assignment is deterministic regardless of data order
+        TelemetryCommandHelpers.ResolveResourceColors(_resourceColorMap, allOtlpResources);
 
         // If a resource was specified but not found, return error
         if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
@@ -141,11 +151,11 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         {
             if (follow)
             {
-                return await StreamLogsAsync(client, url, format, cancellationToken);
+                return await StreamLogsAsync(client, url, format, allOtlpResources, cancellationToken);
             }
             else
             {
-                return await GetLogsSnapshotAsync(client, url, format, cancellationToken);
+                return await GetLogsSnapshotAsync(client, url, format, allOtlpResources, cancellationToken);
             }
         }
         catch (HttpRequestException ex)
@@ -156,7 +166,7 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         }
     }
 
-    private async Task<int> GetLogsSnapshotAsync(HttpClient client, string url, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> GetLogsSnapshotAsync(HttpClient client, string url, OutputFormat format, IReadOnlyList<IOtlpResource> allResources, CancellationToken cancellationToken)
     {
         var response = await client.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -176,13 +186,13 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         }
         else
         {
-            DisplayLogsSnapshot(json);
+            DisplayLogsSnapshot(json, allResources);
         }
 
         return ExitCodeConstants.Success;
     }
 
-    private async Task<int> StreamLogsAsync(HttpClient client, string url, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> StreamLogsAsync(HttpClient client, string url, OutputFormat format, IReadOnlyList<IOtlpResource> allResources, CancellationToken cancellationToken)
     {
         using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -205,38 +215,38 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             }
             else
             {
-                DisplayLogsStreamLine(line);
+                DisplayLogsStreamLine(line, allResources);
             }
         }
 
         return ExitCodeConstants.Success;
     }
 
-    private static void DisplayLogsSnapshot(string json)
+    private void DisplayLogsSnapshot(string json, IReadOnlyList<IOtlpResource> allResources)
     {
         var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceLogs = response?.Data?.ResourceLogs;
 
         if (resourceLogs is null or { Length: 0 })
         {
-            TelemetryCommandHelpers.DisplayNoData("logs");
+            TelemetryCommandHelpers.DisplayNoData(_interactionService, "logs");
             return;
         }
 
-        DisplayResourceLogs(resourceLogs);
+        DisplayResourceLogs(resourceLogs, allResources);
     }
 
-    private static void DisplayLogsStreamLine(string json)
+    private void DisplayLogsStreamLine(string json, IReadOnlyList<IOtlpResource> allResources)
     {
         var request = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.OtlpExportLogsServiceRequestJson);
-        DisplayResourceLogs(request?.ResourceLogs ?? []);
+        DisplayResourceLogs(request?.ResourceLogs ?? [], allResources);
     }
 
-    private static void DisplayResourceLogs(IEnumerable<OtlpResourceLogsJson> resourceLogs)
+    private void DisplayResourceLogs(IEnumerable<OtlpResourceLogsJson> resourceLogs, IReadOnlyList<IOtlpResource> allResources)
     {
         foreach (var resourceLog in resourceLogs)
         {
-            var resourceName = resourceLog.Resource?.GetServiceName() ?? "unknown";
+            var resourceName = TelemetryCommandHelpers.ResolveResourceName(resourceLog.Resource, allResources);
 
             foreach (var scopeLog in resourceLog.ScopeLogs ?? [])
             {
@@ -250,16 +260,19 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
     // Using simple text lines instead of Spectre.Console Table for streaming support.
     // Tables require knowing all data upfront, but streaming mode displays logs as they arrive.
-    private static void DisplayLogEntry(string resourceName, OtlpLogRecordJson log)
+    private void DisplayLogEntry(string resourceName, OtlpLogRecordJson log)
     {
-        var timestamp = OtlpHelpers.FormatNanoTimestamp(log.TimeUnixNano);
-        var severity = log.SeverityText ?? "";
+        var timestamp = log.TimeUnixNano.HasValue
+            ? FormatHelpers.FormatConsoleTime(_timeProvider, OtlpHelpers.UnixNanoSecondsToDateTime(log.TimeUnixNano.Value))
+            : "";
+        var severity = TelemetryCommandHelpers.GetSeverityText(log.SeverityNumber);
         var body = log.Body?.StringValue ?? "";
 
         // Use severity number for color mapping (more reliable than text)
         var severityColor = TelemetryCommandHelpers.GetSeverityColor(log.SeverityNumber);
+        var resourceColor = _resourceColorMap.GetColor(resourceName);
 
         var escapedBody = body.EscapeMarkup();
-        AnsiConsole.MarkupLine($"[grey]{timestamp}[/] [{severityColor}]{severity,-5}[/] [cyan]{resourceName.EscapeMarkup()}[/] {escapedBody}");
+        _interactionService.DisplayMarkupLine($"[grey]{timestamp}[/] [{severityColor}]{severity,-4}[/] [{resourceColor}]{resourceName.EscapeMarkup()}[/] {escapedBody}");
     }
 }

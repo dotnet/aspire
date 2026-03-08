@@ -106,11 +106,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             interactionService.DisplayEmptyLine();
 
-            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
+            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForFilePathAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
-                isSecret: false,
+                directory: true,
                 required: true,
                 cancellationToken: cancellationToken);
 
@@ -120,11 +120,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         interactionService.DisplayEmptyLine();
 
-        foreach (var updateStep in updateSteps)
-        {
-            interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
-            await updateStep.Callback();
-        }
+        await interactionService.ShowStatusAsync(
+            UpdateCommandStrings.ApplyingUpdates,
+            async () =>
+            {
+                foreach (var updateStep in updateSteps)
+                {
+                    interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
+                    await updateStep.Callback();
+                }
+
+                return 0;
+            });
 
         interactionService.DisplayEmptyLine();
 

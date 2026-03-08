@@ -69,7 +69,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         var defaultWorkspaceRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
 
         // Prompt the user for the workspace root
-        var workspaceRootPath = await _interactionService.PromptForStringAsync(
+        var workspaceRootPath = await _interactionService.PromptForFilePathAsync(
             McpCommandStrings.InitCommand_WorkspaceRootPrompt,
             defaultValue: defaultWorkspaceRoot.FullName,
             validator: path =>
@@ -86,6 +86,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
 
                 return ValidationResult.Success();
             },
+            directory: true,
             cancellationToken: cancellationToken);
 
         var workspaceRoot = new DirectoryInfo(workspaceRootPath);

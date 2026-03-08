@@ -1270,6 +1270,21 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Equal(1, promiseCount);
     }
 
+    // ===== Multi-Parameter Callback Destructuring Tests =====
+
+    [Fact]
+    public void Generate_MultiParamCallback_UsesPerPropertyTyping()
+    {
+        // Regression test: multi-parameter callbacks must type each destructured property
+        // individually as { p0: unknown, p1: unknown }, not { p0, p1: unknown } which
+        // only types the last property in TypeScript.
+        var code = GenerateTwoPassCode();
+
+        // withMultiParamHandleCallback has a 2-param callback (TestCallbackContext, TestEnvironmentContext)
+        // The generated destructuring should type each property: { p0: unknown, p1: unknown }
+        Assert.Contains("{ p0: unknown, p1: unknown }", code);
+    }
+
     private static int CountOccurrences(string text, string pattern)
     {
         var count = 0;
