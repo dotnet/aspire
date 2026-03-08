@@ -67,8 +67,8 @@ Der Wert wird derzeit in [Benutzergeheimnissen](https://learn.microsoft.com/aspn
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
-        <source>The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
+        <source>The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
+        <target state="new">The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
@@ -77,8 +77,8 @@ Der Wert wird derzeit in [Benutzergeheimnissen](https://learn.microsoft.com/aspn
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedMessage">
-        <source>No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
+        <source>No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
+        <target state="new">No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedTitle">
