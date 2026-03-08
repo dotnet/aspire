@@ -115,7 +115,7 @@ namespace Aspire.Hosting.Resources {
         }
 
         /// <summary>
-        ///   The most recent ASP.NET Core Development Certificate isn&apos;t fully trusted. See https://aka.ms/aspire/devcerts for more information..
+        ///   The most recent development certificate isn&apos;t fully trusted. See https://aka.ms/aspire/devcerts for more information..
         /// </summary>
         internal static string DeveloperCertificateNotFullyTrustedMessage {
             get {
@@ -133,7 +133,7 @@ namespace Aspire.Hosting.Resources {
         }
 
         /// <summary>
-        ///   No trusted ASP.NET Core Development Certificate was found. See https://aka.ms/aspire/devcerts for more information..
+        ///   No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information..
         /// </summary>
         internal static string NoDeveloperCertificateTrustedMessage {
             get {

@@ -166,7 +166,7 @@ internal sealed class DcpHost
                 {
                     title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
                     message = InteractionStrings.DeveloperCertificateNotFullyTrustedMessage;
-                    _logger.LogWarning("The most recent ASP.NET Core Development Certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.");
+                    _logger.LogWarning("The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.");
                 }
 
                 // Check if the interaction service is available (dashboard enabled)
