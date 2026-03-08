@@ -486,10 +486,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             var dpTypeName = dpType.ToDisplayString();
 
             // Check for known incompatible context types
-            if (dpTypeName.Contains("IServiceProvider") ||
-                dpTypeName.Contains("Utf8JsonWriter") ||
-                dpTypeName.Contains("CancellationToken") ||
-                dpTypeName.Contains("HttpRequestMessage"))
+            if (dpTypeName is "System.IServiceProvider" or
+                "System.Text.Json.Utf8JsonWriter" or
+                "System.Threading.CancellationToken" or
+                "System.Net.Http.HttpRequestMessage")
             {
                 return $"parameter '{param.Name}' uses delegate with '{dpType.Name}' which is not ATS-compatible";
             }
