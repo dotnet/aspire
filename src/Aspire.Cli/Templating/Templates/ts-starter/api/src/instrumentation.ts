@@ -4,14 +4,16 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter as GrpcTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPMetricExporter as GrpcMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { OTLPLogExporter as GrpcLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
-import { OTLPTraceExporter as HttpTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter as HttpMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { OTLPLogExporter as HttpLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { OTLPTraceExporter as ProtoTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { OTLPMetricExporter as ProtoMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
+import { OTLPLogExporter as ProtoLogExporter } from '@opentelemetry/exporter-logs-otlp-proto';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { credentials } from '@grpc/grpc-js';
 
 if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  // Aspire's WithOtlpExporter defaults to gRPC but falls back to http/protobuf
+  // when only the HTTP OTLP endpoint is configured. Match the protocol Aspire sets.
   const protocol = env.OTEL_EXPORTER_OTLP_PROTOCOL?.toLowerCase();
   const useHttp = protocol === 'http/protobuf' || protocol === 'http/json';
 
@@ -20,10 +22,11 @@ if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
   let logExporter;
 
   if (useHttp) {
-    traceExporter = new HttpTraceExporter();
-    metricExporter = new HttpMetricExporter();
-    logExporter = new HttpLogExporter();
+    traceExporter = new ProtoTraceExporter();
+    metricExporter = new ProtoMetricExporter();
+    logExporter = new ProtoLogExporter();
   } else {
+    // Default: gRPC (matches Aspire's default OTEL_EXPORTER_OTLP_PROTOCOL=grpc)
     const isHttps = env.OTEL_EXPORTER_OTLP_ENDPOINT.startsWith('https://');
     const grpcOptions = {
       credentials: isHttps
