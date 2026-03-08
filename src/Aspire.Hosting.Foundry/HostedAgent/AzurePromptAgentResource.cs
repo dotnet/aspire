@@ -14,8 +14,6 @@ namespace Aspire.Hosting.Foundry;
 
 /// <summary>
 /// A Microsoft Foundry prompt agent resource.
-///
-/// TODO: Have this run locally as well
 /// </summary>
 public class AzurePromptAgentResource : ExecutableResource, IComputeResource
 {

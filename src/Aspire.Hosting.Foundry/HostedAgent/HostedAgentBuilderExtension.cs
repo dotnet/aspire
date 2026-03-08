@@ -6,8 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Foundry;
-using Azure.Core;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -17,39 +15,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class HostedAgentResourceBuilderExtensions
 {
-    private static readonly AzureLocation[] s_supportedHostedAgentRegions =
-    [
-        AzureLocation.BrazilSouth,
-        AzureLocation.CanadaEast,
-        AzureLocation.EastUS,
-        AzureLocation.FranceCentral,
-        AzureLocation.GermanyWestCentral,
-        AzureLocation.ItalyNorth,
-        AzureLocation.NorthCentralUS,
-        AzureLocation.SouthAfricaNorth,
-        AzureLocation.SouthCentralUS,
-        AzureLocation.SouthIndia,
-        AzureLocation.SpainCentral,
-        AzureLocation.SwedenCentral,
-        AzureLocation.CanadaCentral,
-        AzureLocation.KoreaCentral,
-        AzureLocation.SoutheastAsia,
-        AzureLocation.AustraliaEast,
-        AzureLocation.EastUS2,
-        AzureLocation.JapanEast,
-        AzureLocation.UAENorth,
-        AzureLocation.UKSouth,
-        AzureLocation.WestUS,
-        AzureLocation.WestUS3,
-        AzureLocation.NorwayEast,
-        AzureLocation.PolandCentral,
-        AzureLocation.SwitzerlandNorth
-    ];
-
-    private static readonly HashSet<string> s_supportedHostedAgentRegionKeys = s_supportedHostedAgentRegions
-        .Select(static region => region.Name)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
     /// <summary>
     /// In both run and publish modes, build, deploy, and run the containerized agent as a hosted agent in Microsoft Foundry.
     /// </summary>
@@ -265,9 +230,6 @@ public static class HostedAgentResourceBuilderExtensions
                 });
             return builder;
         }
-
-        ValidateHostedAgentRegion(builder.ApplicationBuilder.Configuration);
-
         AzureCognitiveServicesProjectResource? projResource;
         if (project is not null)
         {
@@ -335,22 +297,6 @@ public static class HostedAgentResourceBuilderExtensions
             .WithReference(project);
 
         return builder;
-    }
-
-    private static void ValidateHostedAgentRegion(IConfiguration configuration)
-    {
-        var location = configuration["Azure:Location"];
-        if (string.IsNullOrWhiteSpace(location))
-        {
-            return;
-        }
-
-        var azureLocation = new AzureLocation(location);
-        if (!s_supportedHostedAgentRegionKeys.Contains(azureLocation.Name))
-        {
-            var supportedRegions = string.Join(", ", s_supportedHostedAgentRegions.Select(r => r.DisplayName));
-            throw new InvalidOperationException($"Azure location '{location}' is not supported for hosted agents. Supported regions: {supportedRegions}.");
-        }
     }
 
     /// <summary>

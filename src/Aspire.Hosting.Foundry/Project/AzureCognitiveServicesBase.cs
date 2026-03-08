@@ -93,7 +93,7 @@ public static class AzureProvisionableAspireResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="configure">An callback to configure the Provisionable resource.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<A> WithConfiguration<A, P>(this IResourceBuilder<A> builder, Action<P> configure)
+    internal static IResourceBuilder<A> WithConfiguration<A, P>(this IResourceBuilder<A> builder, Action<P> configure)
         where A : AzureProvisionableAspireResource<P>
         where P : ProvisionableResource
     {

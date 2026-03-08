@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Foundry.Tests" />
   </ItemGroup>
 
   <ItemGroup>

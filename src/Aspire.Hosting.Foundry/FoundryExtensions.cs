@@ -13,6 +13,7 @@ using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -397,7 +398,6 @@ public static class FoundryExtensions
                 },
                 (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    Name = infrastructure.AspireResource.Name,
                     Kind = "AIServices",
                     Sku = new CognitiveServicesSku()
                     {
@@ -407,7 +407,7 @@ public static class FoundryExtensions
                     {
                         // Until this bug is fixed, CustomSubDomainName must be set to the
                         // account's name: https://msdata.visualstudio.com/Vienna/_workitems/edit/4866592
-                        CustomSubDomainName = infrastructure.AspireResource.Name,
+                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                         PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                         DisableLocalAuth = true,
                         AllowProjectManagement = true

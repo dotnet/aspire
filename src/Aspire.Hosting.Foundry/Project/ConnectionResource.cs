@@ -33,7 +33,7 @@ public class AzureCognitiveServicesProjectConnectionResource(string name, Action
 /// This is overrides the category property of ApiKeyAuthConnectionProperties to
 /// "AppInsights", which is (as of 2026-01-06) not an available enum variant.
 /// </summary>
-public class AppInsightsConnectionProperties : ApiKeyAuthConnectionProperties
+internal class AppInsightsConnectionProperties : ApiKeyAuthConnectionProperties
 {
     /// <inheritdoc/>
     protected override void DefineProvisionableProperties()
@@ -49,7 +49,7 @@ public class AppInsightsConnectionProperties : ApiKeyAuthConnectionProperties
 /// This is overrides the category property of ApiKeyAuthConnectionProperties to
 /// "AzureKeyVault", which is (as of 2026-01-06) not an available enum variant.
 /// </summary>
-public class AzureKeyVaultConnectionProperties : ManagedIdentityAuthTypeConnectionProperties
+internal class AzureKeyVaultConnectionProperties : ManagedIdentityAuthTypeConnectionProperties
 {
     /// <inheritdoc/>
     protected override void DefineProvisionableProperties()
@@ -65,7 +65,7 @@ public class AzureKeyVaultConnectionProperties : ManagedIdentityAuthTypeConnecti
 /// This is overrides the category property of ApiKeyAuthConnectionProperties to
 /// "AzureStorageAccount", which is (as of 2026-01-06) not an available enum variant.
 /// </summary>
-public class AzureStorageAccountConnectionProperties : AadAuthTypeConnectionProperties
+internal class AzureStorageAccountConnectionProperties : AadAuthTypeConnectionProperties
 {
     /// <inheritdoc/>
     protected override void DefineProvisionableProperties()

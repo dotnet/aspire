@@ -125,7 +125,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
             Metadata =
             {
                 { "ApiType", "Azure" },
-                { "ResourceId", storage.IdOutputReference.AsProvisioningParameter(infra) }
+                { "ResourceId", storage.Id.AsProvisioningParameter(infra) }
             }
         });
     }
@@ -222,4 +222,3 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         });
     }
 }
-

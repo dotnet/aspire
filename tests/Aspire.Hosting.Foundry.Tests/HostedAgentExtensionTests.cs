@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Foundry.Tests;
 
@@ -44,7 +47,7 @@ public class HostedAgentExtensionTests
     }
 
     [Fact]
-    public void PublishAsHostedAgent_InPublishMode_ValidatesRegion()
+    public void PublishAsHostedAgent_InPublishMode_DoesNotValidateRegion()
     {
         using var builder = TestDistributedApplicationBuilder.Create(
             DistributedApplicationOperation.Publish);
@@ -54,9 +57,10 @@ public class HostedAgentExtensionTests
         var project = builder.AddFoundry("account")
             .AddProject("my-project");
 
-        Assert.Throws<InvalidOperationException>(() =>
-            builder.AddPythonApp("agent", "./app.py", "main:app")
-                .PublishAsHostedAgent(project));
+        var app = builder.AddPythonApp("agent", "./app.py", "main:app")
+            .PublishAsHostedAgent(project);
+
+        Assert.NotNull(app);
     }
 
     [Fact]
@@ -119,5 +123,25 @@ public class HostedAgentExtensionTests
         // A project should be auto-created
         var project = builder.Resources.OfType<AzureCognitiveServicesProjectResource>().SingleOrDefault();
         Assert.NotNull(project);
+    }
+
+    [Fact]
+    public async Task FoundryProject_DefaultRegistryDoesNotAddGlobalRegistryTargets()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddAzureContainerRegistry("global");
+        builder.AddFoundry("account")
+            .AddProject("my-project");
+        var container = builder.AddContainer("redis", "redis:latest");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        await builder.Eventing.PublishAsync(new BeforeStartEvent(app.Services, model));
+
+        var registryTargets = container.Resource.Annotations.OfType<RegistryTargetAnnotation>().ToList();
+        var registryTarget = Assert.Single(registryTargets);
+        Assert.Same(registry.Resource, registryTarget.Registry);
     }
 }

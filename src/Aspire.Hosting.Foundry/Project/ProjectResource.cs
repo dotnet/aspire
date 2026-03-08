@@ -8,9 +8,8 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Aspire.Hosting.Azure.Provisioning;
 
 namespace Aspire.Hosting.Foundry;
 
@@ -49,9 +48,9 @@ public class AzureCognitiveServicesProjectResource :
                 Name = $"compute-endpoints-{name}",
                 Action = async (context) =>
                 {
-                    var opts = context.Services.GetRequiredService<IOptions<AzureProvisionerOptions>>().Value;
-                    var subscriptionId = opts.SubscriptionId;
-                    var resourceGroupName = opts.ResourceGroup;
+                    var configuration = context.Services.GetRequiredService<IConfiguration>();
+                    var subscriptionId = configuration["Azure:SubscriptionId"];
+                    var resourceGroupName = configuration["Azure:ResourceGroup"];
                     if (string.IsNullOrEmpty(subscriptionId) || string.IsNullOrEmpty(resourceGroupName))
                     {
                         return;

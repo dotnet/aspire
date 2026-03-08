@@ -587,23 +587,22 @@ public static class AzureCognitiveServicesProjectExtensions
                     resource.Name = resourceName;
                     return resource;
                 },
-                (infra) =>
+                (infra) => new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
                 {
-                    var newRegistry = new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
-                    {
-                        Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
-                        Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
-                    };
-                    return newRegistry;
+                    Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
+                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
                 });
+
             infrastructure.Add(registry);
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
             infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
         }
 
-        // TODO: Only add to builder in publish mode, since it is not used in Run mode, unless someone uses RunAsHostedAgent()
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        builder.AddResource(resource);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
         return resource;
     }
 }
