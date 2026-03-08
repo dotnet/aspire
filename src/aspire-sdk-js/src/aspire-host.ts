@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'child_process';
-import { aspireExec, aspireJson, aspireFollow, aspireStream } from './cli.js';
+import { aspireExec, aspireJson } from './cli.js';
 import type {
   StartOptions,
   StartOutput,
@@ -17,6 +17,17 @@ import type {
  *
  * Use `AspireHost.start()` to launch an AppHost, then interact with its
  * resources, wait for health, collect logs, and stop it when done.
+ *
+ * @example
+ * ```ts
+ * const host = await AspireHost.start({ appHost: './apphost.ts' });
+ * await host.waitForResource('api', { status: 'healthy' });
+ *
+ * const endpoint = await host.getEndpoint('api', 'http');
+ * const res = await fetch(`${endpoint.url}/healthz`);
+ *
+ * await host.stop();
+ * ```
  */
 export class AspireHost {
   private appHost: string;
@@ -128,13 +139,18 @@ export class AspireHost {
 
   /**
    * Watch resource changes in real-time via `aspire describe --follow`.
-   * Returns an async iterable of resource snapshots.
-   * Call `watcher.process.kill()` to stop watching.
+   * Pass an `AbortSignal` to stop watching.
+   *
+   * @example
+   * ```ts
+   * const ac = new AbortController();
+   * for await (const snapshot of host.watchResources({ signal: ac.signal })) {
+   *   if (snapshot.state === 'Running') ac.abort();
+   * }
+   * ```
    */
-  watchResources(): { process: ChildProcess; stream: AsyncGenerator<ResourceSnapshot> } {
-    return aspireFollow<ResourceSnapshot>(['describe', '--follow'], {
-      appHost: this.appHost,
-    });
+  async *watchResources(options: { signal?: AbortSignal } = {}): AsyncGenerator<ResourceSnapshot> {
+    yield* this.streamCommand<ResourceSnapshot>(['describe', '--follow'], options.signal);
   }
 
   // ---------------------------------------------------------------------------
@@ -162,40 +178,25 @@ export class AspireHost {
 
   /**
    * Stream logs in real-time via `aspire logs --follow`.
-   * Returns an async iterable of log entries.
-   * Call `follower.process.kill()` to stop streaming.
+   * Pass an `AbortSignal` to stop streaming.
+   *
+   * @example
+   * ```ts
+   * const ac = new AbortController();
+   * setTimeout(() => ac.abort(), 10_000);
+   *
+   * for await (const entry of host.streamLogs('api', { signal: ac.signal })) {
+   *   console.log(`[${entry.resourceName}] ${entry.content}`);
+   * }
+   * ```
    */
-  streamLogs(resourceName?: string): { process: ChildProcess; stream: AsyncGenerator<LogEntry> } {
+  async *streamLogs(resourceName?: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<LogEntry> {
     const args = ['logs', '--follow'];
-    if (resourceName) {
-      args.splice(1, 0, resourceName); // insert after 'logs'
-    }
-
-    return aspireFollow<LogEntry>(args, {
-      appHost: this.appHost,
-    });
-  }
-
-  /**
-   * Pipe live logs to a writable stream (e.g. `process.stdout`).
-   * Runs `aspire logs --follow` in the background as plain text.
-   * Returns the child process — call `.kill()` to stop.
-   */
-  followLogs(resourceName?: string, output: NodeJS.WritableStream = process.stdout): ChildProcess {
-    const args = ['logs', '--follow', '--non-interactive', '--nologo'];
     if (resourceName) {
       args.splice(1, 0, resourceName);
     }
-    args.push('--apphost', this.appHost);
 
-    const child = spawn('aspire', args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    child.stdout.pipe(output, { end: false });
-    child.stderr.pipe(output, { end: false });
-
-    return child;
+    yield* this.streamCommand<LogEntry>(args, options.signal);
   }
 
   // ---------------------------------------------------------------------------
@@ -207,5 +208,60 @@ export class AspireHost {
     await aspireExec(['resource', resourceName, command], {
       appHost: this.appHost,
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Spawn an aspire CLI command that streams NDJSON, yielding parsed objects.
+   * Cleans up the child process when the signal aborts or the stream ends.
+   */
+  private async *streamCommand<T>(command: string[], signal?: AbortSignal): AsyncGenerator<T> {
+    const args = [
+      ...command,
+      '--non-interactive', '--nologo',
+      '--format', 'Json',
+      '--apphost', this.appHost,
+    ];
+
+    const child = spawn('aspire', args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    const cleanup = () => {
+      if (!child.killed) {
+        child.kill('SIGTERM');
+      }
+    };
+
+    signal?.addEventListener('abort', cleanup, { once: true });
+
+    let buffer = '';
+
+    try {
+      for await (const chunk of child.stdout) {
+        if (signal?.aborted) break;
+
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop()!;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed) {
+            yield JSON.parse(trimmed) as T;
+          }
+        }
+      }
+
+      if (buffer.trim() && !signal?.aborted) {
+        yield JSON.parse(buffer.trim()) as T;
+      }
+    } finally {
+      signal?.removeEventListener('abort', cleanup);
+      cleanup();
+    }
   }
 }
