@@ -15,7 +15,7 @@ const builder = await createBuilder();
 // addContainer (pre-existing)
 const container = await builder.addContainer("mycontainer", "nginx");
 
-// addDockerfile (NEW)
+// addDockerfile
 const dockerContainer = await builder.addDockerfile("dockerapp", "./app");
 
 // addExecutable (pre-existing)
@@ -24,13 +24,13 @@ const exe = await builder.addExecutable("myexe", "echo", ".", ["hello"]);
 // addProject (pre-existing)
 const project = await builder.addProject("myproject", "./src/MyProject", "https");
 
-// addCSharpApp (NEW)
+// addCSharpApp
 const csharpApp = await builder.addCSharpApp("csharpapp", "./src/CSharpApp");
 
-// addDotnetTool (NEW)
+// addDotnetTool
 const tool = await builder.addDotnetTool("mytool", "dotnet-ef");
 
-// addParameterFromConfiguration (NEW)
+// addParameterFromConfiguration
 const configParam = await builder.addParameterFromConfiguration("myconfig", "MyConfig:Key");
 const secretParam = await builder.addParameterFromConfiguration("mysecret", "MyConfig:Secret", { secret: true });
 
@@ -38,10 +38,10 @@ const secretParam = await builder.addParameterFromConfiguration("mysecret", "MyC
 // Container-specific methods on ContainerResource
 // ===================================================================
 
-// withDockerfileBaseImage (NEW)
+// withDockerfileBaseImage
 await container.withDockerfileBaseImage({ buildImage: "mcr.microsoft.com/dotnet/sdk:8.0" });
 
-// withContainerRegistry (NEW)
+// withContainerRegistry
 await container.withContainerRegistry(container);
 
 // ===================================================================
@@ -70,86 +70,86 @@ await builtConnectionString.withConnectionPropertyValue("Mode", "Development");
 // ResourceBuilderExtensions.cs — NEW exports on ContainerResource
 // ===================================================================
 
-// withEnvironmentEndpoint (NEW)
+// withEnvironmentEndpoint
 await container.withEnvironmentEndpoint("MY_ENDPOINT", endpoint);
 
-// withEnvironmentParameter (NEW)
+// withEnvironmentParameter
 await container.withEnvironmentParameter("MY_PARAM", configParam);
 
-// withEnvironmentConnectionString (NEW)
+// withEnvironmentConnectionString
 await container.withEnvironmentConnectionString("MY_CONN", builtConnectionString);
 
-// withConnectionProperty (NEW) — with ReferenceExpression
+// withConnectionProperty — with ReferenceExpression
 await builtConnectionString.withConnectionProperty("Endpoint", expr);
 
-// withConnectionPropertyValue (NEW) — with string
+// withConnectionPropertyValue — with string
 await builtConnectionString.withConnectionPropertyValue("Protocol", "https");
 
-// excludeFromManifest (NEW)
+// excludeFromManifest
 await container.excludeFromManifest();
 
-// excludeFromMcp (NEW)
+// excludeFromMcp
 await container.excludeFromMcp();
 
 // waitForCompletion (pre-existing)
 await container.waitForCompletion(exe);
 
-// withDeveloperCertificateTrust (NEW)
+// withDeveloperCertificateTrust
 await container.withDeveloperCertificateTrust(true);
 
-// withCertificateTrustScope (NEW)
+// withCertificateTrustScope
 await container.withCertificateTrustScope(CertificateTrustScope.System);
 
-// withHttpsDeveloperCertificate (NEW)
+// withHttpsDeveloperCertificate
 await container.withHttpsDeveloperCertificate();
 
-// withoutHttpsCertificate (NEW)
+// withoutHttpsCertificate
 await container.withoutHttpsCertificate();
 
-// withChildRelationship (NEW)
+// withChildRelationship
 await container.withChildRelationship(exe);
 
-// withIconName (NEW)
+// withIconName
 await container.withIconName("Database", { iconVariant: IconVariant.Filled });
 
-// withHttpProbe (NEW)
+// withHttpProbe
 await container.withHttpProbe(ProbeType.Liveness, { path: "/health" });
 
-// withRemoteImageName (NEW)
+// withRemoteImageName
 await container.withRemoteImageName("myregistry.azurecr.io/myapp");
 
-// withRemoteImageTag (NEW)
+// withRemoteImageTag
 await container.withRemoteImageTag("latest");
 
-// withMcpServer (NEW)
+// withMcpServer
 await container.withMcpServer({ path: "/mcp" });
 
-// withRequiredCommand (NEW)
+// withRequiredCommand
 await container.withRequiredCommand("docker");
 
 // ===================================================================
 // DotnetToolResourceExtensions.cs — NEW exports
 // ===================================================================
 
-// withToolIgnoreExistingFeeds (NEW)
+// withToolIgnoreExistingFeeds
 await tool.withToolIgnoreExistingFeeds();
 
-// withToolIgnoreFailedSources (NEW)
+// withToolIgnoreFailedSources
 await tool.withToolIgnoreFailedSources();
 
-// withToolPackage (NEW)
+// withToolPackage
 await tool.withToolPackage("dotnet-ef");
 
-// withToolPrerelease (NEW)
+// withToolPrerelease
 await tool.withToolPrerelease();
 
-// withToolSource (NEW)
+// withToolSource
 await tool.withToolSource("https://api.nuget.org/v3/index.json");
 
-// withToolVersion (NEW)
+// withToolVersion
 await tool.withToolVersion("8.0.0");
 
-// publishAsDockerFile (NEW)
+// publishAsDockerFile
 await tool.publishAsDockerFile();
 
 // PipelineStepFactoryExtensions.cs — NEW exports
