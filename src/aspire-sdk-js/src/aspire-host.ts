@@ -10,6 +10,11 @@ import type {
   LogsOutput,
   LogOptions,
   WaitOptions,
+  OtelQueryOptions,
+  OtelLogQueryOptions,
+  TelemetryResponse,
+  AppHostInfo,
+  ExportOptions,
 } from './types.js';
 
 /**
@@ -208,6 +213,104 @@ export class AspireHost {
     await aspireExec(['resource', resourceName, command], {
       appHost: this.appHost,
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // OpenTelemetry
+  // ---------------------------------------------------------------------------
+
+  /** Get OTEL traces from the dashboard telemetry API. */
+  async getTraces(options: OtelQueryOptions = {}): Promise<TelemetryResponse> {
+    return aspireJson<TelemetryResponse>(
+      this.buildOtelArgs('traces', options),
+      { appHost: this.appHost },
+    );
+  }
+
+  /** Get OTEL spans from the dashboard telemetry API. */
+  async getSpans(options: OtelQueryOptions = {}): Promise<TelemetryResponse> {
+    return aspireJson<TelemetryResponse>(
+      this.buildOtelArgs('spans', options),
+      { appHost: this.appHost },
+    );
+  }
+
+  /**
+   * Stream OTEL spans in real-time via `aspire otel spans --follow`.
+   * Pass an `AbortSignal` to stop streaming.
+   */
+  async *streamSpans(options: OtelQueryOptions & { signal?: AbortSignal } = {}): AsyncGenerator<TelemetryResponse> {
+    const { signal, ...queryOptions } = options;
+    const args = [...this.buildOtelArgs('spans', queryOptions), '--follow'];
+    yield* this.streamCommand<TelemetryResponse>(args, signal);
+  }
+
+  /** Get OTEL structured logs from the dashboard telemetry API. */
+  async getStructuredLogs(options: OtelLogQueryOptions = {}): Promise<TelemetryResponse> {
+    const args = this.buildOtelArgs('logs', options);
+    if (options.severity) {
+      args.push('--severity', options.severity);
+    }
+    return aspireJson<TelemetryResponse>(args, { appHost: this.appHost });
+  }
+
+  /**
+   * Stream OTEL structured logs in real-time via `aspire otel logs --follow`.
+   * Pass an `AbortSignal` to stop streaming.
+   */
+  async *streamStructuredLogs(options: OtelLogQueryOptions & { signal?: AbortSignal } = {}): AsyncGenerator<TelemetryResponse> {
+    const { signal, ...queryOptions } = options;
+    const args = [...this.buildOtelArgs('logs', queryOptions), '--follow'];
+    if (queryOptions.severity) {
+      args.push('--severity', queryOptions.severity);
+    }
+    yield* this.streamCommand<TelemetryResponse>(args, signal);
+  }
+
+  private buildOtelArgs(subcommand: string, options: OtelQueryOptions): string[] {
+    const args = ['otel', subcommand];
+    if (options.resource) {
+      args.push(options.resource);
+    }
+    if (options.limit !== undefined) {
+      args.push('--limit', String(options.limit));
+    }
+    if (options.traceId) {
+      args.push('--trace-id', options.traceId);
+    }
+    if (options.hasError !== undefined) {
+      args.push('--has-error');
+    }
+    return args;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Export
+  // ---------------------------------------------------------------------------
+
+  /** Export telemetry and resource data to a zip file. */
+  async export(options: ExportOptions = {}): Promise<string> {
+    const args = ['export'];
+    if (options.resource) {
+      args.push(options.resource);
+    }
+    if (options.output) {
+      args.push('--output', options.output);
+    }
+    return aspireExec(args, { appHost: this.appHost });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Static utilities (no running AppHost needed)
+  // ---------------------------------------------------------------------------
+
+  /** List all running AppHosts. */
+  static async list(options: { resources?: boolean } = {}): Promise<AppHostInfo[]> {
+    const args = ['ps'];
+    if (options.resources) {
+      args.push('--resources');
+    }
+    return aspireJson<AppHostInfo[]>(args);
   }
 
   // ---------------------------------------------------------------------------

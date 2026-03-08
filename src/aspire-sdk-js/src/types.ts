@@ -110,3 +110,126 @@ export interface LogOptions {
   /** Include timestamps. */
   timestamps?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// OpenTelemetry types (OTLP JSON format)
+// ---------------------------------------------------------------------------
+
+/** Options for querying OTEL data. */
+export interface OtelQueryOptions {
+  /** Filter by resource name. */
+  resource?: string;
+  /** Maximum number of items to return. */
+  limit?: number;
+  /** Filter by trace ID. */
+  traceId?: string;
+  /** Filter by error status. */
+  hasError?: boolean;
+}
+
+/** Options for querying OTEL structured logs. */
+export interface OtelLogQueryOptions extends OtelQueryOptions {
+  /** Filter by minimum severity. */
+  severity?: 'Trace' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Critical';
+}
+
+/** OTLP key-value attribute. */
+export interface OtlpKeyValue {
+  key: string;
+  value: OtlpAnyValue;
+}
+
+/** OTLP polymorphic value. */
+export interface OtlpAnyValue {
+  stringValue?: string;
+  boolValue?: boolean;
+  intValue?: string;
+  doubleValue?: number;
+  arrayValue?: { values: OtlpAnyValue[] };
+  kvlistValue?: { values: OtlpKeyValue[] };
+  bytesValue?: string;
+}
+
+/** OTLP resource metadata. */
+export interface OtlpResource {
+  attributes?: OtlpKeyValue[];
+}
+
+/** OTLP instrumentation scope. */
+export interface OtlpInstrumentationScope {
+  name?: string;
+  version?: string;
+}
+
+/** OTLP span. */
+export interface OtlpSpan {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  kind?: number;
+  startTimeUnixNano: string;
+  endTimeUnixNano: string;
+  attributes?: OtlpKeyValue[];
+  status?: { message?: string; code?: number };
+  events?: Array<{ timeUnixNano: string; name: string; attributes?: OtlpKeyValue[] }>;
+  links?: Array<{ traceId: string; spanId: string; attributes?: OtlpKeyValue[] }>;
+}
+
+/** OTLP log record. */
+export interface OtlpLogRecord {
+  timeUnixNano?: string;
+  severityNumber?: number;
+  severityText?: string;
+  body?: OtlpAnyValue;
+  attributes?: OtlpKeyValue[];
+  traceId?: string;
+  spanId?: string;
+}
+
+/** Telemetry API response wrapper. */
+export interface TelemetryResponse {
+  data: {
+    resourceSpans?: Array<{
+      resource?: OtlpResource;
+      scopeSpans?: Array<{
+        scope?: OtlpInstrumentationScope;
+        spans?: OtlpSpan[];
+      }>;
+    }>;
+    resourceLogs?: Array<{
+      resource?: OtlpResource;
+      scopeLogs?: Array<{
+        scope?: OtlpInstrumentationScope;
+        logRecords?: OtlpLogRecord[];
+      }>;
+    }>;
+  };
+  totalCount: number;
+  returnedCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Process list types
+// ---------------------------------------------------------------------------
+
+/** A running AppHost from `aspire ps --format json`. */
+export interface AppHostInfo {
+  appHostPath: string;
+  appHostPid: number;
+  cliPid?: number;
+  dashboardUrl?: string;
+  resources?: ResourceSnapshot[];
+}
+
+// ---------------------------------------------------------------------------
+// Export types
+// ---------------------------------------------------------------------------
+
+/** Options for exporting telemetry data. */
+export interface ExportOptions {
+  /** Export data only for the specified resource. */
+  resource?: string;
+  /** Output file path for the zip. */
+  output?: string;
+}
