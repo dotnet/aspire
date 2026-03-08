@@ -3525,6 +3525,7 @@ class TestRedisResourceOptions(ContainerResourceOptions, total=False):
     connection_string: ReferenceExpression
     connection_string_direct: str
     redis_specific: str
+    multi_param_handle_callback: Callable[[TestCallbackContext, TestEnvironmentContext], None]
 
 class TestRedisResource(ContainerResource, ResourceWithConnectionString):
     """TestRedisResource resource."""
@@ -3640,6 +3641,17 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         )
         return cast(bool, result)
 
+    def with_multi_param_handle_callback(self, callback: Callable[[TestCallbackContext, TestEnvironmentContext], None]) -> Self:
+        """Tests multi-param callback destructuring"""
+        rpc_args: dict[str, Any] = {'builder': self._handle}
+        rpc_args['callback'] = self._client.register_callback(callback)
+        result = self._client.invoke_capability(
+            'Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback',
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
     def __init__(self, handle: Handle, client: AspireClient, **kwargs: Unpack[TestRedisResourceOptions]) -> None:
         if _persistence := kwargs.pop("persistence", None):
             if _validate_type(_persistence, TestPersistenceMode):
@@ -3672,6 +3684,13 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withRedisSpecific', rpc_args))
             else:
                 raise TypeError("Invalid type for option 'redis_specific'. Expected: str")
+        if _multi_param_handle_callback := kwargs.pop("multi_param_handle_callback", None):
+            if _validate_type(_multi_param_handle_callback, Callable[[TestCallbackContext, TestEnvironmentContext], None]):
+                rpc_args: dict[str, Any] = {"builder": handle}
+                rpc_args["callback"] = client.register_callback(_multi_param_handle_callback)
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback', rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'multi_param_handle_callback'. Expected: Callable[[TestCallbackContext, TestEnvironmentContext], None]")
         super().__init__(handle, client, **kwargs)
 
 
