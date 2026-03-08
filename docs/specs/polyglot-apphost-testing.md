@@ -1,6 +1,6 @@
 # Polyglot AppHost Testing
 
-> **Status:** Draft
+> **Status:** In Progress — TypeScript SDK spike implemented in `src/aspire-sdk-js/`
 
 This document describes how to write integration tests for Aspire applications using the Aspire CLI as the orchestration layer. This approach is language-agnostic and works with any test framework.
 
@@ -11,7 +11,7 @@ This document describes how to write integration tests for Aspire applications u
 3. [Architecture](#architecture)
 4. [CLI Primitives](#cli-primitives)
 5. [Resource Snapshot Schema](#resource-snapshot-schema)
-6. [Language Wrapper APIs](#language-wrapper-apis)
+6. [TypeScript SDK (`@aspire/sdk`)](#typescript-sdk-aspiresdk)
 7. [Usage Examples](#usage-examples)
 8. [Comparison with Aspire.Hosting.Testing](#comparison-with-aspirehostingtesting)
 9. [Future Work](#future-work)
@@ -79,33 +79,51 @@ The Aspire CLI already has the building blocks we need:
 
 ### New CLI Commands
 
-We add a new `aspire describe` command that exposes resource snapshots:
+The following commands are available for programmatic automation:
 
 ```bash
-aspire describe [--follow] [--project <path>]
+# Start an AppHost in the background (returns JSON with PIDs and dashboard URL)
+aspire start --format json [--apphost <path>]
+
+# Stop a running AppHost
+aspire stop [--apphost <path>]
+
+# Describe resources (snapshot or streaming)
+aspire describe [<resource>] --format json [--apphost <path>]
+aspire describe --follow --format json [--apphost <path>]
+
+# Wait for a resource to reach a status
+aspire wait <resource> [--status healthy|up|down] [--timeout <seconds>]
+
+# Console logs (snapshot or streaming)
+aspire logs [<resource>] --format json [--apphost <path>]
+aspire logs [<resource>] --follow --format json [--apphost <path>]
+
+# OpenTelemetry data
+aspire otel traces [<resource>] --format json [--apphost <path>]
+aspire otel spans [<resource>] --format json [--follow] [--apphost <path>]
+aspire otel logs [<resource>] --format json [--follow] [--apphost <path>]
+
+# Resource commands
+aspire resource <resource> <command>   # e.g. restart, stop, start
+
+# Export telemetry and resource data
+aspire export [<resource>] [-o <path>] [--apphost <path>]
+
+# List running AppHosts
+aspire ps --format json [--resources]
 ```
-
-- **`aspire describe`** - Returns a JSON snapshot of all resources
-- **`aspire describe --follow`** - Streams NDJSON snapshots as resources change
-
-Language wrapper libraries build convenience methods on top of these primitives.
 
 ---
 
 ## CLI Primitives
 
-### `aspire run --detach`
+### `aspire start`
 
 Starts the AppHost in the background.
 
 ```bash
-aspire run --detach --project ./MyApp.AppHost/MyApp.AppHost.csproj
-```
-
-By default, outputs human-readable text. Use `--format json` for structured output:
-
-```bash
-aspire run --detach --format json --project ./MyApp.AppHost/MyApp.AppHost.csproj
+aspire start --format json --apphost ./MyApp.AppHost/MyApp.AppHost.csproj
 ```
 
 **Output (JSON):**
@@ -115,14 +133,14 @@ aspire run --detach --format json --project ./MyApp.AppHost/MyApp.AppHost.csproj
   "appHostPid": 12345,
   "cliPid": 12340,
   "dashboardUrl": "http://localhost:15000/login?t=abc123",
-  "logFile": "/path/to/MyApp.AppHost/.aspire/logs/apphost.log"
+  "logFile": "/path/to/logs/apphost.log"
 }
 ```
 
 The command:
-1. Spawns the CLI as a child process running `aspire run`
+1. Spawns the AppHost as a background process
 2. Waits for the backchannel connection to be established
-3. Returns connection info and exits (JSON if `--format json` specified)
+3. Returns connection info as JSON and exits
 
 ### `aspire stop`
 
@@ -432,186 +450,138 @@ The `state` field uses values from `KnownResourceStates`:
 
 ---
 
-## Language Wrapper APIs
+## TypeScript SDK (`@aspire/sdk`)
 
-Each language provides a wrapper library that builds on the CLI primitives.
+The TypeScript SDK lives in `src/aspire-sdk-js/` and provides a programmatic API for automating the Aspire CLI. It wraps CLI commands with typed interfaces, async generators for streaming, and `AbortSignal` for cancellation.
 
-### TypeScript / JavaScript
+**Package:** `@aspire/sdk` · **Zero runtime dependencies** · ESM only
+
+### Installation
+
+```bash
+npm install @aspire/sdk
+```
+
+### API Overview
+
+| Method | CLI Command | Description |
+|--------|-------------|-------------|
+| `AspireHost.start(opts)` | `aspire start --format json` | Start AppHost, return handle |
+| `host.stop()` | `aspire stop` | Stop the AppHost |
+| `host.getResources()` | `aspire describe --format json` | Get all resource snapshots |
+| `host.getResource(name)` | `aspire describe <name> --format json` | Get a single resource |
+| `host.getEndpoint(resource, name?)` | ↳ extracts from resource | Get endpoint URL |
+| `host.waitForResource(name, opts)` | `aspire wait` | Wait for health/state |
+| `host.watchResources({ signal })` | `aspire describe --follow` | Stream resource changes |
+| `host.getLogs(resource?, opts)` | `aspire logs --format json` | Get log snapshot |
+| `host.streamLogs(resource?, { signal })` | `aspire logs --follow` | Stream logs |
+| `host.getTraces(opts)` | `aspire otel traces --format json` | Get OTEL traces |
+| `host.getSpans(opts)` | `aspire otel spans --format json` | Get OTEL spans |
+| `host.streamSpans({ signal })` | `aspire otel spans --follow` | Stream OTEL spans |
+| `host.getStructuredLogs(opts)` | `aspire otel logs --format json` | Get OTEL structured logs |
+| `host.streamStructuredLogs({ signal })` | `aspire otel logs --follow` | Stream OTEL logs |
+| `host.executeCommand(resource, cmd)` | `aspire resource <name> <cmd>` | Restart/stop/start resource |
+| `host.export(opts)` | `aspire export` | Export telemetry to zip |
+| `AspireHost.list(opts)` | `aspire ps --format json` | List running AppHosts |
+
+### Quick Start
 
 ```typescript
-import { AspireApp } from '@aspire/testing';
+import { AspireHost } from '@aspire/sdk';
 
-// Start the AppHost
-const app = await AspireApp.start({
-  project: './MyApp.AppHost/MyApp.AppHost.csproj'
-});
+const host = await AspireHost.start({ appHost: './apphost.ts' });
 
 try {
-  // Wait for a resource to be running and healthy
-  await app.waitForResource('redis', { state: 'Running', healthy: true });
-  await app.waitForResource('api', { state: 'Running', healthy: true });
-  
-  // Get resource information
-  const redis = app.getResource('redis');
-  console.log(redis.connectionString); // "localhost:6379"
-  
-  const api = app.getResource('api');
-  const httpEndpoint = api.getEndpoint('http');
-  console.log(httpEndpoint.url); // "http://localhost:5001"
-  
-  // Make HTTP requests
-  const response = await fetch(`${httpEndpoint.url}/api/products`);
-  expect(response.ok).toBe(true);
-  
+  // Wait for resources to be healthy
+  await host.waitForResource('api', { status: 'healthy' });
+  await host.waitForResource('redis', { status: 'healthy' });
+
+  // Get endpoints
+  const endpoint = await host.getEndpoint('api', 'http');
+  console.log(endpoint.url); // "http://localhost:5001"
+
+  // Make requests
+  const response = await fetch(`${endpoint.url}/api/products`);
+  console.log(response.status);
+
+  // Query OTEL traces
+  const traces = await host.getTraces({ resource: 'api' });
+  console.log(`${traces.returnedCount} traces`);
+
 } finally {
-  // Collect logs before stopping (useful for CI/debugging)
-  await app.saveLogs('./test-artifacts/logs');
-  
-  // Or get logs programmatically
-  const logs = await app.getLogs(); // all resources
-  const apiLogs = await app.getLogs('api'); // specific resource
-  
-  // Always stop the AppHost
-  await app.stop();
+  await host.stop();
 }
 ```
 
-### Log Collection API
+### Streaming with AbortSignal
 
-The wrapper provides multiple ways to collect logs:
+All streaming methods use standard `AbortSignal` for cancellation:
 
 ```typescript
-// Save all logs to files (one per resource)
-await app.saveLogs('./test-artifacts/logs');
+// Watch resources until one fails
+const ac = new AbortController();
+for await (const snapshot of host.watchResources({ signal: ac.signal })) {
+  console.log(`${snapshot.displayName}: ${snapshot.state}`);
+  if (snapshot.state === 'FailedToStart') ac.abort();
+}
 
+// Stream logs with a timeout
+for await (const entry of host.streamLogs('api', { signal: AbortSignal.timeout(30_000) })) {
+  console.log(`[${entry.resourceName}] ${entry.content}`);
+}
+
+// Stream OTEL spans in real-time
+for await (const data of host.streamSpans({ signal: ac.signal })) {
+  for (const rs of data.data.resourceSpans ?? []) {
+    for (const ss of rs.scopeSpans ?? []) {
+      for (const span of ss.spans ?? []) {
+        console.log(`${span.name} (${span.spanId})`);
+      }
+    }
+  }
+}
+```
+
+### Log Collection
+
+```typescript
 // Get all logs as structured data
-const allLogs = await app.getLogs();
-// Returns: LogEntry[]
+const logs = await host.getLogs();
 
 // Get logs for a specific resource
-const apiLogs = await app.getLogs('api');
+const apiLogs = await host.getLogs('api');
 
 // Get last N lines
-const recentLogs = await app.getLogs('api', { tail: 100 });
+const recentLogs = await host.getLogs('api', { tail: 100 });
 
 // Stream logs in real-time
-for await (const entry of app.streamLogs()) {
-  console.log(`[${entry.resource}] ${entry.line}`);
-}
-
-// Stream logs for a specific resource
-for await (const entry of app.streamLogs('api')) {
-  console.log(entry.line);
-}
-```
-
-**LogEntry interface:**
-```typescript
-interface LogEntry {
-  resource: string;
-  timestamp: Date;
-  line: string;
-  isError: boolean;
+for await (const entry of host.streamLogs('api', { signal })) {
+  console.log(`[${entry.resourceName}] ${entry.content}`);
 }
 ```
 
 ### Implementation
 
-The TypeScript wrapper:
+The SDK is structured as three modules:
 
-1. Spawns `aspire run --detach --format json` and parses the JSON output
-2. Spawns `aspire describe --follow` in the background to maintain resource state
-3. Provides async methods that wait for state changes
-4. Can collect logs via `aspire logs` piped to files before cleanup
-5. Spawns `aspire stop` on cleanup
-
-```typescript
-class AspireApp {
-  private resources: Map<string, ResourceSnapshot> = new Map();
-  private watcher: ChildProcess | null = null;
-  
-  static async start(options: StartOptions): Promise<AspireApp> {
-    const app = new AspireApp();
-    
-    // Start the AppHost
-    const result = await exec(`aspire run --detach --format json --project ${options.project}`);
-    const info = JSON.parse(result.stdout);
-    app.appHostPid = info.appHostPid;
-    
-    // Start watching resources
-    app.watcher = spawn('aspire', ['describe', '--follow', '--format', 'json', '--project', options.project]);
-    app.watcher.stdout.on('data', (chunk) => {
-      for (const line of chunk.toString().split('\n')) {
-        if (line.trim()) {
-          const snapshot = JSON.parse(line);
-          app.resources.set(snapshot.name, snapshot);
-          app.emit('resourceChanged', snapshot);
-        }
-      }
-    });
-    
-    return app;
-  }
-  
-  async waitForResource(name: string, options: WaitOptions): Promise<ResourceSnapshot> {
-    const deadline = Date.now() + (options.timeout ?? 60000);
-    
-    while (Date.now() < deadline) {
-      const resource = this.resources.get(name);
-      
-      // Check for terminal failure states
-      if (resource) {
-        const state = resource.state;
-        if (state === 'FailedToStart' || state === 'Exited' || state === 'Finished') {
-          const exitCode = resource.properties?.['resource.exitCode'];
-          if (state === 'FailedToStart' || (exitCode !== undefined && exitCode !== 0)) {
-            throw new Error(`Resource ${name} failed: state=${state}, exitCode=${exitCode}`);
-          }
-        }
-        
-        if (this.matchesConditions(resource, options)) {
-          return resource;
-        }
-      }
-      
-      await this.waitForChange(name, deadline - Date.now());
-    }
-    
-    throw new Error(`Timeout waiting for resource ${name}`);
-  }
-  
-  getResource(name: string): ResourceSnapshot {
-    const resource = this.resources.get(name);
-    if (!resource) {
-      throw new Error(`Resource ${name} not found`);
-    }
-    return resource;
-  }
-  
-  async stop(): Promise<void> {
-    this.watcher?.kill();
-    await exec(`aspire stop`);
-  }
-}
-```
+- **`cli.ts`** — Low-level helpers (`aspireExec`, `aspireJson`) that shell out to the `aspire` CLI with `--non-interactive --nologo --format Json` flags
+- **`types.ts`** — TypeScript interfaces matching the CLI's JSON output schemas (resource snapshots, OTLP types, start output, etc.)
+- **`aspire-host.ts`** — The `AspireHost` class with all public methods. Streaming uses a private `streamCommand<T>()` async generator that spawns NDJSON-producing CLI commands and yields parsed objects with `AbortSignal` cleanup.
 
 ### Python
 
 ```python
-from aspire.testing import AspireApp
+from aspire.testing import AspireHost
 
-async with AspireApp.start(project='./MyApp.AppHost') as app:
-    # Wait for resources
-    await app.wait_for_resource('redis', state='Running', healthy=True)
-    await app.wait_for_resource('api', state='Running', healthy=True)
-    
-    # Get endpoints
-    api = app.get_resource('api')
-    http_url = api.get_endpoint('http').url
-    
-    # Make requests
+async with AspireHost.start(app_host='./MyApp.AppHost') as host:
+    await host.wait_for_resource('redis', status='healthy')
+    await host.wait_for_resource('api', status='healthy')
+
+    api = await host.get_resource('api')
+    endpoint = api.urls[0]
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(f'{http_url}/api/products')
+        response = await client.get(f'{endpoint.url}/api/products')
         assert response.status_code == 200
 ```
 
@@ -620,16 +590,16 @@ async with AspireApp.start(project='./MyApp.AppHost') as app:
 For .NET tests that want CLI-based testing (instead of `Aspire.Hosting.Testing`):
 
 ```csharp
-await using var app = await AspireApp.StartAsync(new StartOptions
+await using var host = await AspireHost.StartAsync(new StartOptions
 {
-    Project = "./MyApp.AppHost/MyApp.AppHost.csproj"
+    AppHost = "./MyApp.AppHost/MyApp.AppHost.csproj"
 });
 
-await app.WaitForResourceAsync("redis", state: "Running", healthy: true);
-await app.WaitForResourceAsync("api", state: "Running", healthy: true);
+await host.WaitForResourceAsync("redis", status: "healthy");
+await host.WaitForResourceAsync("api", status: "healthy");
 
-var api = app.GetResource("api");
-var httpEndpoint = api.GetEndpoint("http");
+var api = await host.GetResourceAsync("api");
+var httpEndpoint = api.Urls.First(e => e.Name == "http");
 
 using var httpClient = new HttpClient { BaseAddress = new Uri(httpEndpoint.Url) };
 var response = await httpClient.GetAsync("/api/products");
@@ -643,21 +613,22 @@ response.EnsureSuccessStatusCode();
 ### Jest Test
 
 ```typescript
-import { AspireApp } from '@aspire/testing';
+import { AspireHost } from '@aspire/sdk';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 
 describe('Product API', () => {
-  let app: AspireApp;
+  let host: AspireHost;
   let apiUrl: string;
 
   beforeAll(async () => {
-    app = await AspireApp.start({ project: './MyApp.AppHost' });
-    await app.waitForResource('api', { state: 'Running', healthy: true });
-    apiUrl = app.getResource('api').getEndpoint('http').url;
-  }, 120000); // 2 minute timeout for startup
+    host = await AspireHost.start({ appHost: './MyApp.AppHost' });
+    await host.waitForResource('api', { status: 'healthy' });
+    const endpoint = await host.getEndpoint('api', 'http');
+    apiUrl = endpoint.url;
+  }, 120000);
 
   afterAll(async () => {
-    await app.stop();
+    await host?.stop();
   });
 
   it('should list products', async () => {
@@ -676,6 +647,11 @@ describe('Product API', () => {
     });
     expect(response.status).toBe(201);
   });
+
+  it('should have OTEL traces', async () => {
+    const traces = await host.getTraces({ resource: 'api' });
+    expect(traces.returnedCount).toBeGreaterThan(0);
+  });
 });
 ```
 
@@ -683,17 +659,19 @@ describe('Product API', () => {
 
 ```python
 import pytest
-from aspire.testing import AspireApp
+from aspire.sdk import AspireHost
 
 @pytest.fixture(scope='module')
-async def app():
-    async with AspireApp.start(project='./MyApp.AppHost') as app:
-        await app.wait_for_resource('api', state='Running', healthy=True)
-        yield app
+async def host():
+    host = await AspireHost.start(app_host='./MyApp.AppHost')
+    await host.wait_for_resource('api', status='healthy')
+    yield host
+    await host.stop()
 
 @pytest.fixture
-def api_url(app):
-    return app.get_resource('api').get_endpoint('http').url
+async def api_url(host):
+    resource = await host.get_resource('api')
+    return resource.urls[0].url
 
 @pytest.mark.asyncio
 async def test_list_products(api_url):
@@ -738,33 +716,47 @@ async def test_list_products(api_url):
 
 ## Future Work
 
-### Phase 1: Core Implementation
-- [ ] Implement `aspire describe` command
-- [ ] Implement `aspire describe --follow` command
-- [ ] Ensure `aspire run --detach` returns structured JSON
-- [ ] Update `aspire stop` to work reliably with detached instances
+### Phase 1: Core CLI ✅
+- [x] `aspire start --format json` — start AppHost in background
+- [x] `aspire stop` — stop running AppHost
+- [x] `aspire describe [--follow] --format json` — resource snapshots and streaming
+- [x] `aspire wait` — wait for resource health/state
+- [x] `aspire logs [--follow] --format json` — console log access
+- [x] `aspire resource <name> <cmd>` — resource commands
+- [x] `aspire otel traces/spans/logs --format json` — OTEL telemetry queries
+- [x] `aspire export` — export telemetry to zip
+- [x] `aspire ps --format json` — list running AppHosts
 
-### Phase 2: TypeScript Wrapper
-- [ ] Create `@aspire/testing` npm package
-- [ ] Implement `AspireApp.start()`, `stop()`, `waitForResource()`
-- [ ] Add resource snapshot parsing and caching
-- [ ] Write documentation and examples
+### Phase 2: TypeScript SDK ✅ (Spike)
+- [x] Create `@aspire/sdk` package (`src/aspire-sdk-js/`)
+- [x] `AspireHost.start()`, `stop()`, `getResources()`, `getResource()`
+- [x] `waitForResource()` via `aspire wait`
+- [x] `watchResources()`, `streamLogs()` with `AbortSignal` cancellation
+- [x] OTEL APIs: `getTraces()`, `getSpans()`, `getStructuredLogs()`, streaming
+- [x] `export()`, `AspireHost.list()`
+- [x] Integration tests (11 passing)
 
-### Phase 3: Additional Languages
-- [ ] Python wrapper (`aspire-testing` pip package)
-- [ ] Go wrapper
-- [ ] .NET wrapper (for non-`TEntryPoint` scenarios)
+### Phase 3: Polish & Publish
+- [ ] Error handling and typed error classes
+- [ ] Connection string access on resource snapshots
+- [ ] Publish to npm as `@aspire/sdk`
+- [ ] README and API documentation
 
-### Phase 4: Enhanced Features
-- [ ] Timeout configuration for `waitForResource`
-- [ ] Resource filtering in `aspire describe`
-- [ ] Log streaming for debugging
-- [ ] Integration with test framework fixtures/hooks
+### Phase 4: Additional Languages
+- [ ] Python SDK (`aspire-sdk` pip package)
+- [ ] Go SDK
+- [ ] .NET SDK (for non-`TEntryPoint` scenarios)
+
+### Phase 5: Enhanced Features
+- [ ] `Disposable` / `AsyncDisposable` support for automatic cleanup
+- [ ] Test framework integrations (Jest fixtures, pytest fixtures, xUnit fixtures)
+- [ ] CI/CD helpers (log collection on failure, artifact export)
 
 ---
 
 ## References
 
+- [`src/aspire-sdk-js/`](../../../src/aspire-sdk-js/) - TypeScript SDK implementation
 - [Aspire.Hosting.Testing](../../../src/Aspire.Hosting.Testing/) - Existing .NET testing infrastructure
 - [Polyglot AppHost](./polyglot-apphost.md) - Polyglot AppHost architecture
 - [CLI Backchannel](../../../src/Aspire.Cli/Backchannel/) - CLI-to-AppHost communication
