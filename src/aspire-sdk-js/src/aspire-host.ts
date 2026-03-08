@@ -74,6 +74,11 @@ export class AspireHost {
     await aspireExec(['stop'], { appHost: this.appHost });
   }
 
+  /** Stop all running AppHosts. */
+  static async stopAll(): Promise<void> {
+    await aspireExec(['stop', '--all']);
+  }
+
   // ---------------------------------------------------------------------------
   // Resources
   // ---------------------------------------------------------------------------
