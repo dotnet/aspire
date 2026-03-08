@@ -91,10 +91,24 @@ internal static partial class HelmExtensions
 
     public static (bool, ScalarStyle?) ShouldDoubleQuoteString(string value)
     {
-        var shouldApply = ScalarExpressionPattern().IsMatch(value) is false
-                          || EndWithNonStringTypePattern().IsMatch(value) is false;
-        return (shouldApply, shouldApply is false ? ScalarStyle.ForcePlain : null);
+        if (!ScalarExpressionPattern().IsMatch(value))
+        {
+            return (true, null);
+        }
+
+        // Scalar Helm expressions that contain type conversions (| int, | float64, etc.)
+        // or flow control (ternary) must be rendered as plain (unquoted) YAML so that Helm
+        // can process them as template expressions without YAML escaping interference.
+        if (EndWithNonStringTypePattern().IsMatch(value) || HelmFlowControlPattern().IsMatch(value))
+        {
+            return (false, ScalarStyle.ForcePlain);
+        }
+
+        return (true, null);
     }
+
+    [GeneratedRegex(@"^\{\{\s*ternary\b")]
+    private static partial Regex HelmFlowControlPattern();
 
     [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
     private static partial Regex EndWithNonStringTypePattern();

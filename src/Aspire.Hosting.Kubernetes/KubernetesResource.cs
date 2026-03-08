@@ -429,11 +429,16 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
             if (value is ReferenceExpression expr)
             {
-                // Handle conditional expressions by resolving the condition to its
-                // actual value. Kubernetes YAML cannot represent conditionals, so
-                // the branch must be selected at generation time.
                 if (expr.IsConditional)
                 {
+                    // When the condition is a parameter, use Helm ternary to defer
+                    // evaluation to helm install/upgrade time.
+                    if (expr.Condition is ParameterResource conditionParam)
+                    {
+                        return await BuildHelmTernary(context, executionContext, expr, conditionParam, embedded).ConfigureAwait(false);
+                    }
+
+                    // For non-parameter conditions, resolve statically at generation time.
                     var conditionContext = new ValueProviderContext { ExecutionContext = executionContext };
                     var conditionStr = await expr.Condition!.GetValueAsync(conditionContext, default).ConfigureAwait(false);
 
@@ -470,6 +475,52 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
             throw new NotSupportedException($"Unsupported value type: {value.GetType().Name}");
         }
+    }
+
+    private async Task<object> BuildHelmTernary(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, ReferenceExpression expr, ParameterResource conditionParam, bool embedded)
+    {
+        // Process both branches to see if they resolve to plain strings.
+        var whenTrueResult = await ProcessValueAsync(context, executionContext, expr.WhenTrue!, embedded).ConfigureAwait(false);
+        var whenFalseResult = await ProcessValueAsync(context, executionContext, expr.WhenFalse!, embedded).ConfigureAwait(false);
+
+        // If either branch produced a HelmValue (e.g., references another parameter),
+        // fall back to static resolution since nested Helm expressions aren't supported.
+        if (whenTrueResult is HelmValue || whenFalseResult is HelmValue)
+        {
+            var conditionContext = new ValueProviderContext { ExecutionContext = executionContext };
+            var conditionStr = await expr.Condition!.GetValueAsync(conditionContext, default).ConfigureAwait(false);
+
+            var branch = string.Equals(conditionStr, expr.MatchValue, StringComparison.OrdinalIgnoreCase)
+                ? expr.WhenTrue!
+                : expr.WhenFalse!;
+            return await ProcessValueAsync(context, executionContext, branch, embedded).ConfigureAwait(false);
+        }
+
+        // Allocate the condition parameter into values.yaml under the parameters section.
+        var formattedName = conditionParam.Name.ToHelmValuesSectionName();
+        var paramExpression = formattedName.ToHelmParameterExpression(TargetResource.Name);
+
+        if (!Parameters.ContainsKey(formattedName))
+        {
+            Parameters[formattedName] = conditionParam.Default is null || conditionParam.Secret
+                ? new HelmValue(paramExpression, (string?)null)
+                : new HelmValue(paramExpression, conditionParam);
+        }
+
+        // Extract the values path (e.g., .Values.parameters.myapp.enable_tls) from {{ expression }}.
+        var conditionPath = HelmExtensions.ScalarExpressionPattern().Match(paramExpression).Value.Trim();
+
+        var whenTrueStr = EscapeGoTemplateString(whenTrueResult.ToString() ?? string.Empty);
+        var whenFalseStr = EscapeGoTemplateString(whenFalseResult.ToString() ?? string.Empty);
+        var matchStr = EscapeGoTemplateString(expr.MatchValue ?? string.Empty);
+
+        var helmExpression = $"ternary \"{whenTrueStr}\" \"{whenFalseStr}\" (eq {conditionPath} \"{matchStr}\") {HelmExtensions.PipelineDelimiter} quote"
+            .ToHelmExpression();
+
+        return HelmValue.Literal(helmExpression);
+
+        static string EscapeGoTemplateString(string value)
+            => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property, bool embedded = false)

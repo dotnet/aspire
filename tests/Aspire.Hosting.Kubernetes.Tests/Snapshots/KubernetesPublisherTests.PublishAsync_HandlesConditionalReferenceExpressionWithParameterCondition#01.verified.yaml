@@ -1,5 +1,5 @@
-﻿parameters: {}
-secrets: {}
-config:
+﻿parameters:
   myapp:
-    TLS_SUFFIX: ",ssl=true"
+    enable_tls: "True"
+secrets: {}
+config: {}
