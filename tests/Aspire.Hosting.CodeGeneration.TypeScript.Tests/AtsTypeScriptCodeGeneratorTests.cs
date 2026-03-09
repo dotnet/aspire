@@ -1151,6 +1151,52 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.NotNull(deeplyNestedDto);
     }
 
+    [Fact]
+    public void Scanner_DtoWithCallbackProperty_IsDiscovered()
+    {
+        var atsContext = CreateContextFromTestAssembly();
+
+        var dto = atsContext.DtoTypes
+            .FirstOrDefault(d => d.TypeId.Contains("TestDtoWithCallbacks"));
+        Assert.NotNull(dto);
+
+        // Should have the callback property with Callback category
+        var updateStateProp = dto.Properties.FirstOrDefault(p => p.Name == "UpdateState");
+        Assert.NotNull(updateStateProp);
+        Assert.Equal(AtsTypeCategory.Callback, updateStateProp.Type.Category);
+        Assert.NotNull(updateStateProp.Type.CallbackParameters);
+        Assert.NotNull(updateStateProp.Type.CallbackReturnType);
+    }
+
+    [Fact]
+    public void Generate_DtoWithCallbackProperty_GeneratesFunctionType()
+    {
+        var code = GenerateTwoPassCode();
+
+        // TestDtoWithCallbacks should generate an interface
+        Assert.Contains("interface TestDtoWithCallbacks", code);
+
+        // The updateState property should have a function type, not 'any' or 'Function'
+        Assert.DoesNotContain("updateState?: any", code);
+        Assert.DoesNotContain("updateState?: Function", code);
+
+        // Should contain a function type for updateState: (arg0: ...) => Promise<TestResourceStatus>
+        Assert.Contains("updateState?:", code);
+        Assert.Contains("=> Promise<TestResourceStatus>", code);
+    }
+
+    [Fact]
+    public void Generate_DtoWithActionProperty_GeneratesVoidFunctionType()
+    {
+        var code = GenerateTwoPassCode();
+
+        // The onChanged property should have a void function type
+        Assert.DoesNotContain("onChanged?: any", code);
+        Assert.DoesNotContain("onChanged?: Function", code);
+        Assert.Contains("onChanged?:", code);
+        Assert.Contains("=> Promise<void>", code);
+    }
+
     // ===== Enum Generation Tests =====
 
     [Fact]

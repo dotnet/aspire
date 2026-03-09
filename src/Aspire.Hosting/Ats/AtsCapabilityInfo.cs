@@ -77,6 +77,18 @@ public sealed class AtsTypeRef
     /// When Category = Union, this contains the alternative types.
     /// </summary>
     public IReadOnlyList<AtsTypeRef>? UnionTypes { get; init; }
+
+    /// <summary>
+    /// Gets or sets the callback parameter information for Callback category.
+    /// When Category = Callback, this contains the parameter names and types of the delegate.
+    /// </summary>
+    public IReadOnlyList<AtsCallbackParameterInfo>? CallbackParameters { get; init; }
+
+    /// <summary>
+    /// Gets or sets the return type for Callback category.
+    /// When Category = Callback, this contains the return type of the delegate.
+    /// </summary>
+    public AtsTypeRef? CallbackReturnType { get; init; }
 }
 
 /// <summary>

@@ -191,7 +191,7 @@ internal static class AtsCapabilityScanner
         // Valid types are ALL types with [AspireExport] - the ExposeProperties/ExposeMethods
         // flags control whether a wrapper class is generated, not whether the type is valid
         var validTypes = new HashSet<string>(allTypeInfos.Select(t => t.AtsTypeId));
-        ResolveUnknownTypes(allCapabilities, validTypes);
+        ResolveUnknownTypes(allCapabilities, validTypes, allDtoTypes);
 
         // Pass 3: Filter capabilities with unresolved Unknown types
         FilterInvalidCapabilities(allCapabilities, allDiagnostics);
@@ -226,7 +226,7 @@ internal static class AtsCapabilityScanner
 
         // Build universe and resolve Unknown types
         var validTypes = new HashSet<string>(result.HandleTypes.Select(t => t.AtsTypeId));
-        ResolveUnknownTypes(result.Capabilities, validTypes);
+        ResolveUnknownTypes(result.Capabilities, validTypes, result.DtoTypes);
 
         // Filter capabilities with unresolved Unknown types
         FilterInvalidCapabilities(result.Capabilities, result.Diagnostics);
@@ -544,6 +544,16 @@ internal static class AtsCapabilityScanner
         CollectEnumClrTypes(typeRef.ElementType, enumTypes);
         CollectEnumClrTypes(typeRef.KeyType, enumTypes);
         CollectEnumClrTypes(typeRef.ValueType, enumTypes);
+
+        // Check callback parameter and return types
+        if (typeRef.CallbackParameters != null)
+        {
+            foreach (var cbParam in typeRef.CallbackParameters)
+            {
+                CollectEnumClrTypes(cbParam.Type, enumTypes);
+            }
+        }
+        CollectEnumClrTypes(typeRef.CallbackReturnType, enumTypes);
     }
 
     /// <summary>
@@ -552,7 +562,8 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static void ResolveUnknownTypes(
         List<AtsCapabilityInfo> capabilities,
-        HashSet<string> validTypes)
+        HashSet<string> validTypes,
+        List<AtsDtoTypeInfo>? dtoTypes = null)
     {
         foreach (var capability in capabilities)
         {
@@ -572,6 +583,18 @@ internal static class AtsCapabilityScanner
                         }
                     }
                     ResolveTypeRef(param.CallbackReturnType, validTypes);
+                }
+            }
+        }
+
+        // Also resolve DTO property types
+        if (dtoTypes != null)
+        {
+            foreach (var dto in dtoTypes)
+            {
+                foreach (var prop in dto.Properties)
+                {
+                    ResolveTypeRef(prop.Type, validTypes);
                 }
             }
         }
@@ -607,6 +630,16 @@ internal static class AtsCapabilityScanner
                 ResolveTypeRef(memberType, validTypes);
             }
         }
+
+        // Resolve callback parameter and return types
+        if (typeRef.CallbackParameters != null)
+        {
+            foreach (var cbParam in typeRef.CallbackParameters)
+            {
+                ResolveTypeRef(cbParam.Type, validTypes);
+            }
+        }
+        ResolveTypeRef(typeRef.CallbackReturnType, validTypes);
     }
 
     /// <summary>
@@ -710,6 +743,25 @@ internal static class AtsCapabilityScanner
                     return result;
                 }
             }
+        }
+
+        // Check callback parameter and return types
+        if (typeRef.CallbackParameters != null)
+        {
+            foreach (var cbParam in typeRef.CallbackParameters)
+            {
+                result = FindUnknownType(cbParam.Type);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+        }
+
+        result = FindUnknownType(typeRef.CallbackReturnType);
+        if (result != null)
+        {
+            return result;
         }
 
         return null;
@@ -2209,6 +2261,20 @@ internal static class AtsCapabilityScanner
                 ClrType = type,
                 Category = AtsTypeCategory.Handle,
                 IsInterface = type.IsInterface
+            };
+        }
+
+        // Handle delegate types (Func<>, Action<>, custom delegates)
+        if (typeof(Delegate).IsAssignableFrom(type))
+        {
+            var (callbackParams, callbackReturn) = ExtractCallbackSignature(type);
+            return new AtsTypeRef
+            {
+                TypeId = "callback",
+                ClrType = type,
+                Category = AtsTypeCategory.Callback,
+                CallbackParameters = callbackParams,
+                CallbackReturnType = callbackReturn
             };
         }
 

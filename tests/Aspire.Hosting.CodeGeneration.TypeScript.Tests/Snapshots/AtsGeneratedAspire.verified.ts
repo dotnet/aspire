@@ -38,6 +38,9 @@ type TestCollectionContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScr
 /** Handle to TestDatabaseResource */
 type TestDatabaseResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource'>;
 
+/** Handle to TestDtoStateContext */
+type TestDtoStateContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext'>;
+
 /** Handle to TestEnvironmentContext */
 type TestEnvironmentContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext'>;
 
@@ -100,6 +103,14 @@ export interface TestConfigDto {
 export interface TestDeeplyNestedDto {
     nestedData?: AspireDict<string, AspireList<TestConfigDto>>;
     metadataArray?: AspireDict<string, string>[];
+}
+
+/** DTO interface for TestDtoWithCallbacks */
+export interface TestDtoWithCallbacks {
+    name?: string;
+    updateState?: (arg: TestDtoStateContextHandle) => Promise<TestResourceStatus>;
+    validate?: (arg: string) => Promise<boolean>;
+    onChanged?: (obj: string) => Promise<void>;
 }
 
 /** DTO interface for TestNestedDto */
@@ -251,6 +262,37 @@ export class TestCollectionContext {
         }
         return this._metadata;
     }
+
+}
+
+// ============================================================================
+// TestDtoStateContext
+// ============================================================================
+
+/**
+ * Type class for TestDtoStateContext.
+ */
+export class TestDtoStateContext {
+    constructor(private _handle: TestDtoStateContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the State property */
+    state = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState',
+                { context: this._handle, value }
+            );
+        }
+    };
 
 }
 
@@ -2389,6 +2431,7 @@ process.on('uncaughtException', (error: Error) => {
 // Register wrapper factories for typed handle wrapping in callbacks
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext', (handle, client) => new TestCollectionContext(handle as TestCollectionContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext', (handle, client) => new TestDtoStateContext(handle as TestDtoStateContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));

@@ -120,3 +120,25 @@ public class TestDeeplyNestedDto
     /// </summary>
     public Dictionary<string, string>[] MetadataArray { get; set; } = [];
 }
+
+/// <summary>
+/// Test state context type for delegate property testing.
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+public class TestDtoStateContext
+{
+    public string State { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Test DTO with delegate/callback properties.
+/// Verifies that Func and Action types on DTOs generate proper TypeScript function types.
+/// </summary>
+[AspireDto]
+public class TestDtoWithCallbacks
+{
+    public string Name { get; set; } = string.Empty;
+    public Func<TestDtoStateContext, TestResourceStatus>? UpdateState { get; set; }
+    public Func<string, bool>? Validate { get; set; }
+    public Action<string>? OnChanged { get; set; }
+}

@@ -157,7 +157,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             AtsTypeCategory.Enum => MapEnumType(typeRef.TypeId),
             AtsTypeCategory.Handle => GetWrapperOrHandleName(typeRef.TypeId),
             AtsTypeCategory.Dto => GetDtoInterfaceName(typeRef.TypeId),
-            AtsTypeCategory.Callback => "Function",  // Callbacks handled separately with full signature
+            AtsTypeCategory.Callback => MapCallbackTypeRefToTypeScript(typeRef),
             AtsTypeCategory.Array => $"{MapTypeRefToTypeScript(typeRef.ElementType)}[]",
             AtsTypeCategory.List => $"AspireList<{MapTypeRefToTypeScript(typeRef.ElementType)}>",
             AtsTypeCategory.Dict => typeRef.IsReadOnly
@@ -217,6 +217,20 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             .Distinct();
 
         return string.Join(" | ", memberTypes);
+    }
+
+    /// <summary>
+    /// Maps a callback type ref to a TypeScript function type signature.
+    /// Uses the callback parameter and return type info from the type ref when available.
+    /// </summary>
+    private string MapCallbackTypeRefToTypeScript(AtsTypeRef typeRef)
+    {
+        if (typeRef.CallbackParameters is null && typeRef.CallbackReturnType is null)
+        {
+            return "Function";
+        }
+
+        return GenerateCallbackTypeSignature(typeRef.CallbackParameters, typeRef.CallbackReturnType);
     }
 
     /// <summary>
