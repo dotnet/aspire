@@ -93,4 +93,14 @@ public class AzureNatGatewayExtensionsTests
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public void AddPublicIPAddress_HasIpAddressOutputReference()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var pip = builder.AddPublicIPAddress("mypip");
+
+        Assert.Equal("ipAddress", pip.Resource.IpAddress.Name);
+    }
 }

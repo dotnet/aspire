@@ -131,12 +131,36 @@ public static class AzureNetworkSecurityGroupExtensions
                 Direction = rule.Direction,
                 Access = rule.Access,
                 Protocol = rule.Protocol,
-                SourceAddressPrefix = rule.SourceAddressPrefix,
                 SourcePortRange = rule.SourcePortRange,
-                DestinationAddressPrefix = rule.DestinationAddressPrefix,
                 DestinationPortRange = rule.DestinationPortRange,
                 Parent = nsg,
             };
+
+            if (rule.Description is { } description)
+            {
+                securityRule.Description = description;
+            }
+
+            // When a reference expression is provided (e.g. a PIP IP resolved at deploy time),
+            // use it as a provisioning parameter; otherwise use the static address prefix.
+            if (rule.SourceAddressPrefixReference is { } sourceAddressReference)
+            {
+                securityRule.SourceAddressPrefix = sourceAddressReference.AsProvisioningParameter(infra);
+            }
+            else
+            {
+                securityRule.SourceAddressPrefix = rule.SourceAddressPrefix;
+            }
+
+            if (rule.DestinationAddressPrefixReference is { } destinationAddressReference)
+            {
+                securityRule.DestinationAddressPrefix = destinationAddressReference.AsProvisioningParameter(infra);
+            }
+            else
+            {
+                securityRule.DestinationAddressPrefix = rule.DestinationAddressPrefix;
+            }
+
             infra.Add(securityRule);
         }
 
