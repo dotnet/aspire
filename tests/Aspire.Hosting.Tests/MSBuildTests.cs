@@ -139,7 +139,7 @@ public class MSBuildTests
             });
     }
 
-    private static void CreateDirectoryBuildFiles(string basePath, string repoRoot)
+    private static void CreateDirectoryBuildFiles(string basePath, string repoRoot, bool enableAspireHostingAnalyzers = false)
     {
 #if DEBUG
         var config = "Debug";
@@ -151,7 +151,9 @@ public class MSBuildTests
         $"""
         <Project>
           <PropertyGroup>
+            <RepoRoot>{repoRoot}\</RepoRoot>
             <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
+            <EnableAspireHostingAnalyzers>{enableAspireHostingAnalyzers.ToString().ToLowerInvariant()}</EnableAspireHostingAnalyzers>
           </PropertyGroup>
 
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
@@ -163,6 +165,15 @@ public class MSBuildTests
           <PropertyGroup>
             <_AspireTasksAssembly>{repoRoot}\artifacts\bin\Aspire.Hosting.Tasks\{config}\net8.0\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
           </PropertyGroup>
+
+          <ItemGroup Condition="'$(EnableAspireHostingAnalyzers)' == 'true'">
+            <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
+                              IsAspireProjectResource="false"
+                              PrivateAssets="all"
+                              ReferenceOutputAssembly="false"
+                              OutputItemType="Analyzer"
+                              SetTargetFramework="TargetFramework=netstandard2.0" />
+          </ItemGroup>
 
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
           <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
@@ -370,6 +381,126 @@ public class MSBuildTests
         // When TreatProjectReferencesAsResources is explicitly set to true, the mutation should happen
         // and ASPIRE004 warning should be emitted for the Library project reference
         Assert.Contains("warning ASPIRE004", output);
+    }
+
+    [Fact]
+    public void AspireHostingAnalyzersAreDisabledByDefault()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TestTempDirectory();
+
+        var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
+        Directory.CreateDirectory(appHostDirectory);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <IsAspireHost>true</IsAspireHost>
+
+                <!--
+                  Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+                  the Aspire.AppHost.SDK targets that will automatically add these references to projects.
+                -->
+                <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+                <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"),
+            """
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.AddCustomResource();
+            builder.Build().Run();
+
+            public static class CustomResourceExtensions
+            {
+                public static IDistributedApplicationBuilder AddCustomResource(this IDistributedApplicationBuilder builder)
+                {
+                    return builder;
+                }
+            }
+            """);
+
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
+
+        var output = BuildProject(appHostDirectory);
+
+        Assert.DoesNotContain("warning ASPIRE014", output);
+    }
+
+    [Fact]
+    public void AspireHostingAnalyzersCanBeEnabledWithMsBuildProperty()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TestTempDirectory();
+
+        var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
+        Directory.CreateDirectory(appHostDirectory);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <IsAspireHost>true</IsAspireHost>
+
+                <!--
+                  Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+                  the Aspire.AppHost.SDK targets that will automatically add these references to projects.
+                -->
+                <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+                <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"),
+            """
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.AddCustomResource();
+            builder.Build().Run();
+
+            public static class CustomResourceExtensions
+            {
+                public static IDistributedApplicationBuilder AddCustomResource(this IDistributedApplicationBuilder builder)
+                {
+                    return builder;
+                }
+            }
+            """);
+
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot, enableAspireHostingAnalyzers: true);
+
+        var output = BuildProject(appHostDirectory);
+
+        Assert.Contains("warning ASPIRE014", output);
     }
 
     /// <summary>

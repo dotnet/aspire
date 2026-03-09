@@ -52,7 +52,7 @@
     <Error Condition="'$(AspireHostingAnalyzerFile)' == ''" Text="Could not find Aspire.Hosting.Analyzers.dll." />
 
     <ItemGroup>
-      <None Include="$(AspireHostingAnalyzerFile)" Pack="True" PackagePath="analyzers/dotnet/cs" />
+      <None Include="$(AspireHostingAnalyzerFile)" Pack="True" PackagePath="build\" />
     </ItemGroup>
   </Target>
 

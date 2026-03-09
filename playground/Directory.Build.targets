@@ -13,7 +13,7 @@
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(EnableAspireHostingAnalyzers)' == 'true' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
                       PrivateAssets="all"
                       ReferenceOutputAssembly="false"
