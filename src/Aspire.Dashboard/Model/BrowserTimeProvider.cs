@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
+
 namespace Aspire.Dashboard.Model;
 
 /// <summary>
@@ -10,7 +12,7 @@ namespace Aspire.Dashboard.Model;
 /// - BrowserTimeProvider must be scoped to the user's session.
 /// - The built-in TimeProvider registration must be singleton for the system time (used by auth).
 /// </summary>
-public class BrowserTimeProvider : TimeProvider
+public class BrowserTimeProvider : TimeProvider, ITimeFormatProvider
 {
     private readonly ILogger _logger;
     private TimeZoneInfo? _browserLocalTimeZone;
@@ -37,17 +39,30 @@ public class BrowserTimeProvider : TimeProvider
         _browserLocalTimeZone = timeZoneInfo;
     }
 
-    public TimeFormat TimeFormat { get; private set; } = TimeFormat.System;
+    public TimeFormat TimeFormat { get; set; } = TimeFormat.System;
 
-    public void SetTimeFormat(TimeFormat timeFormat)
+    public TimeFormat ResolvedTimeFormat
+    {
+        get
+        {
+            if (TimeFormat == TimeFormat.System)
+            {
+                return _browserTimeFormat ?? TimeFormat.System;
+            }
+
+            return TimeFormat;
+        }
+    }
+
+    private TimeFormat? _browserTimeFormat;
+
+    public void SetBrowserTimeFormat(TimeFormat timeFormat)
+    {
+        _browserTimeFormat = timeFormat;
+    }
+
+    public void SetConfiguredTimeFormat(TimeFormat timeFormat)
     {
         TimeFormat = timeFormat;
     }
-}
-
-public enum TimeFormat
-{
-    System,
-    TwelveHour,
-    TwentyFourHour
 }

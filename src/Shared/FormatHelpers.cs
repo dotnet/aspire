@@ -15,6 +15,18 @@ public enum MillisecondsDisplay
     Full
 }
 
+public enum TimeFormat
+{
+    System,
+    TwelveHour,
+    TwentyFourHour
+}
+
+public interface ITimeFormatProvider
+{
+    TimeFormat ResolvedTimeFormat { get; }
+}
+
 internal static partial class FormatHelpers
 {
     // Limit size of very long data that is written in large grids.
@@ -89,9 +101,9 @@ internal static partial class FormatHelpers
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
 
-        if (timeProvider.TimeFormat != TimeFormat.System)
+        if (TryGetExplicitTimeFormat(timeProvider, out var timeFormat))
         {
-            return local.ToString(GetForcedTimePattern(timeProvider.TimeFormat, millisecondsDisplay, cultureInfo), cultureInfo);
+            return local.ToString(GetForcedTimePattern(timeFormat, millisecondsDisplay, cultureInfo), cultureInfo);
         }
 
         // Long time
@@ -109,9 +121,9 @@ internal static partial class FormatHelpers
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
 
-        if (timeProvider.TimeFormat != TimeFormat.System)
+        if (TryGetExplicitTimeFormat(timeProvider, out var timeFormat))
         {
-            var timePattern = GetForcedTimePattern(timeProvider.TimeFormat, millisecondsDisplay, cultureInfo);
+            var timePattern = GetForcedTimePattern(timeFormat, millisecondsDisplay, cultureInfo);
             return local.ToString($"{cultureInfo.DateTimeFormat.ShortDatePattern} {timePattern}", cultureInfo);
         }
 
@@ -123,6 +135,18 @@ internal static partial class FormatHelpers
             MillisecondsDisplay.Full => local.ToString(GetShortDateLongTimePatternWithMilliseconds(cultureInfo).FullMilliseconds, cultureInfo),
             _ => throw new NotImplementedException()
         };
+    }
+
+    private static bool TryGetExplicitTimeFormat(TimeProvider timeProvider, out TimeFormat timeFormat)
+    {
+        if (timeProvider is ITimeFormatProvider tfp && tfp.ResolvedTimeFormat is { } resolved && resolved is not TimeFormat.System)
+        {
+            timeFormat = resolved;
+            return true;
+        }
+
+        timeFormat = default;
+        return false;
     }
 
     public static string FormatTimeWithOptionalDate(TimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)

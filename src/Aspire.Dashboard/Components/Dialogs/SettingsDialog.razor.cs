@@ -117,7 +117,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     private async Task OnTimeFormatChanged()
     {
-        TimeProvider.SetTimeFormat(_timeFormat);
+        TimeProvider.SetConfiguredTimeFormat(_timeFormat);
         await LocalStorage.SetAsync(BrowserStorageKeys.TimeFormat, _timeFormat);
 
         // Reload the page to ensure all components pick up the new format

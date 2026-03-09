@@ -33,14 +33,16 @@
         </div>
 
         <div class="input-container">
-            <FluentSelect
-                TOption="TimeFormat"
-                Label="@Loc[nameof(Dialogs.SettingsDialogTimeFormat)]"
-                Items="@(Enum.GetValues<TimeFormat>())"
-                OptionText="@(i => FormatTimeFormatOption(i))"
-                @bind-SelectedOption="@_timeFormat"
-                @bind-SelectedOption:after="OnTimeFormatChanged"
-                Position="SelectPosition.Below" />
+            <FluentRadioGroup TValue="TimeFormat"
+                              Label="@Loc[nameof(Dialogs.SettingsDialogTimeFormat)]"
+                              @bind-Value="@_timeFormat"
+                              @bind-Value:after="OnTimeFormatChanged"
+                              Orientation="Orientation.Vertical">
+                @foreach (var format in Enum.GetValues<TimeFormat>())
+                {
+                    <FluentRadio Value="@format">@FormatTimeFormatOption(format)</FluentRadio>
+                }
+            </FluentRadioGroup>
         </div>
 
         <div>

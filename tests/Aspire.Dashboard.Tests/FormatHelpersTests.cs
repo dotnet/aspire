@@ -107,7 +107,7 @@ public class FormatHelpersTests
     {
         var date = GetLocalDateTime(value);
         var provider = CreateTimeProvider();
-        provider.SetTimeFormat(format);
+        provider.SetConfiguredTimeFormat(format);
 
         // Use a culture that would normally be opposite
         var culture = format == TimeFormat.TwelveHour ? CultureInfo.GetCultureInfo("de-DE") : CultureInfo.GetCultureInfo("en-US");
@@ -122,7 +122,7 @@ public class FormatHelpersTests
     {
         var date = GetLocalDateTime(value);
         var provider = CreateTimeProvider();
-        provider.SetTimeFormat(format);
+        provider.SetConfiguredTimeFormat(format);
 
         Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
     }
@@ -136,7 +136,7 @@ public class FormatHelpersTests
     {
         var date = GetLocalDateTime("2009-06-15T13:45:30.1234567Z");
         var provider = CreateTimeProvider();
-        provider.SetTimeFormat(format);
+        provider.SetConfiguredTimeFormat(format);
 
         Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, CultureInfo.GetCultureInfo(cultureName)));
     }
@@ -147,7 +147,7 @@ public class FormatHelpersTests
         // en-GB is typically 24-hour.
         var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
         var provider = CreateTimeProvider();
-        provider.SetTimeFormat(TimeFormat.TwelveHour);
+        provider.SetConfiguredTimeFormat(TimeFormat.TwelveHour);
 
         // en-GB has AM/PM designators "am"/"pm" even if standard pattern is 24h.
         var result = FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-GB"));
@@ -161,11 +161,49 @@ public class FormatHelpersTests
         // en-US is typically 12-hour.
         var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
         var provider = CreateTimeProvider();
-        provider.SetTimeFormat(TimeFormat.TwentyFourHour);
+        provider.SetConfiguredTimeFormat(TimeFormat.TwentyFourHour);
 
         var result = FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US"));
         Assert.Contains("13", result);
         Assert.DoesNotContain("PM", result);
+    }
+
+    [Theory]
+    [InlineData(true, "13:45:30")]   // Browser reports 24-hour → use 24-hour
+    [InlineData(false, "1:45:30 PM")] // Browser reports 12-hour → use 12-hour
+    public void FormatTime_SystemFormat_UsesBrowserTimeFormat(bool is24HourTime, string expected)
+    {
+        var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
+        var provider = CreateTimeProvider();
+        provider.SetBrowserTimeFormat(is24HourTime);
+        // TimeFormat stays at System (default)
+
+        Assert.Equal(expected, FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
+    }
+
+    [Theory]
+    [InlineData(true, "6/15/2009 13:45:30")]   // Browser reports 24-hour
+    [InlineData(false, "6/15/2009 1:45:30 PM")] // Browser reports 12-hour
+    public void FormatDateTime_SystemFormat_UsesBrowserTimeFormat(bool is24HourTime, string expected)
+    {
+        var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
+        var provider = CreateTimeProvider();
+        provider.SetBrowserTimeFormat(is24HourTime);
+
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
+    }
+
+    [Fact]
+    public void FormatTime_SystemFormat_NoBrowserFormat_FallsBackToCulture()
+    {
+        // When browser hasn't reported its format yet, fall back to culture-based formatting.
+        var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
+        var provider = CreateTimeProvider();
+        // Don't call SetBrowserTimeFormat — BrowserTimeFormat stays null
+
+        // de-DE is a 24-hour culture, so the culture pattern should be used.
+        var result = FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("de-DE"));
+        Assert.Contains("13", result);
     }
 
     private static BrowserTimeProvider CreateTimeProvider()

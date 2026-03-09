@@ -1321,7 +1321,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Time Format.
+        ///   Looks up a localized string similar to Time format.
         /// </summary>
         public static string SettingsDialogTimeFormat {
             get {
@@ -1339,7 +1339,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 12-Hour.
+        ///   Looks up a localized string similar to 12-hour.
         /// </summary>
         public static string SettingsDialogTimeFormatTwelveHour {
             get {
@@ -1348,7 +1348,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 24-Hour.
+        ///   Looks up a localized string similar to 24-hour.
         /// </summary>
         public static string SettingsDialogTimeFormatTwentyFourHour {
             get {
