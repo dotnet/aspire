@@ -70,9 +70,11 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         _matchValue = matchValue;
         _name = GenerateConditionalName(condition, matchValue, whenTrue, whenFalse);
 
-        // Set value-mode fields to safe defaults so callers never see null.
+        // Expose the union of both branches' value providers so that callers
+        // iterating ValueProviders (e.g., publish contexts) can discover all
+        // parameters and resources referenced by the conditional.
         Format = string.Empty;
-        ValueProviders = [];
+        ValueProviders = whenTrue.ValueProviders.Concat(whenFalse.ValueProviders).ToArray();
         _manifestExpressions = [];
         _stringFormats = [];
     }

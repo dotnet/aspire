@@ -729,6 +729,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private void RegisterFormattedParameters(ReferenceExpression referenceExpression)
     {
+        if (referenceExpression.IsConditional)
+        {
+            RegisterFormattedParameters(referenceExpression.WhenTrue!);
+            RegisterFormattedParameters(referenceExpression.WhenFalse!);
+            return;
+        }
+
         var providers = referenceExpression.ValueProviders;
         var formats = referenceExpression.StringFormats;
 
