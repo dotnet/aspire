@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Utils;
@@ -27,65 +25,12 @@ public interface ITimeFormatProvider
     TimeFormat ResolvedTimeFormat { get; }
 }
 
-internal static partial class FormatHelpers
+internal static class FormatHelpers
 {
     // Limit size of very long data that is written in large grids.
     public const int ColumnMaximumTextLength = 250;
     public const int TooltipMaximumTextLength = 1500;
     public const string Ellipsis = "…";
-
-    // There are an unbound number of CultureInfo instances so we don't want to use it as the key.
-    // Someone could have also customized their culture so we don't want to use the name as the key.
-    // This struct contains required information from the culture that is used in cached format strings.
-    private readonly record struct CultureDetailsKey(string LongTimePattern, string ShortDatePattern, string NumberDecimalSeparator);
-    private sealed record MillisecondFormatStrings(MillisecondFormatString LongTimePattern, MillisecondFormatString ShortDateLongTimePattern);
-    private sealed record MillisecondFormatString(string TruncatedMilliseconds, string FullMilliseconds);
-    private static readonly ConcurrentDictionary<CultureDetailsKey, MillisecondFormatStrings> s_formatStrings = new();
-
-    // Colon and dot are the only time separators used by registered cultures. Regex checks for both.
-    [GeneratedRegex(@"(:ss|\.ss|:s|\.s)")]
-    private static partial Regex MatchSecondsInTimeFormatPattern();
-
-    private static MillisecondFormatStrings GetMillisecondFormatStrings(CultureInfo cultureInfo)
-    {
-        var key = new CultureDetailsKey(cultureInfo.DateTimeFormat.LongTimePattern, cultureInfo.DateTimeFormat.ShortDatePattern, cultureInfo.NumberFormat.NumberDecimalSeparator);
-
-        return s_formatStrings.GetOrAdd(key, static k =>
-        {
-            var (truncated, full) = GetLongTimePatternWithMillisecondsCore(k);
-            return new MillisecondFormatStrings(
-                new MillisecondFormatString(truncated, full),
-                new MillisecondFormatString(
-                    k.ShortDatePattern + " " + truncated,
-                    k.ShortDatePattern + " " + full));
-        });
-
-        static (string Truncated, string Full) GetLongTimePatternWithMillisecondsCore(CultureDetailsKey key)
-        {
-            // From https://learn.microsoft.com/dotnet/standard/base-types/how-to-display-milliseconds-in-date-and-time-values
-
-            // Create a format similar to .fff but based on the current culture.
-            // Intentionally use fff here instead of FFF so output has a consistent length.
-            var truncatedMillisecondFormat = "fff";
-
-            // Append millisecond pattern to current culture's long time pattern.
-            return (
-                FormatPattern(key, truncatedMillisecondFormat),
-                FormatPattern(key, "FFFFFFF"));
-        }
-
-        static string FormatPattern(CultureDetailsKey key, string millisecondFormat)
-        {
-            // Gets the long time pattern, which is something like "h:mm:ss tt" (en-US), "H:mm:ss" (ja-JP), "HH:mm:ss" (fr-FR).
-            var longTimePattern = key.LongTimePattern;
-
-            return MatchSecondsInTimeFormatPattern().Replace(longTimePattern, $"$1'{key.NumberDecimalSeparator}'{millisecondFormat}");
-        }
-    }
-
-    private static MillisecondFormatString GetLongTimePatternWithMilliseconds(CultureInfo cultureInfo) => GetMillisecondFormatStrings(cultureInfo).LongTimePattern;
-
-    private static MillisecondFormatString GetShortDateLongTimePatternWithMilliseconds(CultureInfo cultureInfo) => GetMillisecondFormatStrings(cultureInfo).ShortDateLongTimePattern;
 
     /// <summary>
     /// Formats a DateTime as a local time string (HH:mm:ss.fff) for console output.
@@ -100,53 +45,30 @@ internal static partial class FormatHelpers
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
+        var timeFormat = GetResolvedTimeFormat(timeProvider);
+        var pattern = DateFormatStringsHelpers.GetLongTimePattern(cultureInfo, timeFormat, millisecondsDisplay);
 
-        if (TryGetExplicitTimeFormat(timeProvider, out var timeFormat))
-        {
-            return local.ToString(GetForcedTimePattern(timeFormat, millisecondsDisplay, cultureInfo), cultureInfo);
-        }
-
-        // Long time
-        return millisecondsDisplay switch
-        {
-            MillisecondsDisplay.None => local.ToString("T", cultureInfo),
-            MillisecondsDisplay.Truncated => local.ToString(GetLongTimePatternWithMilliseconds(cultureInfo).TruncatedMilliseconds, cultureInfo),
-            MillisecondsDisplay.Full => local.ToString(GetLongTimePatternWithMilliseconds(cultureInfo).FullMilliseconds, cultureInfo),
-            _ => throw new NotImplementedException()
-        };
+        return local.ToString(pattern, cultureInfo);
     }
 
     public static string FormatDateTime(TimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
+        var timeFormat = GetResolvedTimeFormat(timeProvider);
+        var pattern = DateFormatStringsHelpers.GetShortDateLongTimePattern(cultureInfo, timeFormat, millisecondsDisplay);
 
-        if (TryGetExplicitTimeFormat(timeProvider, out var timeFormat))
-        {
-            var timePattern = GetForcedTimePattern(timeFormat, millisecondsDisplay, cultureInfo);
-            return local.ToString($"{cultureInfo.DateTimeFormat.ShortDatePattern} {timePattern}", cultureInfo);
-        }
-
-        // Short date, long time
-        return millisecondsDisplay switch
-        {
-            MillisecondsDisplay.None => local.ToString("G", cultureInfo),
-            MillisecondsDisplay.Truncated => local.ToString(GetShortDateLongTimePatternWithMilliseconds(cultureInfo).TruncatedMilliseconds, cultureInfo),
-            MillisecondsDisplay.Full => local.ToString(GetShortDateLongTimePatternWithMilliseconds(cultureInfo).FullMilliseconds, cultureInfo),
-            _ => throw new NotImplementedException()
-        };
+        return local.ToString(pattern, cultureInfo);
     }
 
-    private static bool TryGetExplicitTimeFormat(TimeProvider timeProvider, out TimeFormat timeFormat)
+    private static TimeFormat GetResolvedTimeFormat(TimeProvider timeProvider)
     {
-        if (timeProvider is ITimeFormatProvider tfp && tfp.ResolvedTimeFormat is { } resolved && resolved is not TimeFormat.System)
+        if (timeProvider is ITimeFormatProvider tfp)
         {
-            timeFormat = resolved;
-            return true;
+            return tfp.ResolvedTimeFormat;
         }
 
-        timeFormat = default;
-        return false;
+        return TimeFormat.System;
     }
 
     public static string FormatTimeWithOptionalDate(TimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)
@@ -200,26 +122,5 @@ internal static partial class FormatHelpers
     public static string CombineWithSeparator(string separator, params string?[] parts)
     {
         return string.Join(separator, parts.Where(p => !string.IsNullOrEmpty(p)));
-    }
-
-    private static string GetForcedTimePattern(TimeFormat timeFormat, MillisecondsDisplay millisecondsDisplay, CultureInfo cultureInfo)
-    {
-        var timeSeparator = cultureInfo.DateTimeFormat.TimeSeparator;
-        var decimalSeparator = cultureInfo.NumberFormat.NumberDecimalSeparator;
-
-        var secondsPattern = millisecondsDisplay switch
-        {
-            MillisecondsDisplay.None => "ss",
-            MillisecondsDisplay.Truncated => $"ss'{decimalSeparator}'fff",
-            MillisecondsDisplay.Full => $"ss'{decimalSeparator}'FFFFFFF",
-            _ => throw new NotImplementedException()
-        };
-
-        return timeFormat switch
-        {
-            TimeFormat.TwelveHour => $"h'{timeSeparator}'mm'{timeSeparator}'{secondsPattern} tt",
-            TimeFormat.TwentyFourHour => $"H'{timeSeparator}'mm'{timeSeparator}'{secondsPattern}",
-            _ => throw new NotImplementedException()
-        };
     }
 }
