@@ -31,29 +31,29 @@ internal static class ResourceViewModelExtensions
 
     public static bool IsContainer(this ResourceViewModel resource)
     {
-        return string.Equals(resource.ResourceType, KnownResourceTypes.Container, StringComparisons.ResourceType);
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);
     }
 
     public static bool IsProject(this ResourceViewModel resource)
     {
-        return string.Equals(resource.ResourceType, KnownResourceTypes.Project, StringComparisons.ResourceType);
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
     }
 
     public static bool IsTool(this ResourceViewModel resource)
     {
-        return string.Equals(resource.ResourceType, KnownResourceTypes.Tool, StringComparisons.ResourceType);
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Tool);
     }
 
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
     {
-        if (string.Equals(resource.ResourceType, KnownResourceTypes.Executable, StringComparisons.ResourceType))
+        if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Executable))
         {
             return true;
         }
 
         if (allowSubtypes)
         {
-            return string.Equals(resource.ResourceType, KnownResourceTypes.Project, StringComparisons.ResourceType);
+            return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
         }
 
         return false;
