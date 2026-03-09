@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+using System.Reflection.Emit;
 using Aspire.Hosting.Ats;
 using ThirdPartyExport = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportAttribute;
 using ThirdPartyExportIgnore = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportIgnoreAttribute;
@@ -12,12 +14,17 @@ namespace Aspire.Hosting.Tests.Ats;
 [Trait("Partition", "4")]
 public class AttributeDataReaderTests
 {
-    #region Name-Based Discovery Tests
+    private static readonly ConstructorInfo s_attributeConstructor = typeof(Attribute).GetConstructor(
+        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+        binder: null,
+        types: Type.EmptyTypes,
+        modifiers: null)!;
+
+    #region Full Name Discovery Tests
 
     [Fact]
     public void GetAspireExportData_FindsOfficialAttribute_OnMethod()
     {
-        // Verify that the official [AspireExport] from Aspire.Hosting namespace is discovered via name-based matching
         var method = typeof(OfficialAttributeExports).GetMethod(nameof(OfficialAttributeExports.OfficialExportMethod))!;
         var result = AttributeDataReader.GetAspireExportData(method);
 
@@ -27,48 +34,60 @@ public class AttributeDataReaderTests
     }
 
     [Fact]
-    public void GetAspireExportData_FindsThirdPartyAttribute_OnMethod()
+    public void GetAspireExportData_IgnoresAttribute_WithDifferentNamespace_OnMethod()
     {
-        // Third-party authors define their own [AspireExport] in a different namespace.
-        // The scanner should still discover it by name.
         var method = typeof(ThirdPartyExports).GetMethod(nameof(ThirdPartyExports.ThirdPartyMethod))!;
         var result = AttributeDataReader.GetAspireExportData(method);
 
-        Assert.NotNull(result);
-        Assert.Equal("thirdPartyMethod", result.Id);
-        Assert.Equal("Third party method", result.Description);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void GetAspireExportData_FindsThirdPartyAttribute_OnType()
+    public void GetAspireExportData_IgnoresAttribute_WithDifferentNamespace_OnType()
     {
         var result = AttributeDataReader.GetAspireExportData(typeof(ThirdPartyResource));
 
-        Assert.NotNull(result);
-        Assert.True(result.ExposeProperties);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void HasAspireExportIgnoreData_FindsThirdPartyAttribute()
+    public void HasAspireExportIgnoreData_FindsOfficialAttribute()
     {
-        var property = typeof(ThirdPartyResource).GetProperty(nameof(ThirdPartyResource.InternalProp))!;
+        var property = typeof(OfficialResource).GetProperty(nameof(OfficialResource.InternalProp))!;
         var result = AttributeDataReader.HasAspireExportIgnoreData(property);
 
         Assert.True(result);
     }
 
     [Fact]
-    public void HasAspireDtoData_FindsThirdPartyAttribute()
+    public void HasAspireExportIgnoreData_IgnoresAttribute_WithDifferentNamespace()
     {
-        var result = AttributeDataReader.HasAspireDtoData(typeof(ThirdPartyDtoType));
+        var property = typeof(ThirdPartyResource).GetProperty(nameof(ThirdPartyResource.InternalProp))!;
+        var result = AttributeDataReader.HasAspireExportIgnoreData(property);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasAspireDtoData_FindsOfficialAttribute()
+    {
+        var result = AttributeDataReader.HasAspireDtoData(typeof(OfficialDtoType));
 
         Assert.True(result);
     }
 
     [Fact]
-    public void GetAspireUnionData_FindsThirdPartyAttribute_OnParameter()
+    public void HasAspireDtoData_IgnoresAttribute_WithDifferentNamespace()
     {
-        var method = typeof(ThirdPartyExports).GetMethod(nameof(ThirdPartyExports.ThirdPartyMethod))!;
+        var result = AttributeDataReader.HasAspireDtoData(typeof(ThirdPartyDtoType));
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void GetAspireUnionData_FindsOfficialAttribute_OnParameter()
+    {
+        var method = typeof(OfficialAttributeExports).GetMethod(nameof(OfficialAttributeExports.OfficialUnionMethod))!;
         var param = method.GetParameters()[0];
         var result = AttributeDataReader.GetAspireUnionData(param);
 
@@ -76,6 +95,16 @@ public class AttributeDataReaderTests
         Assert.Equal(2, result.Types.Length);
         Assert.Contains(typeof(string), result.Types);
         Assert.Contains(typeof(int), result.Types);
+    }
+
+    [Fact]
+    public void GetAspireUnionData_IgnoresAttribute_WithDifferentNamespace_OnParameter()
+    {
+        var method = typeof(ThirdPartyExports).GetMethod(nameof(ThirdPartyExports.ThirdPartyMethod))!;
+        var param = method.GetParameters()[0];
+        var result = AttributeDataReader.GetAspireUnionData(param);
+
+        Assert.Null(result);
     }
 
     [Fact]
@@ -92,7 +121,7 @@ public class AttributeDataReaderTests
     [Fact]
     public void GetAspireExportData_ExposeMethodsFlag()
     {
-        var result = AttributeDataReader.GetAspireExportData(typeof(ThirdPartyMethodsResource));
+        var result = AttributeDataReader.GetAspireExportData(typeof(OfficialMethodsResource));
 
         Assert.NotNull(result);
         Assert.True(result.ExposeMethods);
@@ -100,38 +129,33 @@ public class AttributeDataReaderTests
     }
 
     [Fact]
-    public void GetAspireExportData_MatchesByConstructorSignature_NotParameterName()
+    public void GetAspireExportData_MatchesByConstructorSignature_WhenNamespaceMatches()
     {
-        // Third-party attribute with renamed constructor parameter (e.g., "name" instead of "id")
-        // should still be parsed correctly via signature-based matching.
-        var method = typeof(RenamedParamExports).GetMethod(nameof(RenamedParamExports.RenamedParamMethod))!;
+        var method = CreateCompatibleExportMethod();
         var result = AttributeDataReader.GetAspireExportData(method);
 
         Assert.NotNull(result);
-        Assert.Equal("renamedParamMethod", result.Id);
-        Assert.Equal("Renamed param method", result.Description);
+        Assert.Equal("compatibleMethod", result.Id);
+        Assert.Equal("Compatible method", result.Description);
     }
 
     [Fact]
-    public void ScanAssembly_FindsThirdPartyAttributedMethods()
+    public void ScanAssembly_FindsCompatibleAttribute_WhenNamespaceMatches()
     {
-        // Full integration: scan the test assembly and verify that methods annotated
-        // with the third-party mock [AspireExport] attribute are discovered.
-        var testAssembly = typeof(AttributeDataReaderTests).Assembly;
+        var compatibleAssembly = CreateCompatibleAssembly();
         var hostingAssembly = typeof(DistributedApplication).Assembly;
 
-        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, compatibleAssembly]);
 
-        // The third-party method should be discovered via name-based matching
-        var thirdPartyCapability = result.Capabilities
-            .FirstOrDefault(c => c.CapabilityId.EndsWith("/thirdPartyMethod", StringComparison.Ordinal));
+        var compatibleCapability = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId.EndsWith("/compatibleMethod", StringComparison.Ordinal));
 
-        Assert.NotNull(thirdPartyCapability);
-        Assert.Equal("Third party method", thirdPartyCapability.Description);
+        Assert.NotNull(compatibleCapability);
+        Assert.Equal("Compatible method", compatibleCapability.Description);
     }
 
     [Fact]
-    public void ScanAssembly_FindsBothOfficialAndThirdPartyAttributes()
+    public void ScanAssembly_IgnoresAttributes_WithDifferentNamespace()
     {
         var testAssembly = typeof(AttributeDataReaderTests).Assembly;
         var hostingAssembly = typeof(DistributedApplication).Assembly;
@@ -144,7 +168,7 @@ public class AttributeDataReaderTests
             .FirstOrDefault(c => c.CapabilityId.EndsWith("/thirdPartyMethod", StringComparison.Ordinal));
 
         Assert.NotNull(officialCapability);
-        Assert.NotNull(thirdPartyCapability);
+        Assert.Null(thirdPartyCapability);
     }
 
     #endregion
@@ -164,6 +188,37 @@ public class AttributeDataReaderTests
         {
             _ = resource;
         }
+
+        [AspireExport("officialUnionMethod")]
+        public static void OfficialUnionMethod([AspireUnion(typeof(string), typeof(int))] object value)
+        {
+            _ = value;
+        }
+    }
+
+    [AspireExport(ExposeProperties = true)]
+    public class OfficialResource : Resource
+    {
+        public OfficialResource(string name) : base(name) { }
+
+        public string Visible { get; set; } = "";
+
+        [AspireExportIgnore]
+        public string InternalProp { get; set; } = "";
+    }
+
+    [AspireExport(ExposeMethods = true)]
+    public class OfficialMethodsResource : Resource
+    {
+        public OfficialMethodsResource(string name) : base(name) { }
+
+        public void DoSomething() { }
+    }
+
+    [AspireDto]
+    public class OfficialDtoType
+    {
+        public string Name { get; set; } = "";
     }
 
     #endregion
@@ -191,29 +246,75 @@ public class AttributeDataReaderTests
         public string InternalProp { get; set; } = "";
     }
 
-    [ThirdPartyExport(ExposeMethods = true)]
-    public class ThirdPartyMethodsResource : Resource
-    {
-        public ThirdPartyMethodsResource(string name) : base(name) { }
-
-        public void DoSomething() { }
-    }
-
     [ThirdPartyDtoAttr]
     public class ThirdPartyDtoType
     {
         public string Name { get; set; } = "";
     }
 
-    // Uses renamed constructor parameters to verify signature-based matching
-    public static class RenamedParamExports
+    #endregion
+
+    private static Assembly CreateCompatibleAssembly()
     {
-        [RenamedParam.AspireExport("renamedParamMethod", Description = "Renamed param method")]
-        public static void RenamedParamMethod(object value)
-        {
-            _ = value;
-        }
+        var assemblyName = new AssemblyName($"CompatibleAtsAttributes_{Guid.NewGuid():N}");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+        var exportAttributeType = DefineCompatibleExportAttribute(moduleBuilder);
+
+        var exportsTypeBuilder = moduleBuilder.DefineType(
+            "Generated.CompatibleExports",
+            TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+        var methodBuilder = exportsTypeBuilder.DefineMethod(
+            "CompatibleMethod",
+            MethodAttributes.Public | MethodAttributes.Static,
+            typeof(void),
+            [typeof(IResource)]);
+        methodBuilder.DefineParameter(1, ParameterAttributes.None, "resource");
+        methodBuilder.SetCustomAttribute(CreateCompatibleExportAttributeBuilder(exportAttributeType));
+        methodBuilder.GetILGenerator().Emit(OpCodes.Ret);
+
+        _ = exportsTypeBuilder.CreateType();
+
+        return assemblyBuilder;
     }
 
-    #endregion
+    private static MethodInfo CreateCompatibleExportMethod()
+    {
+        var compatibleAssembly = CreateCompatibleAssembly();
+
+        return compatibleAssembly.GetType("Generated.CompatibleExports")!
+            .GetMethod("CompatibleMethod")!;
+    }
+
+    private static Type DefineCompatibleExportAttribute(ModuleBuilder moduleBuilder)
+    {
+        var typeBuilder = moduleBuilder.DefineType(
+            "Aspire.Hosting.AspireExportAttribute",
+            TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Sealed,
+            typeof(Attribute));
+
+        _ = typeBuilder.DefineField(nameof(AspireExportAttribute.Description), typeof(string), FieldAttributes.Public);
+
+        var constructorBuilder = typeBuilder.DefineConstructor(
+            MethodAttributes.Public,
+            CallingConventions.Standard,
+            [typeof(string)]);
+        constructorBuilder.DefineParameter(1, ParameterAttributes.None, "name");
+
+        var il = constructorBuilder.GetILGenerator();
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Call, s_attributeConstructor);
+        il.Emit(OpCodes.Ret);
+
+        return typeBuilder.CreateType();
+    }
+
+    private static CustomAttributeBuilder CreateCompatibleExportAttributeBuilder(Type exportAttributeType)
+    {
+        return new CustomAttributeBuilder(
+            exportAttributeType.GetConstructor([typeof(string)])!,
+            ["compatibleMethod"],
+            [exportAttributeType.GetField(nameof(AspireExportAttribute.Description))!],
+            ["Compatible method"]);
+    }
 }

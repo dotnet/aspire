@@ -6,59 +6,59 @@ using System.Reflection;
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
-/// Provides name-based discovery of ATS attributes from <see cref="CustomAttributeData"/>,
-/// so that third-party authors can define their own attribute types with matching names
+/// Provides full-name-based discovery of ATS attributes from <see cref="CustomAttributeData"/>,
+/// so that third-party authors can define their own attribute types with matching names and namespace
 /// without requiring a package reference to Aspire.Hosting.
 /// </summary>
 internal static class AttributeDataReader
 {
-    private const string AspireExportAttributeName = "AspireExportAttribute";
-    private const string AspireExportIgnoreAttributeName = "AspireExportIgnoreAttribute";
-    private const string AspireDtoAttributeName = "AspireDtoAttribute";
-    private const string AspireUnionAttributeName = "AspireUnionAttribute";
+    private static readonly string s_aspireExportAttributeFullName = typeof(AspireExportAttribute).FullName!;
+    private static readonly string s_aspireExportIgnoreAttributeFullName = typeof(AspireExportIgnoreAttribute).FullName!;
+    private static readonly string s_aspireDtoAttributeFullName = typeof(AspireDtoAttribute).FullName!;
+    private static readonly string s_aspireUnionAttributeFullName = typeof(AspireUnionAttribute).FullName!;
 
     // --- AspireExport lookup ---
 
     internal static AspireExportData? GetAspireExportData(Type type)
-        => FindSingle<AspireExportData>(type.GetCustomAttributesData(), AspireExportAttributeName, ParseAspireExportData);
+        => FindSingleAttribute<AspireExportData>(type.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
 
     internal static AspireExportData? GetAspireExportData(MethodInfo method)
-        => FindSingle<AspireExportData>(method.GetCustomAttributesData(), AspireExportAttributeName, ParseAspireExportData);
+        => FindSingleAttribute<AspireExportData>(method.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
 
     internal static AspireExportData? GetAspireExportData(PropertyInfo property)
-        => FindSingle<AspireExportData>(property.GetCustomAttributesData(), AspireExportAttributeName, ParseAspireExportData);
+        => FindSingleAttribute<AspireExportData>(property.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
 
     internal static IEnumerable<AspireExportData> GetAspireExportDataAll(Assembly assembly)
-        => FindAll(assembly.GetCustomAttributesData(), AspireExportAttributeName, ParseAspireExportData);
+        => FindAllAttributes(assembly.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
 
     // --- AspireExportIgnore lookup ---
 
     internal static bool HasAspireExportIgnoreData(PropertyInfo property)
-        => HasAttribute(property.GetCustomAttributesData(), AspireExportIgnoreAttributeName);
+        => HasAttribute(property.GetCustomAttributesData(), s_aspireExportIgnoreAttributeFullName);
 
     internal static bool HasAspireExportIgnoreData(MethodInfo method)
-        => HasAttribute(method.GetCustomAttributesData(), AspireExportIgnoreAttributeName);
+        => HasAttribute(method.GetCustomAttributesData(), s_aspireExportIgnoreAttributeFullName);
 
     // --- AspireDto lookup ---
 
     internal static bool HasAspireDtoData(Type type)
-        => HasAttribute(type.GetCustomAttributesData(), AspireDtoAttributeName);
+        => HasAttribute(type.GetCustomAttributesData(), s_aspireDtoAttributeFullName);
 
     // --- AspireUnion lookup ---
 
     internal static AspireUnionData? GetAspireUnionData(ParameterInfo parameter)
-        => FindSingle<AspireUnionData>(parameter.GetCustomAttributesData(), AspireUnionAttributeName, ParseAspireUnionData);
+        => FindSingleAttribute<AspireUnionData>(parameter.GetCustomAttributesData(), s_aspireUnionAttributeFullName, ParseAspireUnionData);
 
     internal static AspireUnionData? GetAspireUnionData(PropertyInfo property)
-        => FindSingle<AspireUnionData>(property.GetCustomAttributesData(), AspireUnionAttributeName, ParseAspireUnionData);
+        => FindSingleAttribute<AspireUnionData>(property.GetCustomAttributesData(), s_aspireUnionAttributeFullName, ParseAspireUnionData);
 
     // --- Generic helpers ---
 
-    private static bool HasAttribute(IList<CustomAttributeData> attributes, string attributeName)
+    private static bool HasAttribute(IList<CustomAttributeData> attributes, string attributeFullName)
     {
         for (var i = 0; i < attributes.Count; i++)
         {
-            if (IsMatch(attributes[i], attributeName))
+            if (IsMatch(attributes[i], attributeFullName))
             {
                 return true;
             }
@@ -67,11 +67,11 @@ internal static class AttributeDataReader
         return false;
     }
 
-    private static T? FindSingle<T>(IList<CustomAttributeData> attributes, string attributeName, Func<CustomAttributeData, T> parser) where T : class
+    private static T? FindSingleAttribute<T>(IList<CustomAttributeData> attributes, string attributeFullName, Func<CustomAttributeData, T> parser) where T : class
     {
         for (var i = 0; i < attributes.Count; i++)
         {
-            if (IsMatch(attributes[i], attributeName))
+            if (IsMatch(attributes[i], attributeFullName))
             {
                 return parser(attributes[i]);
             }
@@ -80,20 +80,20 @@ internal static class AttributeDataReader
         return null;
     }
 
-    private static IEnumerable<T> FindAll<T>(IList<CustomAttributeData> attributes, string attributeName, Func<CustomAttributeData, T> parser) where T : class
+    private static IEnumerable<T> FindAllAttributes<T>(IList<CustomAttributeData> attributes, string attributeFullName, Func<CustomAttributeData, T> parser) where T : class
     {
         for (var i = 0; i < attributes.Count; i++)
         {
-            if (IsMatch(attributes[i], attributeName))
+            if (IsMatch(attributes[i], attributeFullName))
             {
                 yield return parser(attributes[i]);
             }
         }
     }
 
-    private static bool IsMatch(CustomAttributeData data, string attributeName)
+    private static bool IsMatch(CustomAttributeData data, string attributeFullName)
     {
-        return data.AttributeType.Name == attributeName;
+        return string.Equals(data.AttributeType.FullName, attributeFullName, StringComparison.Ordinal);
     }
 
     // --- Parsers ---
