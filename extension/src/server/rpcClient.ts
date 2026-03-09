@@ -63,12 +63,7 @@ export class RpcClient implements ICliRpcClient {
 
     async stopCli() {
         if (!this._connectionClosed) {
-            try {
-                await this._messageConnection.sendRequest('stopCli');
-            } catch (error) {
-                // Connection may have been closed during shutdown, which is expected
-                extensionLogOutputChannel.info(`stopCli request failed (likely connection already closed): ${error}`);
-            }
+            await this._messageConnection.sendRequest('stopCli');
         }
     }
 

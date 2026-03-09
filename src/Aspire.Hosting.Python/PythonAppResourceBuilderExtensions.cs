@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
@@ -67,7 +66,7 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
-            .WithVSCodeDebugging();
+            .WithDebugging();
 
     /// <summary>
     /// Adds a Python module to the application model.
@@ -103,7 +102,7 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<PythonAppResource> AddPythonModule(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder)
-            .WithVSCodeDebugging();
+            .WithDebugging();
 
     /// <summary>
     /// Adds a Python executable to the application model.
@@ -122,7 +121,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// <para>
     /// Unlike scripts and modules, Python executables do not have debugging support enabled by default.
-    /// Use <see cref="WithVSCodeDebugging"/> to explicitly enable debugging support if the executable is a Python-based
+    /// Use <see cref="WithDebugging"/> to explicitly enable debugging support if the executable is a Python-based
     /// tool that can be debugged.
     /// </para>
     /// </remarks>
@@ -133,7 +132,7 @@ public static class PythonAppResourceBuilderExtensions
     ///
     /// builder.AddPythonExecutable("pytest", "../api", "pytest")
     ///        .WithArgs("-q")
-    ///        .WithVSCodeDebugging();
+    ///        .WithDebugging();
     ///
     /// builder.Build().Run();
     /// </code>
@@ -179,7 +178,7 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
-            .WithVSCodeDebugging()
+            .WithDebugging()
             .WithArgs(scriptArgs);
     }
 
@@ -222,7 +221,7 @@ public static class PythonAppResourceBuilderExtensions
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
-            .WithVSCodeDebugging()
+            .WithDebugging()
             .WithArgs(scriptArgs);
     }
 
@@ -274,7 +273,7 @@ public static class PythonAppResourceBuilderExtensions
                 "uvicorn",
                 DefaultVirtualEnvFolder,
                 (n, e, d) => new UvicornAppResource(n, e, d))
-            .WithVSCodeDebugging()
+            .WithDebugging()
             .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
             {
@@ -913,8 +912,8 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
-    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
-        where T : PythonAppResource
+    public static IResourceBuilder<T> WithDebugging<T>(
+        this IResourceBuilder<T> builder) where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -945,13 +944,12 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         builder.WithDebugSupport(
-            options =>
+            mode =>
             {
                 string interpreterPath;
                 if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
                 {
-                    options.DebugConsoleLogger.LogWarning("No virtual environment configured for resource '{ResourceName}'. Falling back to system 'python'.", builder.Resource.Name);
-                    interpreterPath = "python";
+                    interpreterPath = string.Empty;
                 }
                 else
                 {
@@ -967,45 +965,14 @@ public static class PythonAppResourceBuilderExtensions
                     {
                         interpreterPath = Path.Join(venvPath, "bin", "python");
                     }
-
-                    options.DebugConsoleLogger.LogDebug("Using Python interpreter '{InterpreterPath}' for resource '{ResourceName}'", interpreterPath, builder.Resource.Name);
-                }
-
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
-                var displayProgramPath = workspaceRoot is not null
-                    ? Path.GetRelativePath(workspaceRoot, programPath)
-                    : programPath;
-
-                var debuggerProperties = new VSCodePythonDebuggerProperties
-                {
-                    InterpreterPath = interpreterPath,
-                    Module = string.IsNullOrEmpty(module) ? null : module,
-                    ProgramPath = programPath,
-                    Jinja = true, // by default, activate Jinja support,
-                    Name = $"{modeText} Python: {displayProgramPath}",
-                    WorkingDirectory = builder.Resource.WorkingDirectory
-                };
-
-                if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var debugAnnotations))
-                {
-                    foreach (var debugAnnotation in debugAnnotations)
-                    {
-                        // Filter by IDE type if specified, and by debugger properties type
-                        if (debugAnnotation.IdeType is null || AspireIde.IsCurrentIde(debugAnnotation.IdeType))
-                        {
-                            debugAnnotation.ConfigureDebuggerProperties(debuggerProperties);
-                        }
-                    }
                 }
 
                 return new PythonLaunchConfiguration
                 {
                     ProgramPath = programPath,
                     Module = module,
-                    Mode = options.Mode,
-                    InterpreterPath = interpreterPath,
-                    DebuggerProperties = debuggerProperties
+                    Mode = mode,
+                    InterpreterPath = interpreterPath
                 };
             },
             "python",
@@ -1042,29 +1009,6 @@ public static class PythonAppResourceBuilderExtensions
 
         return builder;
     }
-
-    /// <summary>
-    /// Enables debugging support for the Python application.
-    /// </summary>
-    /// <typeparam name="T">The type of the Python application resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method adds debugging support for Python applications.
-    /// The debugging configuration is automatically set up based on the
-    /// entrypoint type (Script, Module, or Executable).
-    /// </para>
-    /// <para>
-    /// The debug configuration includes the Python interpreter path from the virtual environment,
-    /// the program or module to debug, and appropriate launch settings.
-    /// </para>
-    /// </remarks>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExport("withDebugging", Description = "Enables debugging support for a Python application")]
-    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
-        where T : PythonAppResource
-        => builder.WithVSCodeDebugging();
 
     /// <summary>
     /// Configures the entrypoint for the Python application.
@@ -1308,63 +1252,6 @@ public static class PythonAppResourceBuilderExtensions
         // UV handles venv creation, so remove any existing venv creator
         RemoveVenvCreator(builder);
 
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures VS Code-specific debugger properties for a Python resource.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method allows customization of the VS Code debugger configuration that will be used when debugging the resource.
-    /// The callback receives an object that is pre-populated with default values based on the resource's configuration.
-    /// You can modify any properties to customize the debugging experience.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Configure Python debugger to stop on entry:
-    /// <code lang="csharp">
-    /// var api = builder.AddPythonScript("script", "../app", "main.py")
-    ///     .WithVSCodePythonDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.StopOnEntry = true;  // Stop execution at entrypoint
-    ///     })
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Enable automatic reload for faster development:
-    /// <code lang="csharp">
-    /// var script = builder.AddPythonScript("worker", "../worker", "worker.py")
-    ///     .WithVSCodePythonDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.AutoReload = new PythonAutoReloadOptions { Enable = true };
-    ///     })
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Pass custom arguments to the Python interpreter:
-    /// <code lang="csharp">
-    /// var app = builder.AddPythonModule("app", "../app", "myapp")
-    ///     .WithVSCodePythonDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.PythonArgs = ["-X", "dev", "-W", "default"];
-    ///     })
-    /// </code>
-    /// </example>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    internal static IResourceBuilder<T> WithVSCodePythonDebuggerProperties<T>(
-        this IResourceBuilder<T> builder,
-        Action<VSCodePythonDebuggerProperties> configureDebuggerProperties)
-        where T : PythonAppResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
-
-        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<VSCodePythonDebuggerProperties>(configureDebuggerProperties, AspireIde.VSCode));
         return builder;
     }
 

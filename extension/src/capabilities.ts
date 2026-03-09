@@ -12,11 +12,9 @@ export type Capability =
     | 'project' // Support for running C# projects
     | 'ms-dotnettools.csharp' // Older AppHost versions used this extension identifier instead of project
     | 'python' // Support for running Python projects
-    | 'ms-python.python' // Older AppHost versions used this extension identifier instead of python
-    | 'node' // Support for running Node.js/JavaScript projects (built-in to VS Code)
-    | 'browser'; // Support for browser debugging (built-in to VS Code via js-debug)
+    | 'ms-python.python'; // Older AppHost versions used this extension identifier instead of python
 
-export type Capabilities = (Capability | string)[];
+export type Capabilities = Capability[];
 
 function isExtensionInstalled(extensionId: string): boolean {
     const extension = vscode.extensions.getExtension(extensionId);
@@ -36,8 +34,7 @@ export function isPythonInstalled() {
 }
 
 export function getSupportedCapabilities(): Capabilities {
-    // Node.js and browser debugging are built into VS Code via ms-vscode.js-debug, so always available
-    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli', 'node', 'browser'];
+    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");
@@ -52,11 +49,6 @@ export function getSupportedCapabilities(): Capabilities {
     if (isPythonInstalled()) {
         capabilities.push("python");
         capabilities.push("ms-python.python");
-    }
-
-    // Also, push all extensions as capabilities
-    for (const extension of vscode.extensions.all) {
-        capabilities.push(extension.id);
     }
 
     return capabilities;
