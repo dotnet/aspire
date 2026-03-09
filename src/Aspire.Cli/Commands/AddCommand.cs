@@ -298,8 +298,12 @@ internal sealed class AddCommand : BaseCommand
             return preferredVersionPackage;
         }
 
-        // In non-interactive mode, auto-select the latest version.
-        var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        // In non-interactive mode, prefer the implicit/default channel first to keep
+        // package selection aligned with the project's configured feeds. Then select
+        // the latest version within the chosen channel.
+        var orderedPackageVersions = packageVersions
+            .OrderByDescending(p => p.Channel.Type is PackageChannelType.Implicit)
+            .ThenByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
         if (!_hostEnvironment.SupportsInteractiveInput)
         {
             return orderedPackageVersions.First();
