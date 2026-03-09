@@ -136,6 +136,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>InteractionServiceStrings.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\RestoreCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RestoreCommandStrings.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\TemplatingStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

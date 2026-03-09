@@ -115,11 +115,22 @@
                                     }
                                     else if (itemPart.AdditionalProperties is { } additionalProperties && additionalProperties.Count > 0)
                                     {
-                                        <PropertyGrid TItem="GenAIPartPropertyViewModel"
-                                                      Items="additionalProperties.AsQueryable()"
-                                                      IsNameSortable="false"
-                                                      IsValueSortable="false"
-                                                      GridTemplateColumns="1fr 1.5fr" />
+                                        <div class="property-grid-container">
+                                            <FluentAccordion>
+                                                <FluentAccordionItem Heading="@(itemPart.MessagePart?.Type ?? "unknown")" Expanded="true">
+                                                    <div slot="end">
+                                                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                                                            @additionalProperties.Count
+                                                        </FluentBadge>
+                                                    </div>
+                                                    <PropertyGrid TItem="GenAIPartPropertyViewModel"
+                                                                  Items="additionalProperties.AsQueryable()"
+                                                                  IsNameSortable="false"
+                                                                  IsValueSortable="false"
+                                                                  GridTemplateColumns="1fr 2fr" />
+                                                </FluentAccordionItem>
+                                            </FluentAccordion>
+                                        </div>
                                     }
                                     else
                                     {
@@ -141,7 +152,7 @@
                                             if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallPart.Name) is { } toolVM)
                                             {
                                                 <div class="tool-button-container">
-                                                    <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                    <FluentButton OnClick="@(() => ViewToolDefinitionAsync(toolVM))">
                                                         <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
                                                         Tool definition
                                                     </FluentButton>
@@ -160,7 +171,7 @@
 
                                                     @if (Content.ToolDefinitions.FirstOrDefault(d => d.ToolDefinition.Name == toolCallRequestPart.Name) is { } toolVM)
                                                     {
-                                                        <FluentButton OnClick="@(() => ViewToolDefinition(toolVM))">
+                                                        <FluentButton OnClick="@(() => ViewToolDefinitionAsync(toolVM))">
                                                             <FluentIcon Value="@s_wrenchIcon" Style="vertical-align: sub;" slot="start" />
                                                             Tool definition
                                                         </FluentButton>
@@ -303,7 +314,7 @@
                                     <FluentAccordion Class="tools-list">
                                         @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function").OrderBy(t => t.ToolDefinition.Name, StringComparer.OrdinalIgnoreCase))
                                         {
-                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
+                                            <FluentAccordionItem Id="@toolVM.ElementId" Class="@(toolVM.Highlighted ? "tool-highlighted" : null)" @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
                                                 <HeadingTemplate>
                                                     <div class="tool-heading">
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">

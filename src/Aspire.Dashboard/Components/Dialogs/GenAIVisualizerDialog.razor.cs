@@ -14,6 +14,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -56,6 +57,9 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
 
     [Inject]
     public required ILogger<GenAIVisualizerDialog> Logger { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
@@ -118,16 +122,30 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         });
     }
 
-    private void OnViewItem(GenAIItemViewModel viewModel)
+    private void ResetToolStates()
+    {
+        foreach (var td in Content.ToolDefinitions)
+        {
+            td.Expanded = false;
+            td.Highlighted = false;
+        }
+    }
+
+    private void OnViewItem(GenAIItemViewModel? viewModel)
     {
         SelectedItem = viewModel;
     }
 
-    private void ViewToolDefinition(ToolDefinitionViewModel toolDefinition)
+    private async Task ViewToolDefinitionAsync(ToolDefinitionViewModel toolDefinition)
     {
         SelectedItem = null;
         OverviewActiveView = OverviewViewKind.Tools;
         toolDefinition.Expanded = true;
+        toolDefinition.Highlighted = true;
+
+        // Allow the UI to render the tools tab before scrolling.
+        await Task.Delay(50);
+        await JS.InvokeVoidAsync("scrollToElement", toolDefinition.ElementId);
     }
 
     private bool TryGetToolCall(string id, [NotNullWhen(true)] out GenAIItemViewModel? itemVM, [NotNullWhen(true)] out ToolCallRequestPart? toolCallRequestPart)
@@ -154,6 +172,10 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
     {
         var selectedIndex = Content.SelectedTreeItem?.Data as int?;
         SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
+        if (SelectedItem != null)
+        {
+            ResetToolStates();
+        }
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -167,6 +189,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
             || o is not OverviewViewKind viewKind)
         {
             return;
+        }
+
+        if (viewKind != OverviewViewKind.Tools)
+        {
+            ResetToolStates();
         }
 
         OverviewActiveView = viewKind;
